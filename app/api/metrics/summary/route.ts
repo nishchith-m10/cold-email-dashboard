@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
 import { fetchSheetData, calculateSheetStats } from '@/lib/google-sheets';
+import { API_HEADERS } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
           source: 'google_sheets',
           campaign: stats.campaignName,
           total_contacts: stats.totalContacts,
-        }, { headers: { 'content-type': 'application/json' } });
+        }, { headers: API_HEADERS });
       }
     } catch (error) {
       console.error('Google Sheets fetch error:', error);
@@ -57,7 +58,7 @@ export async function GET(req: NextRequest) {
         prev_reply_rate_pct: 0,
         start_date: new Date().toISOString().slice(0, 10),
         end_date: new Date().toISOString().slice(0, 10),
-      }, { headers: { 'content-type': 'application/json' } });
+      }, { headers: API_HEADERS });
     }
   }
 
@@ -235,7 +236,7 @@ export async function GET(req: NextRequest) {
       // Period info
       start_date: startDate,
       end_date: endDate,
-    }, { headers: { 'content-type': 'application/json' } });
+    }, { headers: API_HEADERS });
   } catch (error) {
     console.error('Summary API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

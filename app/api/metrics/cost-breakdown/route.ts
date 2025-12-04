@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
+import { API_HEADERS } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
       daily: [],
       start_date: new Date().toISOString().slice(0, 10),
       end_date: new Date().toISOString().slice(0, 10),
-    }, { headers: { 'content-type': 'application/json' } });
+    }, { headers: API_HEADERS });
   }
 
   const { searchParams } = new URL(req.url);
@@ -153,7 +154,7 @@ export async function GET(req: NextRequest) {
       daily: dailyTimeseries,
       start_date: startDate,
       end_date: endDate,
-    }, { headers: { 'content-type': 'application/json' } });
+    }, { headers: API_HEADERS });
   } catch (error) {
     console.error('Cost breakdown API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

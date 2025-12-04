@@ -36,9 +36,14 @@ import type {
   GoogleSheetsStats,
 } from '@/lib/dashboard-types';
 
-// Optimized fetcher with abort controller support
+// Optimized fetcher that bypasses browser cache
 const fetcher = async (url: string) => {
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    cache: 'no-store', // Bypass browser cache - ensures fresh data
+    headers: {
+      'Cache-Control': 'no-cache',
+    },
+  });
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }

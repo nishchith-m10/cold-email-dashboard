@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 /**
  * Admin API for managing LLM usage records
@@ -27,6 +27,14 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
+  // Check if Supabase is configured
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { error: 'Database not configured' },
+      { status: 500 }
+    );
+  }
+
   try {
     const body = await req.json();
     const { before, after, between, dryRun = false } = body;
@@ -40,7 +48,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Build the query
-    let query = supabase.from('llm_usage').select('id', { count: 'exact' });
+    let query = supabaseAdmin.from('llm_usage').select('id', { count: 'exact' });
 
     if (before) {
       // Validate date format
@@ -106,7 +114,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Actually delete the records
-    let deleteQuery = supabase.from('llm_usage').delete();
+    let deleteQuery = supabaseAdmin.from('llm_usage').delete();
 
     if (before) {
       deleteQuery = deleteQuery.lt('created_at', before);
@@ -157,13 +165,21 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // Check if Supabase is configured
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { error: 'Database not configured' },
+      { status: 500 }
+    );
+  }
+
   const { searchParams } = new URL(req.url);
   const limit = parseInt(searchParams.get('limit') || '50');
   const before = searchParams.get('before');
   const after = searchParams.get('after');
 
   try {
-    let query = supabase
+    let query = supabaseAdmin
       .from('llm_usage')
       .select('id, provider, model, cost_usd, created_at')
       .order('created_at', { ascending: false })
