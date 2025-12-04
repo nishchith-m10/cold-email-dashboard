@@ -145,12 +145,12 @@ DASH_WEBHOOK_TOKEN=6de5a8d03ad6348f4110782372a82f1bb7c6ef43a8ce8810bf0459e73abae
 ```
 
 ### n8n Workflows
-All workflows use this public URL:
+All workflows use this production URL:
 ```
-https://tracee-tabernacular-brandee.ngrok-free.dev
+https://cold-email-dashboard.vercel.app
 ```
 
-**⚠️ Note:** This ngrok URL is temporary. Deploy to production for a permanent URL.
+✅ **Deployed to Vercel!** This is a permanent URL.
 
 ---
 
@@ -240,10 +240,10 @@ cold-email-dashboard-starter/
 - Click tracking with UTM parameters
 - Engagement metrics
 
-### Phase 6: Production Deployment 🌐
-- Deploy to Vercel/Netlify
-- Permanent URL (replace ngrok)
-- Domain configuration
+### Phase 6: Production Deployment 🌐 ✅
+- ✅ Deployed to Vercel
+- ✅ Permanent URL: `https://cold-email-dashboard.vercel.app`
+- (Optional) Custom domain configuration
 - (Optional) Add Clerk authentication
 
 ### Phase 7: Advanced Analytics 📈
@@ -281,8 +281,8 @@ You've built a **one-of-a-kind system** that:
 ## 🔍 Troubleshooting
 
 ### Dashboard not showing costs?
-1. Check ngrok is running and URL is correct
-2. Verify workflow sent data: `curl https://your-ngrok-url.ngrok-free.dev/api/cost-events`
+1. Verify the Vercel deployment is running: `https://cold-email-dashboard.vercel.app`
+2. Verify workflow sent data: `curl https://cold-email-dashboard.vercel.app/api/cost-events`
 3. Check Supabase table: `llm_usage` should have rows
 4. Hard refresh dashboard (Cmd+Shift+R)
 

@@ -1178,7 +1178,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://tracee-tabernacular-brandee.ngrok-free.dev/api/cost-events",
+        "url": "https://cold-email-dashboard.vercel.app/api/cost-events",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
