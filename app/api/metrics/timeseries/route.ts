@@ -61,11 +61,41 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // For click_rate, we need to query email_events
+    let clicksByDay = new Map<string, number>();
+    if (metric === 'click_rate' || metric === 'clicks') {
+      let clickQuery = supabaseAdmin
+        .from('email_events')
+        .select('created_at')
+        .eq('workspace_id', workspaceId)
+        .eq('event_type', 'clicked')
+        .gte('created_at', `${startDate}T00:00:00Z`)
+        .lte('created_at', `${endDate}T23:59:59Z`);
+
+      if (campaign) {
+        clickQuery = clickQuery.eq('campaign_name', campaign);
+      }
+
+      const { data: clickData } = await clickQuery;
+      
+      for (const row of clickData || []) {
+        const day = row.created_at.slice(0, 10);
+        clicksByDay.set(day, (clicksByDay.get(day) || 0) + 1);
+      }
+    }
+
     // Transform based on requested metric
     const points = Array.from(dayMap.entries()).map(([day, stats]) => {
       let value: number;
 
       switch (metric) {
+        case 'click_rate':
+          const clicks = clicksByDay.get(day) || 0;
+          value = stats.sends > 0 ? Number(((clicks / stats.sends) * 100).toFixed(2)) : 0;
+          break;
+        case 'clicks':
+          value = clicksByDay.get(day) || 0;
+          break;
         case 'reply_rate':
           value = stats.sends > 0 ? Number(((stats.replies / stats.sends) * 100).toFixed(2)) : 0;
           break;

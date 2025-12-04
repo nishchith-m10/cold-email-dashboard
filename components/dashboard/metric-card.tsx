@@ -12,7 +12,8 @@ import {
   MessageSquareReply,
   UserMinus,
   DollarSign,
-  AlertTriangle
+  AlertTriangle,
+  MousePointerClick
 } from 'lucide-react';
 
 interface MetricCardProps {
@@ -21,10 +22,11 @@ interface MetricCardProps {
   change?: number;
   changeLabel?: string;
   format?: 'number' | 'currency' | 'percent';
-  icon?: 'sends' | 'replies' | 'opt-outs' | 'cost' | 'bounces';
+  icon?: 'sends' | 'replies' | 'opt-outs' | 'cost' | 'bounces' | 'clicks';
   loading?: boolean;
   className?: string;
   delay?: number;
+  tooltip?: string;
 }
 
 const iconMap = {
@@ -33,6 +35,7 @@ const iconMap = {
   'opt-outs': UserMinus,
   'cost': DollarSign,
   'bounces': AlertTriangle,
+  'clicks': MousePointerClick,
 };
 
 const iconColorMap = {
@@ -41,6 +44,7 @@ const iconColorMap = {
   'opt-outs': 'text-accent-danger bg-accent-danger/10',
   'cost': 'text-accent-purple bg-accent-purple/10',
   'bounces': 'text-accent-warning bg-accent-warning/10',
+  'clicks': 'text-emerald-500 bg-emerald-500/10',
 };
 
 export function MetricCard({
@@ -68,7 +72,7 @@ export function MetricCard({
     }
   })();
 
-  const isPositiveGood = icon === 'replies' || icon === 'sends';
+  const isPositiveGood = icon === 'replies' || icon === 'sends' || icon === 'clicks';
   const trendIsPositive = change !== undefined && change > 0;
   const trendIsNegative = change !== undefined && change < 0;
   
