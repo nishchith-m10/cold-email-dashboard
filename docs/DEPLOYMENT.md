@@ -141,15 +141,12 @@ You can also add a custom domain in Vercel Dashboard → Settings → Domains.
 
 **Update the webhook URL in your n8n workflows:**
 
-Replace:
+The n8n workflows have been updated with:
 ```
-https://tracee-tabernacular-brandee.ngrok-free.dev/api/cost-events
+https://cold-email-dashboard.vercel.app/api/cost-events
 ```
 
-With:
-```
-https://your-project-name.vercel.app/api/cost-events
-```
+✅ **Already configured!**
 
 **Files to update:**
 - `cold-email-system/Email Preparation.json`
