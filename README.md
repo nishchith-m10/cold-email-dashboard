@@ -2,7 +2,13 @@
 
 A beautiful, real-time analytics dashboard for tracking your n8n cold email campaigns. Built with Next.js 14, Tailwind CSS, Supabase, and Recharts.
 
-![Dashboard Preview](./docs/preview.png)
+## Dashboard Preview
+
+**Overview Page** - Real-time campaign metrics, sequence breakdown, and efficiency metrics
+![Overview Dashboard](./docs/overview.png)
+
+**Analytics Page** - Deep dive into LLM costs, engagement metrics, and detailed analytics
+![Analytics Dashboard](./docs/analytics.png)
 
 ## Features
 
