@@ -5,10 +5,10 @@ A beautiful, real-time analytics dashboard for tracking your n8n cold email camp
 ## Dashboard Preview
 
 **Overview Page** - Real-time campaign metrics, sequence breakdown, and efficiency metrics
-![Overview Dashboard](https://raw.githubusercontent.com/nishchith-m1015/cold-email-dashboard/main/docs/overview.png)
+![Overview Dashboard](docs/overview.png)
 
 **Analytics Page** - Deep dive into LLM costs, engagement metrics, and detailed analytics
-![Analytics Dashboard](https://raw.githubusercontent.com/nishchith-m1015/cold-email-dashboard/main/docs/analytics.png)
+![Analytics Dashboard](docs/analytics.png)
 
 ## Features
 
