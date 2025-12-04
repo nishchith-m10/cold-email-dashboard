@@ -53,6 +53,7 @@ export default function DashboardPage() {
   const { summary, isLoading: summaryLoading } = useMetricsSummary(startDate, endDate, selectedCampaign);
   const { data: sendsData, isLoading: sendsLoading } = useTimeSeries('sends', startDate, endDate, selectedCampaign);
   const { data: replyRateData, isLoading: replyRateLoading } = useTimeSeries('reply_rate', startDate, endDate, selectedCampaign);
+  const { data: clickRateData, isLoading: clickRateLoading } = useTimeSeries('click_rate', startDate, endDate, selectedCampaign);
   const { campaigns: campaignList, isLoading: campaignsListLoading } = useCampaigns();
   const { campaigns: campaignStats, isLoading: campaignStatsLoading } = useCampaignStats(startDate, endDate);
   const { data: costData, isLoading: costLoading } = useCostBreakdown(startDate, endDate, selectedCampaign);
@@ -126,7 +127,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard
           title="Total Sends"
           value={summary?.sends ?? 0}
@@ -136,6 +137,15 @@ export default function DashboardPage() {
           delay={0}
         />
         <MetricCard
+          title="Click Rate"
+          value={summary?.click_rate_pct ?? 0}
+          format="percent"
+          icon="clicks"
+          loading={summaryLoading}
+          delay={1}
+          tooltip="Percentage of emails where a link was clicked (95% accurate)"
+        />
+        <MetricCard
           title="Reply Rate"
           value={summary?.reply_rate_pct ?? 0}
           change={summary?.reply_rate_change_pp}
@@ -143,7 +153,7 @@ export default function DashboardPage() {
           format="percent"
           icon="replies"
           loading={summaryLoading}
-          delay={1}
+          delay={2}
         />
         <MetricCard
           title="Opt-Out Rate"
@@ -153,7 +163,7 @@ export default function DashboardPage() {
           format="percent"
           icon="opt-outs"
           loading={summaryLoading}
-          delay={2}
+          delay={3}
         />
         <MetricCard
           title="LLM Cost"
@@ -161,7 +171,7 @@ export default function DashboardPage() {
           format="currency"
           icon="cost"
           loading={summaryLoading}
-          delay={3}
+          delay={4}
         />
       </div>
 
@@ -220,17 +230,29 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Reply Rate Chart */}
-      <TimeSeriesChart
-        title="Reply Rate Over Time"
-        subtitle={dateRangeDisplay}
-        data={replyRateData}
-        color={CHART_COLORS.replies}
-        loading={replyRateLoading}
-        type="line"
-        valueFormatter={(v) => `${v}%`}
-        height={240}
-      />
+      {/* Engagement Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TimeSeriesChart
+          title="Click Rate Over Time"
+          subtitle={dateRangeDisplay}
+          data={clickRateData}
+          color="#10b981"
+          loading={clickRateLoading}
+          type="line"
+          valueFormatter={(v) => `${v}%`}
+          height={240}
+        />
+        <TimeSeriesChart
+          title="Reply Rate Over Time"
+          subtitle={dateRangeDisplay}
+          data={replyRateData}
+          color={CHART_COLORS.replies}
+          loading={replyRateLoading}
+          type="line"
+          valueFormatter={(v) => `${v}%`}
+          height={240}
+        />
+      </div>
 
       {/* Campaign Table */}
       <CampaignTable
