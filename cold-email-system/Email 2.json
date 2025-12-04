@@ -1009,7 +1009,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://tracee-tabernacular-brandee.ngrok-free.dev/api/events",
+        "url": "https://cold-email-dashboard.vercel.app/api/events",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
