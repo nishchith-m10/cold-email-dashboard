@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
 import { fetchSheetData, calculateSheetStats } from '@/lib/google-sheets';
+import { API_HEADERS } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,7 +100,7 @@ export async function GET(req: NextRequest) {
             end: endDate,
           },
           source: 'google_sheets',
-        } as StepBreakdownResponse);
+        } as StepBreakdownResponse, { headers: API_HEADERS });
       }
     } catch (error) {
       console.error('Google Sheets fetch error:', error);
@@ -113,7 +114,7 @@ export async function GET(req: NextRequest) {
         totalSends: 0,
         dateRange: { start: startDate, end: endDate },
         source: 'none',
-      } as StepBreakdownResponse);
+      } as StepBreakdownResponse, { headers: API_HEADERS });
     }
   }
 
@@ -137,7 +138,7 @@ export async function GET(req: NextRequest) {
 
     if (eventsError) {
       console.error('Step breakdown query error:', eventsError);
-      return NextResponse.json({ error: eventsError.message }, { status: 500 });
+      return NextResponse.json({ error: eventsError.message }, { status: 500, headers: API_HEADERS });
     }
 
     // Aggregate by step
@@ -195,10 +196,10 @@ export async function GET(req: NextRequest) {
         end: endDate,
       },
       source: 'supabase',
-    } as StepBreakdownResponse);
+    } as StepBreakdownResponse, { headers: API_HEADERS });
   } catch (error) {
     console.error('Step breakdown API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500, headers: API_HEADERS });
   }
 }
 

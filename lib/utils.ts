@@ -79,3 +79,11 @@ export function getTrendIndicator(change: number): { icon: '↑' | '↓' | '→'
   return { icon: '→', color: 'text-text-secondary' };
 }
 
+// API response headers to prevent browser caching
+export const API_HEADERS = {
+  'Content-Type': 'application/json',
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+};
+
