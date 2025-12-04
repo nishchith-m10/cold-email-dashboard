@@ -6,13 +6,13 @@ A beautiful, real-time analytics dashboard for tracking your n8n cold email camp
 
 ## Features
 
-- 📊 **Real-time Metrics** - Track sends, replies, opt-outs, and bounce rates
-- 💰 **Cost Analytics** - Monitor LLM costs by provider and model
-- 📈 **Time Series Charts** - Visualize trends over customizable date ranges
-- 🏢 **Multi-Campaign Support** - Filter and compare campaigns
-- 🤖 **AI Insights** - Ask natural language questions about your data
-- ⌨️ **Command Palette** - Quick navigation with Cmd+K
-- 🌙 **Beautiful Dark Theme** - Modern, eye-friendly UI
+-  **Real-time Metrics** - Track sends, replies, opt-outs, and bounce rates
+-  **Cost Analytics** - Monitor LLM costs by provider and model
+-  **Time Series Charts** - Visualize trends over customizable date ranges
+-  **Multi-Campaign Support** - Filter and compare campaigns
+-  **AI Insights** - Ask natural language questions about your data
+-  **Command Palette** - Quick navigation with Cmd+K
+-  **Beautiful Dark Theme** - Modern, eye-friendly UI
 
 ## Quick Start
 
