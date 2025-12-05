@@ -1,11 +1,14 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { DEFAULT_WORKSPACE_ID } from './supabase';
 
 // ============================================
 // WORKSPACE TYPES
 // ============================================
+
+export type WorkspaceRole = 'owner' | 'admin' | 'member' | 'viewer';
 
 export interface Workspace {
   id: string;
@@ -13,6 +16,10 @@ export interface Workspace {
   slug: string;
   plan?: 'free' | 'starter' | 'pro' | 'enterprise';
   settings?: Record<string, unknown>;
+  role?: WorkspaceRole;
+  canRead?: boolean;
+  canWrite?: boolean;
+  canManage?: boolean;
 }
 
 export interface WorkspaceContextValue {
@@ -25,13 +32,21 @@ export interface WorkspaceContextValue {
   
   // Actions
   setWorkspace: (workspace: Workspace) => void;
-  setWorkspaces: (workspaces: Workspace[]) => void;
+  switchWorkspace: (workspaceId: string) => void;
+  refreshWorkspaces: () => Promise<void>;
+  createWorkspace: (name: string) => Promise<{ success: boolean; error?: string }>;
   
   // Loading state
   isLoading: boolean;
   
+  // User info
+  isSuperAdmin: boolean;
+  userRole: WorkspaceRole | null;
+  
   // Convenience
   isDefaultWorkspace: boolean;
+  canWrite: boolean;
+  canManage: boolean;
 }
 
 // ============================================
@@ -43,6 +58,10 @@ const defaultWorkspace: Workspace = {
   name: 'Default Workspace',
   slug: 'default',
   plan: 'free',
+  role: 'owner',
+  canRead: true,
+  canWrite: true,
+  canManage: true,
 };
 
 // ============================================
@@ -64,32 +83,68 @@ export function WorkspaceProvider({
   children, 
   initialWorkspace = defaultWorkspace 
 }: WorkspaceProviderProps) {
+  const { user, isLoaded: isUserLoaded } = useUser();
   const [workspace, setWorkspaceState] = useState<Workspace>(initialWorkspace);
   const [workspaces, setWorkspacesState] = useState<Workspace[]>([initialWorkspace]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
-  // Load workspace from localStorage on mount
-  useEffect(() => {
-    const savedWorkspaceId = localStorage.getItem('current_workspace_id');
-    const savedWorkspaces = localStorage.getItem('user_workspaces');
+  // Fetch workspaces from API
+  const fetchWorkspaces = useCallback(async () => {
+    if (!isUserLoaded) return;
     
-    if (savedWorkspaces) {
-      try {
-        const parsed = JSON.parse(savedWorkspaces) as Workspace[];
-        setWorkspacesState(parsed);
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/workspaces');
+      if (!response.ok) throw new Error('Failed to fetch workspaces');
+      
+      const data = await response.json();
+      
+      if (data.workspaces && data.workspaces.length > 0) {
+        setWorkspacesState(data.workspaces);
+        localStorage.setItem('user_workspaces', JSON.stringify(data.workspaces));
         
-        // Find and set the saved workspace
-        if (savedWorkspaceId) {
-          const found = parsed.find(w => w.id === savedWorkspaceId);
-          if (found) {
-            setWorkspaceState(found);
-          }
+        // Restore saved workspace or use first one
+        const savedWorkspaceId = localStorage.getItem('current_workspace_id');
+        const savedWorkspace = savedWorkspaceId 
+          ? data.workspaces.find((w: Workspace) => w.id === savedWorkspaceId)
+          : null;
+        
+        if (savedWorkspace) {
+          setWorkspaceState(savedWorkspace);
+        } else if (data.current) {
+          setWorkspaceState(data.current);
+          localStorage.setItem('current_workspace_id', data.current.id);
+        } else {
+          setWorkspaceState(data.workspaces[0]);
+          localStorage.setItem('current_workspace_id', data.workspaces[0].id);
         }
-      } catch (e) {
-        console.error('Failed to parse saved workspaces:', e);
+        
+        setIsSuperAdmin(data.isSuperAdmin || false);
       }
+    } catch (error) {
+      console.error('Failed to fetch workspaces:', error);
+      // Fallback to localStorage
+      const savedWorkspaces = localStorage.getItem('user_workspaces');
+      if (savedWorkspaces) {
+        try {
+          const parsed = JSON.parse(savedWorkspaces);
+          setWorkspacesState(parsed);
+        } catch {
+          // Use default
+        }
+      }
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [isUserLoaded]);
+
+  // Load workspaces when user changes
+  useEffect(() => {
+    if (isUserLoaded) {
+      fetchWorkspaces();
+    }
+  }, [isUserLoaded, user?.id, fetchWorkspaces]);
 
   // Set current workspace
   const setWorkspace = useCallback((ws: Workspace) => {
@@ -97,16 +152,48 @@ export function WorkspaceProvider({
     localStorage.setItem('current_workspace_id', ws.id);
   }, []);
 
-  // Set available workspaces (called after auth)
-  const setWorkspaces = useCallback((wsList: Workspace[]) => {
-    setWorkspacesState(wsList);
-    localStorage.setItem('user_workspaces', JSON.stringify(wsList));
-    
-    // If current workspace is not in the list, switch to first one
-    if (wsList.length > 0 && !wsList.find(w => w.id === workspace.id)) {
-      setWorkspace(wsList[0]);
+  // Switch workspace by ID
+  const switchWorkspace = useCallback((wsId: string) => {
+    const found = workspaces.find(w => w.id === wsId);
+    if (found) {
+      setWorkspace(found);
     }
-  }, [workspace.id, setWorkspace]);
+  }, [workspaces, setWorkspace]);
+
+  // Refresh workspaces list
+  const refreshWorkspaces = useCallback(async () => {
+    await fetchWorkspaces();
+  }, [fetchWorkspaces]);
+
+  // Create new workspace
+  const createWorkspace = useCallback(async (name: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await fetch('/api/workspaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Failed to create workspace' };
+      }
+
+      // Refresh workspaces list
+      await fetchWorkspaces();
+
+      // Switch to new workspace
+      if (data.workspace) {
+        setWorkspace(data.workspace);
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Create workspace error:', error);
+      return { success: false, error: 'Failed to create workspace' };
+    }
+  }, [fetchWorkspaces, setWorkspace]);
 
   // Memoized context value
   const value = useMemo<WorkspaceContextValue>(() => ({
@@ -114,10 +201,25 @@ export function WorkspaceProvider({
     workspaceId: workspace.id,
     workspaces,
     setWorkspace,
-    setWorkspaces,
+    switchWorkspace,
+    refreshWorkspaces,
+    createWorkspace,
     isLoading,
+    isSuperAdmin,
+    userRole: workspace.role || null,
     isDefaultWorkspace: workspace.id === DEFAULT_WORKSPACE_ID,
-  }), [workspace, workspaces, setWorkspace, setWorkspaces, isLoading]);
+    canWrite: workspace.canWrite ?? true,
+    canManage: workspace.canManage ?? false,
+  }), [
+    workspace, 
+    workspaces, 
+    setWorkspace, 
+    switchWorkspace, 
+    refreshWorkspaces, 
+    createWorkspace, 
+    isLoading, 
+    isSuperAdmin
+  ]);
 
   return (
     <WorkspaceContext.Provider value={value}>
