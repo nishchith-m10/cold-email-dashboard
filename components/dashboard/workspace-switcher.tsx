@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, ChevronDown, Building2, Plus } from 'lucide-react';
+import { Check, ChevronDown, Building2, Plus, Shield, Crown, Users, Eye } from 'lucide-react';
 import * as Select from '@radix-ui/react-select';
 import { cn } from '@/lib/utils';
-import { useWorkspace, type Workspace } from '@/lib/workspace-context';
+import { useWorkspace, type Workspace, type WorkspaceRole } from '@/lib/workspace-context';
 
 interface WorkspaceSwitcherProps {
   className?: string;
@@ -12,15 +12,36 @@ interface WorkspaceSwitcherProps {
   onAddWorkspace?: () => void;
 }
 
+// Role badge colors and icons
+const ROLE_CONFIG: Record<WorkspaceRole, { icon: typeof Shield; color: string; label: string }> = {
+  owner: { icon: Crown, color: 'text-yellow-500', label: 'Owner' },
+  admin: { icon: Shield, color: 'text-blue-500', label: 'Admin' },
+  member: { icon: Users, color: 'text-green-500', label: 'Member' },
+  viewer: { icon: Eye, color: 'text-gray-500', label: 'Viewer' },
+};
+
+function RoleBadge({ role }: { role?: WorkspaceRole }) {
+  if (!role) return null;
+  const config = ROLE_CONFIG[role];
+  const Icon = config.icon;
+  
+  return (
+    <span className={cn('inline-flex items-center gap-1 text-xs', config.color)}>
+      <Icon className="h-3 w-3" />
+      {config.label}
+    </span>
+  );
+}
+
 export function WorkspaceSwitcher({
   className,
   showAddButton = false,
   onAddWorkspace,
 }: WorkspaceSwitcherProps) {
-  const { workspace, workspaces, setWorkspace, isLoading } = useWorkspace();
+  const { workspace, workspaces, switchWorkspace, isLoading, isSuperAdmin, canManage } = useWorkspace();
   const [isOpen, setIsOpen] = useState(false);
 
-  // If only one workspace, don't show the switcher
+  // If only one workspace, just show the name with role
   if (workspaces.length <= 1 && !showAddButton) {
     return (
       <div className={cn(
@@ -29,6 +50,11 @@ export function WorkspaceSwitcher({
       )}>
         <Building2 className="h-4 w-4 text-text-secondary" />
         <span className="truncate max-w-[150px]">{workspace.name}</span>
+        {isSuperAdmin && (
+          <span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">
+            Admin
+          </span>
+        )}
       </div>
     );
   }
@@ -38,11 +64,7 @@ export function WorkspaceSwitcher({
       onAddWorkspace?.();
       return;
     }
-    
-    const selected = workspaces.find(w => w.id === workspaceId);
-    if (selected) {
-      setWorkspace(selected);
-    }
+    switchWorkspace(workspaceId);
   };
 
   return (
@@ -80,7 +102,7 @@ export function WorkspaceSwitcher({
       <Select.Portal>
         <Select.Content
           className={cn(
-            'z-50 min-w-[200px] overflow-hidden rounded-xl',
+            'z-50 min-w-[220px] overflow-hidden rounded-xl',
             'bg-surface border border-border shadow-2xl',
             'animate-slide-down'
           )}
@@ -88,6 +110,13 @@ export function WorkspaceSwitcher({
           sideOffset={8}
         >
           <Select.Viewport className="p-1">
+            {isSuperAdmin && (
+              <div className="px-3 py-2 text-xs text-yellow-400 bg-yellow-500/10 rounded-lg mb-1">
+                <Shield className="h-3 w-3 inline mr-1" />
+                Super Admin - All Workspaces
+              </div>
+            )}
+            
             {workspaces.map(ws => (
               <Select.Item
                 key={ws.id}
@@ -102,18 +131,19 @@ export function WorkspaceSwitcher({
                 <Select.ItemIndicator className="absolute left-3">
                   <Check className="h-4 w-4" />
                 </Select.ItemIndicator>
-                <div className="pl-6 flex flex-col">
+                <div className="pl-6 flex flex-col gap-0.5 w-full">
                   <span className="font-medium truncate">{ws.name}</span>
-                  {ws.plan && (
+                  <div className="flex items-center justify-between gap-2">
                     <span className="text-xs text-text-secondary capitalize">
-                      {ws.plan} plan
+                      {ws.plan || 'free'} plan
                     </span>
-                  )}
+                    <RoleBadge role={ws.role} />
+                  </div>
                 </div>
               </Select.Item>
             ))}
 
-            {showAddButton && (
+            {(showAddButton || canManage || isSuperAdmin) && (
               <>
                 <Select.Separator className="h-px bg-border my-1" />
                 <Select.Item
@@ -125,7 +155,7 @@ export function WorkspaceSwitcher({
                   )}
                 >
                   <Plus className="h-4 w-4 ml-6" />
-                  <span>Add workspace</span>
+                  <span>Create workspace</span>
                 </Select.Item>
               </>
             )}
