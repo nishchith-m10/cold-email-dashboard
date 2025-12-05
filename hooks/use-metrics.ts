@@ -217,3 +217,45 @@ export function useStepBreakdown(start: string, end: string, campaign?: string) 
     mutate,
   };
 }
+
+// Sender stats types
+export interface SenderStats {
+  sender_email: string;
+  sends: number;
+  replies: number;
+  opt_outs: number;
+  opens: number;
+  clicks: number;
+  reply_rate: number;
+  opt_out_rate: number;
+}
+
+export interface SenderStatsData {
+  senders: SenderStats[];
+  total_senders: number;
+  start_date: string;
+  end_date: string;
+}
+
+// Hook to fetch per-sender statistics
+export function useSenderStats(start: string, end: string, campaign?: string) {
+  const params = new URLSearchParams({ start, end });
+  if (campaign) params.set('campaign', campaign);
+
+  const { data, error, isLoading, mutate } = useSWR<SenderStatsData>(
+    `/api/metrics/by-sender?${params.toString()}`,
+    fetcher,
+    { 
+      ...defaultConfig,
+      refreshInterval: 60000,
+    }
+  );
+
+  return {
+    senders: data?.senders || [],
+    totalSenders: data?.total_senders || 0,
+    isLoading,
+    isError: error,
+    mutate,
+  };
+}

@@ -1,9 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
+import { z } from 'zod';
+import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_WEBHOOK } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
+// Zod schema for event validation
+const eventSchema = z.object({
+  contact_email: z.string().email('Invalid email format'),
+  campaign: z.string().max(200).optional(),
+  step: z.number().int().min(1).max(10).optional(),
+  event_type: z.enum(['sent', 'delivered', 'bounced', 'replied', 'opt_out', 'opened', 'clicked']),
+  provider: z.string().max(50).optional(),
+  provider_message_id: z.string().max(200).optional(),
+  event_ts: z.string().datetime().optional(),
+  subject: z.string().max(500).optional(),
+  body: z.string().max(50000).optional(),
+  workspace_id: z.string().max(100).optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientId = getClientId(req);
+  const rateLimit = checkRateLimit(`events:${clientId}`, RATE_LIMIT_WEBHOOK);
+  
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded' },
+      { status: 429, headers: rateLimitHeaders(rateLimit) }
+    );
+  }
+
   // Check if Supabase is configured
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
@@ -15,12 +43,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Parse request body
+  // Parse and validate request body
   let body;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const validation = eventSchema.safeParse(body);
+  if (!validation.success) {
+    return NextResponse.json(
+      { 
+        error: 'Validation failed', 
+        details: validation.error.issues.map(i => ({
+          field: i.path.join('.'),
+          message: i.message,
+        })),
+      },
+      { status: 400 }
+    );
   }
 
   const {
@@ -34,16 +76,8 @@ export async function POST(req: NextRequest) {
     subject,
     body: email_body,
     workspace_id,
-  } = body;
-
-  // Validate required fields
-  if (!contact_email || !event_type) {
-    return NextResponse.json({ error: 'Missing required fields: contact_email, event_type' }, { status: 400 });
-  }
-
-  if (!['sent', 'delivered', 'bounced', 'replied', 'opt_out', 'opened', 'clicked'].includes(event_type)) {
-    return NextResponse.json({ error: 'Invalid event_type' }, { status: 400 });
-  }
+    metadata,
+  } = validation.data;
 
   const workspaceId = workspace_id || DEFAULT_WORKSPACE_ID;
   const campaignName = campaign || 'Default Campaign';
@@ -106,19 +140,20 @@ export async function POST(req: NextRequest) {
         provider: provider || null,
         provider_message_id: provider_message_id || null,
         event_key: eventKey,
+        metadata: metadata || null,
       });
 
     if (eventError) {
       // Check if duplicate (idempotent)
       if (eventError.message?.toLowerCase().includes('duplicate') || 
           eventError.code === '23505') {
-        return NextResponse.json({ ok: true, deduped: true });
+        return NextResponse.json({ ok: true, deduped: true }, { headers: rateLimitHeaders(rateLimit) });
       }
       console.error('Event insert error:', eventError);
       return NextResponse.json({ error: eventError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true }, { headers: rateLimitHeaders(rateLimit) });
   } catch (error) {
     console.error('Events API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -129,4 +164,3 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({ status: 'ok', endpoint: 'events' });
 }
-
