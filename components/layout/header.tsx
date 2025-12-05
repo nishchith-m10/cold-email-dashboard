@@ -220,7 +220,7 @@ export function Header({ onCommandOpen }: HeaderProps) {
         <div className="flex items-center justify-between h-16">
           {/* Logo & Nav */}
           <div className="flex items-center gap-8">
-            {/* Logo */}
+            {/* Logo - Always visible */}
             <Link href="/" className="flex items-center gap-3 group">
               <div className="relative">
                 <div className="flex items-center justify-center h-9 w-9 rounded-xl bg-gradient-to-br from-accent-primary to-accent-purple shadow-lg shadow-accent-primary/20">
@@ -238,300 +238,304 @@ export function Header({ onCommandOpen }: HeaderProps) {
               </div>
             </Link>
 
-            {/* Workspace Switcher */}
-            <div className="hidden lg:block border-l border-border pl-6 ml-2">
-              <WorkspaceSwitcher />
-            </div>
+            {/* Dashboard elements - Only visible when signed in */}
+            <SignedIn>
+              {/* Workspace Switcher */}
+              <div className="hidden lg:block border-l border-border pl-6 ml-2">
+                <WorkspaceSwitcher />
+              </div>
 
-            {/* Navigation Tabs */}
-            <nav className="hidden md:flex items-center gap-1 bg-surface-elevated rounded-lg p-1">
-              <Link href="/">
-                <button
-                  onClick={() => setActiveTab('overview')}
-                  className={cn(
-                    'px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
-                    activeTab === 'overview'
-                      ? 'bg-surface text-text-primary shadow-sm'
-                      : 'text-text-secondary hover:text-text-primary'
-                  )}
-                >
-                  Overview
-                </button>
-              </Link>
-              <Link href="/analytics">
-                <button
-                  onClick={() => setActiveTab('analytics')}
-                  className={cn(
-                    'px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2',
-                    activeTab === 'analytics'
-                      ? 'bg-surface text-text-primary shadow-sm'
-                      : 'text-text-secondary hover:text-text-primary'
-                  )}
-                >
-                  <BarChart3 className="h-4 w-4" />
-                  Analytics
-                </button>
-              </Link>
-            </nav>
+              {/* Navigation Tabs */}
+              <nav className="hidden md:flex items-center gap-1 bg-surface-elevated rounded-lg p-1">
+                <Link href="/">
+                  <button
+                    onClick={() => setActiveTab('overview')}
+                    className={cn(
+                      'px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
+                      activeTab === 'overview'
+                        ? 'bg-surface text-text-primary shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary'
+                    )}
+                  >
+                    Overview
+                  </button>
+                </Link>
+                <Link href="/analytics">
+                  <button
+                    onClick={() => setActiveTab('analytics')}
+                    className={cn(
+                      'px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2',
+                      activeTab === 'analytics'
+                        ? 'bg-surface text-text-primary shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary'
+                    )}
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    Analytics
+                  </button>
+                </Link>
+              </nav>
+            </SignedIn>
           </div>
 
           {/* Right side */}
           <div className="flex items-center gap-2">
-            {/* Search / Command */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onCommandOpen}
-              className="hidden sm:flex items-center gap-2 text-text-secondary hover:text-text-primary"
-            >
-              <Search className="h-4 w-4" />
-              <span className="text-xs">Search...</span>
-              <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-surface-elevated px-1.5 font-mono text-[10px] font-medium text-text-secondary">
-                <Command className="h-3 w-3" />K
-              </kbd>
-            </Button>
-
-            {/* Theme Toggle */}
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={toggleTheme}
-              className="relative"
-              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            >
-              {mounted && (
-                theme === 'dark' ? (
-                  <Sun className="h-5 w-5 text-text-secondary hover:text-accent-warning transition-colors" />
-                ) : (
-                  <Moon className="h-5 w-5 text-text-secondary hover:text-accent-primary transition-colors" />
-                )
-              )}
-            </Button>
-
-            {/* Notifications Dropdown */}
-            <div className="relative" ref={notificationsRef}>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="relative"
-                onClick={() => {
-                  setShowNotifications(!showNotifications);
-                  setShowSettings(false);
-                  
-                }}
+            {/* Dashboard controls - Only visible when signed in */}
+            <SignedIn>
+              {/* Search / Command */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCommandOpen}
+                className="hidden sm:flex items-center gap-2 text-text-secondary hover:text-text-primary"
               >
-              <Bell className="h-5 w-5 text-text-secondary" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-accent-danger rounded-full animate-pulse" />
-                )}
-            </Button>
+                <Search className="h-4 w-4" />
+                <span className="text-xs">Search...</span>
+                <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-surface-elevated px-1.5 font-mono text-[10px] font-medium text-text-secondary">
+                  <Command className="h-3 w-3" />K
+                </kbd>
+              </Button>
 
-              <AnimatePresence>
-                {showNotifications && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-border bg-surface shadow-2xl overflow-hidden z-50"
-                  >
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-elevated">
-                      <h3 className="text-sm font-semibold text-text-primary">Notifications</h3>
-                      {unreadCount > 0 && (
-                        <button 
-                          onClick={markAllAsRead}
-                          className="text-xs text-accent-primary hover:text-accent-primary/80 transition-colors"
-                        >
-                          Mark all read
-                        </button>
-                      )}
-                    </div>
-                    
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.length === 0 ? (
-                        <div className="px-4 py-8 text-center">
-                          <Bell className="h-8 w-8 mx-auto text-text-secondary mb-2 opacity-50" />
-                          <p className="text-sm text-text-secondary">No notifications</p>
-                        </div>
-                      ) : (
-                        notifications.map((notification) => {
-                          const Icon = notificationIcons[notification.type];
-                          return (
-                            <div
-                              key={notification.id}
-                              className={cn(
-                                'px-4 py-3 border-b border-border last:border-0 hover:bg-surface-elevated/50 transition-colors',
-                                !notification.read && 'bg-accent-primary/5'
-                              )}
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className={cn('mt-0.5', notificationColors[notification.type])}>
-                                  <Icon className="h-4 w-4" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <p className="text-sm font-medium text-text-primary truncate">
-                                      {notification.title}
-                                    </p>
-                                    <button
-                                      onClick={() => dismissNotification(notification.id)}
-                                      className="text-text-secondary hover:text-text-primary transition-colors"
-                                    >
-                                      <X className="h-3.5 w-3.5" />
-                                    </button>
-                                  </div>
-                                  <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">
-                                    {notification.message}
-                                  </p>
-                                  <p className="text-[10px] text-text-secondary mt-1">{notification.time}</p>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                    
-                    <div className="px-4 py-2 border-t border-border bg-surface-elevated">
-                      <button className="w-full text-xs text-center text-accent-primary hover:text-accent-primary/80 transition-colors py-1">
-                        View all notifications
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Settings Dropdown */}
-            <div className="relative" ref={settingsRef}>
+              {/* Theme Toggle */}
               <Button 
                 variant="ghost" 
                 size="icon"
-                onClick={() => {
-                  setShowSettings(!showSettings);
-                  setShowNotifications(false);
-                  
-                }}
+                onClick={toggleTheme}
+                className="relative"
+                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
               >
-                <Settings className={cn(
-                  'h-5 w-5 text-text-secondary transition-transform',
-                  showSettings && 'rotate-90'
-                )} />
-            </Button>
+                {mounted && (
+                  theme === 'dark' ? (
+                    <Sun className="h-5 w-5 text-text-secondary hover:text-accent-warning transition-colors" />
+                  ) : (
+                    <Moon className="h-5 w-5 text-text-secondary hover:text-accent-primary transition-colors" />
+                  )
+                )}
+              </Button>
 
-              <AnimatePresence>
-                {showSettings && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 w-64 rounded-xl border border-border bg-surface shadow-2xl overflow-hidden z-50"
-                  >
-                    <div className="px-4 py-3 border-b border-border bg-surface-elevated">
-                      <h3 className="text-sm font-semibold text-text-primary">Settings</h3>
-                    </div>
-                    
-                    <div className="p-2">
-                      {/* Theme setting */}
-                      <button
-                        onClick={toggleTheme}
-                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-surface-elevated transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Palette className="h-4 w-4 text-text-secondary" />
-                          <span className="text-sm text-text-primary">Theme</span>
-                        </div>
-                        <span className="text-xs text-text-secondary capitalize">{theme}</span>
-                      </button>
+              {/* Notifications Dropdown */}
+              <div className="relative" ref={notificationsRef}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="relative"
+                  onClick={() => {
+                    setShowNotifications(!showNotifications);
+                    setShowSettings(false);
+                  }}
+                >
+                  <Bell className="h-5 w-5 text-text-secondary" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-accent-danger rounded-full animate-pulse" />
+                  )}
+                </Button>
 
-                      {/* Timezone setting */}
-                      <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-surface-elevated transition-colors">
-                        <div className="flex items-center gap-3">
-                          <Globe className="h-4 w-4 text-text-secondary" />
-                          <span className="text-sm text-text-primary">Timezone</span>
-                        </div>
-                        <span className="text-xs text-text-secondary">UTC-8</span>
-                      </button>
-
-                      {/* Refresh interval */}
-                      <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-surface-elevated transition-colors">
-                        <div className="flex items-center gap-3">
-                          <Clock className="h-4 w-4 text-text-secondary" />
-                          <span className="text-sm text-text-primary">Auto-refresh</span>
-                        </div>
-                        <span className="text-xs text-text-secondary">30s</span>
-                      </button>
-
-                      <div className="my-2 border-t border-border" />
-
-                      {/* Cache Status */}
-                      <div className="px-3 py-2">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Database className="h-4 w-4 text-accent-purple" />
-                            <span className="text-sm font-medium text-text-primary">Data Cache</span>
-                          </div>
-                          <span className={cn(
-                            "text-xs px-2 py-0.5 rounded-full",
-                            cacheStats && cacheStats.validEntries > 0
-                              ? "bg-accent-success/10 text-accent-success"
-                              : "bg-surface-elevated text-text-secondary"
-                          )}>
-                            {cacheStats ? `${cacheStats.validEntries} cached` : '...'}
-                          </span>
-                        </div>
-                        {cacheStats && cacheStats.entries.length > 0 && (
-                          <div className="text-[10px] text-text-secondary mb-2 pl-6">
-                            {cacheStats.entries.slice(0, 2).map((e, i) => (
-                              <div key={i} className="flex justify-between">
-                                <span className="truncate max-w-[120px]">{e.key.replace('sheets_data_', '')}</span>
-                                <span>{Math.floor(e.expiresIn / 60)}m left</span>
-                              </div>
-                            ))}
-                          </div>
+                <AnimatePresence>
+                  {showNotifications && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-border bg-surface shadow-2xl overflow-hidden z-50"
+                    >
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-elevated">
+                        <h3 className="text-sm font-semibold text-text-primary">Notifications</h3>
+                        {unreadCount > 0 && (
+                          <button 
+                            onClick={markAllAsRead}
+                            className="text-xs text-accent-primary hover:text-accent-primary/80 transition-colors"
+                          >
+                            Mark all read
+                          </button>
                         )}
                       </div>
-
-                      {/* Clear Cache Button */}
-                      <button
-                        onClick={clearCache}
-                        disabled={isClearing}
-                        className={cn(
-                          "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors",
-                          clearStatus === 'success' 
-                            ? "bg-accent-success/10 text-accent-success"
-                            : clearStatus === 'error'
-                            ? "bg-accent-danger/10 text-accent-danger"
-                            : "hover:bg-surface-elevated"
+                      
+                      <div className="max-h-80 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="px-4 py-8 text-center">
+                            <Bell className="h-8 w-8 mx-auto text-text-secondary mb-2 opacity-50" />
+                            <p className="text-sm text-text-secondary">No notifications</p>
+                          </div>
+                        ) : (
+                          notifications.map((notification) => {
+                            const Icon = notificationIcons[notification.type];
+                            return (
+                              <div
+                                key={notification.id}
+                                className={cn(
+                                  'px-4 py-3 border-b border-border last:border-0 hover:bg-surface-elevated/50 transition-colors',
+                                  !notification.read && 'bg-accent-primary/5'
+                                )}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className={cn('mt-0.5', notificationColors[notification.type])}>
+                                    <Icon className="h-4 w-4" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <p className="text-sm font-medium text-text-primary truncate">
+                                        {notification.title}
+                                      </p>
+                                      <button
+                                        onClick={() => dismissNotification(notification.id)}
+                                        className="text-text-secondary hover:text-text-primary transition-colors"
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                    <p className="text-xs text-text-secondary mt-0.5 line-clamp-2">
+                                      {notification.message}
+                                    </p>
+                                    <p className="text-[10px] text-text-secondary mt-1">{notification.time}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
                         )}
-                      >
-                        <div className="flex items-center gap-3">
-                          {isClearing ? (
-                            <Loader2 className="h-4 w-4 text-text-secondary animate-spin" />
-                          ) : clearStatus === 'success' ? (
-                            <Check className="h-4 w-4 text-accent-success" />
-                          ) : (
-                            <Trash2 className="h-4 w-4 text-text-secondary" />
-                          )}
-                          <span className="text-sm text-text-primary">
-                            {isClearing ? 'Clearing...' : clearStatus === 'success' ? 'Cache cleared!' : 'Clear cache & refresh'}
-                          </span>
-                        </div>
-                      </button>
+                      </div>
+                      
+                      <div className="px-4 py-2 border-t border-border bg-surface-elevated">
+                        <button className="w-full text-xs text-center text-accent-primary hover:text-accent-primary/80 transition-colors py-1">
+                          View all notifications
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-                      <p className="px-3 py-1.5 text-[10px] text-text-secondary">
-                        Clears cached Google Sheets data to fetch fresh data
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+              {/* Settings Dropdown */}
+              <div className="relative" ref={settingsRef}>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => {
+                    setShowSettings(!showSettings);
+                    setShowNotifications(false);
+                  }}
+                >
+                  <Settings className={cn(
+                    'h-5 w-5 text-text-secondary transition-transform',
+                    showSettings && 'rotate-90'
+                  )} />
+                </Button>
+
+                <AnimatePresence>
+                  {showSettings && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 w-64 rounded-xl border border-border bg-surface shadow-2xl overflow-hidden z-50"
+                    >
+                      <div className="px-4 py-3 border-b border-border bg-surface-elevated">
+                        <h3 className="text-sm font-semibold text-text-primary">Settings</h3>
+                      </div>
+                      
+                      <div className="p-2">
+                        {/* Theme setting */}
+                        <button
+                          onClick={toggleTheme}
+                          className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-surface-elevated transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Palette className="h-4 w-4 text-text-secondary" />
+                            <span className="text-sm text-text-primary">Theme</span>
+                          </div>
+                          <span className="text-xs text-text-secondary capitalize">{theme}</span>
+                        </button>
+
+                        {/* Timezone setting */}
+                        <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-surface-elevated transition-colors">
+                          <div className="flex items-center gap-3">
+                            <Globe className="h-4 w-4 text-text-secondary" />
+                            <span className="text-sm text-text-primary">Timezone</span>
+                          </div>
+                          <span className="text-xs text-text-secondary">UTC-8</span>
+                        </button>
+
+                        {/* Refresh interval */}
+                        <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-surface-elevated transition-colors">
+                          <div className="flex items-center gap-3">
+                            <Clock className="h-4 w-4 text-text-secondary" />
+                            <span className="text-sm text-text-primary">Auto-refresh</span>
+                          </div>
+                          <span className="text-xs text-text-secondary">30s</span>
+                        </button>
+
+                        <div className="my-2 border-t border-border" />
+
+                        {/* Cache Status */}
+                        <div className="px-3 py-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Database className="h-4 w-4 text-accent-purple" />
+                              <span className="text-sm font-medium text-text-primary">Data Cache</span>
+                            </div>
+                            <span className={cn(
+                              "text-xs px-2 py-0.5 rounded-full",
+                              cacheStats && cacheStats.validEntries > 0
+                                ? "bg-accent-success/10 text-accent-success"
+                                : "bg-surface-elevated text-text-secondary"
+                            )}>
+                              {cacheStats ? `${cacheStats.validEntries} cached` : '...'}
+                            </span>
+                          </div>
+                          {cacheStats && cacheStats.entries.length > 0 && (
+                            <div className="text-[10px] text-text-secondary mb-2 pl-6">
+                              {cacheStats.entries.slice(0, 2).map((e, i) => (
+                                <div key={i} className="flex justify-between">
+                                  <span className="truncate max-w-[120px]">{e.key.replace('sheets_data_', '')}</span>
+                                  <span>{Math.floor(e.expiresIn / 60)}m left</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Clear Cache Button */}
+                        <button
+                          onClick={clearCache}
+                          disabled={isClearing}
+                          className={cn(
+                            "w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors",
+                            clearStatus === 'success' 
+                              ? "bg-accent-success/10 text-accent-success"
+                              : clearStatus === 'error'
+                              ? "bg-accent-danger/10 text-accent-danger"
+                              : "hover:bg-surface-elevated"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            {isClearing ? (
+                              <Loader2 className="h-4 w-4 text-text-secondary animate-spin" />
+                            ) : clearStatus === 'success' ? (
+                              <Check className="h-4 w-4 text-accent-success" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 text-text-secondary" />
+                            )}
+                            <span className="text-sm text-text-primary">
+                              {isClearing ? 'Clearing...' : clearStatus === 'success' ? 'Cache cleared!' : 'Clear cache & refresh'}
+                            </span>
+                          </div>
+                        </button>
+
+                        <p className="px-3 py-1.5 text-[10px] text-text-secondary">
+                          Clears cached data to fetch fresh data
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </SignedIn>
 
             {/* User Profile - Clerk Authentication */}
             <SignedOut>
-              <SignInButton mode="modal">
+              <SignInButton mode="redirect">
                 <Button variant="outline" size="sm" className="gap-2">
                   <User className="h-4 w-4" />
                   Sign In
@@ -540,14 +544,10 @@ export function Header({ onCommandOpen }: HeaderProps) {
             </SignedOut>
             <SignedIn>
               <UserButton 
-                afterSignOutUrl="/"
+                afterSignOutUrl="/sign-in"
                 appearance={{
                   elements: {
                     avatarBox: 'h-8 w-8 ring-2 ring-transparent hover:ring-accent-primary/50 transition-all',
-                    userButtonPopoverCard: 'bg-[#13131a] border border-[#2a2a3c]',
-                    userButtonPopoverActionButton: 'hover:bg-[#1a1a2e]',
-                    userButtonPopoverActionButtonText: 'text-white',
-                    userButtonPopoverFooter: 'hidden',
                   },
                 }}
               />

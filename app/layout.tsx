@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
-import { ClientShell } from '@/components/layout/client-shell';
+import { LayoutWrapper } from '@/components/layout/layout-wrapper';
 
 export const metadata: Metadata = {
   title: 'Cold Email Analytics Dashboard',
@@ -146,9 +146,9 @@ export default function RootLayout({
           />
         </head>
         <body className="min-h-screen bg-background antialiased">
-          <ClientShell>
+          <LayoutWrapper>
             {children}
-          </ClientShell>
+          </LayoutWrapper>
         </body>
       </html>
     </ClerkProvider>
