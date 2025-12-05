@@ -17,6 +17,7 @@ import { CampaignSelector } from '@/components/dashboard/campaign-selector';
 import { TimezoneSelector } from '@/components/dashboard/timezone-selector';
 import { ProviderSelector } from '@/components/dashboard/provider-selector';
 import { DailyCostChart } from '@/components/dashboard/daily-cost-chart';
+import { SenderBreakdown } from '@/components/dashboard/sender-breakdown';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Cpu, 
@@ -345,6 +346,19 @@ export default function AnalyticsPage() {
             )}
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Per-Sender Breakdown */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
+      >
+        <SenderBreakdown
+          startDate={startDate}
+          endDate={endDate}
+          campaign={selectedCampaign}
+        />
       </motion.div>
     </div>
   );

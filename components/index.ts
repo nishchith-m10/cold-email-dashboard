@@ -18,6 +18,7 @@ export { DailySendsChart } from './dashboard/daily-sends-chart';
 export { DailyCostChart } from './dashboard/daily-cost-chart';
 export { EfficiencyMetrics } from './dashboard/efficiency-metrics';
 export { TimezoneSelector } from './dashboard/timezone-selector';
+export { SenderBreakdown } from './dashboard/sender-breakdown';
 
 // Layout Components
 export { Header } from './layout/header';

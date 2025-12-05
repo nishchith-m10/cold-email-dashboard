@@ -1,25 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
-import { LLM_PRICING, calculateLlmCost } from '@/lib/constants';
+import { calculateLlmCost } from '@/lib/constants';
+import { z } from 'zod';
+import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_WEBHOOK } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
-// Cost event schema from n8n
-interface CostEventPayload {
-  workspace_id?: string;
-  campaign_name?: string;
-  contact_email?: string;
-  provider: string;
-  model: string;
-  tokens_in?: number;
-  tokens_out?: number;
-  raw_usage?: number;
-  cost_usd?: number;
-  purpose?: string;
-  workflow_id?: string;
-  run_id?: string;
-  metadata?: Record<string, unknown>;
-}
+// Zod schema for cost event validation
+const costEventSchema = z.object({
+  workspace_id: z.string().max(100).optional(),
+  campaign_name: z.string().max(200).optional(),
+  contact_email: z.string().email().optional(),
+  provider: z.string().min(1).max(50),
+  model: z.string().min(1).max(100),
+  tokens_in: z.number().int().min(0).optional(),
+  tokens_out: z.number().int().min(0).optional(),
+  raw_usage: z.number().min(0).optional(),
+  cost_usd: z.number().min(0).optional(),
+  purpose: z.string().max(200).optional(),
+  workflow_id: z.string().max(100).optional(),
+  run_id: z.string().max(100).optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+const batchCostEventsSchema = z.union([
+  costEventSchema,
+  z.array(costEventSchema).min(1).max(100),
+]);
 
 // Validate webhook token
 function validateToken(req: NextRequest): boolean {
@@ -36,6 +43,17 @@ function validateToken(req: NextRequest): boolean {
 
 // POST /api/cost-events - Receive cost events from n8n
 export async function POST(req: NextRequest) {
+  // Rate limiting
+  const clientId = getClientId(req);
+  const rateLimit = checkRateLimit(`cost-events:${clientId}`, RATE_LIMIT_WEBHOOK);
+  
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded' },
+      { status: 429, headers: rateLimitHeaders(rateLimit) }
+    );
+  }
+
   // Validate token
   if (!validateToken(req)) {
     return NextResponse.json(
@@ -53,25 +71,31 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json() as CostEventPayload | CostEventPayload[];
+    const rawBody = await req.json();
+    
+    // Validate with Zod
+    const validation = batchCostEventsSchema.safeParse(rawBody);
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: 'Validation failed',
+          details: validation.error.issues.map(i => ({
+            field: i.path.join('.'),
+            message: i.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
     
     // Handle both single event and batch
-    const events = Array.isArray(body) ? body : [body];
+    const events = Array.isArray(validation.data) ? validation.data : [validation.data];
     
     const results = [];
     const errors = [];
 
     for (const event of events) {
       try {
-        // Validate required fields
-        if (!event.provider || !event.model) {
-          errors.push({
-            event,
-            error: 'Missing required fields: provider, model',
-          });
-          continue;
-        }
-
         // Calculate cost if not provided
         let costUsd = event.cost_usd;
         if (costUsd === undefined && event.tokens_in !== undefined && event.tokens_out !== undefined) {
@@ -143,7 +167,7 @@ export async function POST(req: NextRequest) {
         results,
         error_details: errors.length > 0 ? errors : undefined,
       },
-      { status }
+      { status, headers: rateLimitHeaders(rateLimit) }
     );
   } catch (error) {
     console.error('Cost events API error:', error);
@@ -161,7 +185,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const limit = parseInt(searchParams.get('limit') || '50', 10);
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)));
   const workspaceId = searchParams.get('workspace_id') || DEFAULT_WORKSPACE_ID;
 
   try {
@@ -184,4 +208,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
-
