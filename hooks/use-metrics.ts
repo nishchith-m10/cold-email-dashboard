@@ -198,6 +198,7 @@ export function useStepBreakdown(start: string, end: string, campaign?: string) 
     dailySends: data?.dailySends || [],
     totalSends: data?.totalSends || 0,
     uniqueContacts: data?.uniqueContacts || 0, // Unique Email 1 recipients
+    totalLeads: data?.totalLeads || 0, // Total leads for % calculation
     isLoading,
     isError: error,
     mutate,

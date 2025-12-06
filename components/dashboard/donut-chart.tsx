@@ -40,7 +40,7 @@ function CustomTooltip({
 
   const item = payload[0];
   const value = item.value as number;
-  const formattedValue = formatter ? formatter(value) : formatCurrency(value);
+  const formattedValue = formatter ? formatter(value) : formatCurrencyShort(value);
 
   return (
     <div className="bg-surface-elevated border border-border rounded-lg px-3 py-2 shadow-xl">
@@ -79,7 +79,7 @@ export function DonutChart({
   data,
   loading = false,
   className,
-  valueFormatter = formatCurrency,
+  valueFormatter = formatCurrencyShort,
 }: DonutChartProps) {
   if (loading) {
     return (
@@ -144,11 +144,11 @@ export function DonutChart({
               </PieChart>
             </ResponsiveContainer>
             
-            {/* Center label */}
+            {/* Center label with tooltip for precise value */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-center -mt-8">
-                <p className="text-2xl font-bold text-text-primary">
-                  {valueFormatter(total)}
+              <div className="text-center -mt-8" title={formatCurrencyPrecise(total)}>
+                <p className="text-2xl font-bold text-text-primary cursor-default">
+                  {formatCurrencyShort(total)}
                 </p>
                 <p className="text-xs text-text-secondary">Total</p>
               </div>

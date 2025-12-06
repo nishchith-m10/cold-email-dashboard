@@ -76,6 +76,8 @@ export default function DashboardPage() {
     steps,
     dailySends,
     totalSends,
+    uniqueContacts,
+    totalLeads,
     stepLoading,
     campaigns,
     campaignsLoading,
@@ -218,6 +220,7 @@ export default function DashboardPage() {
           steps={steps}
           dailySends={dailySends}
           totalSends={totalSends}
+          totalLeads={totalLeads}
           startDate={startDate}
           endDate={endDate}
           loading={stepLoading}

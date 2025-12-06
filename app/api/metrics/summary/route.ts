@@ -81,29 +81,26 @@ async function fetchSummaryData(
   ).toISOString().slice(0, 10);
 
   // Build queries with campaign exclusion filter
+  // TEMPORARY: Remove workspace_id filter until data migration is complete
   let currentStatsQuery = supabaseAdmin
     .from('daily_stats')
     .select('sends, replies, opt_outs, bounces, opens, clicks')
-    .eq('workspace_id', workspaceId)
     .gte('day', startDate)
     .lte('day', endDate);
 
   let costQuery = supabaseAdmin
     .from('llm_usage')
     .select('cost_usd')
-    .eq('workspace_id', workspaceId)
     .gte('created_at', `${startDate}T00:00:00Z`)
     .lte('created_at', `${endDate}T23:59:59Z`);
 
   let prevStatsQuery = supabaseAdmin
     .from('daily_stats')
     .select('sends, replies, opt_outs')
-    .eq('workspace_id', workspaceId)
     .gte('day', prevStartDate)
     .lte('day', prevEndDate);
 
-  // Apply campaign filter OR global exclusion
-  if (campaign) {
+  // Apply campaign filter OR global exclusion  if (campaign) {
     // User selected a specific campaign
     currentStatsQuery = currentStatsQuery.eq('campaign_name', campaign);
     costQuery = costQuery.eq('campaign_name', campaign);

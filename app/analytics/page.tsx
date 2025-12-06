@@ -163,6 +163,7 @@ export default function AnalyticsPage() {
           icon="cost"
           loading={costLoading}
           delay={0}
+          description={`Based on ${formatNumber(costData?.total.calls ?? 0)} API calls`}
         />
         <motion.div
           initial={{ opacity: 0, y: 20 }}

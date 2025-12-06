@@ -35,10 +35,10 @@ async function fetchTimeseriesData(
   }
 
   // Build stats query
+  // TEMPORARY: Remove workspace_id filter until data migration is complete
   let statsQuery = supabaseAdmin
     .from('daily_stats')
     .select('day, sends, replies, opt_outs, bounces')
-    .eq('workspace_id', workspaceId)
     .gte('day', startDate)
     .lte('day', endDate)
     .order('day', { ascending: true });
@@ -61,7 +61,6 @@ async function fetchTimeseriesData(
     let clickQuery = supabaseAdmin
       .from('email_events')
       .select('created_at')
-      .eq('workspace_id', workspaceId)
       .eq('event_type', 'clicked')
       .gte('created_at', `${startDate}T00:00:00Z`)
       .lte('created_at', `${endDate}T23:59:59Z`);

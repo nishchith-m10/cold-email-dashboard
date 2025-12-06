@@ -13,6 +13,7 @@ interface StepBreakdownProps {
   steps: StepBreakdownType[];
   dailySends: DailySend[];
   totalSends: number;
+  totalLeads?: number; // Total leads for % calculation (e.g., 3500)
   startDate: string;
   endDate: string;
   loading?: boolean;
@@ -35,6 +36,7 @@ export function StepBreakdown({
   steps,
   dailySends,
   totalSends,
+  totalLeads = 0,
   startDate,
   endDate,
   loading = false,
@@ -57,10 +59,13 @@ export function StepBreakdown({
     }
   };
 
-  // Calculate percentage for each step
+  // Calculate percentage for each step based on total leads (not total emails)
+  // This shows what % of leads have received each email in the sequence
   const getPercentage = (sends: number) => {
-    if (totalSends === 0) return 0;
-    return Math.round((sends / totalSends) * 100);
+    // Use totalLeads if available, otherwise fall back to totalSends
+    const base = totalLeads > 0 ? totalLeads : totalSends;
+    if (base === 0) return 0;
+    return Number(((sends / base) * 100).toFixed(1));
   };
 
   // Get top 5 daily sends for quick view
@@ -153,7 +158,7 @@ export function StepBreakdown({
                       {formatNumber(step.sends)}
                     </p>
                     <p className="text-xs text-text-secondary">
-                      {getPercentage(step.sends)}% of total
+                      {getPercentage(step.sends)}% of {totalLeads > 0 ? 'leads' : 'total'}
                     </p>
                   </div>
                 </div>
