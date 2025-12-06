@@ -71,7 +71,8 @@ export function useDashboardData(params: DashboardParams): DashboardData {
   const { 
     steps, 
     dailySends, 
-    totalSends, 
+    totalSends,
+    uniqueContacts, // Unique Email 1 recipients (Contacts Reached)
     isLoading: stepLoading,
     mutate: mutateSteps,
   } = useStepBreakdown(startDate, endDate, campaign);
@@ -104,22 +105,36 @@ export function useDashboardData(params: DashboardParams): DashboardData {
     }));
   }, [costData]);
 
-  // Calculate cost per reply
+  // Calculate cost per reply (with robust fallback)
+  // Formula: Total Cost / Total Replies (guards against divide by zero)
   const costPerReply = useMemo(() => {
-    if (!summary || !costData) return 0;
-    if (summary.replies === 0) return 0;
-    return costData.total.cost_usd / summary.replies;
+    // Need both cost data and reply count
+    const totalCost = costData?.total?.cost_usd;
+    const replies = summary?.replies;
+    
+    // Return 0 if data is missing or replies are zero
+    if (totalCost === undefined || totalCost === null) return 0;
+    if (replies === undefined || replies === null || replies === 0) return 0;
+    
+    return Number((totalCost / replies).toFixed(4));
   }, [summary, costData]);
 
-  // Calculate cost per send
+  // Calculate cost per send (with robust fallback)
+  // Formula: Total Cost / Total Sends (guards against divide by zero)
   const costPerSend = useMemo(() => {
-    if (!summary || !costData) return 0;
-    if (summary.sends === 0) return 0;
-    return costData.total.cost_usd / summary.sends;
+    // Need both cost data and send count
+    const totalCost = costData?.total?.cost_usd;
+    const sends = summary?.sends;
+    
+    // Return 0 if data is missing or sends are zero
+    if (totalCost === undefined || totalCost === null) return 0;
+    if (sends === undefined || sends === null || sends === 0) return 0;
+    
+    return Number((totalCost / sends).toFixed(4));
   }, [summary, costData]);
 
-  // Calculate monthly projection
-  // Logic: (Total Cost So Far / Days Passed in Month) * Total Days in Current Month
+  // Calculate monthly projection (with robust fallback)
+  // Formula: (Current Cost / Days Passed in Month) * Total Days in Month
   // Returns null if selected range is NOT the current month
   const monthlyProjection = useMemo(() => {
     const today = new Date();
@@ -128,7 +143,6 @@ export function useDashboardData(params: DashboardParams): DashboardData {
     
     // Parse selected date range
     const rangeStart = new Date(startDate);
-    const rangeEnd = new Date(endDate);
     
     // Check if selected range overlaps with current month
     const isCurrentMonth = 
@@ -139,16 +153,22 @@ export function useDashboardData(params: DashboardParams): DashboardData {
       return null; // Will display "N/A" in UI
     }
     
-    // Calculate days passed in month (at least 1)
+    // Need cost data to calculate projection
+    const totalCost = costData?.total?.cost_usd;
+    if (totalCost === undefined || totalCost === null) return null;
+    if (totalCost === 0) return 0; // No spend means projection is 0
+    
+    // Calculate days passed in month (include today, at least 1)
     const daysPassed = Math.max(1, Math.ceil(
       (today.getTime() - startOfMonth.getTime()) / (1000 * 60 * 60 * 24)
-    ));
+    ) + 1); // +1 to include today
     
     const daysInMonth = endOfMonth.getDate();
-    const totalCost = costData?.total.cost_usd ?? 0;
     
-    return (totalCost / daysPassed) * daysInMonth;
-  }, [startDate, endDate, costData]);
+    // Calculate daily average and project
+    const dailyAverage = totalCost / daysPassed;
+    return Number((dailyAverage * daysInMonth).toFixed(2));
+  }, [startDate, costData]);
 
   // ============================================
   // CONVENIENCE FLAGS
@@ -207,6 +227,7 @@ export function useDashboardData(params: DashboardParams): DashboardData {
     steps,
     dailySends,
     totalSends,
+    uniqueContacts, // Contacts Reached = unique Email 1 recipients
     stepLoading,
 
     // Campaigns

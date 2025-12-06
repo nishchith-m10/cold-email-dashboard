@@ -10,6 +10,7 @@ import {
 } from '@/lib/api-utils';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_READ } from '@/lib/rate-limit';
 import { cacheManager, apiCacheKey, CACHE_TTL } from '@/lib/cache';
+import { EXCLUDED_CAMPAIGNS, shouldExcludeCampaign } from '@/lib/db-queries';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
@@ -58,8 +59,14 @@ async function fetchBySenderData(
     .gte('event_ts', `${startDate}T00:00:00Z`)
     .lte('event_ts', `${endDate}T23:59:59Z`);
 
+  // Apply campaign filter OR global exclusion
   if (campaign) {
     query = query.eq('campaign_name', campaign);
+  } else {
+    // Exclude test campaigns globally
+    for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
+      query = query.neq('campaign_name', excludedCampaign);
+    }
   }
 
   if (senderFilter) {
@@ -86,6 +93,9 @@ async function fetchBySenderData(
   }>();
 
   for (const event of events || []) {
+    // Skip events from excluded campaigns (safety filter)
+    if (shouldExcludeCampaign(event.campaign_name)) continue;
+
     const senderEmail = 
       (event.metadata as Record<string, unknown>)?.sender_email as string || 
       'unknown';

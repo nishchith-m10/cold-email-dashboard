@@ -3,6 +3,7 @@ import { supabaseAdmin, getWorkspaceId } from '@/lib/supabase';
 import { API_HEADERS } from '@/lib/utils';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_READ } from '@/lib/rate-limit';
 import { cacheManager, apiCacheKey, CACHE_TTL } from '@/lib/cache';
+import { EXCLUDED_CAMPAIGNS } from '@/lib/db-queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,8 +43,14 @@ async function fetchTimeseriesData(
     .lte('day', endDate)
     .order('day', { ascending: true });
 
+  // Apply campaign filter OR global exclusion
   if (campaign) {
     statsQuery = statsQuery.eq('campaign_name', campaign);
+  } else {
+    // Exclude test campaigns globally
+    for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
+      statsQuery = statsQuery.neq('campaign_name', excludedCampaign);
+    }
   }
 
   // Build click query if needed (parallel execution)
@@ -61,8 +68,17 @@ async function fetchTimeseriesData(
 
     if (campaign) {
       clickQuery = clickQuery.eq('campaign_name', campaign);
+    } else {
+      // Exclude test campaigns globally
+      for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
+        clickQuery = clickQuery.neq('campaign_name', excludedCampaign);
+      }
     }
-    clickQueryPromise = clickQuery;
+    // Execute the query - wrap in Promise.resolve to ensure proper Promise type
+    clickQueryPromise = Promise.resolve(clickQuery).then(result => ({
+      data: result.data as Array<{ created_at: string }> | null,
+      error: result.error as Error | null,
+    }));
   }
 
   // Execute queries in parallel

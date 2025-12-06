@@ -3,6 +3,7 @@ import { supabaseAdmin, getWorkspaceId } from '@/lib/supabase';
 import { API_HEADERS } from '@/lib/utils';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_READ } from '@/lib/rate-limit';
 import { cacheManager, apiCacheKey, CACHE_TTL } from '@/lib/cache';
+import { EXCLUDED_CAMPAIGNS } from '@/lib/db-queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,7 +80,7 @@ async function fetchSummaryData(
     new Date(startDate).getTime() - 24 * 3600 * 1000
   ).toISOString().slice(0, 10);
 
-  // Build queries
+  // Build queries with campaign exclusion filter
   let currentStatsQuery = supabaseAdmin
     .from('daily_stats')
     .select('sends, replies, opt_outs, bounces, opens, clicks')
@@ -101,10 +102,19 @@ async function fetchSummaryData(
     .gte('day', prevStartDate)
     .lte('day', prevEndDate);
 
+  // Apply campaign filter OR global exclusion
   if (campaign) {
+    // User selected a specific campaign
     currentStatsQuery = currentStatsQuery.eq('campaign_name', campaign);
     costQuery = costQuery.eq('campaign_name', campaign);
     prevStatsQuery = prevStatsQuery.eq('campaign_name', campaign);
+  } else {
+    // No specific campaign - exclude test campaigns globally
+    for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
+      currentStatsQuery = currentStatsQuery.neq('campaign_name', excludedCampaign);
+      costQuery = costQuery.neq('campaign_name', excludedCampaign);
+      prevStatsQuery = prevStatsQuery.neq('campaign_name', excludedCampaign);
+    }
   }
 
   // Execute ALL queries in parallel (3 queries → 1 round trip latency)

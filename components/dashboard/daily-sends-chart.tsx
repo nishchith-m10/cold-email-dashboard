@@ -118,11 +118,12 @@ export function DailySendsChart({
 
   return (
     <motion.div
+      className="h-full"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.3 }}
     >
-      <Card className={cn('overflow-hidden', className)}>
+      <Card className={cn('overflow-hidden h-full flex flex-col', className)}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
@@ -151,8 +152,8 @@ export function DailySendsChart({
           </div>
         </CardHeader>
         
-        <CardContent className="pb-4">
-          <div style={{ width: '100%', height: 200 }}>
+        <CardContent className="pb-4 flex-1 flex flex-col">
+          <div className="flex-1 min-h-[200px]">
             <ResponsiveContainer>
               <BarChart
                 data={chartData}
