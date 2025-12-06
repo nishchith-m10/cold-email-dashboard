@@ -24,6 +24,7 @@ export interface StepBreakdownResponse {
   dailySends: DailySend[];
   totalSends: number;
   uniqueContacts: number; // Unique people who received at least one email (Email 1 sends)
+  totalLeads: number; // Total leads in database for percentage calculation
   dateRange: {
     start: string;
     end: string;
@@ -44,16 +45,17 @@ async function fetchStepBreakdownData(
       dailySends: [],
       totalSends: 0,
       uniqueContacts: 0,
+      totalLeads: 0,
       dateRange: { start: startDate, end: endDate },
       source: 'no_database',
     };
   }
 
   // Query email_events for step-level breakdown
+  // TEMPORARY: Remove workspace_id filter until data migration is complete
   let stepQuery = supabaseAdmin
     .from('email_events')
     .select('step, event_ts, contact_email')
-    .eq('workspace_id', workspaceId)
     .eq('event_type', 'sent')
     .gte('event_ts', `${startDate}T00:00:00Z`)
     .lte('event_ts', `${endDate}T23:59:59Z`);
@@ -128,11 +130,26 @@ async function fetchStepBreakdownData(
   const totalSends = steps.reduce((sum, s) => sum + s.sends, 0);
   const uniqueContacts = email1Recipients.size;
 
+  // Query total leads count from leads_ohio table
+  let totalLeads = 0;
+  try {
+    const { count, error: countError } = await supabaseAdmin
+      .from('leads_ohio')
+      .select('*', { count: 'exact', head: true });
+    
+    if (!countError && count !== null) {
+      totalLeads = count;
+    }
+  } catch (e) {
+    console.error('Error fetching leads count:', e);
+  }
+
   return {
     steps,
     dailySends,
     totalSends,
-    uniqueContacts, // This is the "Contacts Reached" value
+    uniqueContacts, // This is the "Contacts Reached" value (Email 1 unique recipients)
+    totalLeads, // Total leads in database for % calculation
     dateRange: {
       start: startDate,
       end: endDate,
@@ -171,6 +188,7 @@ export async function GET(req: NextRequest) {
       dailySends: [],
       totalSends: 0,
       uniqueContacts: 0,
+      totalLeads: 0,
       dateRange: { start: startDate, end: endDate },
       source: 'no_database',
     } as StepBreakdownResponse, { headers: API_HEADERS });

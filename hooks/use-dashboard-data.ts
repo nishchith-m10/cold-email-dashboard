@@ -73,6 +73,7 @@ export function useDashboardData(params: DashboardParams): DashboardData {
     dailySends, 
     totalSends,
     uniqueContacts, // Unique Email 1 recipients (Contacts Reached)
+    totalLeads, // Total leads for % calculation
     isLoading: stepLoading,
     mutate: mutateSteps,
   } = useStepBreakdown(startDate, endDate, campaign);
@@ -228,6 +229,7 @@ export function useDashboardData(params: DashboardParams): DashboardData {
     dailySends,
     totalSends,
     uniqueContacts, // Contacts Reached = unique Email 1 recipients
+    totalLeads, // Total leads for % calculation
     stepLoading,
 
     // Campaigns

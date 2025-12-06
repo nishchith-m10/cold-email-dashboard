@@ -19,10 +19,10 @@ export async function GET(req: NextRequest) {
 
   try {
     // Get unique campaign names from daily_stats (with exclusion filter)
+    // TEMPORARY: Remove workspace_id filter until data migration is complete
     let query = supabaseAdmin
       .from('daily_stats')
       .select('campaign_name')
-      .eq('workspace_id', workspaceId)
       .not('campaign_name', 'is', null);
 
     // Exclude test campaigns at DB level

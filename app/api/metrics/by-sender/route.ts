@@ -52,10 +52,10 @@ async function fetchBySenderData(
   senderFilter?: string | null
 ): Promise<BySenderResponse> {
   // Build query for sender stats
+  // TEMPORARY: Remove workspace_id filter until data migration is complete
   let query = client
     .from('email_events')
     .select('*')
-    .eq('workspace_id', workspaceId)
     .gte('event_ts', `${startDate}T00:00:00Z`)
     .lte('event_ts', `${endDate}T23:59:59Z`);
 

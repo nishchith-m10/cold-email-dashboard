@@ -143,6 +143,7 @@ export interface StepBreakdownData {
   dailySends: DailySend[];
   totalSends: number;
   uniqueContacts: number; // Unique people who received Email 1 (Contacts Reached)
+  totalLeads: number; // Total leads in database for % calculation
   dateRange: {
     start: string;
     end: string;
@@ -226,6 +227,7 @@ export interface DashboardData {
   dailySends: DailySend[];
   totalSends: number;
   uniqueContacts: number; // Unique people who received Email 1 (Contacts Reached)
+  totalLeads: number; // Total leads in database for % calculation
   stepLoading: boolean;
 
   // Campaigns

@@ -27,6 +27,7 @@ interface MetricCardProps {
   className?: string;
   delay?: number;
   tooltip?: string;
+  description?: string; // Sub-description text below the value
 }
 
 const iconMap = {
@@ -57,6 +58,7 @@ export function MetricCard({
   loading = false,
   className,
   delay = 0,
+  description,
 }: MetricCardProps) {
   const Icon = iconMap[icon];
   const iconColors = iconColorMap[icon];
@@ -156,6 +158,11 @@ export function MetricCard({
                 
                 <span className="text-xs text-text-secondary">vs prev</span>
               </div>
+            )}
+
+            {/* Description text (when no change indicator) */}
+            {description && change === undefined && (
+              <p className="text-xs text-text-secondary">{description}</p>
             )}
           </div>
 

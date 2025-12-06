@@ -44,17 +44,16 @@ async function fetchByCampaignData(
   }
 
   // Build queries with exclusion filter
+  // TEMPORARY: Remove workspace_id filter until data migration is complete
   let statsQuery = supabaseAdmin
     .from('daily_stats')
     .select('campaign_name, sends, replies, opt_outs, bounces')
-    .eq('workspace_id', workspaceId)
     .gte('day', startDate)
     .lte('day', endDate);
 
   let costQuery = supabaseAdmin
     .from('llm_usage')
     .select('campaign_name, cost_usd')
-    .eq('workspace_id', workspaceId)
     .gte('created_at', `${startDate}T00:00:00Z`)
     .lte('created_at', `${endDate}T23:59:59Z`);
 
