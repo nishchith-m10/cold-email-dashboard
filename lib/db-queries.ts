@@ -5,10 +5,54 @@
  * - Proper index hints
  * - Efficient date range filtering
  * - Workspace scoping
+ * - Global campaign filtering (exclude test campaigns)
  * - Error handling
  */
 
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from './supabase';
+
+// ============================================
+// GLOBAL CAMPAIGN FILTER
+// ============================================
+
+/**
+ * Campaigns to exclude from ALL metrics and queries
+ * Add any test or demo campaigns here
+ */
+export const EXCLUDED_CAMPAIGNS = [
+  'Test Campaign',
+  'test',
+  'Test',
+  'TEST',
+  'Demo Campaign',
+  'demo',
+] as const;
+
+/**
+ * Apply campaign exclusion filter to a Supabase query
+ * Works with any table that has a campaign_name column
+ */
+export function applyCampaignExclusion<T>(
+  query: T,
+  applyFilter: (q: T, campaignName: string) => T
+): T {
+  let filtered = query;
+  for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
+    filtered = applyFilter(filtered, excludedCampaign);
+  }
+  return filtered;
+}
+
+/**
+ * Check if a campaign name should be excluded
+ */
+export function shouldExcludeCampaign(campaignName: string | null | undefined): boolean {
+  if (!campaignName) return false;
+  const lowerName = campaignName.toLowerCase().trim();
+  return EXCLUDED_CAMPAIGNS.some(
+    excluded => lowerName === excluded.toLowerCase()
+  );
+}
 
 // ============================================
 // TYPES

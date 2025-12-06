@@ -3,6 +3,7 @@ import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
 import { API_HEADERS } from '@/lib/utils';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_READ } from '@/lib/rate-limit';
 import { cacheManager, apiCacheKey, CACHE_TTL } from '@/lib/cache';
+import { EXCLUDED_CAMPAIGNS } from '@/lib/db-queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,8 +67,14 @@ async function fetchCostBreakdown(
     .gte('created_at', `${startDate}T00:00:00Z`)
     .lte('created_at', `${endDate}T23:59:59Z`);
 
+  // Apply campaign filter OR global exclusion
   if (campaign) {
     query = query.eq('campaign_name', campaign);
+  } else {
+    // Exclude test campaigns globally
+    for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
+      query = query.neq('campaign_name', excludedCampaign);
+    }
   }
 
   if (providerFilter && providerFilter !== 'all') {

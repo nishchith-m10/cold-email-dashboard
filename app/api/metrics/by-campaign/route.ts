@@ -3,6 +3,7 @@ import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
 import { API_HEADERS } from '@/lib/utils';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_READ } from '@/lib/rate-limit';
 import { cacheManager, apiCacheKey, CACHE_TTL } from '@/lib/cache';
+import { EXCLUDED_CAMPAIGNS, shouldExcludeCampaign } from '@/lib/db-queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,20 +43,31 @@ async function fetchByCampaignData(
     };
   }
 
+  // Build queries with exclusion filter
+  let statsQuery = supabaseAdmin
+    .from('daily_stats')
+    .select('campaign_name, sends, replies, opt_outs, bounces')
+    .eq('workspace_id', workspaceId)
+    .gte('day', startDate)
+    .lte('day', endDate);
+
+  let costQuery = supabaseAdmin
+    .from('llm_usage')
+    .select('campaign_name, cost_usd')
+    .eq('workspace_id', workspaceId)
+    .gte('created_at', `${startDate}T00:00:00Z`)
+    .lte('created_at', `${endDate}T23:59:59Z`);
+
+  // Exclude test campaigns globally
+  for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
+    statsQuery = statsQuery.neq('campaign_name', excludedCampaign);
+    costQuery = costQuery.neq('campaign_name', excludedCampaign);
+  }
+
   // Execute BOTH queries in parallel (2 queries → 1 round trip latency)
   const [statsResult, costResult] = await Promise.all([
-    supabaseAdmin
-      .from('daily_stats')
-      .select('campaign_name, sends, replies, opt_outs, bounces')
-      .eq('workspace_id', workspaceId)
-      .gte('day', startDate)
-      .lte('day', endDate),
-    supabaseAdmin
-      .from('llm_usage')
-      .select('campaign_name, cost_usd')
-      .eq('workspace_id', workspaceId)
-      .gte('created_at', `${startDate}T00:00:00Z`)
-      .lte('created_at', `${endDate}T23:59:59Z`),
+    statsQuery,
+    costQuery,
   ]);
 
   if (statsResult.error) {
@@ -63,7 +75,7 @@ async function fetchByCampaignData(
     throw statsResult.error;
   }
 
-  // Aggregate by campaign
+  // Aggregate by campaign (with additional safety filter)
   const campaignMap = new Map<string, {
     sends: number;
     replies: number;
@@ -73,6 +85,9 @@ async function fetchByCampaignData(
 
   for (const row of statsResult.data || []) {
     const campaignName = row.campaign_name || 'Unknown';
+    // Double-check exclusion (safety net)
+    if (shouldExcludeCampaign(campaignName)) continue;
+    
     const existing = campaignMap.get(campaignName) || {
       sends: 0,
       replies: 0,
@@ -87,11 +102,14 @@ async function fetchByCampaignData(
     });
   }
 
-  // Aggregate costs by campaign
+  // Aggregate costs by campaign (with additional safety filter)
   const costMap = new Map<string, number>();
   if (!costResult.error) {
     for (const row of costResult.data || []) {
       const campaignName = row.campaign_name || 'Unknown';
+      // Double-check exclusion (safety net)
+      if (shouldExcludeCampaign(campaignName)) continue;
+      
       const existing = costMap.get(campaignName) || 0;
       costMap.set(campaignName, existing + (Number(row.cost_usd) || 0));
     }

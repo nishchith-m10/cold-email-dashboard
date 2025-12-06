@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { cn, formatNumber, formatCurrency, formatPercent } from '@/lib/utils';
+import { cn, formatNumber, formatCurrencyShort, formatCurrencyPrecise, formatPercent } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
@@ -61,16 +61,20 @@ export function MetricCard({
   const Icon = iconMap[icon];
   const iconColors = iconColorMap[icon];
 
+  // Format value based on type
   const formattedValue = (() => {
     switch (format) {
       case 'currency':
-        return formatCurrency(value);
+        return formatCurrencyShort(value);
       case 'percent':
         return formatPercent(value);
       default:
         return formatNumber(value);
     }
   })();
+
+  // For currency, provide precise tooltip value
+  const tooltipValue = format === 'currency' ? formatCurrencyPrecise(value) : undefined;
 
   const isPositiveGood = icon === 'replies' || icon === 'sends' || icon === 'clicks';
   const trendIsPositive = change !== undefined && change > 0;
@@ -114,10 +118,11 @@ export function MetricCard({
             <p className="text-sm font-medium text-text-secondary">{title}</p>
             
             <motion.p 
-              className="text-3xl font-bold text-text-primary tracking-tight"
+              className="text-3xl font-bold text-text-primary tracking-tight cursor-default"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: delay * 0.1 + 0.2 }}
+              title={tooltipValue}
             >
               {formattedValue}
             </motion.p>

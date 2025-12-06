@@ -3,6 +3,7 @@ import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
 import { API_HEADERS } from '@/lib/utils';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_READ } from '@/lib/rate-limit';
 import { cacheManager, apiCacheKey, CACHE_TTL } from '@/lib/cache';
+import { EXCLUDED_CAMPAIGNS } from '@/lib/db-queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,7 @@ export interface StepBreakdownResponse {
   steps: StepBreakdown[];
   dailySends: DailySend[];
   totalSends: number;
+  uniqueContacts: number; // Unique people who received at least one email (Email 1 sends)
   dateRange: {
     start: string;
     end: string;
@@ -41,6 +43,7 @@ async function fetchStepBreakdownData(
       steps: [],
       dailySends: [],
       totalSends: 0,
+      uniqueContacts: 0,
       dateRange: { start: startDate, end: endDate },
       source: 'no_database',
     };
@@ -49,14 +52,20 @@ async function fetchStepBreakdownData(
   // Query email_events for step-level breakdown
   let stepQuery = supabaseAdmin
     .from('email_events')
-    .select('step, event_ts')
+    .select('step, event_ts, contact_email')
     .eq('workspace_id', workspaceId)
     .eq('event_type', 'sent')
     .gte('event_ts', `${startDate}T00:00:00Z`)
     .lte('event_ts', `${endDate}T23:59:59Z`);
 
+  // Apply campaign filter OR global exclusion
   if (campaign) {
     stepQuery = stepQuery.eq('campaign_name', campaign);
+  } else {
+    // Exclude test campaigns globally
+    for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
+      stepQuery = stepQuery.neq('campaign_name', excludedCampaign);
+    }
   }
 
   const { data: eventsData, error: eventsError } = await stepQuery;
@@ -66,9 +75,10 @@ async function fetchStepBreakdownData(
     throw eventsError;
   }
 
-  // Aggregate by step
+  // Aggregate by step and track unique contacts for Email 1
   const stepMap = new Map<number, { count: number; lastSent: string | null }>();
   const dailyMap = new Map<string, number>();
+  const email1Recipients = new Set<string>(); // Track unique Email 1 recipients
 
   for (const event of eventsData || []) {
     const step = event.step || 1;
@@ -78,6 +88,11 @@ async function fetchStepBreakdownData(
       current.lastSent = event.event_ts;
     }
     stepMap.set(step, current);
+
+    // Track unique contacts who received Email 1 (step 1)
+    if (step === 1 && event.contact_email) {
+      email1Recipients.add(event.contact_email.toLowerCase());
+    }
 
     // Aggregate daily
     const day = event.event_ts.slice(0, 10);
@@ -111,11 +126,13 @@ async function fetchStepBreakdownData(
   }
 
   const totalSends = steps.reduce((sum, s) => sum + s.sends, 0);
+  const uniqueContacts = email1Recipients.size;
 
   return {
     steps,
     dailySends,
     totalSends,
+    uniqueContacts, // This is the "Contacts Reached" value
     dateRange: {
       start: startDate,
       end: endDate,
@@ -153,6 +170,7 @@ export async function GET(req: NextRequest) {
       steps: [],
       dailySends: [],
       totalSends: 0,
+      uniqueContacts: 0,
       dateRange: { start: startDate, end: endDate },
       source: 'no_database',
     } as StepBreakdownResponse, { headers: API_HEADERS });

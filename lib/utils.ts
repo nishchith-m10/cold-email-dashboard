@@ -34,6 +34,28 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+// Format currency for display (clean 2 decimals) - use for main values
+export function formatCurrencyShort(amount: number): string {
+  if (amount === 0) {
+    return '$0.00';
+  }
+  
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+// Format currency precise (4 decimals) - use for tooltips/hover
+export function formatCurrencyPrecise(amount: number): string {
+  if (amount === 0) {
+    return '$0.0000';
+  }
+  return `$${amount.toFixed(4)}`;
+}
+
 // Format percentage
 export function formatPercent(value: number, decimals = 2): string {
   return `${value.toFixed(decimals)}%`;

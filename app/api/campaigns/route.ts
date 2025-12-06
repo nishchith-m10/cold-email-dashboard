@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
+import { EXCLUDED_CAMPAIGNS, shouldExcludeCampaign } from '@/lib/db-queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,22 +18,29 @@ export async function GET(req: NextRequest) {
   const workspaceId = searchParams.get('workspace_id') || DEFAULT_WORKSPACE_ID;
 
   try {
-    // Get unique campaign names from daily_stats
-    const { data, error } = await supabaseAdmin
+    // Get unique campaign names from daily_stats (with exclusion filter)
+    let query = supabaseAdmin
       .from('daily_stats')
       .select('campaign_name')
       .eq('workspace_id', workspaceId)
       .not('campaign_name', 'is', null);
+
+    // Exclude test campaigns at DB level
+    for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
+      query = query.neq('campaign_name', excludedCampaign);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Campaigns query error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Extract unique campaign names
+    // Extract unique campaign names (with additional safety filter)
     const campaignSet = new Set<string>();
     for (const row of data || []) {
-      if (row.campaign_name) {
+      if (row.campaign_name && !shouldExcludeCampaign(row.campaign_name)) {
         campaignSet.add(row.campaign_name);
       }
     }

@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrencyShort, formatCurrencyPrecise } from '@/lib/utils';
 import { CHART_COLORS } from '@/lib/constants';
 
 interface DonutChartProps {
