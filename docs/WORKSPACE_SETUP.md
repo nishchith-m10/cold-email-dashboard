@@ -36,10 +36,12 @@ SELECT * FROM workspaces;
 
 You should see:
 ```
-id       | name           | slug           | plan | settings
----------|----------------|----------------|------|----------
-default  | Ohio Campaign  | ohio-campaign  | free | {...}
+id                                   | name           | slug           | plan | settings
+-------------------------------------|----------------|----------------|------|----------
+00000000-0000-0000-0000-000000000001 | Ohio Campaign  | ohio-campaign  | free | {...}
 ```
+
+**Note:** The default workspace uses a fixed UUID (`00000000-0000-0000-0000-000000000001`) for consistency.
 
 ---
 
@@ -74,6 +76,8 @@ if (workspaces.length === 0) {
 }
 ```
 
+Where `DEFAULT_WORKSPACE_ID = '00000000-0000-0000-0000-000000000001'`
+
 ---
 
 ## 🧪 Testing the Setup
@@ -88,7 +92,7 @@ if (workspaces.length === 0) {
 {
   "workspaces": [
     {
-      "id": "default",
+      "id": "00000000-0000-0000-0000-000000000001",
       "name": "Ohio Campaign",
       "slug": "ohio-campaign",
       "plan": "free",
@@ -107,7 +111,7 @@ Run this in Supabase SQL Editor to manually add a user:
 ```sql
 -- Replace 'user_CLERK_ID' with actual Clerk user ID
 INSERT INTO user_workspaces (user_id, workspace_id, role)
-VALUES ('user_CLERK_ID', 'default', 'member')
+VALUES ('user_CLERK_ID', '00000000-0000-0000-0000-000000000001'::uuid, 'member')
 ON CONFLICT (user_id, workspace_id) DO NOTHING;
 ```
 
@@ -117,7 +121,7 @@ ON CONFLICT (user_id, workspace_id) DO NOTHING;
 2. Sign in
 3. Check Supabase:
 ```sql
-SELECT * FROM user_workspaces WHERE workspace_id = 'default';
+SELECT * FROM user_workspaces WHERE workspace_id = '00000000-0000-0000-0000-000000000001'::uuid;
 ```
 
 You should see the new user automatically added!
@@ -146,7 +150,7 @@ All data tables now have `workspace_id`:
 
 **Important:** When you call API endpoints, make sure to pass `workspace_id` in query params:
 ```
-GET /api/metrics/summary?workspace_id=default&start=2024-01-01&end=2024-12-31
+GET /api/metrics/summary?workspace_id=00000000-0000-0000-0000-000000000001&start=2024-01-01&end=2024-12-31
 ```
 
 ---
@@ -156,19 +160,19 @@ GET /api/metrics/summary?workspace_id=default&start=2024-01-01&end=2024-12-31
 ### **Option 1: Via SQL**
 
 ```sql
--- Create new workspace
-INSERT INTO workspaces (id, name, slug, plan, settings)
+-- Create new workspace (UUID auto-generated)
+INSERT INTO workspaces (name, slug, plan, settings)
 VALUES (
-  'ws_123456',
   'California Campaign',
   'california-campaign',
   'pro',
   '{}'::jsonb
-);
+)
+RETURNING id;  -- Note the generated UUID
 
--- Add user to workspace
+-- Add user to workspace (replace with the returned UUID)
 INSERT INTO user_workspaces (user_id, workspace_id, role)
-VALUES ('user_CLERK_ID', 'ws_123456', 'owner');
+VALUES ('user_CLERK_ID', 'YOUR_GENERATED_UUID'::uuid, 'owner');
 ```
 
 ### **Option 2: Via API** (Coming soon)
@@ -198,14 +202,14 @@ const response = await fetch('/api/workspaces', {
 **Fix:**
 ```sql
 -- Check if default workspace exists
-SELECT * FROM workspaces WHERE id = 'default';
+SELECT * FROM workspaces WHERE id = '00000000-0000-0000-0000-000000000001'::uuid;
 
 -- Check if user is assigned
 SELECT * FROM user_workspaces WHERE user_id = 'user_YOUR_ID';
 
 -- Manually assign user
 INSERT INTO user_workspaces (user_id, workspace_id, role)
-VALUES ('user_YOUR_ID', 'default', 'owner')
+VALUES ('user_YOUR_ID', '00000000-0000-0000-0000-000000000001'::uuid, 'owner')
 ON CONFLICT DO NOTHING;
 ```
 
@@ -277,11 +281,11 @@ If you have existing data in `email_events` and `llm_usage` without `workspace_i
 ```sql
 -- Update all existing data to default workspace
 UPDATE email_events 
-SET workspace_id = 'default' 
+SET workspace_id = '00000000-0000-0000-0000-000000000001'::uuid
 WHERE workspace_id IS NULL;
 
 UPDATE llm_usage 
-SET workspace_id = 'default' 
+SET workspace_id = '00000000-0000-0000-0000-000000000001'::uuid
 WHERE workspace_id IS NULL;
 ```
 

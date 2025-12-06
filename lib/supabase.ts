@@ -24,14 +24,12 @@ export const supabaseAdmin = createSupabaseAdmin();
 /**
  * Default workspace ID for single-tenant mode
  * 
- * IMPORTANT: The database may have workspace_id as TEXT or UUID depending on setup.
- * If your tables use UUID, you'll need to either:
- * 1. Create a workspace with a valid UUID and update this constant
- * 2. Modify the tables to use TEXT type (as per schema.sql)
+ * This UUID matches the default workspace created in migration:
+ * supabase/migrations/20251206_create_workspace_tables.sql
  * 
- * For development/single-tenant, we use 'default' which works with TEXT columns.
+ * All users are automatically assigned to this workspace on first login.
  */
-export const DEFAULT_WORKSPACE_ID = 'default';
+export const DEFAULT_WORKSPACE_ID = '00000000-0000-0000-0000-000000000001';
 
 /**
  * Validates if a string looks like a valid UUID
