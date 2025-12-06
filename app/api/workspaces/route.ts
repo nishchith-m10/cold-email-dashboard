@@ -94,32 +94,45 @@ export async function GET(req: NextRequest) {
     const workspaces = await getUserWorkspaces(effectiveUserId);
     const isAdmin = isSuperAdmin(effectiveUserId);
 
-    // If user has no workspaces, auto-create mapping to default
+    // If user has no workspaces, return empty list with onboarding flag
+    // User must join a team or create their own workspace
     if (workspaces.length === 0) {
-      await addUserToWorkspace(DEFAULT_WORKSPACE_ID, effectiveUserId, 'owner');
-      
-      const { data: defaultWs } = await supabaseAdmin
-        .from('workspaces')
-        .select('id, name, slug, plan')
-        .eq('id', DEFAULT_WORKSPACE_ID)
-        .single();
+      // Super admins automatically get added to default workspace
+      if (isAdmin) {
+        await addUserToWorkspace(DEFAULT_WORKSPACE_ID, effectiveUserId, 'owner');
+        
+        const { data: defaultWs } = await supabaseAdmin
+          .from('workspaces')
+          .select('id, name, slug, plan')
+          .eq('id', DEFAULT_WORKSPACE_ID)
+          .single();
 
+        return NextResponse.json({
+          workspaces: [{
+            id: DEFAULT_WORKSPACE_ID,
+            name: defaultWs?.name || 'Ohio Campaign',
+            slug: defaultWs?.slug || 'ohio',
+            plan: defaultWs?.plan || 'pro',
+            role: 'owner',
+          }],
+          current: {
+            id: DEFAULT_WORKSPACE_ID,
+            name: defaultWs?.name || 'Ohio Campaign',
+            slug: defaultWs?.slug || 'ohio',
+            plan: defaultWs?.plan || 'pro',
+            role: 'owner',
+          },
+          isSuperAdmin: true,
+          needsOnboarding: false,
+        }, { headers: API_HEADERS });
+      }
+
+      // Regular users need to join or create a workspace
       return NextResponse.json({
-        workspaces: [{
-          id: DEFAULT_WORKSPACE_ID,
-          name: defaultWs?.name || 'Default Workspace',
-          slug: defaultWs?.slug || 'default',
-          plan: defaultWs?.plan || 'free',
-          role: 'owner',
-        }],
-        current: {
-          id: DEFAULT_WORKSPACE_ID,
-          name: defaultWs?.name || 'Default Workspace',
-          slug: defaultWs?.slug || 'default',
-          plan: defaultWs?.plan || 'free',
-          role: 'owner',
-        },
-        isSuperAdmin: isAdmin,
+        workspaces: [],
+        current: null,
+        isSuperAdmin: false,
+        needsOnboarding: true,
       }, { headers: API_HEADERS });
     }
 

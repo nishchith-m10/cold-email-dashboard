@@ -100,7 +100,8 @@ async function fetchSummaryData(
     .gte('day', prevStartDate)
     .lte('day', prevEndDate);
 
-  // Apply campaign filter OR global exclusion  if (campaign) {
+  // Apply campaign filter OR global exclusion
+  if (campaign) {
     // User selected a specific campaign
     currentStatsQuery = currentStatsQuery.eq('campaign_name', campaign);
     costQuery = costQuery.eq('campaign_name', campaign);

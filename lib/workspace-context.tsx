@@ -39,6 +39,9 @@ export interface WorkspaceContextValue {
   // Loading state
   isLoading: boolean;
   
+  // Onboarding state
+  needsOnboarding: boolean;
+  
   // User info
   isSuperAdmin: boolean;
   userRole: WorkspaceRole | null;
@@ -88,6 +91,7 @@ export function WorkspaceProvider({
   const [workspaces, setWorkspacesState] = useState<Workspace[]>([initialWorkspace]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   // Fetch workspaces from API
   const fetchWorkspaces = useCallback(async () => {
@@ -100,7 +104,13 @@ export function WorkspaceProvider({
       
       const data = await response.json();
       
-      if (data.workspaces && data.workspaces.length > 0) {
+      // Check if user needs onboarding (no workspaces assigned)
+      if (data.needsOnboarding) {
+        setNeedsOnboarding(true);
+        setWorkspacesState([]);
+        setIsSuperAdmin(false);
+      } else if (data.workspaces && data.workspaces.length > 0) {
+        setNeedsOnboarding(false);
         setWorkspacesState(data.workspaces);
         localStorage.setItem('user_workspaces', JSON.stringify(data.workspaces));
         
@@ -205,6 +215,7 @@ export function WorkspaceProvider({
     refreshWorkspaces,
     createWorkspace,
     isLoading,
+    needsOnboarding,
     isSuperAdmin,
     userRole: workspace.role || null,
     isDefaultWorkspace: workspace.id === DEFAULT_WORKSPACE_ID,
@@ -217,7 +228,8 @@ export function WorkspaceProvider({
     switchWorkspace, 
     refreshWorkspaces, 
     createWorkspace, 
-    isLoading, 
+    isLoading,
+    needsOnboarding,
     isSuperAdmin
   ]);
 

@@ -1,17 +1,60 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { Header } from './header';
 import { CommandPalette } from './command-palette';
-import { WorkspaceProvider } from '@/lib/workspace-context';
+import { WorkspaceProvider, useWorkspace } from '@/lib/workspace-context';
 import { SWRProvider } from '@/lib/swr-config';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
-import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
-import { Zap, Mail, BarChart3, Shield } from 'lucide-react';
+import { SignedIn, SignedOut, SignInButton, useAuth } from '@clerk/nextjs';
+import { Zap, Mail, BarChart3, Shield, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ClientShellProps {
   children: React.ReactNode;
+}
+
+// Component to check workspace membership and redirect if needed
+function WorkspaceGate({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { needsOnboarding, isLoading } = useWorkspace();
+  
+  useEffect(() => {
+    // Don't redirect if on join page or still loading
+    if (pathname === '/join' || isLoading) return;
+    
+    // Redirect to join page if user needs onboarding
+    if (needsOnboarding) {
+      router.push('/join');
+    }
+  }, [needsOnboarding, isLoading, pathname, router]);
+
+  // Show loading while checking workspace access
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-accent-primary" />
+      </div>
+    );
+  }
+
+  // On join page, always show content
+  if (pathname === '/join') {
+    return <>{children}</>;
+  }
+
+  // If needs onboarding, show nothing (redirect will happen)
+  if (needsOnboarding) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-accent-primary" />
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 /**
@@ -50,14 +93,16 @@ export function ClientShell({ children }: ClientShellProps) {
 
         {/* Main content - Only show dashboard when signed in */}
         <SignedIn>
-          <main className="max-w-[1600px] mx-auto px-6 py-8">
-            <ErrorBoundary>
-              {children}
-            </ErrorBoundary>
-          </main>
+          <WorkspaceGate>
+            <main className="max-w-[1600px] mx-auto px-6 py-8">
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
+            </main>
 
-          {/* Command palette - Only for signed-in users */}
-          <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+            {/* Command palette - Only for signed-in users */}
+            <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+          </WorkspaceGate>
         </SignedIn>
 
         {/* Landing page for signed-out users */}

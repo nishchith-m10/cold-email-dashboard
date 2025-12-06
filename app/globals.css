@@ -1006,3 +1006,171 @@ html.light .rdp-day_today:not(.rdp-day_selected):not(.rdp-day_range_middle) {
 .cl-accordionContent {
   background-color: #141416 !important;
 }
+
+/* ============================================================
+   CLERK UI OVERRIDES - Light Mode
+   ============================================================ */
+
+.light .cl-userButtonPopoverCard {
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15) !important;
+}
+
+.light .cl-userButtonPopoverActionButton {
+  color: #171717 !important;
+}
+
+.light .cl-userButtonPopoverActionButton:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.light .cl-userButtonPopoverActionButtonText {
+  color: #171717 !important;
+}
+
+.light .cl-userButtonPopoverActionButtonIcon {
+  color: #6b7280 !important;
+}
+
+.light .cl-userPreview {
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.light .cl-userPreviewMainIdentifier {
+  color: #171717 !important;
+}
+
+.light .cl-userPreviewSecondaryIdentifier {
+  color: #6b7280 !important;
+}
+
+.light .cl-card {
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px !important;
+}
+
+.light .cl-formFieldInput {
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  color: #171717 !important;
+}
+
+.light .cl-formFieldInput:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+.light .cl-formFieldInput::placeholder {
+  color: #9ca3af !important;
+}
+
+.light .cl-formFieldLabel {
+  color: #374151 !important;
+}
+
+.light .cl-socialButtonsBlockButton {
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  color: #171717 !important;
+}
+
+.light .cl-socialButtonsBlockButton:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.light .cl-socialButtonsBlockButtonText {
+  color: #171717 !important;
+}
+
+.light .cl-headerTitle {
+  color: #171717 !important;
+}
+
+.light .cl-headerSubtitle {
+  color: #6b7280 !important;
+}
+
+.light .cl-footerAction {
+  color: #6b7280 !important;
+}
+
+.light .cl-dividerLine {
+  background-color: #e5e7eb !important;
+}
+
+.light .cl-dividerText {
+  color: #9ca3af !important;
+}
+
+.light .cl-identityPreview {
+  background-color: #f9fafb !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.light .cl-identityPreviewText {
+  color: #171717 !important;
+}
+
+.light .cl-internal-1dauvpw {
+  background-color: #ffffff !important;
+}
+
+.light .cl-menuButton,
+.light .cl-menuItem {
+  color: #171717 !important;
+}
+
+.light .cl-menuButton:hover,
+.light .cl-menuItem:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.light .cl-avatarBox {
+  border: 2px solid #e5e7eb !important;
+}
+
+.light .cl-alert {
+  background-color: #f9fafb !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.light .cl-alertText {
+  color: #171717 !important;
+}
+
+.light .cl-activeDeviceListItem,
+.light .cl-sessionListItem {
+  background-color: #f9fafb !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.light .cl-navbarButton {
+  color: #6b7280 !important;
+}
+
+.light .cl-navbarButton:hover,
+.light .cl-navbarButton[data-active="true"] {
+  color: #171717 !important;
+}
+
+.light .cl-profileSectionTitle,
+.light .cl-profileSectionTitleText {
+  color: #171717 !important;
+}
+
+.light .cl-profileSectionContent {
+  background-color: #f9fafb !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.light .cl-accordionTriggerButton {
+  background-color: #f9fafb !important;
+  color: #171717 !important;
+}
+
+.light .cl-accordionContent {
+  background-color: #ffffff !important;
+}
