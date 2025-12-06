@@ -223,15 +223,11 @@ export async function createWorkspace(
   // Generate slug from name if not provided
   const workspaceSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-  // Generate unique ID
-  const workspaceId = `ws_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
   try {
-    // Create workspace
+    // Create workspace (let Postgres generate UUID)
     const { data: workspace, error: wsError } = await supabaseAdmin
       .from('workspaces')
       .insert({
-        id: workspaceId,
         name,
         slug: workspaceSlug,
         plan: 'free',
@@ -250,14 +246,14 @@ export async function createWorkspace(
       .from('user_workspaces')
       .insert({
         user_id: userId,
-        workspace_id: workspaceId,
+        workspace_id: workspace.id,
         role: 'owner',
       });
 
     if (memberError) {
       console.error('User workspace mapping error:', memberError);
       // Rollback workspace creation
-      await supabaseAdmin.from('workspaces').delete().eq('id', workspaceId);
+      await supabaseAdmin.from('workspaces').delete().eq('id', workspace.id);
       return { workspace: null, error: memberError.message };
     }
 

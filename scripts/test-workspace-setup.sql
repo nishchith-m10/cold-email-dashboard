@@ -9,7 +9,7 @@
 SELECT 
   '✅ Test 1: Default Workspace Exists' as test,
   CASE 
-    WHEN EXISTS (SELECT 1 FROM workspaces WHERE id = 'default')
+    WHEN EXISTS (SELECT 1 FROM workspaces WHERE id = '00000000-0000-0000-0000-000000000001'::uuid)
     THEN 'PASS - Default workspace found'
     ELSE 'FAIL - Default workspace not found'
   END as result;
@@ -75,7 +75,8 @@ SELECT
   'email_events' as table_name,
   COUNT(*) as total_rows,
   COUNT(workspace_id) as rows_with_workspace,
-  COUNT(*) - COUNT(workspace_id) as rows_missing_workspace
+  COUNT(*) - COUNT(workspace_id) as rows_missing_workspace,
+  COUNT(CASE WHEN workspace_id = '00000000-0000-0000-0000-000000000001'::uuid THEN 1 END) as rows_in_default_workspace
 FROM email_events
 
 UNION ALL
@@ -85,7 +86,8 @@ SELECT
   'llm_usage' as table_name,
   COUNT(*) as total_rows,
   COUNT(workspace_id) as rows_with_workspace,
-  COUNT(*) - COUNT(workspace_id) as rows_missing_workspace
+  COUNT(*) - COUNT(workspace_id) as rows_missing_workspace,
+  COUNT(CASE WHEN workspace_id = '00000000-0000-0000-0000-000000000001'::uuid THEN 1 END) as rows_in_default_workspace
 FROM llm_usage;
 
 -- Test 8: Test helper function
@@ -93,7 +95,7 @@ SELECT
   '🔧 Helper Function Test' as info,
   user_has_workspace_access(
     'user_36QtXCPqQu6k0CXcYM0Sn2OQsgT',  -- Replace with your Clerk ID
-    'default',
+    '00000000-0000-0000-0000-000000000001'::uuid,
     'viewer'
   ) as has_access;
 
@@ -104,6 +106,6 @@ SELECT
   '📝 SETUP SUMMARY' as section,
   (SELECT COUNT(*) FROM workspaces) as total_workspaces,
   (SELECT COUNT(*) FROM user_workspaces) as total_user_assignments,
-  (SELECT COUNT(*) FROM email_events WHERE workspace_id = 'default') as default_workspace_events,
-  (SELECT COUNT(*) FROM llm_usage WHERE workspace_id = 'default') as default_workspace_costs;
+  (SELECT COUNT(*) FROM email_events WHERE workspace_id = '00000000-0000-0000-0000-000000000001'::uuid) as default_workspace_events,
+  (SELECT COUNT(*) FROM llm_usage WHERE workspace_id = '00000000-0000-0000-0000-000000000001'::uuid) as default_workspace_costs;
 
