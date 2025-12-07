@@ -188,6 +188,7 @@ Replace with:
 
 ```
 https://api.apify.com/v2/acts/compass~google-maps-reviews-scraper/run-sync-get-dataset-items?token=YOUR_APIFY_TOKEN
+
 ```
 
 ### Updated Request Body

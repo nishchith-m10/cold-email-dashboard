@@ -1,26 +1,115 @@
 'use client';
 
 import { useMemo, useCallback } from 'react';
+import useSWR, { SWRConfiguration } from 'swr';
 import { getProviderColor, getModelDisplayName } from '@/lib/constants';
-import {
-  useMetricsSummary,
-  useTimeSeries,
-  useCampaignStats,
-  useCostBreakdown,
-  useCampaigns,
-  useStepBreakdown,
-} from './use-metrics';
+import { fetcher } from '@/lib/fetcher';
+import { useWorkspace } from '@/lib/workspace-context';
 import type {
   DashboardParams,
   DashboardData,
   ChartDataPoint,
+  MetricsSummary,
+  TimeSeriesPoint,
+  CostBreakdown,
+  StepBreakdown,
+  DailySend,
+  Campaign,
+  CampaignStats,
 } from '@/lib/dashboard-types';
+
+// ============================================
+// AGGREGATE RESPONSE TYPE
+// ============================================
+
+interface AggregateResponse {
+  summary: {
+    sends: number;
+    replies: number;
+    opt_outs: number;
+    bounces: number;
+    opens: number;
+    clicks: number;
+    reply_rate_pct: number;
+    opt_out_rate_pct: number;
+    bounce_rate_pct: number;
+    open_rate_pct: number;
+    click_rate_pct: number;
+    cost_usd: number;
+    sends_change_pct: number;
+    reply_rate_change_pp: number;
+    opt_out_rate_change_pp: number;
+    prev_sends: number;
+    prev_reply_rate_pct: number;
+  };
+  timeseries: {
+    sends: TimeSeriesPoint[];
+    replies: TimeSeriesPoint[];
+    reply_rate: TimeSeriesPoint[];
+    click_rate: TimeSeriesPoint[];
+    opt_out_rate: TimeSeriesPoint[];
+  };
+  costBreakdown: {
+    total: {
+      cost_usd: number;
+      tokens_in: number;
+      tokens_out: number;
+      calls: number;
+    };
+    by_provider: Array<{
+      provider: string;
+      cost_usd: number;
+      tokens_in: number;
+      tokens_out: number;
+      calls: number;
+    }>;
+    by_model: Array<{
+      model: string;
+      provider: string;
+      cost_usd: number;
+      tokens_in: number;
+      tokens_out: number;
+      calls: number;
+    }>;
+    daily: TimeSeriesPoint[];
+  };
+  stepBreakdown: {
+    steps: StepBreakdown[];
+    dailySends: DailySend[];
+    totalSends: number;
+    uniqueContacts: number;
+    totalLeads: number;
+  };
+  campaigns: {
+    list: Campaign[];
+    stats: CampaignStats[];
+  };
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  source: string;
+  cached?: boolean;
+}
+
+// SWR config for aggregate endpoint
+const aggregateConfig: SWRConfiguration = {
+  revalidateOnFocus: false,
+  revalidateOnReconnect: true,
+  dedupingInterval: 10000, // Dedupe requests within 10 seconds
+  errorRetryCount: 2,
+  errorRetryInterval: 3000,
+  keepPreviousData: true, // Keep showing old data while revalidating
+  refreshInterval: 30000, // Refresh every 30 seconds
+};
 
 /**
  * useDashboardData - Centralized hook for all dashboard data
  * 
- * This hook consolidates all metrics hooks and data transformations needed
- * for the dashboard pages. It provides:
+ * OPTIMIZED: Uses single aggregate API endpoint for all data
+ * This reduces 10+ HTTP calls to just 1, significantly improving load times.
+ * 
+ * This hook provides:
  * - All raw API data with loading states
  * - Pre-computed chart data (costByProvider, costByModel)
  * - Derived metrics (costPerReply, costPerSend)
@@ -35,53 +124,101 @@ export function useDashboardData(params: DashboardParams): DashboardData {
   const campaign = selectedCampaign ?? undefined;
   const provider = selectedProvider ?? undefined;
 
+  // Get workspace context - wait for it to be ready before fetching
+  const { workspaceId, isLoading: workspaceLoading } = useWorkspace();
+
   // ============================================
-  // FETCH ALL DATA
+  // SINGLE AGGREGATE FETCH
   // ============================================
 
-  // Summary metrics
+  // Build URL params
+  const urlParams = useMemo(() => {
+    const params = new URLSearchParams({
+      start: startDate,
+      end: endDate,
+    });
+    if (campaign) params.set('campaign', campaign);
+    if (provider) params.set('provider', provider);
+    if (workspaceId) params.set('workspace_id', workspaceId);
+    return params.toString();
+  }, [startDate, endDate, campaign, provider, workspaceId]);
+
+  // Only fetch when workspace context is ready
+  const shouldFetch = !workspaceLoading && !!workspaceId;
+
   const { 
-    summary, 
-    isLoading: summaryLoading, 
-    isError: summaryError,
-    mutate: mutateSummary,
-  } = useMetricsSummary(startDate, endDate, campaign);
+    data: aggregateData, 
+    error: aggregateError, 
+    isLoading: aggregateLoading,
+    mutate: mutateAggregate,
+  } = useSWR<AggregateResponse>(
+    shouldFetch ? `/api/dashboard/aggregate?${urlParams}` : null,
+    fetcher,
+    aggregateConfig
+  );
+
+  // ============================================
+  // PARSE AGGREGATE RESPONSE
+  // ============================================
+
+  // Summary metrics (with type conversion for interface compatibility)
+  const summary = useMemo<MetricsSummary | undefined>(() => {
+    if (!aggregateData?.summary) return undefined;
+    const s = aggregateData.summary;
+    return {
+      sends: s.sends,
+      replies: s.replies,
+      opt_outs: s.opt_outs,
+      bounces: s.bounces,
+      opens: s.opens,
+      clicks: s.clicks,
+      reply_rate_pct: s.reply_rate_pct,
+      opt_out_rate_pct: s.opt_out_rate_pct,
+      bounce_rate_pct: s.bounce_rate_pct,
+      open_rate_pct: s.open_rate_pct,
+      click_rate_pct: s.click_rate_pct,
+      cost_usd: s.cost_usd,
+      sends_change_pct: s.sends_change_pct,
+      reply_rate_change_pp: s.reply_rate_change_pp,
+      opt_out_rate_change_pp: s.opt_out_rate_change_pp,
+      prev_sends: s.prev_sends,
+      prev_reply_rate_pct: s.prev_reply_rate_pct,
+      start_date: aggregateData.dateRange.start,
+      end_date: aggregateData.dateRange.end,
+    };
+  }, [aggregateData]);
 
   // Time series data
-  const { data: sendsSeries, isLoading: sendsLoading } = 
-    useTimeSeries('sends', startDate, endDate, campaign);
-  
-  const { data: repliesSeries, isLoading: repliesLoading } = 
-    useTimeSeries('replies', startDate, endDate, campaign);
-  
-  const { data: replyRateSeries, isLoading: replyRateLoading } = 
-    useTimeSeries('reply_rate', startDate, endDate, campaign);
-  
-  const { data: clickRateSeries, isLoading: clickRateLoading } = 
-    useTimeSeries('click_rate', startDate, endDate, campaign);
-  
-  const { data: optOutRateSeries, isLoading: optOutRateLoading } = 
-    useTimeSeries('opt_out_rate', startDate, endDate, campaign);
+  const sendsSeries = aggregateData?.timeseries?.sends || [];
+  const repliesSeries = aggregateData?.timeseries?.replies || [];
+  const replyRateSeries = aggregateData?.timeseries?.reply_rate || [];
+  const clickRateSeries = aggregateData?.timeseries?.click_rate || [];
+  const optOutRateSeries = aggregateData?.timeseries?.opt_out_rate || [];
 
-  // Cost breakdown (with provider filter)
-  const { data: costData, isLoading: costLoading, mutate: mutateCost } = 
-    useCostBreakdown(startDate, endDate, campaign, provider);
+  // Cost breakdown (with type conversion for interface compatibility)
+  const costData = useMemo<CostBreakdown | undefined>(() => {
+    if (!aggregateData?.costBreakdown) return undefined;
+    const c = aggregateData.costBreakdown;
+    return {
+      total: c.total,
+      by_provider: c.by_provider,
+      by_model: c.by_model,
+      daily: c.daily,
+      start_date: aggregateData.dateRange.start,
+      end_date: aggregateData.dateRange.end,
+    };
+  }, [aggregateData]);
 
   // Step breakdown
-  const { 
-    steps, 
-    dailySends, 
-    totalSends,
-    uniqueContacts, // Unique Email 1 recipients (Contacts Reached)
-    totalLeads, // Total leads for % calculation
-    isLoading: stepLoading,
-    mutate: mutateSteps,
-  } = useStepBreakdown(startDate, endDate, campaign);
+  const steps = aggregateData?.stepBreakdown?.steps || [];
+  const dailySends = aggregateData?.stepBreakdown?.dailySends || [];
+  const totalSends = aggregateData?.stepBreakdown?.totalSends || 0;
+  const uniqueContacts = aggregateData?.stepBreakdown?.uniqueContacts || 0;
+  const totalLeads = aggregateData?.stepBreakdown?.totalLeads || 0;
 
   // Campaigns
-  const { campaigns, isLoading: campaignsLoading } = useCampaigns();
-  const { campaigns: campaignStats, isLoading: campaignStatsLoading } = 
-    useCampaignStats(startDate, endDate);
+  const campaigns = aggregateData?.campaigns?.list || [];
+  const campaignStats = aggregateData?.campaigns?.stats || [];
 
   // ============================================
   // DERIVED DATA (MEMOIZED)
@@ -175,23 +312,32 @@ export function useDashboardData(params: DashboardParams): DashboardData {
   // CONVENIENCE FLAGS
   // ============================================
 
-  const isLoading = useMemo(() => {
-    return summaryLoading || costLoading || stepLoading || campaignsLoading;
-  }, [summaryLoading, costLoading, stepLoading, campaignsLoading]);
+  // Loading is true when:
+  // 1. Workspace context is loading, OR
+  // 2. Aggregate data is loading (and we haven't fetched yet)
+  const isLoading = workspaceLoading || aggregateLoading;
 
-  const hasError = useMemo(() => {
-    return !!summaryError;
-  }, [summaryError]);
+  // Only show loading states when we don't have any data yet
+  const summaryLoading = !summary && isLoading;
+  const sendsLoading = sendsSeries.length === 0 && isLoading;
+  const repliesLoading = repliesSeries.length === 0 && isLoading;
+  const replyRateLoading = replyRateSeries.length === 0 && isLoading;
+  const clickRateLoading = clickRateSeries.length === 0 && isLoading;
+  const optOutRateLoading = optOutRateSeries.length === 0 && isLoading;
+  const costLoading = !costData && isLoading;
+  const stepLoading = steps.length === 0 && isLoading;
+  const campaignsLoading = campaigns.length === 0 && isLoading;
+  const campaignStatsLoading = campaignStats.length === 0 && isLoading;
+
+  const hasError = !!aggregateError;
 
   // ============================================
   // REFRESH FUNCTION
   // ============================================
 
   const refresh = useCallback(() => {
-    mutateSummary();
-    mutateSteps();
-    mutateCost();
-  }, [mutateSummary, mutateSteps, mutateCost]);
+    mutateAggregate();
+  }, [mutateAggregate]);
 
   // ============================================
   // RETURN CONSOLIDATED DATA
@@ -201,7 +347,7 @@ export function useDashboardData(params: DashboardParams): DashboardData {
     // Summary
     summary,
     summaryLoading,
-    summaryError,
+    summaryError: aggregateError,
 
     // Time series
     sendsSeries,
@@ -249,4 +395,3 @@ export function useDashboardData(params: DashboardParams): DashboardData {
 
 // Re-export for convenience
 export type { DashboardParams, DashboardData } from '@/lib/dashboard-types';
-
