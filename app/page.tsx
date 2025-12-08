@@ -1,37 +1,39 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { toISODate, daysAgo } from '@/lib/utils';
 import { CHART_COLORS } from '@/lib/constants';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { useDashboard } from '@/lib/dashboard-context';
 
-// Components
-import { MetricCard } from '@/components/dashboard/metric-card';
-import { TimeSeriesChart } from '@/components/dashboard/time-series-chart';
-import { CampaignTable } from '@/components/dashboard/campaign-table';
+// Force dynamic rendering for client-side context
+export const dynamic = 'force-dynamic';
+
+// Components - Wrapped with error boundaries for resilience
+import { DashboardErrorBoundary } from '@/components/ui/error-boundary';
+import { Button } from '@/components/ui/button';
+import { SafeMetricCard as MetricCard } from '@/components/dashboard/safe-components';
+import {
+  SafeLazyTimeSeriesChart as TimeSeriesChart,
+  SafeLazyDailySendsChart as DailySendsChart,
+} from '@/components/dashboard/safe-components';
+import { SafeCampaignTable as CampaignTable } from '@/components/dashboard/safe-components';
+import { SafeStepBreakdown as StepBreakdown } from '@/components/dashboard/safe-components';
+import { SafeEfficiencyMetrics as EfficiencyMetrics } from '@/components/dashboard/safe-components';
 import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { CampaignSelector } from '@/components/dashboard/campaign-selector';
 import { AskAI } from '@/components/dashboard/ask-ai';
-import { StepBreakdown } from '@/components/dashboard/step-breakdown';
-import { DailySendsChart } from '@/components/dashboard/daily-sends-chart';
-import { EfficiencyMetrics } from '@/components/dashboard/efficiency-metrics';
 import { TimezoneSelector } from '@/components/dashboard/timezone-selector';
 
 export default function DashboardPage() {
   // ============================================
-  // URL-BASED STATE (persists across navigation)
+  // DASHBOARD CONTEXT (global state)
   // ============================================
   
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  const { data, params, setDateRange, setCampaign } = useDashboard();
   
-  // Read dates from URL params with fallbacks
-  const startDate = searchParams.get('start') ?? toISODate(daysAgo(30));
-  const endDate = searchParams.get('end') ?? toISODate(new Date());
-  const selectedCampaign = searchParams.get('campaign') ?? undefined;
+  // Destructure params
+  const { startDate, endDate, selectedCampaign } = params;
   
   // Local UI state (doesn't need URL persistence)
   const [selectedDate, setSelectedDate] = useState<string | undefined>();
@@ -52,16 +54,9 @@ export default function DashboardPage() {
   }, []);
 
   // ============================================
-  // FETCH ALL DASHBOARD DATA (CENTRALIZED)
+  // DESTRUCTURE DASHBOARD DATA
   // ============================================
   
-  const dashboardData = useDashboardData({
-    startDate,
-    endDate,
-    selectedCampaign,
-  });
-
-  // Destructure for cleaner access
   const {
     summary,
     summaryLoading,
@@ -83,33 +78,20 @@ export default function DashboardPage() {
     campaignsLoading,
     campaignStats,
     campaignStatsLoading,
-  } = dashboardData;
+  } = data;
 
   // ============================================
   // EVENT HANDLERS
   // ============================================
 
-  const handleDateChange = useCallback((start: string, end: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('start', start);
-    params.set('end', end);
-    router.replace(`?${params.toString()}`, { scroll: false });
-    setSelectedDate(undefined); // Clear selected date on range change
-  }, [searchParams, router]);
-
-  const handleCampaignChange = useCallback((campaign: string | undefined) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (campaign) {
-      params.set('campaign', campaign);
-    } else {
-      params.delete('campaign');
-    }
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
-
   const handleDateClick = useCallback((date: string) => {
     setSelectedDate(prev => prev === date ? undefined : date);
   }, []);
+  
+  // Handle campaign change (wrapper to convert undefined to null)
+  const handleCampaignChange = useCallback((campaign: string | undefined) => {
+    setCampaign(campaign ?? null);
+  }, [setCampaign]);
 
   // ============================================
   // DERIVED UI VALUES
@@ -132,6 +114,27 @@ export default function DashboardPage() {
   // ============================================
 
   return (
+    <DashboardErrorBoundary
+      fallback={({ error, resetErrorBoundary }) => (
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="text-center space-y-4 max-w-md px-4">
+            <div className="text-6xl">⚠️</div>
+            <h1 className="text-2xl font-bold tracking-tight">Dashboard Error</h1>
+            <p className="text-muted-foreground">
+              {process.env.NODE_ENV === 'development' 
+                ? error.message 
+                : 'Something went wrong while loading the dashboard. Please try again.'}
+            </p>
+            <Button 
+              onClick={resetErrorBoundary}
+              className="mt-4"
+            >
+              Reload Dashboard
+            </Button>
+          </div>
+        </div>
+      )}
+    >
     <div className="space-y-8">
       {/* Page Header */}
       <motion.div
@@ -149,14 +152,14 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3 flex-wrap">
           <CampaignSelector
             campaigns={campaigns}
-            selectedCampaign={selectedCampaign}
+            selectedCampaign={selectedCampaign ?? undefined}
             onCampaignChange={handleCampaignChange}
             loading={campaignsLoading}
           />
           <DateRangePicker
             startDate={startDate}
             endDate={endDate}
-            onDateChange={handleDateChange}
+            onDateChange={setDateRange}
           />
           <TimezoneSelector
             selectedTimezone={timezone}
@@ -292,5 +295,6 @@ export default function DashboardPage() {
       {/* Ask AI */}
       <AskAI />
     </div>
+    </DashboardErrorBoundary>
   );
 }

@@ -5,8 +5,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Header } from './header';
 import { CommandPalette } from './command-palette';
 import { WorkspaceProvider, useWorkspace } from '@/lib/workspace-context';
+import { DashboardProvider } from '@/lib/dashboard-context';
 import { SWRProvider } from '@/lib/swr-config';
-import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { DashboardErrorBoundary } from '@/components/ui/error-boundary';
 import { SignedIn, SignedOut, SignInButton, useAuth } from '@clerk/nextjs';
 import { Zap, Mail, BarChart3, Shield, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -94,14 +95,16 @@ export function ClientShell({ children }: ClientShellProps) {
         {/* Main content - Only show dashboard when signed in */}
         <SignedIn>
           <WorkspaceGate>
-            <main className="max-w-[1600px] mx-auto px-6 py-8">
-              <ErrorBoundary>
-                {children}
-              </ErrorBoundary>
-            </main>
+            <DashboardProvider>
+              <main className="max-w-[1600px] mx-auto px-6 py-8">
+                <DashboardErrorBoundary>
+                  {children}
+                </DashboardErrorBoundary>
+              </main>
 
-            {/* Command palette - Only for signed-in users */}
-            <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+              {/* Command palette - Only for signed-in users */}
+              <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+            </DashboardProvider>
           </WorkspaceGate>
         </SignedIn>
 

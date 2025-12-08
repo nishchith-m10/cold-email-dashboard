@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { cn, formatNumber, formatCurrencyShort, formatCurrencyPrecise, formatPercent } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
@@ -48,7 +49,7 @@ const iconColorMap = {
   'clicks': 'text-emerald-500 bg-emerald-500/10',
 };
 
-export function MetricCard({
+function MetricCardComponent({
   title,
   value,
   change,
@@ -178,3 +179,19 @@ export function MetricCard({
   );
 }
 
+// Memoize with custom comparison to prevent re-renders when props haven't changed
+export const MetricCard = memo(MetricCardComponent, (prevProps, nextProps) => {
+  // Only re-render if these critical props change
+  return (
+    prevProps.value === nextProps.value &&
+    prevProps.change === nextProps.change &&
+    prevProps.loading === nextProps.loading &&
+    prevProps.title === nextProps.title &&
+    prevProps.format === nextProps.format &&
+    prevProps.icon === nextProps.icon &&
+    prevProps.changeLabel === nextProps.changeLabel &&
+    prevProps.description === nextProps.description
+  );
+});
+
+MetricCard.displayName = 'MetricCard';
