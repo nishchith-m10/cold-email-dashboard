@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -32,7 +33,7 @@ const stepBgColors = [
   'from-accent-success/5 to-transparent',
 ];
 
-export function StepBreakdown({
+function StepBreakdownComponent({
   steps,
   dailySends,
   totalSends,
@@ -214,3 +215,7 @@ export function StepBreakdown({
   );
 }
 
+// Memoize to prevent re-renders when parent updates but data hasn't changed
+export const StepBreakdown = memo(StepBreakdownComponent);
+
+StepBreakdown.displayName = 'StepBreakdown';

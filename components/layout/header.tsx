@@ -260,7 +260,7 @@ export function Header({ onCommandOpen }: HeaderProps) {
 
               {/* Navigation Tabs */}
               <nav className="hidden md:flex items-center gap-1 bg-surface-elevated rounded-lg p-1">
-                <Link href={`/${query}`}>
+                <Link href={`/${query}`} prefetch={true}>
                   <button
                     className={cn(
                       'px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
@@ -272,7 +272,7 @@ export function Header({ onCommandOpen }: HeaderProps) {
                     Overview
                   </button>
                 </Link>
-                <Link href={`/analytics${query}`}>
+                <Link href={`/analytics${query}`} prefetch={true}>
                   <button
                     className={cn(
                       'px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2',

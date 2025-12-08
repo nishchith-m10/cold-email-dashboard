@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,7 +15,7 @@ interface EfficiencyMetricsProps {
   className?: string;
 }
 
-export function EfficiencyMetrics({
+function EfficiencyMetricsComponent({
   costPerReply,
   monthlyProjection,
   totalContacts,
@@ -115,3 +116,8 @@ export function EfficiencyMetrics({
     </motion.div>
   );
 }
+
+// Memoize to prevent re-renders when parent updates but data hasn't changed
+export const EfficiencyMetrics = memo(EfficiencyMetricsComponent);
+
+EfficiencyMetrics.displayName = 'EfficiencyMetrics';

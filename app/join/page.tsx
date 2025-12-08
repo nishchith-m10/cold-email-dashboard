@@ -19,6 +19,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+// Force dynamic rendering due to Header component using useSearchParams
+export const dynamic = 'force-dynamic';
+
 export default function JoinTeamPage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();

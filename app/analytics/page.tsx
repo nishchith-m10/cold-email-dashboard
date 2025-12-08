@@ -1,24 +1,30 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { toISODate, daysAgo, formatCurrency, formatNumber } from '@/lib/utils';
 import { CHART_COLORS, getModelDisplayName } from '@/lib/constants';
-import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { useDashboard } from '@/lib/dashboard-context';
 
-// Components
+// Force dynamic rendering for client-side context
+export const dynamic = 'force-dynamic';
+
+// Components - Wrapped with error boundaries for resilience
+import { DashboardErrorBoundary } from '@/components/ui/error-boundary';
+import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MetricCard } from '@/components/dashboard/metric-card';
-import { TimeSeriesChart } from '@/components/dashboard/time-series-chart';
-import { DonutChart } from '@/components/dashboard/donut-chart';
+import { SafeMetricCard as MetricCard } from '@/components/dashboard/safe-components';
+import {
+  SafeLazyTimeSeriesChart as TimeSeriesChart,
+  SafeLazyDonutChart as DonutChart,
+  SafeLazyDailyCostChart as DailyCostChart,
+} from '@/components/dashboard/safe-components';
+import { SafeSenderBreakdown as SenderBreakdown } from '@/components/dashboard/safe-components';
 import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { CampaignSelector } from '@/components/dashboard/campaign-selector';
 import { TimezoneSelector } from '@/components/dashboard/timezone-selector';
 import { ProviderSelector, ProviderId } from '@/components/dashboard/provider-selector';
-import { DailyCostChart } from '@/components/dashboard/daily-cost-chart';
-import { SenderBreakdown } from '@/components/dashboard/sender-breakdown';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Cpu, 
@@ -30,19 +36,35 @@ import {
 
 export default function AnalyticsPage() {
   // ============================================
-  // URL-BASED STATE (persists across navigation)
+  // DASHBOARD CONTEXT (global state)
   // ============================================
   
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  const { data, params, setDateRange, setCampaign, setProvider } = useDashboard();
   
-  // Read dates from URL params with fallbacks
-  const startDate = searchParams.get('start') ?? toISODate(daysAgo(30));
-  const endDate = searchParams.get('end') ?? toISODate(new Date());
-  const selectedCampaign = searchParams.get('campaign') ?? undefined;
+  // Destructure params
+  const { startDate, endDate, selectedCampaign, selectedProvider } = params;
   
-  // Local UI state
-  const [selectedProvider, setSelectedProvider] = useState<ProviderId | undefined>();
+  // Local UI state for provider selector (can also be moved to context if needed)
+  const [localProvider, setLocalProvider] = useState<ProviderId | undefined>(
+    selectedProvider as ProviderId | undefined
+  );
+  
+  // Sync local provider state with context when it changes
+  useEffect(() => {
+    setLocalProvider(selectedProvider as ProviderId | undefined);
+  }, [selectedProvider]);
+  
+  // Handle provider change
+  const handleProviderChange = useCallback((provider: ProviderId) => {
+    const providerValue = provider === 'all' ? null : provider;
+    setLocalProvider(provider);
+    setProvider(providerValue);
+  }, [setProvider]);
+  
+  // Handle campaign change (wrapper to convert undefined to null)
+  const handleCampaignChange = useCallback((campaign: string | undefined) => {
+    setCampaign(campaign ?? null);
+  }, [setCampaign]);
   
   // Timezone state - default to Los Angeles, persist in localStorage
   const [timezone, setTimezone] = useState('America/Los_Angeles');
@@ -60,17 +82,9 @@ export default function AnalyticsPage() {
   }, []);
 
   // ============================================
-  // FETCH ALL DASHBOARD DATA (CENTRALIZED)
+  // DESTRUCTURE DASHBOARD DATA
   // ============================================
   
-  const dashboardData = useDashboardData({
-    startDate,
-    endDate,
-    selectedCampaign,
-    selectedProvider,
-  });
-
-  // Destructure for cleaner access
   const {
     summary,
     summaryLoading,
@@ -86,34 +100,34 @@ export default function AnalyticsPage() {
     costPerSend,
     campaigns,
     campaignsLoading,
-  } = dashboardData;
-
-  // ============================================
-  // EVENT HANDLERS
-  // ============================================
-
-  const handleDateChange = useCallback((start: string, end: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('start', start);
-    params.set('end', end);
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
-
-  const handleCampaignChange = useCallback((campaign: string | undefined) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (campaign) {
-      params.set('campaign', campaign);
-    } else {
-      params.delete('campaign');
-    }
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
+  } = data;
 
   // ============================================
   // RENDER
   // ============================================
 
   return (
+    <DashboardErrorBoundary
+      fallback={({ error, resetErrorBoundary }) => (
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="text-center space-y-4 max-w-md px-4">
+            <div className="text-6xl">📊</div>
+            <h1 className="text-2xl font-bold tracking-tight">Analytics Error</h1>
+            <p className="text-muted-foreground">
+              {process.env.NODE_ENV === 'development' 
+                ? error.message 
+                : 'Something went wrong while loading analytics. Please try again.'}
+            </p>
+            <Button 
+              onClick={resetErrorBoundary}
+              className="mt-4"
+            >
+              Reload Analytics
+            </Button>
+          </div>
+        </div>
+      )}
+    >
     <div className="space-y-8">
       {/* Page Header */}
       <motion.div
@@ -134,18 +148,18 @@ export default function AnalyticsPage() {
         <div className="flex items-center gap-3 flex-wrap">
           <CampaignSelector
             campaigns={campaigns}
-            selectedCampaign={selectedCampaign}
+            selectedCampaign={selectedCampaign ?? undefined}
             onCampaignChange={handleCampaignChange}
             loading={campaignsLoading}
           />
           <ProviderSelector
-            selectedProvider={selectedProvider}
-            onProviderChange={(p) => setSelectedProvider(p === 'all' ? undefined : p)}
+            selectedProvider={localProvider}
+            onProviderChange={handleProviderChange}
           />
           <DateRangePicker
             startDate={startDate}
             endDate={endDate}
-            onDateChange={handleDateChange}
+            onDateChange={setDateRange}
           />
           <TimezoneSelector
             selectedTimezone={timezone}
@@ -376,9 +390,10 @@ export default function AnalyticsPage() {
         <SenderBreakdown
           startDate={startDate}
           endDate={endDate}
-          campaign={selectedCampaign}
+          campaign={selectedCampaign ?? undefined}
         />
       </motion.div>
     </div>
+    </DashboardErrorBoundary>
   );
 }

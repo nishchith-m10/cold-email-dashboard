@@ -28,13 +28,6 @@ interface HealthStatus {
 
 const startTime = Date.now();
 
-// Track cache hits/misses for hit rate calculation
-let cacheHits = 0;
-let cacheMisses = 0;
-
-export function recordCacheHit() { cacheHits++; }
-export function recordCacheMiss() { cacheMisses++; }
-
 export async function GET() {
   const checks: HealthStatus['checks'] = {
     supabase: { status: 'ok' },
@@ -83,12 +76,6 @@ export async function GET() {
     checks.cache.freshEntries = cacheStats.validEntries;
     checks.cache.staleEntries = cacheStats.staleEntries;
     checks.cache.inFlightRequests = cacheStats.inFlightRequests;
-    
-    // Calculate hit rate
-    const totalRequests = cacheHits + cacheMisses;
-    if (totalRequests > 0) {
-      checks.cache.hitRate = `${((cacheHits / totalRequests) * 100).toFixed(1)}%`;
-    }
   } catch {
     // Cache error is not critical
   }

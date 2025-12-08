@@ -19,8 +19,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify token
-    const token = request.headers.get('x-refresh-token');
+    // Verify token from header OR query parameter (for Vercel cron)
+    const headerToken = request.headers.get('x-refresh-token');
+    const queryToken = request.nextUrl.searchParams.get('token');
+    const token = headerToken || queryToken;
+    
     const expectedToken = process.env.MATERIALIZED_VIEWS_REFRESH_TOKEN;
 
     if (!expectedToken) {

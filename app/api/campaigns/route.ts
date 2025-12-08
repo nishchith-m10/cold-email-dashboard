@@ -18,11 +18,12 @@ export async function GET(req: NextRequest) {
   const workspaceId = searchParams.get('workspace_id') || DEFAULT_WORKSPACE_ID;
 
   try {
-    // Get unique campaign names from daily_stats (with exclusion filter)
-    // TEMPORARY: Remove workspace_id filter until data migration is complete
+    // Get unique campaign names from mv_daily_stats (materialized view)
+    // Using materialized view for better performance
     let query = supabaseAdmin
-      .from('daily_stats')
+      .from('mv_daily_stats')
       .select('campaign_name')
+      .eq('workspace_id', workspaceId)
       .not('campaign_name', 'is', null);
 
     // Exclude test campaigns at DB level

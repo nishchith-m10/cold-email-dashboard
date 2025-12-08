@@ -5,12 +5,12 @@
       "parameters": {
         "content": "## Email Preparation\n",
         "height": 560,
-        "width": 6096,
+        "width": 6144,
         "color": 6
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        5568,
+        5520,
         48
       ],
       "typeVersion": 1,
@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// COST TRACKING: Relevance AI (100% ACCURATE)\n// Fetches REAL credits from Relevance AI API\n// \n// CONFIGURE YOUR PLAN: 'free', 'pro', or 'team'\nconst PLAN = 'pro';\n\n// Credit pricing per plan ($ per credit)\nconst PLAN_CONFIG = {\n  'free':  { monthly_price: 0,   credits_per_month: 1000,  credit_price: 0 },\n  'pro':   { monthly_price: 29,  credits_per_month: 10000, credit_price: 0.0029 },\n  'team':  { monthly_price: 349, credits_per_month: 35000, credit_price: 0.00997 }\n};\n\nconst plan = PLAN_CONFIG[PLAN];\n\nconst leadData = $('Get Email Prep1').first().json;\nconst leadEmail = leadData.email_address || 'unknown';\nconst campaignName = leadData.state || 'Unknown';\n\n// Parse ACTUAL credits from Relevance AI history API\nlet actualCredits = 0;\nlet creditsBreakdown = [];\nlet dataSource = 'estimate';\nlet runStatus = 'unknown';\n\ntry {\n  const historyResponse = $('Fetch Relevance AI Run History1').first().json;\n  \n  if (historyResponse.results && historyResponse.results.length > 0) {\n    // Find the latest successful 'credit' type run (not 'action' type)\n    const creditRun = historyResponse.results.find(r => r.type === 'credit' && r.status === 'complete');\n    const latestRun = creditRun || historyResponse.results[0];\n    \n    runStatus = latestRun.status;\n    \n    // Get the ACTUAL cost field (this is the total credits)\n    if (latestRun.cost !== undefined && latestRun.cost !== null) {\n      actualCredits = latestRun.cost;\n      dataSource = 'api_exact';\n    }\n    \n    // Get detailed breakdown if available\n    if (latestRun.credits_used && Array.isArray(latestRun.credits_used)) {\n      creditsBreakdown = latestRun.credits_used.map(c => ({\n        name: c.name || 'unknown',\n        credits: c.credits || 0\n      }));\n    }\n  }\n} catch(e) {\n  dataSource = 'estimate_api_error';\n  actualCredits = 5; // fallback estimate\n}\n\n// Calculate USD cost\nlet cost_usd = 0;\nif (PLAN === 'free') {\n  cost_usd = 0; // Free tier - no monetary cost\n} else {\n  cost_usd = actualCredits * plan.credit_price;\n}\n\nlet costEvents = $('💰 Init Cost Tracking').first().json._cost_events || [];\n\ncostEvents.push({\n  provider: 'relevance_ai',\n  model: 'linkedin_research_tool',\n  tokens_in: 0,\n  tokens_out: 0,\n  cost_usd: Math.round(cost_usd * 1000000) / 1000000,\n  campaign_name: campaignName,\n  contact_email: leadEmail,\n  purpose: 'linkedin_scraping',\n  workflow_id: $workflow.id,\n  run_id: $execution.id,\n  metadata: {\n    plan: PLAN,\n    credits_used: actualCredits,\n    credits_breakdown: creditsBreakdown,\n    data_source: dataSource,\n    run_status: runStatus,\n    credit_price: plan.credit_price,\n    tracking_method: '100%_accurate_api'\n  }\n});\n\nfor (const item of items) {\n  item.json._cost_events = costEvents;\n}\n\nreturn items;"
+        "jsCode": "// COST TRACKING: Relevance AI (100% ACCURATE)\n// Fetches REAL credits from Relevance AI API\n// \n// CONFIGURE YOUR PLAN: 'free', 'pro', or 'team'\nconst PLAN = 'pro';\n\n// Credit pricing per plan ($ per credit)\nconst PLAN_CONFIG = {\n  'free':  { monthly_price: 0,   credits_per_month: 1000,  credit_price: 0 },\n  'pro':   { monthly_price: 29,  credits_per_month: 10000, credit_price: 0.0029 },\n  'team':  { monthly_price: 349, credits_per_month: 35000, credit_price: 0.00997 }\n};\n\nconst plan = PLAN_CONFIG[PLAN];\n\nconst leadData = $('Get Email Prep1').first().json;\nconst leadEmail = leadData.email_address || 'unknown';\nconst campaignName = leadData.state || 'Unknown';\n\n// Parse ACTUAL credits from Relevance AI history API\nlet actualCredits = 0;\nlet creditsBreakdown = [];\nlet dataSource = 'estimate';\nlet runStatus = 'unknown';\n\ntry {\n  const historyResponse = $('Fetch Relevance AI Run History1').first().json;\n  \n  if (historyResponse.results && historyResponse.results.length > 0) {\n    // Find the latest successful 'credit' type run (not 'action' type)\n    const creditRun = historyResponse.results.find(r => r.type === 'credit' && r.status === 'complete');\n    const latestRun = creditRun || historyResponse.results[0];\n    \n    runStatus = latestRun.status;\n    \n    // Get the ACTUAL cost field (this is the total credits)\n    if (latestRun.cost !== undefined && latestRun.cost !== null) {\n      actualCredits = latestRun.cost;\n      dataSource = 'api_exact';\n    }\n    \n    // Get detailed breakdown if available\n    if (latestRun.credits_used && Array.isArray(latestRun.credits_used)) {\n      creditsBreakdown = latestRun.credits_used.map(c => ({\n        name: c.name || 'unknown',\n        credits: c.credits || 0\n      }));\n    }\n  }\n} catch(e) {\n  dataSource = 'estimate_api_error';\n  actualCredits = 5; // fallback estimate\n}\n\n// Calculate USD cost\nlet cost_usd = 0;\nif (PLAN === 'free') {\n  cost_usd = 0; // Free tier - no monetary cost\n} else {\n  cost_usd = actualCredits * plan.credit_price;\n}\n\nlet costEvents = $('💰 Init Cost Tracking').first().json._cost_events || [];\n\ncostEvents.push({\n  provider: 'relevance_ai',\n  model: 'linkedin_research_tool',\n  tokens_in: 0,\n  tokens_out: 0,\n  cost_usd: Math.round(cost_usd * 1000000) / 1000000,\n  campaign_name: campaignName,\n  contact_email: leadEmail,\n  purpose: 'linkedin_scraping',\n  idempotency_key: `cost_${$execution.id}_relevance_${leadEmail}`,\n  n8n_execution_id: $execution.id,\n  workflow_id: $workflow.id,\n  run_id: $execution.id,\n  metadata: {\n    plan: PLAN,\n    credits_used: actualCredits,\n    credits_breakdown: creditsBreakdown,\n    data_source: dataSource,\n    run_status: runStatus,\n    credit_price: plan.credit_price,\n    tracking_method: '100%_accurate_api'\n  }\n});\n\nfor (const item of items) {\n  item.json._cost_events = costEvents;\n}\n\nreturn items;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -44,8 +44,8 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        5632,
-        256
+        5568,
+        384
       ],
       "id": "807bcfe0-4985-4b89-8da0-38ff844b73e7",
       "name": "Schedule Trigger"
@@ -797,7 +797,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================\n// COST TRACKING: Google Custom Search Engine\n// Pricing: $5 per 1,000 queries = $0.005/query\n// This is EXACT pricing (fixed per query)\n// ============================================\nconst COST_PER_QUERY = 0.005; // $5 per 1000 queries\n\nconst leadData = $('Get Email Prep1').first().json;\nconst leadEmail = leadData.email_address || 'unknown';\nconst campaignName = leadData.state || 'Unknown';\n\nlet costEvents = $('💰 Track Relevance AI').first().json._cost_events || [];\n\ncostEvents.push({\n  provider: 'google',\n  model: 'custom_search_api',\n  tokens_in: 0,\n  tokens_out: 0,\n  cost_usd: COST_PER_QUERY,\n  campaign_name: campaignName,\n  contact_email: leadEmail,\n  purpose: 'company_research',\n  workflow_id: $workflow.id,\n  run_id: $execution.id,\n  metadata: {\n    pricing_model: 'fixed_per_query',\n    queries_made: 1\n  }\n});\n\nfor (const item of items) {\n  item.json._cost_events = costEvents;\n}\n\nreturn items;"
+        "jsCode": "// ============================================\n// COST TRACKING: Google Custom Search Engine\n// Pricing: $5 per 1,000 queries = $0.005/query\n// This is EXACT pricing (fixed per query)\n// ============================================\nconst COST_PER_QUERY = 0.005; // $5 per 1000 queries\n\nconst leadData = $('Get Email Prep1').first().json;\nconst leadEmail = leadData.email_address || 'unknown';\nconst campaignName = leadData.state || 'Unknown';\n\nlet costEvents = $('💰 Track Relevance AI').first().json._cost_events || [];\n\ncostEvents.push({\n  provider: 'google',\n  model: 'custom_search_api',\n  tokens_in: 0,\n  tokens_out: 0,\n  cost_usd: COST_PER_QUERY,\n  campaign_name: campaignName,\n  contact_email: leadEmail,\n  purpose: 'company_research',\n  idempotency_key: `cost_${$execution.id}_google_cse_${leadEmail}`,\n  n8n_execution_id: $execution.id,\n  workflow_id: $workflow.id,\n  run_id: $execution.id,\n  metadata: {\n    pricing_model: 'fixed_per_query',\n    queries_made: 1\n  }\n});\n\nfor (const item of items) {\n  item.json._cost_events = costEvents;\n}\n\nreturn items;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -810,7 +810,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================\n// COST TRACKING: OpenAI o3-mini (Summarize)\n// 100% ACCURATE: Uses actual token counts from API\n// Pricing: $1.10/1M input, $4.40/1M output\n// ============================================\nconst PRICING = { input: 1.10, output: 4.40 }; // per 1M tokens\n\nconst leadData = $('Get Email Prep1').first().json;\nconst leadEmail = leadData.email_address || 'unknown';\nconst campaignName = leadData.state || 'Unknown';\n\n// Get the actual response from OpenAI\nconst openaiResponse = $('Summarize (O3-mini)').first().json;\n\n// Get ACTUAL token usage from OpenAI response\nconst usage = openaiResponse.usage || {};\nconst inputTokens = usage.prompt_tokens || usage.input_tokens || 0;\nconst outputTokens = usage.completion_tokens || usage.output_tokens || 0;\nconst totalTokens = usage.total_tokens || (inputTokens + outputTokens);\n\n// Determine data source accuracy\nconst dataSource = (inputTokens > 0 || outputTokens > 0) ? 'api_exact' : 'estimate';\n\n// Calculate cost using actual tokens\nconst cost = (inputTokens * PRICING.input / 1000000) + (outputTokens * PRICING.output / 1000000);\n\nlet costEvents = $('💰 Track Google CSE').first().json._cost_events || [];\n\ncostEvents.push({\n  provider: 'openai',\n  model: openaiResponse.model || 'o3-mini',\n  tokens_in: inputTokens,\n  tokens_out: outputTokens,\n  cost_usd: Math.round(cost * 1000000) / 1000000,\n  campaign_name: campaignName,\n  contact_email: leadEmail,\n  purpose: 'company_summarization',\n  workflow_id: $workflow.id,\n  run_id: $execution.id,\n  metadata: {\n    total_tokens: totalTokens,\n    data_source: dataSource,\n    tracking_method: dataSource === 'api_exact' ? '100%_accurate_api' : 'estimate'\n  }\n});\n\nfor (const item of items) {\n  item.json._cost_events = costEvents;\n}\n\nreturn items;"
+        "jsCode": "// ============================================\n// COST TRACKING: OpenAI o3-mini (Summarize)\n// 100% ACCURATE: Uses actual token counts from API\n// Pricing: $1.10/1M input, $4.40/1M output\n// ============================================\nconst PRICING = { input: 1.10, output: 4.40 }; // per 1M tokens\n\nconst leadData = $('Get Email Prep1').first().json;\nconst leadEmail = leadData.email_address || 'unknown';\nconst campaignName = leadData.state || 'Unknown';\n\n// Get the actual response from OpenAI Summarize\nconst openaiResponse = $('Summarize1').first().json;\n\n// Get ACTUAL token usage from OpenAI response\nconst usage = openaiResponse.usage || {};\nconst inputTokens = usage.prompt_tokens || usage.input_tokens || 0;\nconst outputTokens = usage.completion_tokens || usage.output_tokens || 0;\nconst totalTokens = usage.total_tokens || (inputTokens + outputTokens);\n\n// Determine data source accuracy\nconst dataSource = (inputTokens > 0 || outputTokens > 0) ? 'api_exact' : 'estimate';\n\n// Calculate cost using actual tokens\nconst cost = (inputTokens * PRICING.input / 1000000) + (outputTokens * PRICING.output / 1000000);\n\nlet costEvents = $('💰 Track Google CSE').first().json._cost_events || [];\n\ncostEvents.push({\n  provider: 'openai',\n  model: openaiResponse.model || 'o3-mini',\n  tokens_in: inputTokens,\n  tokens_out: outputTokens,\n  cost_usd: Math.round(cost * 1000000) / 1000000,\n  campaign_name: campaignName,\n  contact_email: leadEmail,\n  purpose: 'company_summarization',\n  idempotency_key: `cost_${$execution.id}_summarize_${leadEmail}`,\n  n8n_execution_id: $execution.id,\n  workflow_id: $workflow.id,\n  run_id: $execution.id,\n  metadata: {\n    total_tokens: totalTokens,\n    data_source: dataSource,\n    tracking_method: dataSource === 'api_exact' ? '100%_accurate_api' : 'estimate'\n  }\n});\n\nfor (const item of items) {\n  item.json._cost_events = costEvents;\n}\n\nreturn items;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -823,7 +823,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================\n// COST TRACKING: Apify Google Reviews\n// ACCURATE: Uses actual Apify run data\n// Apify charges by compute units (CUs)\n// CU = Memory (GB) × Time (hours)\n// ~$0.25 per CU on paid plans\n// ============================================\n\nconst leadData = $('Get Email Prep1').first().json;\nconst leadEmail = leadData.email_address || 'unknown';\nconst campaignName = leadData.state || 'Unknown';\n\n// Get Apify response - it may contain run info\nconst apifyResponse = $('Google Reviews (1-3 Stars)').first().json;\n\n// Count reviews scraped\nconst reviews = apifyResponse.reviews || apifyResponse.reviewsAll || [];\nconst reviewCount = Array.isArray(reviews) ? reviews.length : (Array.isArray(apifyResponse) ? apifyResponse.length : 0);\n\n// Apify Google Maps Reviews Scraper pricing estimate:\n// Typical run: 256MB memory, ~30 seconds per place\n// CU = 0.25GB × 0.0083hr (30s) = 0.002 CU per place\n// At $0.25/CU = ~$0.0005 per place + ~$0.001 per review\nconst BASE_COST_PER_PLACE = 0.0005;\nconst COST_PER_REVIEW = 0.001;\nconst cost = BASE_COST_PER_PLACE + (reviewCount * COST_PER_REVIEW);\n\nlet costEvents = $('💰 Track Summarize Cost').first().json._cost_events || [];\n\ncostEvents.push({\n  provider: 'apify',\n  model: 'google-maps-reviews-scraper',\n  tokens_in: 0,\n  tokens_out: 0,\n  cost_usd: Math.round(cost * 1000000) / 1000000,\n  campaign_name: campaignName,\n  contact_email: leadEmail,\n  purpose: 'reviews_scraping',\n  workflow_id: $workflow.id,\n  run_id: $execution.id,\n  metadata: {\n    reviews_scraped: reviewCount,\n    base_cost: BASE_COST_PER_PLACE,\n    per_review_cost: COST_PER_REVIEW,\n    pricing_model: 'compute_units_estimate'\n  }\n});\n\nfor (const item of items) {\n  item.json._cost_events = costEvents;\n}\n\nreturn items;"
+        "jsCode": "// ============================================\n// COST TRACKING: Apify Google Reviews\n// ACCURATE: Uses actual Apify run data\n// Apify charges by compute units (CUs)\n// CU = Memory (GB) × Time (hours)\n// ~$0.25 per CU on paid plans\n// ============================================\n\nconst leadData = $('Get Email Prep1').first().json;\nconst leadEmail = leadData.email_address || 'unknown';\nconst campaignName = leadData.state || 'Unknown';\n\n// Get the Apify response\nconst apifyResponse = $('Scrape Reviews - Apify').first().json.reviews || [];\nconst reviews = Array.isArray(apifyResponse) ? apifyResponse : [];\nconst reviewCount = Array.isArray(reviews) ? reviews.length : (Array.isArray(apifyResponse) ? apifyResponse.length : 0);\n\n// Apify Google Maps Reviews Scraper pricing estimate:\n// Typical run: 256MB memory, ~30 seconds per place\n// CU = 0.25GB × 0.0083hr (30s) = 0.002 CU per place\n// At $0.25/CU = ~$0.0005 per place + ~$0.001 per review\nconst BASE_COST_PER_PLACE = 0.0005;\nconst COST_PER_REVIEW = 0.001;\nconst cost = BASE_COST_PER_PLACE + (reviewCount * COST_PER_REVIEW);\n\nlet costEvents = $('💰 Track Summarize Cost').first().json._cost_events || [];\n\ncostEvents.push({\n  provider: 'apify',\n  model: 'google-maps-reviews-scraper',\n  tokens_in: 0,\n  tokens_out: 0,\n  cost_usd: Math.round(cost * 1000000) / 1000000,\n  campaign_name: campaignName,\n  contact_email: leadEmail,\n  purpose: 'reviews_scraping',\n  idempotency_key: `cost_${$execution.id}_apify_${leadEmail}`,\n  n8n_execution_id: $execution.id,\n  workflow_id: $workflow.id,\n  run_id: $execution.id,\n  metadata: {\n    reviews_scraped: reviewCount,\n    base_cost: BASE_COST_PER_PLACE,\n    per_review_cost: COST_PER_REVIEW,\n    pricing_model: 'compute_units_estimate'\n  }\n});\n\nfor (const item of items) {\n  item.json._cost_events = costEvents;\n}\n\nreturn items;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -836,7 +836,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================\n// COST TRACKING: Anthropic Claude Sonnet 4.5\n// 100% ACCURATE: Uses actual token counts from API\n// Pricing: $3.00/1M input, $15.00/1M output\n// ============================================\nconst PRICING = { input: 3.00, output: 15.00 }; // per 1M tokens\n\nconst leadData = $('Get Email Prep1').first().json;\nconst leadEmail = leadData.email_address || 'unknown';\nconst campaignName = leadData.state || 'Unknown';\n\n// Get the actual response from Anthropic\nconst anthropicResponse = $('Email 1,2,3').first().json;\n\n// Get ACTUAL token usage from Anthropic response\nconst usage = anthropicResponse.usage || {};\nconst inputTokens = usage.input_tokens || 0;\nconst outputTokens = usage.output_tokens || 0;\nconst totalTokens = inputTokens + outputTokens;\n\n// Determine data source accuracy\nconst dataSource = (inputTokens > 0 || outputTokens > 0) ? 'api_exact' : 'estimate';\n\n// Calculate cost using actual tokens\nconst cost = (inputTokens * PRICING.input / 1000000) + (outputTokens * PRICING.output / 1000000);\n\nlet costEvents = $('💰 Track Analyze Cost1').first().json._cost_events || [];\n\ncostEvents.push({\n  provider: 'anthropic',\n  model: anthropicResponse.model || 'claude-sonnet-4-5-20250929',\n  tokens_in: inputTokens,\n  tokens_out: outputTokens,\n  cost_usd: Math.round(cost * 1000000) / 1000000,\n  campaign_name: campaignName,\n  contact_email: leadEmail,\n  purpose: 'email_generation',\n  workflow_id: $workflow.id,\n  run_id: $execution.id,\n  metadata: {\n    total_tokens: totalTokens,\n    data_source: dataSource,\n    tracking_method: dataSource === 'api_exact' ? '100%_accurate_api' : 'estimate'\n  }\n});\n\nfor (const item of items) {\n  item.json._cost_events = costEvents;\n}\n\nreturn items;"
+        "jsCode": "// ============================================\n// COST TRACKING: Anthropic Claude Sonnet 4.5\n// 100% ACCURATE: Uses actual token counts from API\n// Pricing: $3.00/1M input, $15.00/1M output\n// ============================================\nconst PRICING = { input: 3.00, output: 15.00 }; // per 1M tokens\n\nconst leadData = $('Get Email Prep1').first().json;\nconst leadEmail = leadData.email_address || 'unknown';\nconst campaignName = leadData.state || 'Unknown';\n\n// Get the actual response from Anthropic\nconst anthropicResponse = $('Generate Email2').first().json;\n\n// Get ACTUAL token usage from Anthropic response\nconst usage = anthropicResponse.usage || {};\nconst inputTokens = usage.input_tokens || 0;\nconst outputTokens = usage.output_tokens || 0;\nconst totalTokens = inputTokens + outputTokens;\n\n// Determine data source accuracy\nconst dataSource = (inputTokens > 0 || outputTokens > 0) ? 'api_exact' : 'estimate';\n\n// Calculate cost using actual tokens\nconst cost = (inputTokens * PRICING.input / 1000000) + (outputTokens * PRICING.output / 1000000);\n\nlet costEvents = $('💰 Track Analyze Cost1').first().json._cost_events || [];\n\ncostEvents.push({\n  provider: 'anthropic',\n  model: anthropicResponse.model || 'claude-sonnet-4-5-20250929',\n  tokens_in: inputTokens,\n  tokens_out: outputTokens,\n  cost_usd: Math.round(cost * 1000000) / 1000000,\n  campaign_name: campaignName,\n  contact_email: leadEmail,\n  purpose: 'email_generation',\n  idempotency_key: `cost_${$execution.id}_anthropic_${leadEmail}`,\n  n8n_execution_id: $execution.id,\n  workflow_id: $workflow.id,\n  run_id: $execution.id,\n  metadata: {\n    total_tokens: totalTokens,\n    data_source: dataSource,\n    tracking_method: dataSource === 'api_exact' ? '100%_accurate_api' : 'estimate'\n  }\n});\n\nfor (const item of items) {\n  item.json._cost_events = costEvents;\n}\n\nreturn items;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -902,7 +902,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================\n// COST TRACKING: OpenAI o3-mini (Analyse)\n// 100% ACCURATE: Uses actual token counts from API\n// Pricing: $1.10/1M input, $4.40/1M output\n// ============================================\nconst PRICING = { input: 1.10, output: 4.40 }; // per 1M tokens\n\nconst leadData = $('Get Email Prep1').first().json;\nconst leadEmail = leadData.email_address || 'unknown';\nconst campaignName = leadData.state || 'Unknown';\n\n// Get the actual response from OpenAI Analyse\nconst analyseResponse = $('Analyze1').first().json;\n\n// Get ACTUAL token usage from OpenAI response\nconst usage = analyseResponse.usage || {};\nconst inputTokens = usage.prompt_tokens || usage.input_tokens || 0;\nconst outputTokens = usage.completion_tokens || usage.output_tokens || 0;\nconst totalTokens = usage.total_tokens || (inputTokens + outputTokens);\n\n// Determine data source accuracy\nconst dataSource = (inputTokens > 0 || outputTokens > 0) ? 'api_exact' : 'estimate';\n\n// Calculate cost using actual tokens\nconst cost = (inputTokens * PRICING.input / 1000000) + (outputTokens * PRICING.output / 1000000);\n\nlet costEvents;\ntry {\n  costEvents = $('💰 Track Apify Cost').first().json._cost_events || [];\n} catch(e) {\n  costEvents = $('💰 Track Summarize Cost').first().json._cost_events || [];\n}\n\ncostEvents.push({\n  provider: 'openai',\n  model: analyseResponse.model || 'o3-mini',\n  tokens_in: inputTokens,\n  tokens_out: outputTokens,\n  cost_usd: Math.round(cost * 1000000) / 1000000,\n  campaign_name: campaignName,\n  contact_email: leadEmail,\n  purpose: 'prospect_analysis',\n  workflow_id: $workflow.id,\n  run_id: $execution.id,\n  metadata: {\n    total_tokens: totalTokens,\n    data_source: dataSource,\n    tracking_method: dataSource === 'api_exact' ? '100%_accurate_api' : 'estimate'\n  }\n});\n\nfor (const item of items) {\n  item.json._cost_events = costEvents;\n}\n\nreturn items;"
+        "jsCode": "// ============================================\n// COST TRACKING: OpenAI o3-mini (Analyse)\n// 100% ACCURATE: Uses actual token counts from API\n// Pricing: $1.10/1M input, $4.40/1M output\n// ============================================\nconst PRICING = { input: 1.10, output: 4.40 }; // per 1M tokens\n\nconst leadData = $('Get Email Prep1').first().json;\nconst leadEmail = leadData.email_address || 'unknown';\nconst campaignName = leadData.state || 'Unknown';\n\n// Get the actual response from OpenAI Analyse\nconst analyseResponse = $('Analyze1').first().json;\n\n// Get ACTUAL token usage from OpenAI response\nconst usage = analyseResponse.usage || {};\nconst inputTokens = usage.prompt_tokens || usage.input_tokens || 0;\nconst outputTokens = usage.completion_tokens || usage.output_tokens || 0;\nconst totalTokens = usage.total_tokens || (inputTokens + outputTokens);\n\n// Determine data source accuracy\nconst dataSource = (inputTokens > 0 || outputTokens > 0) ? 'api_exact' : 'estimate';\n\n// Calculate cost using actual tokens\nconst cost = (inputTokens * PRICING.input / 1000000) + (outputTokens * PRICING.output / 1000000);\n\nlet costEvents;\ntry {\n  costEvents = $('💰 Track Apify Cost').first().json._cost_events || [];\n} catch(e) {\n  costEvents = $('💰 Track Summarize Cost').first().json._cost_events || [];\n}\n\ncostEvents.push({\n  provider: 'openai',\n  model: analyseResponse.model || 'o3-mini',\n  tokens_in: inputTokens,\n  tokens_out: outputTokens,\n  cost_usd: Math.round(cost * 1000000) / 1000000,\n  campaign_name: campaignName,\n  contact_email: leadEmail,\n  purpose: 'prospect_analysis',\n  idempotency_key: `cost_${$execution.id}_analyze_${leadEmail}`,\n  n8n_execution_id: $execution.id,\n  workflow_id: $workflow.id,\n  run_id: $execution.id,\n  metadata: {\n    total_tokens: totalTokens,\n    data_source: dataSource,\n    tracking_method: dataSource === 'api_exact' ? '100%_accurate_api' : 'estimate'\n  }\n});\n\nfor (const item of items) {\n  item.json._cost_events = costEvents;\n}\n\nreturn items;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1583,11 +1583,30 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        11440,
-        48
+        11472,
+        80
       ],
       "id": "3c2dc615-90dc-4d7c-8299-35c4e89a23bf",
       "name": "Send Cost Events to Dashboard"
+    },
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "httpMethod": [
+          "POST"
+        ],
+        "path": "c9bb22d5-3421-44f1-9cd0-b4d5b779656f",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        5568,
+        176
+      ],
+      "id": "9226755f-f199-4c4b-9833-3916cf1231e5",
+      "name": "Webhook",
+      "webhookId": "c9bb22d5-3421-44f1-9cd0-b4d5b779656f"
     }
   ],
   "pinData": {},
@@ -2006,6 +2025,11 @@
       "main": [
         []
       ]
+    },
+    "Webhook": {
+      "main": [
+        []
+      ]
     }
   },
   "active": false,
@@ -2017,7 +2041,7 @@
     "errorWorkflow": "CiaofBF4zkgB2bhR",
     "timeSavedPerExecution": 1
   },
-  "versionId": "c3040ec9-6da0-4c53-98a6-ec93248c2f93",
+  "versionId": "22594c33-bc52-4597-b577-28955c883fe9",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "fb0f3042150127121074617aaee31b106c313805cbc452132240d35f72eba898"
