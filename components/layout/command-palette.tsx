@@ -12,6 +12,7 @@ import {
   FileText,
   MessageSquareReply,
   DollarSign,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +27,7 @@ const COMMANDS = [
     items: [
       { id: 'overview', label: 'Go to Overview', icon: LayoutDashboard, href: '/' },
       { id: 'analytics', label: 'Go to Analytics', icon: BarChart3, href: '/analytics' },
+      { id: 'contacts', label: 'Go to Contacts', icon: Users, href: '/contacts' },
       { id: 'settings', label: 'Open Settings', icon: Settings, href: '/settings' },
     ],
   },

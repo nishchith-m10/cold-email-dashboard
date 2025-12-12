@@ -128,7 +128,7 @@ export function Header({ onCommandOpen }: HeaderProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { theme, toggleTheme, mounted } = useTheme();
-  const { workspaceId } = useWorkspace();
+  const { workspaceId, workspace } = useWorkspace();
   const { user } = useUser();
   
   // Preserve URL params when navigating
@@ -145,6 +145,45 @@ export function Header({ onCommandOpen }: HeaderProps) {
   const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
   const [isClearing, setIsClearing] = useState(false);
   const [clearStatus, setClearStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  // Preferences state
+  const [timezone, setTimezone] = useState<string>('America/Los_Angeles');
+  const [autoRefresh, setAutoRefresh] = useState<number>(30);
+  const [savingPref, setSavingPref] = useState(false);
+
+  // Initialize prefs on mount and when workspace settings change
+  useEffect(() => {
+    const savedTz = localStorage.getItem('dashboard_timezone');
+    const savedRefresh = localStorage.getItem('dashboard_auto_refresh');
+    if (workspace?.settings?.timezone && typeof workspace.settings.timezone === 'string') {
+      setTimezone(workspace.settings.timezone);
+      localStorage.setItem('dashboard_timezone', workspace.settings.timezone);
+    } else if (savedTz) {
+      setTimezone(savedTz);
+    }
+    if (typeof workspace?.settings?.auto_refresh_seconds === 'number') {
+      setAutoRefresh(Number(workspace.settings.auto_refresh_seconds));
+      localStorage.setItem('dashboard_auto_refresh', String(workspace.settings.auto_refresh_seconds));
+    } else if (savedRefresh) {
+      const val = Number(savedRefresh);
+      if (Number.isFinite(val)) setAutoRefresh(val);
+    }
+  }, [workspace?.settings]);
+
+  // Listen to storage updates to stay in sync with other controls
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'dashboard_timezone' && e.newValue) {
+        setTimezone(e.newValue);
+      }
+      if (e.key === 'dashboard_auto_refresh' && e.newValue) {
+        const val = Number(e.newValue);
+        if (Number.isFinite(val)) setAutoRefresh(val);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   // Profile dropdown state
   const [showProfile, setShowProfile] = useState(false);
@@ -269,6 +308,51 @@ export function Header({ onCommandOpen }: HeaderProps) {
     }
   }, [showSettings, fetchCacheStats]);
 
+  // Load persisted prefs when settings opens
+  useEffect(() => {
+    if (!showSettings || !workspaceId) return;
+    const load = async () => {
+      try {
+        const res = await fetch(`/api/workspaces/settings?workspace_id=${workspaceId}`);
+        if (res.ok) {
+          const data = await res.json();
+          const settings = data.settings || {};
+          if (settings.timezone) {
+            setTimezone(settings.timezone);
+            localStorage.setItem('dashboard_timezone', settings.timezone);
+          }
+          if (typeof settings.auto_refresh_seconds === 'number') {
+            setAutoRefresh(settings.auto_refresh_seconds);
+            localStorage.setItem('dashboard_auto_refresh', String(settings.auto_refresh_seconds));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load workspace settings', err);
+      }
+    };
+    load();
+  }, [showSettings, workspaceId]);
+
+  const savePrefs = useCallback(async (next: { timezone?: string; auto_refresh_seconds?: number }) => {
+    if (!workspaceId) return;
+    setSavingPref(true);
+    try {
+      const res = await fetch('/api/workspaces/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace_id: workspaceId, ...next }),
+      });
+      if (res.ok) {
+        if (next.timezone) localStorage.setItem('dashboard_timezone', next.timezone);
+        if (next.auto_refresh_seconds !== undefined) localStorage.setItem('dashboard_auto_refresh', String(next.auto_refresh_seconds));
+      }
+    } catch (err) {
+      console.error('Failed to save settings', err);
+    } finally {
+      setSavingPref(false);
+    }
+  }, [workspaceId]);
+
   // Helper to format time ago
   function formatTimeAgo(timestamp: string): string {
     const now = new Date();
@@ -347,6 +431,18 @@ export function Header({ onCommandOpen }: HeaderProps) {
                   >
                     <BarChart3 className="h-4 w-4" />
                     Analytics
+                  </button>
+                </Link>
+                <Link href={`/contacts${query}`}>
+                  <button
+                    className={cn(
+                      'px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
+                      pathname === '/contacts'
+                        ? 'bg-surface text-text-primary shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary'
+                    )}
+                  >
+                    Contacts
                   </button>
                 </Link>
               </nav>
@@ -524,22 +620,68 @@ export function Header({ onCommandOpen }: HeaderProps) {
                         </button>
 
                         {/* Timezone setting */}
-                        <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-surface-elevated transition-colors">
+                        <div className="w-full px-2 py-2.5 rounded-lg hover:bg-surface-elevated transition-colors">
+                          <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <Globe className="h-4 w-4 text-text-secondary" />
                             <span className="text-sm text-text-primary">Timezone</span>
+                            </div>
+                            <span className="text-xs text-text-secondary">{timezone}</span>
                           </div>
-                          <span className="text-xs text-text-secondary">UTC-8</span>
+                          <div className="mt-2 grid grid-cols-1 gap-1">
+                            {['America/Los_Angeles', 'America/New_York', 'UTC'].map(tz => (
+                              <button
+                                key={tz}
+                                onClick={() => {
+                                  setTimezone(tz);
+                                  savePrefs({ timezone: tz });
+                                }}
+                                className={cn(
+                                  'w-full text-left px-3 py-2 rounded-md text-xs',
+                                  timezone === tz
+                                    ? 'bg-accent-primary/10 text-accent-primary'
+                                    : 'text-text-secondary hover:bg-surface'
+                                )}
+                                disabled={savingPref}
+                              >
+                                {tz}
                         </button>
+                            ))}
+                          </div>
+                        </div>
 
                         {/* Refresh interval */}
-                        <button className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-surface-elevated transition-colors">
+                        <div className="w-full px-2 py-2.5 rounded-lg hover:bg-surface-elevated transition-colors">
+                          <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <Clock className="h-4 w-4 text-text-secondary" />
                             <span className="text-sm text-text-primary">Auto-refresh</span>
+                            </div>
+                            <span className="text-xs text-text-secondary">
+                              {autoRefresh === 0 ? 'Off' : `${autoRefresh}s`}
+                            </span>
                           </div>
-                          <span className="text-xs text-text-secondary">30s</span>
+                          <div className="mt-2 grid grid-cols-3 gap-2">
+                            {[0, 30, 60].map(v => (
+                              <button
+                                key={v}
+                                onClick={() => {
+                                  setAutoRefresh(v);
+                                  savePrefs({ auto_refresh_seconds: v });
+                                }}
+                                className={cn(
+                                  'px-2 py-2 rounded-md text-xs text-center',
+                                  autoRefresh === v
+                                    ? 'bg-accent-primary/10 text-accent-primary'
+                                    : 'text-text-secondary hover:bg-surface'
+                                )}
+                                disabled={savingPref}
+                              >
+                                {v === 0 ? 'Off' : `${v}s`}
                         </button>
+                            ))}
+                          </div>
+                        </div>
 
                         <div className="my-2 border-t border-border" />
 
