@@ -9,7 +9,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, X, Mail, Building2, Clock3 } from 'lucide-react';
+import { Search, Plus, X, Mail, Building2, Clock3, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -85,9 +85,10 @@ function formatDateTime(value: string | null) {
   });
 }
 
-function industryVariant(val: string | null | undefined): 'warning' | 'purple' | 'success' | 'default' | 'secondary' {
+function industryVariant(val: string | null | undefined): 'warning' | 'purple' | 'success' | 'default' | 'secondary' | 'magenta' {
   if (!val) return 'secondary';
   const normalized = String(val).toLowerCase();
+  if (normalized.includes('facilities services') || normalized.includes('facility services')) return 'magenta';
   if (normalized.includes('construction')) return 'warning';
   if (normalized.includes('appliance') || normalized.includes('electrical') || normalized.includes('electronics')) return 'purple';
   if (normalized.includes('environmental')) return 'default';
@@ -399,11 +400,16 @@ export default function ContactsPage() {
     <Suspense fallback={null}>
       <div className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Contacts</h1>
-          <p className="text-sm text-text-secondary">
-            View your leads with timeline.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-surface-elevated flex items-center justify-center">
+            <Users className="w-6 h-6 text-text-secondary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold text-text-primary">Contacts</h1>
+            <p className="text-sm text-text-secondary">
+              View your leads with timeline.
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">

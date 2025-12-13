@@ -19,8 +19,8 @@ function encryptSecret(plain: string): string {
   const key = getKey();
   if (!key) throw new Error('ASK_KEY_ENCRYPTION_KEY is not configured or invalid (needs 32 bytes).');
   const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv(ALGO, key, iv);
-  const ciphertext = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
+  const cipher = crypto.createCipheriv(ALGO, key as any, iv as any);
+  const ciphertext = Buffer.concat([new Uint8Array(cipher.update(new Uint8Array(Buffer.from(plain, 'utf8')))), new Uint8Array(cipher.final())]);
   const tag = cipher.getAuthTag();
   return `${iv.toString('hex')}:${ciphertext.toString('hex')}:${tag.toString('hex')}`;
 }
@@ -32,9 +32,9 @@ function decryptSecret(payload: string): string {
   const iv = Buffer.from(ivHex, 'hex');
   const ct = Buffer.from(ctHex, 'hex');
   const tag = Buffer.from(tagHex, 'hex');
-  const decipher = crypto.createDecipheriv(ALGO, key, iv);
-  decipher.setAuthTag(tag);
-  const plain = Buffer.concat([decipher.update(ct), decipher.final()]).toString('utf8');
+  const decipher = crypto.createDecipheriv(ALGO, key as any, iv as any);
+  decipher.setAuthTag(new Uint8Array(tag) as any);
+  const plain = Buffer.concat([new Uint8Array(decipher.update(new Uint8Array(ct))), new Uint8Array(decipher.final())]).toString('utf8');
   return plain;
 }
 
@@ -134,4 +134,3 @@ export async function getAskKeyStatus(params: {
     return { openaiConfigured: false, openrouterConfigured: false, hasEnvOpenAI, hasEnvOpenRouter, error: e?.message || 'Status failed' };
   }
 }
-

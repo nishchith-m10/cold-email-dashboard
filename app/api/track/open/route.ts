@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   }
   
   // Always return the pixel immediately (non-blocking tracking)
-  const response = new NextResponse(TRACKING_PIXEL, {
+  const response = new NextResponse(TRACKING_PIXEL as any, {
     status: 200,
     headers: {
       'Content-Type': 'image/gif',
@@ -105,4 +105,3 @@ async function trackOpenEvent(
     console.error('[OPEN TRACKING ERROR]', error);
   }
 }
-

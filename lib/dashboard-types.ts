@@ -247,3 +247,53 @@ export interface DashboardData {
   refresh: () => void;
 }
 
+// ============================================
+// SEQUENCES / DRAFTS TYPES
+// ============================================
+
+/** Lightweight item for Sequences list sidebar */
+export interface SequenceListItem {
+  id: number;
+  full_name: string | null;
+  email_address: string;
+  organization_name: string | null;
+  email_1_sent: boolean | null;
+  email_2_sent: boolean | null;
+  email_3_sent: boolean | null;
+  created_at: string | null;
+}
+
+/** Paginated response for /api/sequences */
+export interface SequenceListResponse {
+  items: SequenceListItem[];
+  next_cursor: number | null;
+  total: number;
+}
+
+/** Heavy payload for /api/sequences/[id] details */
+export interface SequenceDetail {
+  id: number;
+  full_name: string | null;
+  email_address: string;
+  organization_name: string | null;
+  
+  // Draft Content
+  email_1_subject: string | null;
+  email_1_body: string | null;
+  email_2_body: string | null;
+  email_3_subject: string | null;
+  email_3_body: string | null;
+  
+  // Status
+  email_1_sent: boolean | null;
+  email_2_sent: boolean | null;
+  email_3_sent: boolean | null;
+}
+
+/** Quality flags for UI badges */
+export interface SequenceQualityFlags {
+  email_1_missing_name: boolean;
+  email_2_missing_name: boolean;
+  email_3_missing_name: boolean;
+}
+

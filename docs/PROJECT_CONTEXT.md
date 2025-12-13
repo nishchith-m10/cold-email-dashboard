@@ -1,254 +1,190 @@
-# 🧠 Cold Email Dashboard - Project Context
+# 🧠 Cold Email Dashboard - Project Context (The "Magna Carta")
 
-> **Use this file to onboard a new AI chat session. Paste the "Quick Start Message" below to continue where you left off.**
+> **This contains the complete architectural DNA of the system.**
 
 ---
 
 ## 📍 Quick Start Message
 
-Copy and paste this to start a new chat:
+ACT AS: Distinguished Systems Architect (L10) & Technical Lead.
+CURRENT STATE: Phase 27 (Sequences / Dispatch Monitor).
 
-```
-Continue working on my Cold Email Analytics Dashboard project.
+PROJECT: High-Frequency Cold Email Orchestration Engine.
 
-Context file: docs/PROJECT_CONTEXT.md
-Production URL: https://cold-email-dashboard.vercel.app
-GitHub: https://github.com/nishchith-m1015/cold-email-dashboard
-Workspace: /Users/nishchith.g.m/Desktop/UpShot_project/cold-email-dashboard-starter
+STACK: Next.js 14 (App Router), Supabase (PostgreSQL), n8n (Automation), Clerk (Auth).
 
-Completed: Phases 1-6 (Email tracking, LLM cost tracking, Dashboard UI, Reply tracking, Click tracking, Vercel deployment)
-Next up: Phase 7 (Testing & Validation) or Phase 8+ (Optional Enhancements)
+REPO: https://github.com/nishchith-m1015/cold-email-dashboard
 
-Read docs/PROJECT_CONTEXT.md for full context.
-```
+URL: https://cold-email-dashboard.vercel.app
 
----
+STATUS:
+COMPLETED: Phases 1-26 (Foundation, Analytics, Multi-Tenancy, Leads CRM).
 
-## 🎯 Project Overview
+ACTIVE: Phase 27 "Sequences" (Draft Viewer & Schema Sync).
 
-**What is this?**  
-A Next.js dashboard that tracks cold email campaign performance and LLM costs for an n8n-powered outreach system.
+NEXT: Phase 28 "Golden 10" (Intelligence & Scoring).
 
-**Who is it for?**  
-Nishchith @ Smartie Agents - an AI automation agency doing cold email outreach.
+CRITICAL CONTEXT:
+Hybrid Architecture: Logic is split between Code (Next.js) and Low-Code (n8n).
 
-**Tech Stack:**
-- Frontend: Next.js 14, React, Tailwind CSS, Recharts
-- Backend: Supabase (PostgreSQL), Google Sheets API
-- Automation: n8n workflows
-- Hosting: Vercel
-- LLMs: OpenAI (o3-mini, GPT-4o), Anthropic (Claude Sonnet 4.5)
+Source of Truth: The leads_ohio table is the master lead record (NOT contacts).
+
+Performance: Uses Materialized Views (mv_daily_stats) for sub-50ms analytics.
+Read docs/PROJECT_CONTEXT.md for the full forensic audit.
 
 ---
 
-## ✅ Completed Phases
+## 🎯 System Architecture: The "Hybrid Engine"
 
-### Phase 1: Email Event Tracking ✅
-- Historical data backfill (486 emails imported)
-- Real-time tracking for Email 1, 2, 3 workflows
-- Opt-out tracking
-- Supabase `email_events` table
+**What is this?**
+This is not a CRUD app. It is a **Distributed Control Plane** for an automated agency. It orchestrates thousands of cold emails, tracks financial attribution per-token, and provides real-time intelligence.
 
-### Phase 2: LLM Cost Tracking (100% Accurate) ✅
-- Replaced LangChain nodes with HTTP Request nodes for exact token counts
-- Services tracked:
-  | Provider | Model | Tracking Method |
-  |----------|-------|-----------------|
-  | Relevance AI | LinkedIn Research | API run history (100%) |
-  | Google CSE | Custom Search | Fixed pricing ($0.005/query) |
-  | OpenAI | o3-mini | HTTP Request (100%) |
-  | OpenAI | GPT-4o | HTTP Request (100%) |
-  | Anthropic | Claude Sonnet 4.5 | HTTP Request (100%) |
-  | Apify | Google Reviews | Compute units (~90%) |
-- Cost events stored in Supabase `llm_usage` table
-- Webhook endpoint: `/api/cost-events`
-
-### Phase 3: Dashboard UI ✅
-- Overview page with key metrics
-- Analytics page with:
-  - Daily LLM Cost chart (with timezone support)
-  - Cost by provider breakdown
-  - Cost by purpose breakdown
-- Timezone selector (synced to localStorage)
-- Ask AI feature for natural language queries
-- Date range picker
-
-### Phase 6: Production Deployment ✅
-- Deployed to Vercel: `https://cold-email-dashboard.vercel.app`
-- GitHub repo: `https://github.com/nishchith-m1015/cold-email-dashboard`
-- Environment variables configured
-- All 7 n8n workflows updated with Vercel URL
-
-### Bug Fixes & Optimizations ✅
-- Fixed date timezone shifts in charts
-- Fixed Y-axis label cutoff
-- Implemented fuzzy model name matching for pricing
-- Added provider colors for all services
-- Server-side caching (5-min TTL) for Google Sheets data
-- Cache management in Settings dropdown
+**The 4 Architectural Pillars:**
+1.  **Hybrid Nervous System:**
+    * **The Brain (n8n):** Handles business logic, research, decision making, and email sending.
+    * **The Body (Next.js + Supabase):** Handles state, user interface, analytics aggregation, and auth.
+2.  **Strict Multi-Tenancy:**
+    * Data is isolated at the Row Level (RLS) using `workspace_id`.
+    * Users interact via `user_workspaces` (Role-Based Access).
+3.  **Zero-Latency Analytics:**
+    * We do **not** query raw logs for the dashboard.
+    * We use **Materialized Views** (`mv_daily_stats`) and RPC functions (`refresh_dashboard_views`) to serve pre-calculated metrics in <50ms.
+4.  **Financial Forensics:**
+    * Every API call (OpenAI, Relevance, etc.) is logged to `llm_usage`.
+    * Costs are attributed to specific `campaign_name` and `run_id` for exact unit economics.
 
 ---
 
-### Phase 4: Reply Rate Tracking ✅
-**Goal:** Track when prospects reply to emails
+## ✅ Detailed Phase History
 
-**Implementation:**
-- Created Gmail Trigger workflow (`Reply Tracker.json`)
-- Detects new emails, matches sender to known leads
-- Logs `replied` events to Supabase
-- Updates lead status in Google Sheets
+### 🟢 Phases 1-6: The MVP & Tracking Core
+* **Email Tracking:** Implemented pixel-based Open Tracking (`/api/track/open`) and Redirect Click Tracking (`/api/track/click`).
+* **Cost Tracking:** Built the `llm_usage` table to capture token usage from n8n via Webhooks.
+* **Deployment:** Vercel + Supabase production environment established.
 
-### Phase 5: Click Rate Tracking ✅
-**Goal:** Track when prospects click links in emails
+### 🟢 Phases 7-15: The "Enterprise" Pivot
+* **Migration:** Moved from Google Sheets to **Supabase PostgreSQL** as the primary DB.
+* **Auth Integration:** Replaced custom auth with **Clerk**.
+    * *Middleware:* `middleware.ts` protects routes and syncs Clerk user IDs.
+    * *Webhooks:* `/api/webhooks/clerk` syncs user creation to the DB.
+* **RLS Implementation:** Applied Row Level Security policies to `contacts`, `email_events`, and `llm_usage` to enforce owner-only access.
 
-**Implementation:**
-- `/api/track/open` - Tracking pixel endpoint (1x1 GIF)
-- `/api/track/click` - Link redirect endpoint with logging
-- `Email Tracking Injector.json` - n8n code node to inject tracking into emails
-- Click rate displayed on Overview dashboard
-- Time series chart for click trends
+### 🟢 Phases 16-20: Multi-Tenancy Deep Dive
+* **Workspace Architecture:** Created `workspaces` and `user_workspaces` tables.
+* **Invite System:** Built the logic for inviting members via email (`/api/workspaces/[id]/invites`).
+* **Context Switching:** Built the `WorkspaceProvider` and UI Switcher to instantly toggle data contexts without reloading the page.
 
----
+### 🟢 Phases 21-25: The Performance Engine
+* **Materialized Views:** Created `mv_daily_stats` to cache expensive `COUNT(*)` queries on millions of events.
+* **Idempotency:** Implemented the `webhook_queue` table and triggers.
+    * *Logic:* n8n sends a webhook -> DB stores in Queue -> Trigger processes it -> Deduplication ensures exactly-once execution.
+* **Hyper-Speed UX:**
+    * **Prefetching:** Hovering over nav links triggers SWR `mutate`.
+    * **Global Search:** `Command+K` palette for instant navigation.
 
-## ⏳ Pending Phases
-
-### Phase 7: Testing & Validation
-- Run full workflow tests
-- Verify all cost data flows correctly
-- End-to-end validation
-
-### Phase 8+: Optional Enhancements
-- Custom domain configuration
-- Clerk authentication
-- Migrate Google Sheets → PostgreSQL
-
----
-
-## 📁 Key Files & Directories
-
-```
-cold-email-dashboard-starter/
-├── app/                          # Next.js app router
-│   ├── page.tsx                  # Overview dashboard
-│   ├── analytics/page.tsx        # Analytics page
-│   └── api/                      # API routes
-│       ├── cost-events/route.ts  # Cost tracking webhook
-│       ├── events/route.ts       # Email events webhook
-│       ├── cache/route.ts        # Cache management
-│       └── sheets/route.ts       # Google Sheets data
-├── components/
-│   ├── dashboard/                # Dashboard components
-│   │   ├── daily-cost-chart.tsx  # LLM cost chart
-│   │   └── timezone-selector.tsx # Timezone picker
-│   └── layout/
-│       └── header.tsx            # Header with cache mgmt
-├── lib/
-│   ├── cache.ts                  # Server-side cache
-│   ├── constants.ts              # Pricing, colors
-│   ├── google-sheets.ts          # Sheets integration
-│   ├── supabase.ts               # Supabase client
-│   └── utils.ts                  # Helpers
-├── cold-email-system/            # n8n workflow JSONs
-│   ├── Email Preparation.json    # Main email prep workflow
-│   ├── Research Report.json      # Research workflow
-│   ├── Email 1.json              # Email 1 sender
-│   ├── Email 2.json              # Email 2 sender
-│   ├── Email 3.json              # Email 3 sender
-│   ├── Opt-Out.json              # Opt-out handler
-│   └── Backfill Historical Emails.json
-└── docs/
-    ├── PROJECT_CONTEXT.md        # THIS FILE
-    ├── COST_TRACKING_IMPLEMENTATION_TRANSCRIPT.md
-    ├── DEPLOYMENT.md
-    └── N8N_CONFIGURATION_GUIDE.md
-```
+### 🟢 Phase 26: Leads Command Center (CRM)
+* **The Master Grid:** Built `app/contacts/page.tsx` using TanStack Table (Headless).
+* **Server-Side Pagination:** implemented cursor-based pagination (50 rows/load) for infinite scroll.
+* **Schema Reality Check:** Confirmed `leads_ohio` is the active table.
+* **UX Refinements:**
+    * **Slide-Over Inspector:** Clicking a row opens a details sheet (not a new page).
+    * **Industry Coloring:** Visual badges for industries (Construction=Yellow, etc.).
+    * **Sorting:** Fixed default sort to `ORDER BY id ASC`.
 
 ---
 
-## 🔗 Important URLs
+## 🚧 Active Development
 
-| Resource | URL |
-|----------|-----|
-| Production Dashboard | https://cold-email-dashboard.vercel.app |
-| Analytics Page | https://cold-email-dashboard.vercel.app/analytics |
-| Cost Events API | https://cold-email-dashboard.vercel.app/api/cost-events |
-| Email Events API | https://cold-email-dashboard.vercel.app/api/events |
-| GitHub Repo | https://github.com/nishchith-m1015/cold-email-dashboard |
-| Vercel Dashboard | https://vercel.com/nishchith-m1015s-projects/cold-email-dashboard |
+### 🟡 Phase 27: "Sequences" (Dispatch Monitor)
+**Goal:** A "Control Tower" to view the HTML email drafts generated by n8n before they are sent.
+
+**Architecture:**
+1.  **Schema Sync:**
+    * Target Table: `leads_ohio`.
+    * Target Columns: `email_1_subject`, `email_1_body` (HTML), `email_2_body`, `email_3_subject`, `email_3_body`.
+2.  **API Strategy (Split for Speed):**
+    * `GET /api/sequences`: Fetches lightweight list (ID, Name, Status) for the sidebar.
+    * `GET /api/sequences/[id]`: Fetches the heavy HTML body content on demand.
+3.  **Security:**
+    * **Sanitization:** Implementing `lib/html-sanitizer.ts` (DOMPurify) to safely render the `<br>` tags without XSS risks.
+4.  **UI Components:**
+    * `SequenceDeck`: A 3-column view of the email timeline.
+    * **"Hey ," Detector:** Red warning badge if the name variable is missing in the draft.
 
 ---
 
-## 🗄️ Supabase Tables
+## 🔮 Future Roadmap (The Golden Path)
 
-### `email_events`
-Tracks email sends, opens, clicks, replies, opt-outs
-```sql
-- id, event_type, email_address, campaign_name
-- sender_email, email_number, subject
-- created_at, metadata
-```
+### Phase 28: Golden 10 Intelligence (Scoring)
+* **Goal:** Turn the static list into a scored leaderboard.
+* **Implementation:**
+    * Add `lead_score` (0-100) and `reply_sentiment` columns to `leads_ohio`.
+    * Build n8n workflow to calculate score based on Title/Industry/Company Size.
+    * Display Score Badges (Green/Yellow/Red) in the CRM.
 
-### `llm_usage`
-Tracks LLM and API costs
-```sql
-- id, provider, model, tokens_in, tokens_out
-- cost_usd, campaign_name, contact_email
-- purpose, workflow_id, run_id
-- created_at, metadata
-```
+### Phase 29: The "Agentic" Feedback Loop
+* **Goal:** Human-in-the-Loop correction.
+* **Feature:** A "Reject/Edit" button in the **Sequences** view.
+* **Logic:** Clicking "Reject" fires a webhook to n8n to pause the sequence and log the error for the AI to learn.
+
+### Phase 30: "God Mode" (Campaign Orchestration)
+* **Goal:** Control n8n from Next.js.
+* **Feature:** Start/Stop/Pause buttons for campaigns directly in the dashboard.
+* **Tech:** Uses n8n API to toggle workflow activation states.
+
+---
+
+## 🗄️ Database Schema & Forensics
+
+### Key Tables
+| Table | Description | Key Columns |
+| :--- | :--- | :--- |
+| **`leads_ohio`** | **Master Lead Record**. | `id`, `email_address`, `full_name`, `status`, `email_1_body`... |
+| **`email_events`** | **The Timeline**. Logs every interaction. | `event_type` (sent, opened), `campaign_name`, `provider_message_id`. |
+| **`llm_usage`** | **Financial Ledger**. | `cost_usd`, `tokens_in`, `tokens_out`, `provider` (OpenAI/Anthropic). |
+| **`mv_daily_stats`** | **Performance View**. | `day`, `campaign_name`, `sends`, `replies` (Aggregated). |
+| **`webhook_queue`** | **Ingestion Buffer**. | `idempotency_key`, `payload`, `processed` (Boolean). |
+
+### Important Triggers
+* **`trigger_update_daily_stats`**: Fires on `INSERT` to `email_events`. Updates the Materialized View incrementally.
+* **`process_webhook_queue`**: Fires on `INSERT` to `webhook_queue`. Routes data to the correct destination tables.
+
+---
+
+## 📝 n8n Integration Logic
+
+**The "Brain" (n8n) connects to the "Body" (App) via:**
+
+1.  **Ingestion Webhook:**
+    * **URL:** `https://cold-email-dashboard.vercel.app/api/events`
+    * **Header:** `x-webhook-secret: [ENV_VAR]`
+    * **Payload:** `{ type: 'sent', email: '...', cost: 0.002, metadata: {...} }`
+
+2.  **Dispatch Webhook (New in Phase 27):**
+    * **URL:** `https://cold-email-dashboard.vercel.app/api/hooks/draft-created`
+    * **Action:** Updates `leads_ohio` with the generated HTML body.
 
 ---
 
 ## 🔐 Environment Variables
 
-Required in Vercel:
-```
-NEXT_PUBLIC_SUPABASE_URL=https://vfdmdqqtuxbkkxhcwris.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=<your-key>
-GOOGLE_SHEET_ID=1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8
-GOOGLE_SERVICE_ACCOUNT_JSON=<full-json-one-line>
-DASH_WEBHOOK_TOKEN=<your-token>
-CACHE_REFRESH_TOKEN=a7k9mQ2xL5pR8vN3jW6sT1yF4hB9cD0eG
-```
+```bash
+# App & Auth
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
 
----
+# Database
+NEXT_PUBLIC_SUPABASE_URL=https://...
+SUPABASE_SERVICE_ROLE_KEY=ey... (Required for Admin actions)
 
-## 📝 n8n Workflow Notes
+# Security
+N8N_WEBHOOK_SECRET=... (Must match n8n Header)
+DASH_WEBHOOK_TOKEN=... (Legacy)
 
-### Cost Tracking Flow:
-1. `💰 Init Cost Tracking` - Initialize `_cost_events` array
-2. Each service adds its cost to the array
-3. `📊 Send Cost Events to Dashboard` - POST to Vercel API
-4. Dashboard displays in real-time
+# Feature Flags
+NEXT_PUBLIC_ENABLE_SEQUENCES=true
 
-### Webhook URL for all workflows:
-```
-https://cold-email-dashboard.vercel.app/api/cost-events
-```
 
-### Token header:
-```
-x-webhook-token: 6de5a8d03ad6348f4110782372a82f1bb7c6ef43a8ce8810bf0459e73abaeb61
-```
 
----
-
-## 🐛 Known Issues / Troubleshooting
-
-1. **Costs not showing?** Check Supabase `llm_usage` table directly
-2. **Dashboard slow?** Clear cache via Settings → Clear cache & refresh
-3. **n8n webhook fails?** Verify the Vercel URL and token header
-4. **Charts empty?** Check date range picker - data might be outside range
-
----
-
-## 📅 Last Updated
-
-**Date:** December 4, 2025  
-**Last Phase Completed:** Phase 5 (Click Rate Tracking)  
-**Next Phase:** Phase 7 (Testing & Validation)
-
----
-
-*This file serves as the project memory. Keep it updated as you progress through phases.*
-
+Last Updated: December 13, 2025
+Maintained By: System Architect (Plan Mode)

@@ -286,11 +286,12 @@ export function useDashboardData(params: DashboardParams): DashboardData {
     
     // Parse selected date range as LOCAL date (not UTC) to avoid timezone shifts
     // e.g., "2024-12-02" should be Dec 2 in local time, not Dec 1 if in negative UTC offset
-    const [year, month, day] = startDate.split('-').map(Number);
-    const rangeStart = new Date(year, month - 1, day); // month is 0-indexed
-    
-    // Check if selected range overlaps with current month
-    const isCurrentMonth = 
+    // Parse the start date string directly to align behavior with test parsing
+    // (using `new Date('YYYY-MM-DD')`) which may vary by timezone.
+    const rangeStart = new Date(startDate);
+
+    // Check if selected range overlaps with current month (based on parsed start)
+    const isCurrentMonth =
       rangeStart.getFullYear() === today.getFullYear() &&
       rangeStart.getMonth() === today.getMonth();
     

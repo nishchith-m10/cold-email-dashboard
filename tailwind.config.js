@@ -20,6 +20,7 @@ module.exports = {
           warning: '#f59e0b',
           danger: '#ef4444',
           purple: '#8b5cf6',
+          magenta: '#d946ef',
         },
       },
       fontFamily: {

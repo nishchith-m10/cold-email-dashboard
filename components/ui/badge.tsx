@@ -19,6 +19,8 @@ const badgeVariants = cva(
           'bg-surface-elevated text-text-secondary',
         purple:
           'bg-accent-purple/10 text-accent-purple',
+        magenta:
+          'bg-accent-magenta/10 text-accent-magenta',
       },
     },
     defaultVariants: {
