@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
   const workspaceId = workspace_id || DEFAULT_WORKSPACE_ID;
   const campaignName = campaign || 'Default Campaign';
   const eventTs = event_ts ? new Date(event_ts).toISOString() : new Date().toISOString();
+  const emailNumber = step ?? null; // Align naming with DB (email_number)
 
   try {
     // Upsert contact
@@ -106,19 +107,19 @@ export async function POST(req: NextRequest) {
     const contactId = contact?.id || null;
 
     // For 'sent' events, also upsert the email record
-    if (event_type === 'sent' && step) {
+    if (event_type === 'sent' && emailNumber) {
       const { error: emailError } = await supabaseAdmin
         .from('emails')
         .upsert({
           contact_id: contactId,
           workspace_id: workspaceId,
-          step: step,
+          step: emailNumber,
           subject: subject || null,
           body: email_body || null,
           provider: provider || 'gmail',
           provider_message_id: provider_message_id || null,
           sent_at: eventTs,
-        }, { onConflict: 'contact_id,campaign_id,step' });
+        }, { onConflict: 'contact_id,step' });
 
       if (emailError) {
         console.error('Email upsert error:', emailError);
@@ -139,7 +140,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate unique event key for deduplication
-    const eventKey = idempotency_key || `${provider || 'unknown'}:${provider_message_id || contact_email}:${event_type}:${step || 0}`;
+    const eventKey = idempotency_key || `${provider || 'unknown'}:${provider_message_id || contact_email}:${event_type}:${emailNumber || 0}`;
 
     // Insert event
     const { error: eventError } = await supabaseAdmin
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
         contact_id: contactId,
         contact_email,
         campaign_name: campaignName,
-        step: step || null,
+        email_number: emailNumber,
         event_type,
         event_ts: eventTs,
         provider: provider || null,

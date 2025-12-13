@@ -112,7 +112,7 @@ const aggregateConfig: SWRConfiguration = {
  * This hook provides:
  * - All raw API data with loading states
  * - Pre-computed chart data (costByProvider, costByModel)
- * - Derived metrics (costPerReply, costPerSend)
+ * - Derived metrics (dailySpending, costPerSend)
  * - Convenience flags (isLoading, hasError)
  * - Refresh function to revalidate all data
  * 
@@ -244,19 +244,23 @@ export function useDashboardData(params: DashboardParams): DashboardData {
     }));
   }, [costData]);
 
-  // Calculate cost per reply (with robust fallback)
-  // Formula: Total Cost / Total Replies (guards against divide by zero)
-  const costPerReply = useMemo(() => {
-    // Need both cost data and reply count
-    const totalCost = costData?.total?.cost_usd;
-    const replies = summary?.replies;
-    
-    // Return 0 if data is missing or replies are zero
+  const isSingleDay = useMemo(() => startDate === endDate, [startDate, endDate]);
+
+  // Calculate average daily spending across the selected range
+  const dailySpending = useMemo(() => {
+    const totalCost = costData?.total?.cost_usd ?? summary?.cost_usd;
     if (totalCost === undefined || totalCost === null) return 0;
-    if (replies === undefined || replies === null || replies === 0) return 0;
-    
-    return Number((totalCost / replies).toFixed(4));
-  }, [summary, costData]);
+
+    const [startY, startM, startD] = startDate.split('-').map(Number);
+    const [endY, endM, endD] = endDate.split('-').map(Number);
+    const startLocal = new Date(startY, startM - 1, startD);
+    const endLocal = new Date(endY, endM - 1, endD);
+
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const daysInRange = Math.max(1, Math.round((endLocal.getTime() - startLocal.getTime()) / msPerDay) + 1);
+
+    return Number((totalCost / daysInRange).toFixed(2));
+  }, [costData, summary, startDate, endDate]);
 
   // Calculate cost per send (with robust fallback)
   // Formula: Total Cost / Total Sends (guards against divide by zero)
@@ -370,9 +374,10 @@ export function useDashboardData(params: DashboardParams): DashboardData {
     costLoading,
     costByProvider,
     costByModel,
-    costPerReply,
     costPerSend,
     monthlyProjection,
+    dailySpending,
+    isSingleDay,
 
     // Steps
     steps,

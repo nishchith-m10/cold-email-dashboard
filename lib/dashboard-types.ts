@@ -79,6 +79,7 @@ export interface CampaignStats {
   bounce_rate_pct: number;
   cost_usd: number;
   cost_per_reply: number;
+  contacts_reached?: number;
 }
 
 export interface CampaignData {
@@ -218,9 +219,10 @@ export interface DashboardData {
   costLoading: boolean;
   costByProvider: ChartDataPoint[];
   costByModel: ChartDataPoint[];
-  costPerReply: number;
   costPerSend: number;
   monthlyProjection: number | null; // null if not current month
+  dailySpending: number;
+  isSingleDay: boolean;
 
   // Step breakdown
   steps: StepBreakdown[];

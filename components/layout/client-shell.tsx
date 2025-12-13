@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Header } from './header';
 import { CommandPalette } from '@/components/ui/command-palette';
@@ -89,7 +89,9 @@ export function ClientShell({ children }: ClientShellProps) {
         </div>
 
         {/* Header */}
-        <Header onCommandOpen={() => setCommandOpen(true)} />
+        <Suspense fallback={null}>
+          <Header onCommandOpen={() => setCommandOpen(true)} />
+        </Suspense>
 
         {/* Main content - Only show dashboard when signed in */}
         <SignedIn>

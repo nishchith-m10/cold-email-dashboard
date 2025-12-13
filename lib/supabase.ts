@@ -97,10 +97,13 @@ export interface EmailEvent {
   id: string;
   workspace_id: string;
   contact_id: string | null;
-  campaign_id: string | null;
+  // DB currently stores campaign_name; campaign_id is not present in schema. Keep optional for forward compatibility.
+  campaign_id?: string | null;
   contact_email: string;
   campaign_name: string | null;
-  step: number | null;
+  // DB column is email_number; step kept as alias for legacy code.
+  email_number: number | null;
+  step?: number | null;
   event_type: 'sent' | 'delivered' | 'bounced' | 'replied' | 'opt_out' | 'opened' | 'clicked';
   event_ts: string;
   provider: string | null;
@@ -113,7 +116,8 @@ export interface EmailEvent {
 export interface DailyStats {
   id: string;
   workspace_id: string;
-  campaign_id: string | null;
+  // DB uses campaign_name; campaign_id is not present in the schema. Keep optional for future use.
+  campaign_id?: string | null;
   campaign_name: string | null;
   day: string;
   sends: number;
@@ -127,7 +131,8 @@ export interface DailyStats {
 export interface LlmUsage {
   id: string;
   workspace_id: string;
-  campaign_id: string | null;
+  // DB currently stores campaign_name; campaign_id is not present in the schema. Keep optional for future use.
+  campaign_id?: string | null;
   campaign_name: string | null;
   contact_email: string | null;
   provider: string;

@@ -136,14 +136,16 @@ export async function GET(req: NextRequest) {
       (data || []).map(async (row: LeadRow) => {
         let lastTs: string | null = null;
         const email = row.email_address;
-        const { data: ev, error: evErr } = await supabaseAdmin
-          .from('email_events')
-          .select('event_ts')
-          .eq('workspace_id', workspaceId)
-          .or(`contact_email.eq.${email},contact_email.eq.${email.toLowerCase?.() || email}`)
-          .in('event_type', ['sent', 'delivered'])
-          .order('event_ts', { ascending: false })
-          .limit(1);
+        const { data: ev, error: evErr } = supabaseAdmin
+          ? await supabaseAdmin
+              .from('email_events')
+              .select('event_ts')
+              .eq('workspace_id', workspaceId)
+              .or(`contact_email.eq.${email},contact_email.eq.${email.toLowerCase?.() || email}`)
+              .in('event_type', ['sent', 'delivered'])
+              .order('event_ts', { ascending: false })
+              .limit(1)
+          : { data: null, error: null };
         if (!evErr && ev && ev.length > 0) {
           lastTs = ev[0].event_ts;
         }
@@ -237,7 +239,7 @@ export async function POST(req: NextRequest) {
           id,
           workspace_id,
           full_name,
-          company,
+          organization_name,
           linkedin_url,
           email_address,
           email_1_sent,
@@ -263,7 +265,7 @@ export async function POST(req: NextRequest) {
               id,
               workspace_id,
               full_name,
-              company,
+              organization_name,
               linkedin_url,
               email_address,
               email_1_sent,
@@ -303,18 +305,18 @@ export async function POST(req: NextRequest) {
       process.env.N8N_NEW_LEAD_WEBHOOK ||
       null;
 
-    if (webhookUrl && contact) {
+    if (webhookUrl && lead) {
       try {
         await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contact_id: lead.id,
-            workspace_id: workspaceId,
-            name,
-            email,
-            company,
-            linkedin_url,
+            body: JSON.stringify({
+              contact_id: lead.id,
+              workspace_id: workspaceId,
+              name,
+              email,
+              company: lead.organization_name,
+              linkedin_url,
             organization_website,
             position,
             industry,
@@ -343,7 +345,7 @@ export async function POST(req: NextRequest) {
               id: lead.id,
               name: lead.full_name,
               email: lead.email_address,
-              company: lead.company,
+              company: lead.organization_name,
               status: deriveStatus(lead),
               last_contacted_at: null,
               created_at: lead.created_at || null,

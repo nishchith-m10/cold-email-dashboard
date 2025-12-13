@@ -12,7 +12,11 @@ export async function GET(req: NextRequest) {
   const campaign = searchParams.get('c') || searchParams.get('campaign') || 'Unknown';
   const step = parseInt(searchParams.get('s') || searchParams.get('step') || '1', 10);
   const linkId = searchParams.get('l') || searchParams.get('link') || 'main_cta';
-  const workspaceId = searchParams.get('w') || searchParams.get('workspace_id') || DEFAULT_WORKSPACE_ID;
+  const workspaceId = searchParams.get('w') || searchParams.get('workspace_id');
+  
+  if (!workspaceId) {
+    return NextResponse.json({ error: 'Missing workspace_id' }, { status: 400 });
+  }
   
   // Validate destination URL
   if (!destinationUrl) {

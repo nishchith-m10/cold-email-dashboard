@@ -15,6 +15,10 @@ Phases-completed- docs
 *.md
 !README.md
 
+# Backups
+backups
+*.bak
+
 # Other development files
 *.sh
 load-test.yml

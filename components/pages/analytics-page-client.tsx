@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { toISODate, daysAgo, formatCurrency, formatNumber } from '@/lib/utils';
-import { CHART_COLORS, getModelDisplayName } from '@/lib/constants';
+import { getModelDisplayName } from '@/lib/constants';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { useWorkspace } from '@/lib/workspace-context';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,9 +22,8 @@ import { SenderBreakdown } from '@/components/dashboard/sender-breakdown';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Cpu, 
-  Zap, 
-  TrendingUp, 
-  DollarSign,
+  ToggleLeft,
+  ToggleRight,
   BarChart3
 } from 'lucide-react';
 
@@ -35,18 +35,40 @@ export default function AnalyticsPageClient() {
   const endDate = searchParams.get('end') ?? toISODate(new Date());
   const selectedCampaign = searchParams.get('campaign') ?? undefined;
   
+  const { workspace } = useWorkspace();
   const [selectedProvider, setSelectedProvider] = useState<ProviderId | undefined>();
   const [timezone, setTimezone] = useState('America/Los_Angeles');
+  const [autoRefresh, setAutoRefresh] = useState<number>(30);
+  const workspaceId = workspace?.id;
   
   useEffect(() => {
-    const saved = localStorage.getItem('dashboard_timezone');
-    if (saved) setTimezone(saved);
-  }, []);
+    const savedTz = localStorage.getItem('dashboard_timezone');
+    const savedRefresh = localStorage.getItem('dashboard_auto_refresh');
+    if (workspace?.settings?.timezone && typeof workspace.settings.timezone === 'string') {
+      setTimezone(workspace.settings.timezone);
+      localStorage.setItem('dashboard_timezone', workspace.settings.timezone);
+    } else if (savedTz) {
+      setTimezone(savedTz);
+    }
+    if (typeof workspace?.settings?.auto_refresh_seconds === 'number') {
+      setAutoRefresh(Number(workspace.settings.auto_refresh_seconds));
+      localStorage.setItem('dashboard_auto_refresh', String(workspace.settings.auto_refresh_seconds));
+    } else if (savedRefresh) {
+      const val = Number(savedRefresh);
+      if (Number.isFinite(val)) setAutoRefresh(val);
+    }
+  }, [workspace?.settings]);
   
   const handleTimezoneChange = useCallback((tz: string) => {
     setTimezone(tz);
     localStorage.setItem('dashboard_timezone', tz);
-  }, []);
+    if (!workspaceId) return;
+    fetch('/api/workspaces/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: workspaceId, timezone: tz }),
+    }).catch(() => {});
+  }, [workspaceId]);
 
   const dashboardData = useDashboardData({
     startDate,
@@ -56,22 +78,59 @@ export default function AnalyticsPageClient() {
   });
 
   const {
-    summary,
     summaryLoading,
     isRefetching,
-    replyRateSeries,
-    replyRateLoading,
-    optOutRateSeries,
-    optOutRateLoading,
     costData,
     costLoading,
     costByProvider,
     costByModel,
-    costPerReply,
     costPerSend,
+    monthlyProjection,
+    dailySpending,
+    isSingleDay,
     campaigns,
     campaignsLoading,
+    uniqueContacts,
+    refresh,
   } = dashboardData;
+
+  useEffect(() => {
+    const intervalSeconds = autoRefresh;
+    if (!intervalSeconds || intervalSeconds <= 0) return;
+    const id = setInterval(() => {
+      refresh();
+    }, intervalSeconds * 1000);
+    return () => clearInterval(id);
+  }, [autoRefresh, refresh]);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'dashboard_auto_refresh' && e.newValue) {
+        const val = Number(e.newValue);
+        if (Number.isFinite(val)) setAutoRefresh(val);
+      }
+      if (e.key === 'dashboard_timezone' && e.newValue) {
+        setTimezone(e.newValue);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const [efficiencyMode, setEfficiencyMode] = useState<'cpl' | 'cpm'>('cpl');
+
+  const efficiencyLabel = efficiencyMode === 'cpl' ? 'Cost Per Lead' : 'CPM (per 1k Sends)';
+  const efficiencyValue = useMemo(() => {
+    const totalCost = costData?.total.cost_usd ?? 0;
+    const contacts = uniqueContacts ?? 0;
+    if (efficiencyMode === 'cpl') {
+      if (!contacts) return 0;
+      return totalCost / contacts;
+    }
+    // cpm from cost per send
+    if (!costPerSend) return 0;
+    return costPerSend * 1000;
+  }, [costData, costPerSend, uniqueContacts, efficiencyMode]);
 
   const handleDateChange = useCallback((start: string, end: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -130,7 +189,7 @@ export default function AnalyticsPageClient() {
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard
           title="Total Cost"
           value={costData?.total.cost_usd ?? 0}
@@ -141,84 +200,69 @@ export default function AnalyticsPageClient() {
           delay={0}
           description={`Based on ${formatNumber(costData?.total.calls ?? 0)} API calls`}
         />
+        <MetricCard
+          title={isSingleDay ? 'Daily Spending' : 'Avg Daily Spending'}
+          value={dailySpending}
+          format="currency"
+          icon="spend"
+          loading={summaryLoading || costLoading}
+          isRefetching={isRefetching}
+          delay={1}
+          description={isSingleDay ? 'Cost for selected day' : 'Average per day in range'}
+        />
+        <MetricCard
+          title="Monthly Projection"
+          value={monthlyProjection ?? 0}
+          format="currency"
+          icon="projection"
+          loading={summaryLoading || costLoading}
+          isRefetching={isRefetching}
+          delay={2}
+          description={monthlyProjection === null ? 'Shown for current month ranges' : 'Projected spend for current month'}
+        />
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-        >
-          <Card className="h-full">
-            <div className="flex items-start justify-between p-6">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-text-secondary">Cost per Reply</p>
-                <div className="text-3xl font-bold text-text-primary tracking-tight">
-                  {summaryLoading || costLoading ? (
-                    <Skeleton className="h-8 w-24" />
-                  ) : (
-                    formatCurrency(costPerReply)
-                  )}
-                </div>
-                <div className="text-xs text-text-secondary">
-                  Based on {summary?.replies ?? 0} replies
-                </div>
-              </div>
-              <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-accent-success/10">
-                <TrendingUp className="h-6 w-6 text-accent-success" />
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-        >
-          <Card className="h-full">
-            <div className="flex items-start justify-between p-6">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-text-secondary">Cost per Send</p>
-                <div className="text-3xl font-bold text-text-primary tracking-tight">
-                  {summaryLoading || costLoading ? (
-                    <Skeleton className="h-8 w-24" />
-                  ) : (
-                    formatCurrency(costPerSend)
-                  )}
-                </div>
-                <div className="text-xs text-text-secondary">
-                  Based on {formatNumber(summary?.sends ?? 0)} sends
-                </div>
-              </div>
-              <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-accent-primary/10">
-                <DollarSign className="h-6 w-6 text-accent-primary" />
-              </div>
-            </div>
-          </Card>
-        </motion.div>
-        <motion.div
+          className="h-full"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card className="h-full">
-            <div className="flex items-start justify-between p-6">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-text-secondary">Total API Calls</p>
-                <div className="text-3xl font-bold text-text-primary tracking-tight">
-                  {costLoading ? (
-                    <Skeleton className="h-8 w-24" />
-                  ) : (
-                    formatNumber(costData?.total.calls ?? 0)
-                  )}
-                </div>
-                <div className="text-xs text-text-secondary">
-                  LLM requests made
-                </div>
+          <Card className="relative overflow-hidden h-full p-4">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-text-secondary">Efficiency Unit</p>
+                <p className="text-xs text-text-secondary">
+                  {efficiencyMode === 'cpl' ? 'Cost per lead (Email 1 reach)' : 'Cost per 1k sends'}
+                </p>
               </div>
-              <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-accent-warning/10">
-                <Zap className="h-6 w-6 text-accent-warning" />
-              </div>
+              <button
+                type="button"
+                onClick={() => setEfficiencyMode((prev) => (prev === 'cpl' ? 'cpm' : 'cpl'))}
+                className="flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:border-accent-primary/60 hover:text-accent-primary transition-colors"
+              >
+                {efficiencyMode === 'cpl' ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />}
+                <span>{efficiencyMode.toUpperCase()}</span>
+              </button>
             </div>
+            <motion.p
+              className="mt-4 text-3xl font-bold text-text-primary tracking-tight"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+            >
+              {formatCurrency(efficiencyValue)}
+            </motion.p>
           </Card>
         </motion.div>
+        <MetricCard
+          title="Total API Calls"
+          value={costData?.total.calls ?? 0}
+          format="number"
+          icon="clicks"
+          loading={costLoading}
+          isRefetching={isRefetching}
+          delay={4}
+          description="LLM requests made"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -241,27 +285,6 @@ export default function AnalyticsPageClient() {
         startDate={startDate}
         endDate={endDate}
       />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TimeSeriesChart
-          title="Reply Rate Trend"
-          data={replyRateSeries}
-          color={CHART_COLORS.replies}
-          loading={replyRateLoading}
-          type="line"
-          valueFormatter={(v) => `${v}%`}
-          height={240}
-        />
-        <TimeSeriesChart
-          title="Opt-Out Rate Trend"
-          data={optOutRateSeries}
-          color={CHART_COLORS.optOuts}
-          loading={optOutRateLoading}
-          type="line"
-          valueFormatter={(v) => `${v}%`}
-          height={240}
-        />
-      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}

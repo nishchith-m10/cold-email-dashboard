@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { toISODate, daysAgo } from '@/lib/utils';
 import { CHART_COLORS } from '@/lib/constants';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
+import { useWorkspace } from '@/lib/workspace-context';
 
 // Components
 import { MetricCard } from '@/components/dashboard/metric-card';
@@ -17,7 +18,6 @@ import { CampaignSelector } from '@/components/dashboard/campaign-selector';
 import { AskAI } from '@/components/dashboard/ask-ai';
 import { StepBreakdown } from '@/components/dashboard/step-breakdown';
 import { DailySendsChart } from '@/components/dashboard/daily-sends-chart';
-import { EfficiencyMetrics } from '@/components/dashboard/efficiency-metrics';
 import { TimezoneSelector } from '@/components/dashboard/timezone-selector';
 
 export default function DashboardPageClient() {
@@ -33,18 +33,54 @@ export default function DashboardPageClient() {
   const [selectedDate, setSelectedDate] = useState<string | undefined>();
 
   // Timezone state - default to Los Angeles, persist in localStorage
+  const { workspace } = useWorkspace();
   const [timezone, setTimezone] = useState('America/Los_Angeles');
+  const [autoRefresh, setAutoRefresh] = useState<number>(30);
+  const workspaceId = workspace?.id;
   
   // Load timezone from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('dashboard_timezone');
-    if (saved) setTimezone(saved);
-  }, []);
+    const savedTz = localStorage.getItem('dashboard_timezone');
+    const savedRefresh = localStorage.getItem('dashboard_auto_refresh');
+    if (workspace?.settings?.timezone && typeof workspace.settings.timezone === 'string') {
+      setTimezone(workspace.settings.timezone);
+      localStorage.setItem('dashboard_timezone', workspace.settings.timezone);
+    } else if (savedTz) {
+      setTimezone(savedTz);
+    }
+    if (typeof workspace?.settings?.auto_refresh_seconds === 'number') {
+      setAutoRefresh(Number(workspace.settings.auto_refresh_seconds));
+      localStorage.setItem('dashboard_auto_refresh', String(workspace.settings.auto_refresh_seconds));
+    } else if (savedRefresh) {
+      const val = Number(savedRefresh);
+      if (Number.isFinite(val)) setAutoRefresh(val);
+    }
+  }, [workspace?.settings]);
   
   // Save timezone to localStorage when changed
   const handleTimezoneChange = useCallback((tz: string) => {
     setTimezone(tz);
     localStorage.setItem('dashboard_timezone', tz);
+    if (!workspaceId) return;
+    fetch('/api/workspaces/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_id: workspaceId, timezone: tz }),
+    }).catch(() => {});
+  }, [workspaceId]);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'dashboard_auto_refresh' && e.newValue) {
+        const val = Number(e.newValue);
+        if (Number.isFinite(val)) setAutoRefresh(val);
+      }
+      if (e.key === 'dashboard_timezone' && e.newValue) {
+        setTimezone(e.newValue);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   // FETCH ALL DASHBOARD DATA (CENTRALIZED)
@@ -53,6 +89,15 @@ export default function DashboardPageClient() {
     endDate,
     selectedCampaign,
   });
+
+  useEffect(() => {
+    const intervalSeconds = autoRefresh;
+    if (!intervalSeconds || intervalSeconds <= 0) return;
+    const id = setInterval(() => {
+      dashboardData.refresh();
+    }, intervalSeconds * 1000);
+    return () => clearInterval(id);
+  }, [autoRefresh, dashboardData]);
 
   const {
     summary,
@@ -64,14 +109,13 @@ export default function DashboardPageClient() {
     replyRateLoading,
     clickRateSeries,
     clickRateLoading,
-    costPerReply,
-    monthlyProjection,
     steps,
     dailySends,
     totalSends,
-    uniqueContacts,
     totalLeads,
     stepLoading,
+    optOutRateSeries,
+    optOutRateLoading,
     campaigns,
     campaignsLoading,
     campaignStats,
@@ -229,11 +273,15 @@ export default function DashboardPageClient() {
           type="area"
           className="h-full"
         />
-        <EfficiencyMetrics
-          costPerReply={costPerReply}
-          monthlyProjection={monthlyProjection}
-          totalContacts={uniqueContacts}
-          loading={summaryLoading}
+        <TimeSeriesChart
+          title="Opt-Out Rate Over Time"
+          subtitle={dateRangeDisplay}
+          data={optOutRateSeries}
+          color={CHART_COLORS.optOuts}
+          loading={optOutRateLoading}
+          type="line"
+          valueFormatter={(v) => `${v}%`}
+          height={300}
           className="h-full"
         />
       </div>

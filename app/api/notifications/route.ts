@@ -66,10 +66,17 @@ export async function GET(req: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
+      const msg = String(error.message || '');
+      const isSchemaCache =
+        msg.includes('notifications') && msg.toLowerCase().includes('schema cache');
       console.error('Error fetching notifications:', error);
       return NextResponse.json(
-        { error: 'Failed to fetch notifications' },
-        { status: 500 }
+        {
+          error: isSchemaCache
+            ? 'Notifications table not available. Please apply the notifications migration and refresh schema cache.'
+            : 'Failed to fetch notifications',
+        },
+        { status: isSchemaCache ? 503 : 500 }
       );
     }
 
@@ -153,10 +160,17 @@ export async function PATCH(req: NextRequest) {
     const { data, error } = await query.select();
 
     if (error) {
+      const msg = String(error.message || '');
+      const isSchemaCache =
+        msg.includes('notifications') && msg.toLowerCase().includes('schema cache');
       console.error('Error updating notifications:', error);
       return NextResponse.json(
-        { error: 'Failed to update notifications' },
-        { status: 500 }
+        {
+          error: isSchemaCache
+            ? 'Notifications table not available. Please apply the notifications migration and refresh schema cache.'
+            : 'Failed to update notifications',
+        },
+        { status: isSchemaCache ? 503 : 500 }
       );
     }
 
@@ -215,10 +229,17 @@ export async function DELETE(req: NextRequest) {
       .or(`user_id.eq.${userId},user_id.is.null`);
 
     if (error) {
+      const msg = String(error.message || '');
+      const isSchemaCache =
+        msg.includes('notifications') && msg.toLowerCase().includes('schema cache');
       console.error('Error deleting notification:', error);
       return NextResponse.json(
-        { error: 'Failed to delete notification' },
-        { status: 500 }
+        {
+          error: isSchemaCache
+            ? 'Notifications table not available. Please apply the notifications migration and refresh schema cache.'
+            : 'Failed to delete notification',
+        },
+        { status: isSchemaCache ? 503 : 500 }
       );
     }
 
