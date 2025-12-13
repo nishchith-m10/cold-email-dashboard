@@ -52,10 +52,22 @@ async function fetchStepBreakdownData(
     };
   }
 
-  // Query email_events for step-level breakdown
+  const normalizeStep = (raw: unknown): number | undefined => {
+    if (raw === null || raw === undefined) return undefined;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 1) return undefined;
+    return Math.floor(n);
+  };
+
+  const normalizeEmail = (email: string | null | undefined): string | undefined => {
+    if (!email) return undefined;
+    return email.trim().toLowerCase();
+  };
+
+  // Query email_events for step-level breakdown; prefer email_number (DB column), keep step for legacy compatibility
   let stepQuery = supabaseAdmin
     .from('email_events')
-    .select('step, event_ts, contact_email')
+    .select('email_number, step, event_ts, contact_email, metadata')
     .eq('workspace_id', workspaceId)
     .eq('event_type', 'sent')
     .gte('event_ts', `${startDate}T00:00:00Z`)
@@ -84,7 +96,13 @@ async function fetchStepBreakdownData(
   const email1Recipients = new Set<string>(); // Track unique Email 1 recipients
 
   for (const event of eventsData || []) {
-    const step = event.step || 1;
+    const metadata = event.metadata as Record<string, unknown> | null | undefined;
+    const rawStep =
+      normalizeStep(event.email_number) ??
+      normalizeStep(event.step) ??
+      normalizeStep(metadata?.email_number) ??
+      normalizeStep(metadata?.step);
+    const step = rawStep ?? 1;
     const current = stepMap.get(step) || { count: 0, lastSent: null };
     current.count++;
     if (!current.lastSent || event.event_ts > current.lastSent) {
@@ -93,8 +111,9 @@ async function fetchStepBreakdownData(
     stepMap.set(step, current);
 
     // Track unique contacts who received Email 1 (step 1)
-    if (step === 1 && event.contact_email) {
-      email1Recipients.add(event.contact_email.toLowerCase());
+    const emailLower = normalizeEmail(event.contact_email);
+    if (step === 1 && emailLower) {
+      email1Recipients.add(emailLower);
     }
 
     // Aggregate daily
@@ -129,7 +148,8 @@ async function fetchStepBreakdownData(
   }
 
   const totalSends = steps.reduce((sum, s) => sum + s.sends, 0);
-  const uniqueContacts = email1Recipients.size;
+  const step1Count = steps.find(s => s.step === 1)?.sends || 0;
+  const uniqueContacts = Math.max(email1Recipients.size, step1Count);
 
   // Query total leads count from leads_ohio table
   let totalLeads = 0;

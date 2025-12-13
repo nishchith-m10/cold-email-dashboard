@@ -276,13 +276,13 @@ describe('useDashboardData', () => {
       expect(result.current.costData?.total.cost_usd).toBe(25.50);
       expect(result.current.costData?.by_provider).toHaveLength(2);
 
-      // Should calculate costPerReply correctly
-      // Formula: 25.50 / 50 = 0.51
-      expect(result.current.costPerReply).toBe(0.51);
-
       // Should calculate costPerSend correctly
       // Formula: 25.50 / 1000 = 0.0255
       expect(result.current.costPerSend).toBe(0.0255);
+
+      // Should calculate daily spending across date range (31 days)
+      expect(result.current.dailySpending).toBe(0.82);
+      expect(result.current.isSingleDay).toBe(false);
 
       // Should have step breakdown
       expect(result.current.steps).toHaveLength(2);
@@ -464,9 +464,9 @@ describe('useDashboardData', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle zero replies when calculating costPerReply', () => {
+    it('should compute daily spending correctly for a single-day range', () => {
       const mockAggregateData = {
-        summary: { sends: 1000, replies: 0, cost_usd: 25.50 }, // Zero replies
+        summary: { sends: 1000, replies: 25, cost_usd: 25.50 },
         timeseries: { sends: [], replies: [], reply_rate: [], click_rate: [], opt_out_rate: [] },
         costBreakdown: {
           total: { cost_usd: 25.50, tokens_in: 50000, tokens_out: 30000, calls: 100 },
@@ -476,7 +476,7 @@ describe('useDashboardData', () => {
         },
         stepBreakdown: { steps: [], dailySends: [], totalSends: 0, uniqueContacts: 0, totalLeads: 0 },
         campaigns: { list: [], stats: [] },
-        dateRange: { start: '2025-01-01', end: '2025-01-31' },
+        dateRange: { start: '2025-01-01', end: '2025-01-01' },
         source: 'test',
       };
 
@@ -495,11 +495,8 @@ describe('useDashboardData', () => {
 
       const { result } = renderHook(() => useDashboardData(params));
 
-      // Should return 0 instead of Infinity or NaN
-      expect(result.current.costPerReply).toBe(0);
-      
-      // costPerSend should still work
-      expect(result.current.costPerSend).toBe(0.0255);
+      expect(result.current.isSingleDay).toBe(true);
+      expect(result.current.dailySpending).toBe(25.5);
     });
 
     it('should handle zero sends when calculating costPerSend', () => {
@@ -536,8 +533,9 @@ describe('useDashboardData', () => {
       // Should return 0 instead of Infinity or NaN
       expect(result.current.costPerSend).toBe(0);
       
-      // costPerReply should still work
-      expect(result.current.costPerReply).toBe(0.51);
+      // Daily spending should still compute across the range
+      expect(result.current.dailySpending).toBe(0.82);
+      expect(result.current.isSingleDay).toBe(false);
     });
 
     it('should handle zero cost when calculating monthly projection', () => {
@@ -647,8 +645,9 @@ describe('useDashboardData', () => {
       expect(result.current.costByModel).toEqual([]);
       
       // Should have zero derived metrics
-      expect(result.current.costPerReply).toBe(0);
       expect(result.current.costPerSend).toBe(0);
+      expect(result.current.dailySpending).toBe(0.82);
+      expect(result.current.isSingleDay).toBe(false);
       expect(result.current.monthlyProjection).toBeNull();
     });
   });

@@ -1,5 +1,31 @@
 .vercel
 node_modules
 .next
-.env.local
 .DS_Store
+.vercelignore
+playwright-report
+__mocks__
+__tests__
+.github 
+test-results
+flowchart LR.md
+plans
+
+
+# Environment files
+secret/.env.local
+secret/.env.test
+backups/.env.local.bak
+
+# Build artifacts
+tsconfig.tsbuildinfo
+coverage/
+
+# Temporary files
+supabase/.temp/
+
+# Backup files
+backups/
+
+# IDE (optional - depends on team preference)
+.cursor/

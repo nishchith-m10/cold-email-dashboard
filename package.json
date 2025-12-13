@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@clerk/nextjs": "^6.35.6",
     "@clerk/themes": "^2.4.42",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -28,12 +29,13 @@
     "dotenv": "^17.2.3",
     "framer-motion": "^12.23.24",
     "googleapis": "^166.0.0",
+    "llamaindex": "^0.12.1",
     "lucide-react": "^0.555.0",
     "next": "^14.2.33",
     "postcss": "^8.4.35",
-    "react": "18.2.0",
+    "react": "^19.2.1",
     "react-day-picker": "^9.11.2",
-    "react-dom": "18.2.0",
+    "react-dom": "^19.2.1",
     "recharts": "2.9.0",
     "svix": "^1.82.0",
     "swr": "2.2.5",
@@ -42,10 +44,10 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@types/node": "20.11.24",
     "@types/react": "18.2.64",
     "@types/react-dom": "18.2.22",
-    "@playwright/test": "^1.49.0",
     "eslint": "8.57.0",
     "eslint-config-next": "14.2.33",
     "typescript": "5.4.5",

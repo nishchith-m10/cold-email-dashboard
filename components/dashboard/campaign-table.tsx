@@ -132,12 +132,23 @@ export function CampaignTable({ data, loading = false, className }: CampaignTabl
         <span className="text-accent-purple font-medium">{formatCurrency(info.getValue())}</span>
       ),
     }),
-    columnHelper.accessor('cost_per_reply', {
-      header: 'Cost/Reply',
-      cell: info => {
-        const value = info.getValue();
-        return value > 0 ? formatCurrency(value) : '—';
-      },
+    columnHelper.accessor('contacts_reached', {
+      header: ({ column }) => (
+        <button
+          className="flex items-center gap-1 hover:text-text-primary transition-colors"
+          onClick={() => column.toggleSorting()}
+        >
+          Contacts Reached
+          {column.getIsSorted() === 'asc' ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : column.getIsSorted() === 'desc' ? (
+            <ArrowDown className="h-3 w-3" />
+          ) : (
+            <ArrowUpDown className="h-3 w-3 opacity-50" />
+          )}
+        </button>
+      ),
+      cell: info => formatNumber(info.getValue() || 0),
     }),
   ], []);
 

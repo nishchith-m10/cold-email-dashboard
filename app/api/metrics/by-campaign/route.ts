@@ -35,6 +35,18 @@ async function fetchByCampaignData(
   endDate: string,
   workspaceId: string
 ): Promise<ByCampaignResponse> {
+  const normalizeStep = (raw: unknown): number | undefined => {
+    if (raw === null || raw === undefined) return undefined;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 1) return undefined;
+    return Math.floor(n);
+  };
+
+  const normalizeEmail = (email: string | null | undefined): string | undefined => {
+    if (!email) return undefined;
+    return email.trim().toLowerCase();
+  };
+
   if (!supabaseAdmin) {
     return {
       campaigns: [],
@@ -44,10 +56,10 @@ async function fetchByCampaignData(
     };
   }
 
-  // Build queries - query email_events directly (source of truth) instead of daily_stats
+  // Build queries - query email_events directly (source of truth) and daily_stats (for email_1_sends)
   let eventsQuery = supabaseAdmin
     .from('email_events')
-    .select('campaign_name, event_type')
+    .select('campaign_name, event_type, contact_email, email_number, step, metadata')
     .eq('workspace_id', workspaceId)
     .gte('event_ts', `${startDate}T00:00:00Z`)
     .lte('event_ts', `${endDate}T23:59:59Z`);
@@ -59,16 +71,25 @@ async function fetchByCampaignData(
     .gte('created_at', `${startDate}T00:00:00Z`)
     .lte('created_at', `${endDate}T23:59:59Z`);
 
+  let contactsQuery = supabaseAdmin
+    .from('daily_stats')
+    .select('campaign_name, email_1_sends')
+    .eq('workspace_id', workspaceId)
+    .gte('day', startDate)
+    .lte('day', endDate);
+
   // Exclude test campaigns globally
   for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
     eventsQuery = eventsQuery.neq('campaign_name', excludedCampaign);
     costQuery = costQuery.neq('campaign_name', excludedCampaign);
+    contactsQuery = contactsQuery.neq('campaign_name', excludedCampaign);
   }
 
   // Execute BOTH queries in parallel (2 queries → 1 round trip latency)
-  const [eventsResult, costResult] = await Promise.all([
+  const [eventsResult, costResult, contactsResult] = await Promise.all([
     eventsQuery,
     costQuery,
+    contactsQuery,
   ]);
 
   if (eventsResult.error) {
@@ -83,6 +104,7 @@ async function fetchByCampaignData(
     opt_outs: number;
     bounces: number;
   }>();
+  const email1RecipientsByCampaign = new Map<string, Set<string>>();
 
   for (const row of eventsResult.data || []) {
     const campaignName = row.campaign_name || 'Unknown';
@@ -114,6 +136,21 @@ async function fetchByCampaignData(
     }
 
     campaignMap.set(campaignName, existing);
+
+    const metadata = row.metadata as Record<string, unknown> | null | undefined;
+    const rawStep =
+      normalizeStep((row as any).email_number) ??
+      normalizeStep(row.step) ??
+      normalizeStep(metadata?.email_number) ??
+      normalizeStep(metadata?.step);
+    if (rawStep === 1) {
+      const emailLower = normalizeEmail(row.contact_email);
+      if (!emailLower) continue;
+      if (!email1RecipientsByCampaign.has(campaignName)) {
+        email1RecipientsByCampaign.set(campaignName, new Set());
+      }
+      email1RecipientsByCampaign.get(campaignName)!.add(emailLower);
+    }
   }
 
   // Aggregate costs by campaign (with additional safety filter)
@@ -126,6 +163,18 @@ async function fetchByCampaignData(
       
       const existing = costMap.get(campaignName) || 0;
       costMap.set(campaignName, existing + (Number(row.cost_usd) || 0));
+    }
+  }
+
+  // Aggregate contacts reached (email 1 sends) by campaign
+  const contactsMap = new Map<string, number>();
+  if (!contactsResult.error) {
+    for (const row of contactsResult.data || []) {
+      const campaignName = row.campaign_name || 'Unknown';
+      if (shouldExcludeCampaign(campaignName)) continue;
+
+      const existing = contactsMap.get(campaignName) || 0;
+      contactsMap.set(campaignName, existing + (Number(row.email_1_sends) || 0));
     }
   }
 
@@ -144,6 +193,14 @@ async function fetchByCampaignData(
     const costPerReply = stats.replies > 0
       ? Number((costUsd / stats.replies).toFixed(2))
       : 0;
+    const contactsFromEvents = email1RecipientsByCampaign.get(name)?.size;
+    const contactsFromDaily = contactsMap.has(name)
+      ? Math.round(contactsMap.get(name) || 0)
+      : undefined;
+    const contactsReached = Math.max(
+      contactsFromEvents ?? 0,
+      contactsFromDaily ?? 0
+    );
 
     return {
       campaign: name,
@@ -156,6 +213,7 @@ async function fetchByCampaignData(
       bounce_rate_pct: bounceRatePct,
       cost_usd: costUsd,
       cost_per_reply: costPerReply,
+      contacts_reached: contactsReached,
     };
   });
 

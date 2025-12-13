@@ -17,7 +17,10 @@ export async function GET(req: NextRequest) {
   const campaign = searchParams.get('c') || searchParams.get('campaign') || 'Unknown';
   const step = parseInt(searchParams.get('s') || searchParams.get('step') || '1', 10);
   const token = searchParams.get('t') || searchParams.get('token'); // Unique token for deduplication
-  const workspaceId = searchParams.get('w') || searchParams.get('workspace_id') || DEFAULT_WORKSPACE_ID;
+  const workspaceId = searchParams.get('w') || searchParams.get('workspace_id');
+  if (!workspaceId) {
+    return NextResponse.json({ error: 'Missing workspace_id' }, { status: 400 });
+  }
   
   // Always return the pixel immediately (non-blocking tracking)
   const response = new NextResponse(TRACKING_PIXEL, {

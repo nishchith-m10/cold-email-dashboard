@@ -1,27 +1,48 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn, formatCurrency } from '@/lib/utils';
-import { DollarSign, Users, Target, Info } from 'lucide-react';
+import { Wallet, Users, Target, Info, ToggleLeft, ToggleRight } from 'lucide-react';
 
 interface EfficiencyMetricsProps {
-  costPerReply: number;
+  dailySpending: number;
+  isSingleDay: boolean;
   monthlyProjection: number | null;
+  totalCost?: number;
+  totalSends?: number;
   totalContacts: number;
   loading?: boolean;
   className?: string;
 }
 
 function EfficiencyMetricsComponent({
-  costPerReply,
+  dailySpending,
+  isSingleDay,
   monthlyProjection,
+  totalCost = 0,
+  totalSends = 0,
   totalContacts,
   loading = false,
   className,
 }: EfficiencyMetricsProps) {
+  const [efficiencyMode, setEfficiencyMode] = useState<'cpl' | 'cpm'>('cpl');
+
+  const { efficiencyLabel, efficiencyValue, efficiencySublabel } = useMemo(() => {
+    const cost = totalCost ?? 0;
+    const contacts = totalContacts ?? 0;
+    const cpl = contacts > 0 ? cost / contacts : 0;
+    const cpm = totalSends > 0 ? (cost / totalSends) * 1000 : 0;
+    const label = efficiencyMode === 'cpl' ? 'Cost Per Lead' : 'CPM (per 1k Sends)';
+    const value = efficiencyMode === 'cpl' ? cpl : cpm;
+    const sub = efficiencyMode === 'cpl'
+      ? 'Total cost ÷ Contacts Reached'
+      : 'Cost per 1,000 sends';
+    return { efficiencyLabel: label, efficiencyValue: value, efficiencySublabel: sub };
+  }, [efficiencyMode, totalCost, totalContacts, totalSends]);
+
   if (loading) {
     return (
       <Card className={className}>
@@ -39,13 +60,15 @@ function EfficiencyMetricsComponent({
     );
   }
 
+  const dailyLabel = isSingleDay ? 'Daily Cost' : 'Avg. Daily Cost';
+
   const metrics = [
     {
-      icon: DollarSign,
-      label: 'Cost per Reply',
-      value: formatCurrency(costPerReply),
-      sublabel: 'Reply ROI',
-      valueColor: 'text-accent-success',
+      icon: Wallet,
+      label: dailyLabel,
+      value: formatCurrency(dailySpending),
+      sublabel: isSingleDay ? 'Cost for selected day' : 'Average per day in range',
+      valueColor: 'text-accent-primary',
       tooltip: null,
     },
     {
@@ -57,6 +80,15 @@ function EfficiencyMetricsComponent({
       tooltip: monthlyProjection !== null 
         ? 'Calculated as: (Cost Month-to-Date ÷ Days Passed) × Days in Month. Only shown when viewing the current month.'
         : 'Monthly projection is only available when viewing the current month date range.',
+    },
+    {
+      icon: Wallet,
+      label: efficiencyLabel,
+      value: formatCurrency(efficiencyValue),
+      sublabel: efficiencySublabel,
+      valueColor: 'text-accent-success',
+      tooltip: null,
+      toggle: true,
     },
     {
       icon: Users,
@@ -104,9 +136,22 @@ function EfficiencyMetricsComponent({
                 {/* Text on Right */}
                 <div className="ml-4 flex flex-col items-start flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-xs font-medium text-text-secondary">
+                    <motion.p
+                      layout
+                      className="text-xs font-medium text-text-secondary"
+                    >
                       {metric.label}
-                    </p>
+                    </motion.p>
+                    {metric.toggle && (
+                      <button
+                        type="button"
+                        onClick={() => setEfficiencyMode(prev => prev === 'cpl' ? 'cpm' : 'cpl')}
+                        className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border border-border hover:border-accent-primary/60 hover:text-accent-primary transition-colors"
+                      >
+                        {efficiencyMode === 'cpl' ? <ToggleLeft className="h-3.5 w-3.5" /> : <ToggleRight className="h-3.5 w-3.5" />}
+                        <span className="uppercase">{efficiencyMode}</span>
+                      </button>
+                    )}
                     {metric.tooltip && (
                       <div className="relative">
                         <Info className="h-3.5 w-3.5 text-text-secondary hover:text-accent-primary transition-colors cursor-help" />

@@ -12,6 +12,8 @@ import {
   MessageSquareReply,
   UserMinus,
   DollarSign,
+  PiggyBank,
+  CalendarClock,
   AlertTriangle,
   MousePointerClick
 } from 'lucide-react';
@@ -22,7 +24,7 @@ interface MetricCardProps {
   change?: number;
   changeLabel?: string;
   format?: 'number' | 'currency' | 'percent';
-  icon?: 'sends' | 'replies' | 'opt-outs' | 'cost' | 'bounces' | 'clicks';
+  icon?: 'sends' | 'replies' | 'opt-outs' | 'cost' | 'bounces' | 'clicks' | 'spend' | 'projection';
   loading?: boolean;
   isRefetching?: boolean;
   className?: string;
@@ -38,6 +40,8 @@ const iconMap = {
   'cost': DollarSign,
   'bounces': AlertTriangle,
   'clicks': MousePointerClick,
+  'spend': PiggyBank,
+  'projection': CalendarClock,
 };
 
 const iconColorMap = {
@@ -46,7 +50,9 @@ const iconColorMap = {
   'opt-outs': 'text-accent-danger bg-accent-danger/10',
   'cost': 'text-accent-purple bg-accent-purple/10',
   'bounces': 'text-accent-warning bg-accent-warning/10',
-  'clicks': 'text-emerald-500 bg-emerald-500/10',
+  'clicks': 'text-orange-500 bg-orange-500/10',
+  'spend': 'text-green-500 bg-green-500/15',
+  'projection': 'text-accent-primary bg-accent-primary/10',
 };
 
 export function MetricCard({

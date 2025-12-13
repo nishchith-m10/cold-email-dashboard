@@ -124,6 +124,19 @@ interface AggregateResponse {
 // HELPER FUNCTIONS
 // ============================================
 
+function normalizeStep(raw: unknown): number | undefined {
+  if (raw === null || raw === undefined) return undefined;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return undefined;
+  if (n < 1) return undefined;
+  return Math.floor(n);
+}
+
+function normalizeEmail(email: string | null | undefined): string | undefined {
+  if (!email) return undefined;
+  return email.trim().toLowerCase();
+}
+
 function fillMissingDays(
   points: TimeseriesPoint[],
   startDate: string,
@@ -230,10 +243,10 @@ async function fetchAggregateData(
   // BUILD ALL QUERIES
   // ============================================
 
-  // 1. Current period email events (for summary)
+  // 1. Current period email events (for summary) - prefer email_number, keep step for legacy
   let currentEventsQuery = supabaseAdmin
     .from('email_events')
-    .select('event_type, step, event_ts, contact_email, campaign_name')
+    .select('event_type, email_number, step, event_ts, contact_email, campaign_name, metadata')
     .eq('workspace_id', workspaceId)
     .gte('event_ts', `${startDate}T00:00:00Z`)
     .lte('event_ts', `${endDate}T23:59:59Z`);
@@ -263,7 +276,15 @@ async function fetchAggregateData(
     .gte('created_at', `${startDate}T00:00:00Z`)
     .lte('created_at', `${endDate}T23:59:59Z`);
 
-  // 5. Click events (for click rate timeseries)
+  // 5. Daily stats for contacts reached (email 1 sends)
+  let contactsQuery = supabaseAdmin
+    .from('daily_stats')
+    .select('campaign_name, email_1_sends')
+    .eq('workspace_id', workspaceId)
+    .gte('day', startDate)
+    .lte('day', endDate);
+
+  // 6. Click events (for click rate timeseries)
   let clickEventsQuery = supabaseAdmin
     .from('email_events')
     .select('created_at')
@@ -272,14 +293,14 @@ async function fetchAggregateData(
     .gte('created_at', `${startDate}T00:00:00Z`)
     .lte('created_at', `${endDate}T23:59:59Z`);
 
-  // 6. Campaign names (for dropdown)
+  // 7. Campaign names (for dropdown)
   let campaignNamesQuery = supabaseAdmin
     .from('daily_stats')
     .select('campaign_name')
     .eq('workspace_id', workspaceId)
     .not('campaign_name', 'is', null);
 
-  // 7. Leads count (for percentage calculation)
+  // 8. Leads count (for percentage calculation)
   const leadsCountQuery = supabaseAdmin
     .from('leads_ohio')
     .select('*', { count: 'exact', head: true })
@@ -291,6 +312,7 @@ async function fetchAggregateData(
     prevEventsQuery = prevEventsQuery.eq('campaign_name', campaign);
     dailyStatsQuery = dailyStatsQuery.eq('campaign_name', campaign);
     llmUsageQuery = llmUsageQuery.eq('campaign_name', campaign);
+    contactsQuery = contactsQuery.eq('campaign_name', campaign);
     clickEventsQuery = clickEventsQuery.eq('campaign_name', campaign);
   } else {
     for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
@@ -298,6 +320,7 @@ async function fetchAggregateData(
       prevEventsQuery = prevEventsQuery.neq('campaign_name', excludedCampaign);
       dailyStatsQuery = dailyStatsQuery.neq('campaign_name', excludedCampaign);
       llmUsageQuery = llmUsageQuery.neq('campaign_name', excludedCampaign);
+      contactsQuery = contactsQuery.neq('campaign_name', excludedCampaign);
       clickEventsQuery = clickEventsQuery.neq('campaign_name', excludedCampaign);
       campaignNamesQuery = campaignNamesQuery.neq('campaign_name', excludedCampaign);
     }
@@ -317,6 +340,7 @@ async function fetchAggregateData(
     prevEventsResult,
     dailyStatsResult,
     llmUsageResult,
+    contactsResult,
     clickEventsResult,
     campaignNamesResult,
     leadsCountResult,
@@ -325,15 +349,31 @@ async function fetchAggregateData(
     prevEventsQuery,
     dailyStatsQuery,
     llmUsageQuery,
+    contactsQuery,
     clickEventsQuery,
     campaignNamesQuery,
     leadsCountQuery,
   ]);
 
-  // Handle errors
+  // Handle errors - surface them to caller instead of returning empty data
   if (currentEventsResult.error) {
     console.error('Current events query error:', currentEventsResult.error);
-    return emptyResponse(startDate, endDate);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/89ce9e0f-6173-4553-aba6-2e0d56cef981',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        sessionId:'debug-session',
+        runId:'pre-fix',
+        hypothesisId:'H6',
+        location:'app/api/dashboard/aggregate/route.ts:335',
+        message:'aggregate currentEventsResult error',
+        data:{workspaceId,error:currentEventsResult.error.message},
+        timestamp:Date.now()
+      })
+    }).catch(()=>{});
+    // #endregion
+    throw currentEventsResult.error;
   }
 
   // ============================================
@@ -343,6 +383,8 @@ async function fetchAggregateData(
   const currentEvents = currentEventsResult.data as Array<{
     event_type: string;
     step: number | null;
+    email_number?: number | null;
+    metadata?: Record<string, unknown> | null;
     event_ts: string;
     contact_email: string | null;
     campaign_name?: string | null;
@@ -527,9 +569,17 @@ async function fetchAggregateData(
   const stepMap = new Map<number, { count: number; lastSent: string | null }>();
   const stepDailyMap = new Map<string, number>();
   const email1Recipients = new Set<string>();
+  const email1RecipientsByCampaign = new Map<string, Set<string>>();
 
   for (const event of currentEvents.filter(e => e.event_type === 'sent')) {
-    const step = event.step || 1;
+    const campaignName = event.campaign_name || 'Unknown';
+    const metadata = event.metadata as Record<string, unknown> | null | undefined;
+    const rawStep =
+      normalizeStep((event as any).email_number) ??
+      normalizeStep(event.step) ??
+      normalizeStep(metadata?.email_number) ??
+      normalizeStep(metadata?.step);
+    const step = rawStep ?? 1;
     const current = stepMap.get(step) || { count: 0, lastSent: null };
     current.count++;
     if (!current.lastSent || event.event_ts > current.lastSent) {
@@ -538,8 +588,14 @@ async function fetchAggregateData(
     stepMap.set(step, current);
 
     // Track unique Email 1 recipients
-    if (step === 1 && event.contact_email) {
-      email1Recipients.add(event.contact_email.toLowerCase());
+    const normalizedEmail = normalizeEmail(event.contact_email);
+    if (step === 1 && normalizedEmail) {
+      email1Recipients.add(normalizedEmail);
+
+      if (!email1RecipientsByCampaign.has(campaignName)) {
+        email1RecipientsByCampaign.set(campaignName, new Set());
+      }
+      email1RecipientsByCampaign.get(campaignName)!.add(normalizedEmail);
     }
 
     // Daily sends
@@ -574,7 +630,8 @@ async function fetchAggregateData(
   }
 
   const stepTotalSends = steps.reduce((sum, s) => sum + s.sends, 0);
-  const uniqueContacts = email1Recipients.size;
+  const step1Count = stepMap.get(1)?.count || 0;
+  let uniqueContacts = Math.max(email1Recipients.size, step1Count);
   const totalLeads = leadsCountResult.count || 0;
 
   // ============================================
@@ -597,6 +654,7 @@ async function fetchAggregateData(
   // Campaign stats (aggregate by campaign from email_events - source of truth)
   const campaignStatsMap = new Map<string, { sends: number; replies: number; opt_outs: number; bounces: number }>();
   const campaignCostMap = new Map<string, number>();
+  const campaignContactsMap = new Map<string, number>();
 
   // Count by campaign from email_events (source of truth)
   for (const event of currentEvents) {
@@ -631,8 +689,32 @@ async function fetchAggregateData(
     campaignCostMap.set(name, (campaignCostMap.get(name) || 0) + (Number(row.cost_usd) || 0));
   }
 
+  if (!contactsResult.error) {
+    for (const row of contactsResult.data || []) {
+      const name = row.campaign_name || 'Unknown';
+      if (shouldExcludeCampaign(name)) continue;
+      campaignContactsMap.set(name, (campaignContactsMap.get(name) || 0) + (Number(row.email_1_sends) || 0));
+    }
+  }
+
+  const uniqueContactsFromDaily = Array.from(campaignContactsMap.values()).reduce(
+    (sum, value) => sum + (Number(value) || 0),
+    0
+  );
+  if (uniqueContactsFromDaily) {
+    uniqueContacts = Math.max(uniqueContacts, Math.round(uniqueContactsFromDaily));
+  }
+
   const campaignStats: CampaignStats[] = Array.from(campaignStatsMap.entries()).map(([name, stats]) => {
     const costUsd = Number((campaignCostMap.get(name) || 0).toFixed(2));
+    const contactsFromEvents = email1RecipientsByCampaign.get(name)?.size;
+    const contactsFromDaily = campaignContactsMap.has(name)
+      ? Math.round(campaignContactsMap.get(name) || 0)
+      : undefined;
+    const contactsReached = Math.max(
+      contactsFromEvents ?? 0,
+      contactsFromDaily ?? 0
+    );
     return {
       campaign: name,
       sends: stats.sends,
@@ -644,6 +726,7 @@ async function fetchAggregateData(
       bounce_rate_pct: stats.sends > 0 ? Number(((stats.bounces / stats.sends) * 100).toFixed(2)) : 0,
       cost_usd: costUsd,
       cost_per_reply: stats.replies > 0 ? Number((costUsd / stats.replies).toFixed(2)) : 0,
+      contacts_reached: contactsReached,
     };
   }).sort((a, b) => b.sends - a.sends);
 
@@ -760,18 +843,30 @@ export async function GET(req: NextRequest) {
       provider: provider || undefined,
       workspace: workspaceId,
     });
-
-    
     // Use cache with 30 second TTL (stale-while-revalidate)
     const data = await cacheManager.getOrSet(
       cacheKey,
       () => fetchAggregateData(startDate, endDate, workspaceId, campaign, provider),
       CACHE_TTL.SHORT
     );
-
     return NextResponse.json(data, { headers: API_HEADERS });
   } catch (error) {
     console.error('Aggregate API error:', error);
+
+    // On error, try to serve last known good cached data instead of zeros
+    const cacheKey = apiCacheKey('aggregate', {
+      start: startDate,
+      end: endDate,
+      campaign: campaign || undefined,
+      provider: provider || undefined,
+      workspace: workspaceId,
+    });
+
+    const cached = cacheManager.get<AggregateResponse>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached, { headers: API_HEADERS });
+    }
+
     return NextResponse.json(
       emptyResponse(startDate, endDate),
       { status: 500, headers: API_HEADERS }

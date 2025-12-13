@@ -1,19 +1,26 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Command } from 'cmdk';
-import { Search, Mail, BarChart3, TrendingUp, X } from 'lucide-react';
+import { Search, Mail, BarChart3, FileText, X, FolderSearch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkspace } from '@/lib/workspace-context';
 
-interface SearchResult {
-  type: 'contact' | 'campaign' | 'metric';
+type ResultType = 'contact' | 'campaign' | 'page';
+
+interface ApiResponse {
+  campaigns: Array<{ id: string; name: string }>;
+  contacts: Array<{ id: string; email: string; name: string; company?: string }>;
+  pages: Array<{ id: string; title: string; url: string }>;
+}
+
+interface PaletteItem {
   id: string;
+  type: ResultType;
   title: string;
   subtitle: string;
-  url?: string;
-  highlight?: string;
+  url: string;
 }
 
 interface CommandPaletteProps {
@@ -23,37 +30,70 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const [search, setSearch] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [items, setItems] = useState<PaletteItem[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { workspaceId } = useWorkspace();
 
-  // Fetch search results
-  const performSearch = useCallback(async (query: string) => {
-    if (!query || query.length < 2) {
-      setResults([]);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        query,
-        limit: '10',
-        workspace_id: workspaceId || 'default',
-      });
-
-      const response = await fetch(`/api/search?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setResults(data.results || []);
+  const performSearch = useCallback(
+    async (query: string) => {
+      if (!query || query.length < 2) {
+        setItems([]);
+        return;
       }
-    } catch (error) {
-      console.error('Search error:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [workspaceId]);
+
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          query,
+          workspace_id: workspaceId || 'default',
+        });
+
+        const response = await fetch(`/api/search?${params}`);
+        if (response.ok) {
+          const data: ApiResponse = await response.json();
+          const next: PaletteItem[] = [];
+
+          (data.campaigns || []).forEach((c) => {
+            next.push({
+              id: `campaign-${c.id}`,
+              type: 'campaign',
+              title: c.name,
+              subtitle: 'Campaign • Go to Analytics',
+              url: `/analytics?campaign=${encodeURIComponent(c.id)}`,
+            });
+          });
+
+          (data.contacts || []).forEach((c) => {
+            next.push({
+              id: `contact-${c.id}`,
+              type: 'contact',
+              title: c.name || c.email,
+              subtitle: c.company ? `${c.email} • ${c.company}` : c.email,
+              url: `/contacts?search=${encodeURIComponent(c.email || c.name)}`,
+            });
+          });
+
+          (data.pages || []).forEach((p) => {
+            next.push({
+              id: `page-${p.id}`,
+              type: 'page',
+              title: p.title,
+              subtitle: 'Page',
+              url: p.url,
+            });
+          });
+
+          setItems(next);
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [workspaceId]
+  );
 
   // Debounced search
   useEffect(() => {
@@ -61,7 +101,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       if (search) {
         performSearch(search);
       } else {
-        setResults([]);
+        setItems([]);
       }
     }, 300);
 
@@ -72,7 +112,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   useEffect(() => {
     if (!open) {
       setSearch('');
-      setResults([]);
+      setItems([]);
     }
   }, [open]);
 
@@ -92,21 +132,25 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     return () => document.removeEventListener('keydown', down);
   }, [open, onOpenChange]);
 
-  const handleSelect = (result: SearchResult) => {
-    if (result.url) {
-      router.push(result.url);
-      onOpenChange(false);
-    }
+  const handleSelect = (item: PaletteItem) => {
+    router.push(item.url);
+    onOpenChange(false);
   };
 
-  const getIcon = (type: string) => {
+  const grouped = useMemo(() => {
+    const groups: Record<ResultType, PaletteItem[]> = { contact: [], campaign: [], page: [] };
+    items.forEach((i) => groups[i.type].push(i));
+    return groups;
+  }, [items]);
+
+  const getIcon = (type: ResultType) => {
     switch (type) {
       case 'contact':
         return Mail;
       case 'campaign':
         return BarChart3;
-      case 'metric':
-        return TrendingUp;
+      case 'page':
+        return FileText;
       default:
         return Search;
     }
@@ -155,7 +199,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               </div>
             )}
 
-            {!loading && search && results.length === 0 && (
+            {!loading && search && items.length === 0 && (
               <div className="py-8 text-center text-sm text-text-secondary">
                 No results found for "{search}"
               </div>
@@ -173,17 +217,20 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               </div>
             )}
 
-            {!loading && results.length > 0 && (
+            {!loading && items.length > 0 && (
               <>
-                {/* Group results by type */}
-                {['contact', 'campaign', 'metric'].map(type => {
-                  const typeResults = results.filter(r => r.type === type);
-                  if (typeResults.length === 0) return null;
+                {(['contact', 'campaign', 'page'] as ResultType[]).map(type => {
+                  const typeResults = grouped[type];
+                  if (!typeResults || typeResults.length === 0) return null;
 
                   return (
                     <div key={type} className="mb-4 last:mb-0">
                       <Command.Group
-                        heading={type.charAt(0).toUpperCase() + type.slice(1) + 's'}
+                        heading={
+                          type === 'contact' ? '📧 Contacts' :
+                          type === 'campaign' ? '🚀 Campaigns' :
+                          '📄 Pages'
+                        }
                         className="px-2 py-1.5 text-xs font-semibold text-text-secondary"
                       >
                         {typeResults.map((result) => {
@@ -199,13 +246,13 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                                 'h-10 w-10 rounded-lg flex items-center justify-center shrink-0',
                                 result.type === 'contact' && 'bg-accent-primary/10',
                                 result.type === 'campaign' && 'bg-accent-success/10',
-                                result.type === 'metric' && 'bg-accent-purple/10'
+                                result.type === 'page' && 'bg-accent-purple/10'
                               )}>
                                 <Icon className={cn(
                                   'h-5 w-5',
                                   result.type === 'contact' && 'text-accent-primary',
                                   result.type === 'campaign' && 'text-accent-success',
-                                  result.type === 'metric' && 'text-accent-purple'
+                                  result.type === 'page' && 'text-accent-purple'
                                 )} />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -244,9 +291,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 Close
               </span>
             </div>
-            {results.length > 0 && (
+            {items.length > 0 && (
               <span className="text-xs text-text-secondary">
-                {results.length} result{results.length !== 1 ? 's' : ''}
+                {items.length} result{items.length !== 1 ? 's' : ''}
               </span>
             )}
           </div>
