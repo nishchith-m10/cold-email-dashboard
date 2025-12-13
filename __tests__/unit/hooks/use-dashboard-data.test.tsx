@@ -490,7 +490,7 @@ describe('useDashboardData', () => {
 
       const params: DashboardParams = {
         startDate: '2025-01-01',
-        endDate: '2025-01-31',
+        endDate: '2025-01-01',
       };
 
       const { result } = renderHook(() => useDashboardData(params));

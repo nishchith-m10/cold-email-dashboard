@@ -14,6 +14,8 @@ import {
   Sun,
   Moon,
   User,
+  Users,
+  LayoutDashboard,
   Globe,
   Palette,
   Clock,
@@ -24,7 +26,8 @@ import {
   Info,
   Database,
   Trash2,
-  Loader2
+  Loader2,
+  Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -411,12 +414,13 @@ export function Header({ onCommandOpen }: HeaderProps) {
                 <Link href={`/${query}`}>
                   <button
                     className={cn(
-                      'px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
+                      'px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2',
                       pathname === '/'
                         ? 'bg-surface text-text-primary shadow-sm'
                         : 'text-text-secondary hover:text-text-primary'
                     )}
                   >
+                    <LayoutDashboard className="h-4 w-4" />
                     Overview
                   </button>
                 </Link>
@@ -436,13 +440,27 @@ export function Header({ onCommandOpen }: HeaderProps) {
                 <Link href={`/contacts${query}`}>
                   <button
                     className={cn(
-                      'px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200',
+                      'px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2',
                       pathname === '/contacts'
                         ? 'bg-surface text-text-primary shadow-sm'
                         : 'text-text-secondary hover:text-text-primary'
                     )}
                   >
+                    <Users className="h-4 w-4" />
                     Contacts
+                  </button>
+                </Link>
+                <Link href={`/sequences${query}`}>
+                  <button
+                    className={cn(
+                      'px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2',
+                      pathname === '/sequences'
+                        ? 'bg-surface text-text-primary shadow-sm'
+                        : 'text-text-secondary hover:text-text-primary'
+                    )}
+                  >
+                    <Mail className="h-4 w-4" />
+                    Sequences
                   </button>
                 </Link>
               </nav>

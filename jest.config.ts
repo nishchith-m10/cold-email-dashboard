@@ -1,23 +1,6 @@
 import type { Config } from 'jest';
-import nextJest from 'next/jest.js';
 
-/**
- * Next.js Jest Configuration
- * 
- * Uses nextJest wrapper to properly integrate Jest with Next.js:
- * - Loads environment variables from .env files automatically
- * - Applies Next.js compiler optimizations
- * - Handles Next.js-specific module resolution
- * - Supports Next.js Image, CSS imports, and other Next.js features
- */
-
-const createJestConfig = nextJest({
-  // Provide the path to your Next.js app to load next.config.js and .env files
-  dir: './',
-});
-
-// Add any custom config to be passed to Jest
-const customJestConfig: Config = {
+const config: Config = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/__tests__/unit/setup.ts'],
   moduleNameMapper: {
@@ -52,8 +35,17 @@ const customJestConfig: Config = {
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
   ],
+  preset: 'ts-jest',
+  transform: {
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: {
+        jsx: 'react-jsx',
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+      },
+    }],
+  },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
 };
 
-// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
-export default createJestConfig(customJestConfig);
+export default config;
