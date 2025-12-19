@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/sync-campaigns?token=${CRON_SECRET}",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }
