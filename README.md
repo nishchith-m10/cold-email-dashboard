@@ -79,7 +79,7 @@ A modern, high-performance analytics dashboard for tracking cold email campaigns
 
 ```mermaid
 graph TB
-    subgraph CLIENT["🖥️ CLIENT LAYER"]
+    subgraph CLIENT["CLIENT LAYER"]
         subgraph Desktop["Desktop UI"]
             HEADER[Header<br/>Nav + Search + Notifications]
             DASH[Dashboard<br/>Widgets + Charts]
@@ -95,21 +95,21 @@ graph TB
             FAB[Floating Action<br/>Quick Create]
         end
 
-        subgraph Admin["👑 Super Admin"]
+        subgraph Admin["Super Admin"]
             ADMIN[Admin Panel<br/>Cross-Workspace]
             AUDIT[Audit Log<br/>Activity Timeline]
             GOV[Governance<br/>Freeze Controls]
         end
     end
 
-    subgraph STATE["📦 STATE MANAGEMENT"]
+    subgraph STATE["STATE MANAGEMENT"]
         SWR[SWR Cache<br/>10s Dedup]
         DCTX[Dashboard Context<br/>Filters + Dates]
         WCTX[Workspace Context<br/>Active Workspace]
         PERMS[Permissions Hook<br/>Role-Based UI]
     end
 
-    subgraph SECURITY["🔐 SECURITY LAYER"]
+    subgraph SECURITY["SECURITY LAYER"]
         CLERK[Clerk Auth<br/>SSO + JWT]
         MW[Middleware<br/>Route Protection]
         RBAC[RBAC Engine<br/>4 Roles]
@@ -147,7 +147,7 @@ graph TB
         end
     end
 
-    subgraph DATA["🗄️ DATA LAYER - Supabase"]
+    subgraph DATA["DATA LAYER - Supabase"]
         subgraph Tables["Core Tables"]
             LEADS[(leads_ohio<br/>Master Leads)]
             EVENTS[(email_events<br/>Timeline)]
@@ -173,7 +173,7 @@ graph TB
         end
     end
 
-    subgraph EXTERNAL["🌐 EXTERNAL INTEGRATIONS"]
+    subgraph EXTERNAL["EXTERNAL INTEGRATIONS"]
         subgraph N8N["n8n Workflows"]
             N8N_PREP[Email Prep]
             N8N_SEQ[Sequences 1-3]
