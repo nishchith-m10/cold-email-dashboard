@@ -7,9 +7,6 @@ import { Toaster } from '@/components/ui/toaster';
 export const metadata: Metadata = {
   title: 'Cold Email Analytics Dashboard',
   description: 'Real-time analytics for your cold email campaigns',
-  icons: {
-    icon: '/favicon.ico',
-  },
 };
 
 /**
