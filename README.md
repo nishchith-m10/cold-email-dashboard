@@ -88,7 +88,7 @@ graph TB
             SETTINGS[Settings<br/>General + Security]
         end
 
-        subgraph Mobile["📱 Mobile UI"]
+        subgraph Mobile["Mobile UI"]
             MHEADER[Mobile Header<br/>Logo + Menu]
             MDRAWER[Slide Drawer<br/>Workspace + Theme]
             BNAV[Bottom Nav<br/>5-Tab Bar]
@@ -119,7 +119,7 @@ graph TB
         ENCRYPT[Encryption<br/>AES-256-GCM]
     end
 
-    subgraph API["⚡ API LAYER - 40+ Routes"]
+    subgraph API["API LAYER - 40+ Routes"]
         subgraph CoreAPI["Core"]
             API_DASH[/dashboard/aggregate]
             API_METRICS[/metrics/*<br/>summary, timeseries]
@@ -230,33 +230,18 @@ graph TB
     API_ASK --> LLM_EXT
     Track --> API_TRACK
     ENCRYPT --> KEYS
-
-    %% Styling
-    classDef clientStyle fill:#1e40af,stroke:#3b82f6,color:#fff
-    classDef stateStyle fill:#7c3aed,stroke:#a78bfa,color:#fff
-    classDef securityStyle fill:#dc2626,stroke:#f87171,color:#fff
-    classDef apiStyle fill:#059669,stroke:#34d399,color:#fff
-    classDef dataStyle fill:#d97706,stroke:#fbbf24,color:#000
-    classDef externalStyle fill:#6b7280,stroke:#9ca3af,color:#fff
-
-    class Desktop,Mobile,Admin clientStyle
-    class SWR,DCTX,WCTX,PERMS stateStyle
-    class CLERK,MW,RBAC,GUARD,RATE,SANITIZE,ENCRYPT securityStyle
-    class CoreAPI,DataAPI,AdminAPI,IntegrationAPI apiStyle
-    class Tables,Multi,Perf,Sec dataStyle
-    class N8N,LLM_EXT,Track externalStyle
 ```
 
 ### Architecture Legend
 
-| Layer           | Purpose                                               |
-| --------------- | ----------------------------------------------------- |
-| 🖥️ **Client**   | Desktop UI, Mobile UI (Phase 38), Admin Panel         |
-| 📦 **State**    | SWR caching, React contexts, permission hooks         |
-| 🔐 **Security** | Clerk auth, RBAC (4 roles), rate limiting, encryption |
-| ⚡ **API**      | 40+ Next.js API routes across 27 domains              |
-| 🗄️ **Data**     | Supabase PostgreSQL with RLS, materialized views      |
-| 🌐 **External** | n8n workflows, LLM providers, email tracking          |
+| Layer        | Purpose                                               |
+| ------------ | ----------------------------------------------------- |
+| **CLIENT**   | Desktop UI, Mobile UI (Phase 38), Admin Panel         |
+| **STATE**    | SWR caching, React contexts, permission hooks         |
+| **SECURITY** | Clerk auth, RBAC (4 roles), rate limiting, encryption |
+| **API**      | 40+ Next.js API routes across 27 domains              |
+| **DATA**     | Supabase PostgreSQL with RLS, materialized views      |
+| **EXTERNAL** | n8n workflows, LLM providers, email tracking          |
 
 ---
 
