@@ -1045,9 +1045,11 @@
   "active": true,
   "settings": {
     "executionOrder": "v1",
-    "callerPolicy": "workflowsFromSameOwner"
+    "callerPolicy": "workflowsFromSameOwner",
+    "timeSavedMode": "fixed",
+    "availableInMCP": true
   },
-  "versionId": "fc6849e0-03c7-450f-9c03-a91e16c8f6b5",
+  "versionId": "2e15124a-a856-4338-8d3e-ff4c346172ba",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "fb0f3042150127121074617aaee31b106c313805cbc452132240d35f72eba898"

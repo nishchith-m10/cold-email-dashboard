@@ -1,5 +1,5 @@
 {
-  "name": "Cold Email Preparation",
+  "name": "Email Preparation",
   "nodes": [
     {
       "parameters": {
@@ -212,7 +212,9 @@
       "webhookId": "db88eb0e-977c-4b6f-bfb5-8a9aaf8a10ef"
     },
     {
-      "parameters": {},
+      "parameters": {
+        "maxItems": 117
+      },
       "type": "n8n-nodes-base.limit",
       "typeVersion": 1,
       "position": [
@@ -1021,7 +1023,8 @@
             "email_2_body": "={{ ($json.email2?.body || '').replace(/\\r?\\n/g,'<br>') }}",
             "email_3_subject": "={{ $json.email3?.subject || '' }}",
             "email_3_body": "={{ ($json.email3?.body || '').replace(/\\r?\\n/g,'<br>') }}",
-            "sender_email": "={{ $json['Sender Email'] }}"
+            "sender_email": "={{ $json['Sender Email'] }}",
+            "report_sent": false
           },
           "matchingColumns": [
             "linkedin_url"
@@ -1148,7 +1151,7 @@
             {
               "id": "founded_year",
               "displayName": "founded_year",
-              "required": true,
+              "required": false,
               "defaultMatch": false,
               "display": true,
               "type": "number",
@@ -1401,6 +1404,16 @@
               "type": "number",
               "canBeUsedToMatch": true,
               "removed": true
+            },
+            {
+              "id": "workspace_id",
+              "displayName": "workspace_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -1441,8 +1454,8 @@
         "where": {
           "values": [
             {
-              "column": "email_1_sent",
-              "value": "FALSE"
+              "column": "email_prep",
+              "condition": "IS NULL"
             }
           ]
         },
@@ -1534,7 +1547,7 @@
           "conditions": [
             {
               "id": "1ebaec45-452a-4ad3-9e39-593dde6b4587",
-              "leftValue": "={{ $('Get Email Prep1').toString().json.email_prep }}",
+              "leftValue": "={{ $('Get Email Prep1').first().json.email_prep }}",
               "rightValue": "",
               "operator": {
                 "type": "string",
@@ -1555,94 +1568,6 @@
       ],
       "id": "4e4587fe-13a3-4140-963d-9c6a9ef9c3c1",
       "name": "If1"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://tracee-tabernacular-brandee.ngrok-free.dev/api/cost-events",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "x-webhook-token",
-              "value": "6de5a8d03ad6348f4110782372a82f1bb7c6ef43a8ce8810bf0459e73abaeb61"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($('Edit Email fields1').first().json._cost_events || []) }}",
-        "options": {
-          "timeout": 10000
-        }
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        6384,
-        832
-      ],
-      "id": "3c2dc615-90dc-4d7c-8299-35c4e89a23bf",
-      "name": "Send Cost Events to Dashboard"
-    },
-    {
-      "parameters": {
-        "multipleMethods": true,
-        "httpMethod": [
-          "POST"
-        ],
-        "path": "c9bb22d5-3421-44f1-9cd0-b4d5b779656f",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
-      "position": [
-        5872,
-        832
-      ],
-      "id": "9226755f-f199-4c4b-9833-3916cf1231e5",
-      "name": "Webhook",
-      "webhookId": "c9bb22d5-3421-44f1-9cd0-b4d5b779656f"
-    },
-    {
-      "parameters": {
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "linkedInOAuth2Api",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.3,
-      "position": [
-        6144,
-        832
-      ],
-      "id": "5984e048-7cc1-49fa-8db4-25c126a5adf8",
-      "name": "HTTP Request",
-      "credentials": {
-        "linkedInOAuth2Api": {
-          "id": "t3OcFp3cjv7iYP4E",
-          "name": "LinkedIn account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "content": "Ignore these nodes\n",
-        "height": 320,
-        "width": 880
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        5824,
-        704
-      ],
-      "typeVersion": 1,
-      "id": "b5a35c0c-9d83-4f82-826c-bb0417f9017f",
-      "name": "Sticky Note"
     }
   ],
   "pinData": {},
@@ -2056,16 +1981,6 @@
           }
         ]
       ]
-    },
-    "Send Cost Events to Dashboard": {
-      "main": [
-        []
-      ]
-    },
-    "Webhook": {
-      "main": [
-        []
-      ]
     }
   },
   "active": false,
@@ -2075,9 +1990,11 @@
     "callerPolicy": "workflowsFromSameOwner",
     "saveExecutionProgress": true,
     "errorWorkflow": "CiaofBF4zkgB2bhR",
-    "timeSavedPerExecution": 1
+    "timeSavedPerExecution": 1,
+    "timeSavedMode": "fixed",
+    "availableInMCP": false
   },
-  "versionId": "f4e2ba78-54fe-4b5e-a6b4-75e2f84b5550",
+  "versionId": "9db2d926-20ea-4edc-b325-09ff7b6b0950",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "fb0f3042150127121074617aaee31b106c313805cbc452132240d35f72eba898"

@@ -22,15 +22,15 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        1552,
-        1376
+        1520,
+        1248
       ],
       "id": "fdecf68f-bb18-46b8-ba02-616e8cd586ed",
       "name": "Read All Rows from Sheets1",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "2EUpgH0WFkM3Lr6E",
-          "name": "Nishchith Sheets account"
+          "id": "p8ESE0UMGdJsRvZv",
+          "name": "Smartie Agents"
         }
       }
     },
@@ -42,8 +42,8 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        1776,
-        1376
+        1744,
+        1248
       ],
       "id": "3a15d9a2-ae81-4ba0-ac4c-8572adda98ad",
       "name": "Process in Batches1"
@@ -144,7 +144,7 @@
               "defaultMatch": false,
               "display": true,
               "type": "string",
-              "canBeUsedToMatch": false,
+              "canBeUsedToMatch": true,
               "removed": false
             },
             {
@@ -240,7 +240,7 @@
             {
               "id": "founded_year",
               "displayName": "founded_year",
-              "required": false,
+              "required": true,
               "defaultMatch": false,
               "display": true,
               "type": "number",
@@ -510,8 +510,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1984,
-        1392
+        1952,
+        1264
       ],
       "id": "02afbc97-8aa3-4e3c-8507-5961a30f6bc7",
       "name": "Upsert to Supabase1",
@@ -529,8 +529,8 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        2192,
-        1392
+        2160,
+        1264
       ],
       "id": "82058941-421b-48fa-a13a-5e52b82bcd44",
       "name": "Rate Limit (0.5s)1",
@@ -557,8 +557,8 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        1344,
-        1376
+        1312,
+        1248
       ],
       "id": "61b96a6c-0db8-4f96-9386-33f30c646f02",
       "name": "When clicking ‘Execute workflow’"
@@ -627,7 +627,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "d373c189-0202-4351-9306-7b5881453f66",
+  "versionId": "3e07f5a4-8cc2-4434-bc1d-c2a5c6450a8a",
   "meta": {
     "instanceId": "fb0f3042150127121074617aaee31b106c313805cbc452132240d35f72eba898"
   },

@@ -6,8 +6,7 @@
         "rule": {
           "interval": [
             {
-              "field": "seconds",
-              "secondsInterval": 30
+              "field": "seconds"
             }
           ]
         }
@@ -15,10 +14,10 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -400,
-        300
+        1152,
+        -80
       ],
-      "id": "trigger-1",
+      "id": "3b0ad78a-c6be-48e7-97e1-4f2dd5341a87",
       "name": "Manual Trigger",
       "notes": "Run this workflow ONCE manually to backfill historical data. Then disable or delete this workflow."
     },
@@ -43,10 +42,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        -200,
-        300
+        1344,
+        -80
       ],
-      "id": "sheets-1",
+      "id": "8c75313d-59c1-45e6-b0cc-09d85ca048e3",
       "name": "Get All Leads",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -82,10 +81,10 @@
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
       "position": [
-        0,
-        300
+        1552,
+        -80
       ],
-      "id": "filter-1",
+      "id": "b0dd9f0e-11b4-4eec-8dd7-85f44d983852",
       "name": "Filter Sent Emails"
     },
     {
@@ -97,10 +96,10 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        200,
-        300
+        1744,
+        -80
       ],
-      "id": "batch-1",
+      "id": "80b3d97b-6fdb-418f-9da8-1c4e7c31f95f",
       "name": "Loop Over Items"
     },
     {
@@ -110,10 +109,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        400,
-        300
+        1952,
+        -64
       ],
-      "id": "code-1",
+      "id": "9859c5de-4b0f-4d68-8f43-f2c5c2889e78",
       "name": "Build Events"
     },
     {
@@ -143,10 +142,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        600,
-        300
+        2144,
+        -64
       ],
-      "id": "if-1",
+      "id": "a1cc4651-08f3-4986-8564-c1007f53fbe3",
       "name": "Has Events?"
     },
     {
@@ -157,16 +156,16 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        800,
-        200
+        2352,
+        -80
       ],
-      "id": "split-1",
+      "id": "2c602699-f307-49e0-9ef6-be908deeec6f",
       "name": "Split Events"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://cold-email-dashboard.vercel.app/api/events",
+        "url": "https://cold-email-dashboard.vercel.app/api/cost-events",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -184,35 +183,30 @@
         "specifyBody": "json",
         "jsonBody": "={{ $json }}",
         "options": {
-          "timeout": 30000,
-          "retry": {
-            "maxRetries": 3,
-            "retryDelay": 2000
-          }
+          "timeout": 30000
         }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1000,
-        200
+        2544,
+        -80
       ],
-      "id": "http-1",
+      "id": "391b17e6-922b-4e44-be8d-0c9757b76a8e",
       "name": "Send Event to Dashboard",
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "unit": "seconds",
-        "amount": 2
+        "amount": 3
       },
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1000,
-        200
+        2720,
+        -80
       ],
-      "id": "wait-1",
+      "id": "d4d5d1c0-6ea1-41fa-b2c0-3ab82ca1f8aa",
       "name": "Rate Limit",
       "webhookId": "backfill-wait"
     },
@@ -225,11 +219,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -600,
-        100
+        672,
+        -256
       ],
       "typeVersion": 1,
-      "id": "note-1",
+      "id": "ebdc4537-ef9a-4e34-9682-3ee30c0ec492",
       "name": "Instructions"
     }
   ],
@@ -345,20 +339,19 @@
   },
   "active": false,
   "settings": {
-    "executionOrder": "v1",
-    "timezone": "America/Los_Angeles",
-    "callerPolicy": "workflowsFromSameOwner"
+    "executionOrder": "v1"
   },
-  "versionId": "backfill-v1",
+  "versionId": "feae712b-4183-40df-96d3-58566b26bdf8",
   "meta": {
-    "templateCredsSetupCompleted": true
+    "instanceId": "fb0f3042150127121074617aaee31b106c313805cbc452132240d35f72eba898"
   },
-  "id": "backfill-historical",
+  "id": "n0KCJNw6AW8rEhDF",
   "tags": [
     {
+      "updatedAt": "2025-09-27T07:54:51.546Z",
+      "createdAt": "2025-09-27T07:54:51.546Z",
       "id": "r8CZ5Y6mZ7dctfjE",
       "name": "Cold Email"
     }
   ]
 }
-
