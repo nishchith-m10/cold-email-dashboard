@@ -6,7 +6,7 @@ Successfully migrated all Google Sheets nodes to PostgreSQL in Email 2 and Email
 
 **Date**: December 17, 2025  
 **Database**: `leads_ohio` (Supabase PostgreSQL)  
-**Credential ID**: `QKb5WqKXZ29v15Qk` (Leads Ohio)
+**Credential ID**: Your n8n PostgreSQL credential ID
 
 ---
 
