@@ -2,7 +2,8 @@ import { google, sheets_v4 } from 'googleapis';
 import { cacheManager, CACHE_TTL } from './cache';
 
 // Google Sheets configuration
-const SHEET_ID = process.env.GOOGLE_SHEET_ID || '1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8';
+// Sheet ID must be set via environment variable - no fallback for security
+const SHEET_ID = process.env.GOOGLE_SHEET_ID || '';
 
 // Service account credentials from environment
 const getCredentials = () => {

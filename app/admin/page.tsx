@@ -16,10 +16,10 @@ import { cn } from '@/lib/utils';
 import { BottomSheet } from '@/components/mobile';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Hardcoded for now - should match SUPER_ADMIN_IDS in workspace-access.ts
-const SUPER_ADMIN_IDS = [
-  'user_36QtXCPqQu6k0CXcYM0Sn2OQsgT', // Nishchith - Owner
-];
+// Super admin IDs from environment variable (comma-separated)
+const SUPER_ADMIN_IDS = process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS
+  ? process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS.split(',').map(id => id.trim())
+  : [];
 
 type AdminTab = 'workspaces' | 'audit';
 

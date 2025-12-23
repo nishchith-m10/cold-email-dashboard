@@ -96,10 +96,10 @@
 [
   {
     "raw": "U3ViamVjdDogUmU6...",  // ❌ No tracking injected
-    "to": "joshualakes@gmail.com",
+    "to": "example@example.com",
     "subject": "Re: Are after hours inquiries...",
-    "email_2_body": "\n<img src=\"https://cold-email-dashboard.vercel.app/api/track/open?e=&c=Ohio&s=2&t=-2-1765170920424\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
-    "tracked_body": "\n<img src=\"https://cold-email-dashboard.vercel.app/api/track/open?e=&c=Ohio&s=2&t=-2-1765170920424\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+    "email_2_body": "\n<img src=\"https://your-dashboard.vercel.app/api/track/open?e=&c=Ohio&s=2&t=-2-1765170920424\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+    "tracked_body": "\n<img src=\"https://your-dashboard.vercel.app/api/track/open?e=&c=Ohio&s=2&t=-2-1765170920424\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
     "links_tracked": 0
   }
 ]
@@ -113,22 +113,22 @@
 ```json
 [
   {
-    "raw": "U3ViamVjdDogUmU6QXJlIGFmdGVyIGhvdXJzIGlucXVpcmllcy4uLgoKSGV5IEphY2ssPGJyPjxicj5KdXN0IHB1c2hpbmcgdGhpcyBiYWNrIHVwIHlvdXIgaW5ib3guLi48YnI-PGltZyBzcmM9Imh0dHBzOi8vY29sZC1lbWFpbC1kYXNoYm9hcmQudmVyY2VsLmFwcC9hcGkvdHJhY2svb3Blbj9lPWpvc2h1YWxha2VzQGdtYWlsLmNvbSZjPU9oaW8mcz0yJnQ9am9zaHVhbGFrZXMlNDBnbWFpbC5jb20tMi0xNzM0NDg5Mjc2NTQzIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBzdHlsZT0iZGlzcGxheTpub25lOyIgYWx0PSIiIC8-",
+    "raw": "U3ViamVjdDogUmU6Li4u...",
     // ↑ ✅ NEW: raw field includes tracking pixel!
     
-    "original_raw": "U3ViamVjdDogUmU6QXJlIGFmdGVyIGhvdXJzIGlucXVpcmllcy4uLg==",
+    "original_raw": "U3ViamVjdDogUmU6Li4u...",
     // ↑ ✅ Original preserved for debugging
     
-    "to": "joshualakes@gmail.com",
+    "to": "example@example.com",
     "subject": "Re: Are after hours inquiries...",
     
-    "tracked_body": "Hey Jack,<br><br>Just pushing this back up your inbox...<br><img src=\"https://cold-email-dashboard.vercel.app/api/track/open?e=joshualakes@gmail.com&c=Ohio&s=2&t=joshualakes%40gmail.com-2-1734489276543\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
+    "tracked_body": "Hey Jack,<br><br>Just pushing this back up your inbox...<br><img src=\"https://your-dashboard.vercel.app/api/track/open?e=example@example.com&c=Ohio&s=2&t=example%40example.com-2-1734489276543\" width=\"1\" height=\"1\" style=\"display:none;\" alt=\"\" />",
     // ↑ ✅ Decoded tracked body with pixel
     
-    "tracking_pixel_url": "https://cold-email-dashboard.vercel.app/api/track/open?e=joshualakes@gmail.com&c=Ohio&s=2&t=joshualakes%40gmail.com-2-1734489276543",
+    "tracking_pixel_url": "https://your-dashboard.vercel.app/api/track/open?e=example@example.com&c=Ohio&s=2&t=example%40example.com-2-1734489276543",
     // ↑ ✅ Full tracking URL for debugging
     
-    "tracking_token": "joshualakes%40gmail.com-2-1734489276543"
+    "tracking_token": "example%40example.com-2-1734489276543"
     // ↑ ✅ Unique token for deduplication
   }
 ]

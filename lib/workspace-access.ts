@@ -61,9 +61,10 @@ const ROLE_PERMISSIONS: Record<WorkspaceRole, {
 };
 
 // Super admin user IDs (can access all workspaces)
-const SUPER_ADMIN_IDS: string[] = [
-  'user_36QtXCPqQu6k0CXcYM0Sn2OQsgT', // Nishchith - Owner
-];
+// Set via SUPER_ADMIN_IDS env var as comma-separated list
+const SUPER_ADMIN_IDS: string[] = process.env.SUPER_ADMIN_IDS
+  ? process.env.SUPER_ADMIN_IDS.split(',').map(id => id.trim())
+  : [];
 
 // ============================================
 // ACCESS CACHE (5-minute TTL)
