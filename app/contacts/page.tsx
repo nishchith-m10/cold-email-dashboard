@@ -184,7 +184,8 @@ export default function ContactsPage() {
   const [addError, setAddError] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
   const detailCache = useRef<Map<number, ContactDetail>>(new Map());
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const desktopSentinelRef = useRef<HTMLDivElement | null>(null);
+  const mobileSentinelRef = useRef<HTMLDivElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Debounce search input
@@ -257,19 +258,26 @@ export default function ContactsPage() {
     };
   }, [workspaceId, debouncedSearch, startDate, endDate, fetchPage]);
 
-  // Infinite scroll observer
+  // Infinite scroll observer - observe BOTH desktop and mobile sentinels
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    const desktopSentinel = desktopSentinelRef.current;
+    const mobileSentinel = mobileSentinelRef.current;
+    if (!desktopSentinel && !mobileSentinel) return;
+    
     const observer = new IntersectionObserver(
       entries => {
-        if (entries[0].isIntersecting && hasMore && !loading && nextCursor) {
+        // Check if ANY observed sentinel is intersecting
+        const isIntersecting = entries.some(entry => entry.isIntersecting);
+        if (isIntersecting && hasMore && !loading && nextCursor) {
           fetchPage(nextCursor);
         }
       },
       { rootMargin: '200px' }
     );
-    observer.observe(sentinel);
+    
+    if (desktopSentinel) observer.observe(desktopSentinel);
+    if (mobileSentinel) observer.observe(mobileSentinel);
+    
     return () => observer.disconnect();
   }, [hasMore, loading, nextCursor, fetchPage]);
 
@@ -642,8 +650,8 @@ export default function ContactsPage() {
               {error && (
                 <div className="p-4 text-sm text-accent-danger bg-accent-danger/5">{error}</div>
               )}
-              {/* Sentinel for infinite scroll - must have dimension to be observed */}
-              <div ref={sentinelRef} className="h-4 w-full flex-shrink-0" aria-hidden="true" />
+              {/* Sentinel for infinite scroll - desktop */}
+              <div ref={desktopSentinelRef} className="h-4 w-full flex-shrink-0" aria-hidden="true" />
             </CardContent>
           </Card>
         </div>
@@ -680,7 +688,7 @@ export default function ContactsPage() {
                 {error && (
                   <div className="p-4 text-sm text-accent-danger bg-accent-danger/5 rounded-lg">{error}</div>
                 )}
-                <div ref={sentinelRef} className="h-4 w-full flex-shrink-0" aria-hidden="true" />
+                <div ref={mobileSentinelRef} className="h-4 w-full flex-shrink-0" aria-hidden="true" />
               </motion.div>
             ) : (
               // Detail View
