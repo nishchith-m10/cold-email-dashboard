@@ -5,6 +5,7 @@ import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_READ } from '
 import { cacheManager, apiCacheKey, CACHE_TTL } from '@/lib/cache';
 import { EXCLUDED_CAMPAIGNS } from '@/lib/db-queries';
 import { validateWorkspaceAccess } from '@/lib/api-workspace-guard';
+import { getLeadsTableName } from '@/lib/workspace-db-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,11 +152,12 @@ async function fetchStepBreakdownData(
   const step1Count = steps.find(s => s.step === 1)?.sends || 0;
   const uniqueContacts = Math.max(email1Recipients.size, step1Count);
 
-  // Query total leads count from leads_ohio table
+  // Query total leads count from workspace-specific leads table
   let totalLeads = 0;
   try {
+    const leadsTable = await getLeadsTableName(workspaceId);
     const { count, error: countError } = await supabaseAdmin
-      .from('leads_ohio')
+      .from(leadsTable)
       .select('*', { count: 'exact', head: true })
       .eq('workspace_id', workspaceId);
     

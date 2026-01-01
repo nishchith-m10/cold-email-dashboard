@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
 import { API_HEADERS } from '@/lib/utils';
+import { auth } from '@clerk/nextjs/server';
+import { getWorkspaceAccess, isSuperAdmin } from '@/lib/workspace-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +22,15 @@ export const dynamic = 'force-dynamic';
  * - plan: { name, features }
  */
 export async function GET(req: NextRequest) {
+  // SECURITY: Require authentication
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401, headers: API_HEADERS }
+    );
+  }
+
   if (!supabaseAdmin) {
     return NextResponse.json({
       period: { month: '', start_date: '', end_date: '' },
@@ -31,6 +42,17 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const workspaceId = searchParams.get('workspace_id') || DEFAULT_WORKSPACE_ID;
+
+  // SECURITY: Verify user has access to this workspace
+  if (!isSuperAdmin(userId)) {
+    const access = await getWorkspaceAccess(userId, workspaceId);
+    if (!access) {
+      return NextResponse.json(
+        { error: 'Access denied' },
+        { status: 403, headers: API_HEADERS }
+      );
+    }
+  }
   
   // Parse month parameter (YYYY-MM format)
   const monthParam = searchParams.get('month');

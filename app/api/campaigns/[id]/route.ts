@@ -105,3 +105,71 @@ export async function PATCH(
     campaign: updatedCampaign
   });
 }
+
+// ============================================
+// DELETE HANDLER
+// ============================================
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const campaignId = params.id;
+
+  // 1. Check database configuration
+  if (!supabaseAdmin) {
+    return jsonResponse({ success: false, error: 'Database not configured' }, 503);
+  }
+
+  // 2. Authenticate user
+  const { userId } = await auth();
+  if (!userId) {
+    return jsonResponse({ success: false, error: 'Authentication required' }, 401);
+  }
+
+  // 3. Fetch campaign to verify ownership/access
+  const { data: campaign, error: fetchError } = await supabaseAdmin
+    .from('campaigns')
+    .select('workspace_id, name')
+    .eq('id', campaignId)
+    .single();
+
+  if (fetchError || !campaign) {
+    return jsonResponse({ success: false, error: 'Campaign not found' }, 404);
+  }
+
+  // 4. Verify workspace authorization (requires manage permission)
+  const { data: membership } = await supabaseAdmin
+    .from('user_workspaces')
+    .select('role')
+    .eq('workspace_id', campaign.workspace_id)
+    .eq('user_id', userId)
+    .single();
+
+  const DEFAULT_WORKSPACE_ID = '00000000-0000-0000-0000-000000000001';
+  const hasAccess = membership || campaign.workspace_id === DEFAULT_WORKSPACE_ID;
+  const canManage = membership?.role === 'owner' || membership?.role === 'admin';
+
+  if (!hasAccess || !canManage) {
+    return jsonResponse(
+      { success: false, error: 'Not authorized to delete this campaign' },
+      403
+    );
+  }
+
+  // 5. Delete the campaign
+  const { error: deleteError } = await supabaseAdmin
+    .from('campaigns')
+    .delete()
+    .eq('id', campaignId);
+
+  if (deleteError) {
+    console.error('Campaign delete error:', deleteError);
+    return jsonResponse({ success: false, error: 'Failed to delete campaign' }, 500);
+  }
+
+  return jsonResponse({
+    success: true,
+    message: `Campaign "${campaign.name}" deleted successfully`
+  });
+}

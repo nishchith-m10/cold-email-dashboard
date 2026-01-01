@@ -5,6 +5,7 @@ import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_READ } from '
 import { cacheManager, apiCacheKey, CACHE_TTL } from '@/lib/cache';
 import { EXCLUDED_CAMPAIGNS, shouldExcludeCampaign } from '@/lib/db-queries';
 import { validateWorkspaceAccess } from '@/lib/api-workspace-guard';
+import { getLeadsTableName } from '@/lib/workspace-db-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -243,21 +244,67 @@ async function fetchAggregateData(
   // BUILD ALL QUERIES
   // ============================================
 
-  // 1. Current period email events (for summary) - prefer email_number, keep step for legacy
-  let currentEventsQuery = supabaseAdmin
+  // 1. Current period aggregates - Use COUNT queries instead of fetching all rows (OOM fix)
+  // Build base query conditions
+  const buildEventFilters = (query: any, start: string, end: string, camp?: string | null) => {
+    let q = query
+      .eq('workspace_id', workspaceId)
+      .gte('event_ts', `${start}T00:00:00Z`)
+      .lte('event_ts', `${end}T23:59:59Z`);
+    if (camp) {
+      q = q.eq('campaign_name', camp);
+    } else {
+      for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
+        q = q.neq('campaign_name', excludedCampaign);
+      }
+    }
+    return q;
+  };
+
+  // Count queries for current period - much lighter than fetching all rows
+  const countSendsQuery = buildEventFilters(
+    supabaseAdmin.from('email_events').select('*', { count: 'exact', head: true }).eq('event_type', 'sent'),
+    startDate, endDate, campaign
+  );
+  const countRepliesQuery = buildEventFilters(
+    supabaseAdmin.from('email_events').select('*', { count: 'exact', head: true }).eq('event_type', 'replied'),
+    startDate, endDate, campaign
+  );
+  const countOptOutsQuery = buildEventFilters(
+    supabaseAdmin.from('email_events').select('*', { count: 'exact', head: true }).eq('event_type', 'opt_out'),
+    startDate, endDate, campaign
+  );
+  const countBouncesQuery = buildEventFilters(
+    supabaseAdmin.from('email_events').select('*', { count: 'exact', head: true }).eq('event_type', 'bounced'),
+    startDate, endDate, campaign
+  );
+  const countOpensQuery = buildEventFilters(
+    supabaseAdmin.from('email_events').select('*', { count: 'exact', head: true }).eq('event_type', 'opened'),
+    startDate, endDate, campaign
+  );
+  const countClicksQuery = buildEventFilters(
+    supabaseAdmin.from('email_events').select('*', { count: 'exact', head: true }).eq('event_type', 'clicked'),
+    startDate, endDate, campaign
+  );
+
+  // 2. Previous period counts (for comparison) - also use COUNT
+  const prevCountSendsQuery = buildEventFilters(
+    supabaseAdmin.from('email_events').select('*', { count: 'exact', head: true }).eq('event_type', 'sent'),
+    prevStartDate, prevEndDate, campaign
+  );
+  const prevCountRepliesQuery = buildEventFilters(
+    supabaseAdmin.from('email_events').select('*', { count: 'exact', head: true }).eq('event_type', 'replied'),
+    prevStartDate, prevEndDate, campaign
+  );
+
+  // 3. Step breakdown - fetch only sent events with email_number (lighter than all events)
+  let stepBreakdownQuery = supabaseAdmin
     .from('email_events')
-    .select('event_type, email_number, step, event_ts, contact_email, campaign_name, metadata')
+    .select('email_number, step, event_ts, contact_email, campaign_name, metadata')
     .eq('workspace_id', workspaceId)
+    .eq('event_type', 'sent')
     .gte('event_ts', `${startDate}T00:00:00Z`)
     .lte('event_ts', `${endDate}T23:59:59Z`);
-
-  // 2. Previous period email events (for comparison)
-  let prevEventsQuery = supabaseAdmin
-    .from('email_events')
-    .select('event_type')
-    .eq('workspace_id', workspaceId)
-    .gte('event_ts', `${prevStartDate}T00:00:00Z`)
-    .lte('event_ts', `${prevEndDate}T23:59:59Z`);
 
   // 3. Daily stats (for timeseries)
   let dailyStatsQuery = supabaseAdmin
@@ -301,23 +348,18 @@ async function fetchAggregateData(
     .not('campaign_name', 'is', null);
 
   // 8. Leads count (for percentage calculation)
+  const leadsTable = await getLeadsTableName(workspaceId);
   const leadsCountQuery = supabaseAdmin
-    .from('leads_ohio')
+    .from(leadsTable)
     .select('*', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId);
 
-  // Apply campaign filter OR global exclusion
+  // Apply campaign filter to step breakdown query
   if (campaign) {
-    currentEventsQuery = currentEventsQuery.eq('campaign_name', campaign);
-    prevEventsQuery = prevEventsQuery.eq('campaign_name', campaign);
-    dailyStatsQuery = dailyStatsQuery.eq('campaign_name', campaign);
-    llmUsageQuery = llmUsageQuery.eq('campaign_name', campaign);
-    contactsQuery = contactsQuery.eq('campaign_name', campaign);
-    clickEventsQuery = clickEventsQuery.eq('campaign_name', campaign);
+    stepBreakdownQuery = stepBreakdownQuery.eq('campaign_name', campaign);
   } else {
     for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
-      currentEventsQuery = currentEventsQuery.neq('campaign_name', excludedCampaign);
-      prevEventsQuery = prevEventsQuery.neq('campaign_name', excludedCampaign);
+      stepBreakdownQuery = stepBreakdownQuery.neq('campaign_name', excludedCampaign);
       dailyStatsQuery = dailyStatsQuery.neq('campaign_name', excludedCampaign);
       llmUsageQuery = llmUsageQuery.neq('campaign_name', excludedCampaign);
       contactsQuery = contactsQuery.neq('campaign_name', excludedCampaign);
@@ -336,8 +378,15 @@ async function fetchAggregateData(
   // ============================================
 
   const [
-    currentEventsResult,
-    prevEventsResult,
+    countSendsResult,
+    countRepliesResult,
+    countOptOutsResult,
+    countBouncesResult,
+    countOpensResult,
+    countClicksResult,
+    prevCountSendsResult,
+    prevCountRepliesResult,
+    stepBreakdownResult,
     dailyStatsResult,
     llmUsageResult,
     contactsResult,
@@ -345,8 +394,15 @@ async function fetchAggregateData(
     campaignNamesResult,
     leadsCountResult,
   ] = await Promise.all([
-    currentEventsQuery,
-    prevEventsQuery,
+    countSendsQuery,
+    countRepliesQuery,
+    countOptOutsQuery,
+    countBouncesQuery,
+    countOpensQuery,
+    countClicksQuery,
+    prevCountSendsQuery,
+    prevCountRepliesQuery,
+    stepBreakdownQuery,
     dailyStatsQuery,
     llmUsageQuery,
     contactsQuery,
@@ -355,47 +411,23 @@ async function fetchAggregateData(
     leadsCountQuery,
   ]);
 
-  // Handle errors - surface them to caller instead of returning empty data
-  if (currentEventsResult.error) {
-    console.error('Current events query error:', currentEventsResult.error);
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/89ce9e0f-6173-4553-aba6-2e0d56cef981',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        sessionId:'debug-session',
-        runId:'pre-fix',
-        hypothesisId:'H6',
-        location:'app/api/dashboard/aggregate/route.ts:335',
-        message:'aggregate currentEventsResult error',
-        data:{workspaceId,error:currentEventsResult.error.message},
-        timestamp:Date.now()
-      })
-    }).catch(()=>{});
-    // #endregion
-    throw currentEventsResult.error;
+  // Handle errors
+  if (countSendsResult.error) {
+    console.error('Count sends query error:', countSendsResult.error);
+    throw countSendsResult.error;
   }
 
   // ============================================
-  // PROCESS SUMMARY DATA
+  // PROCESS SUMMARY DATA (using COUNT results - no in-memory filtering!)
   // ============================================
 
-  const currentEvents = currentEventsResult.data as Array<{
-    event_type: string;
-    step: number | null;
-    email_number?: number | null;
-    metadata?: Record<string, unknown> | null;
-    event_ts: string;
-    contact_email: string | null;
-    campaign_name?: string | null;
-  }> || [];
   const totals = {
-    sends: currentEvents.filter(e => e.event_type === 'sent').length,
-    replies: currentEvents.filter(e => e.event_type === 'replied').length,
-    opt_outs: currentEvents.filter(e => e.event_type === 'opt_out').length,
-    bounces: currentEvents.filter(e => e.event_type === 'bounced').length,
-    opens: currentEvents.filter(e => e.event_type === 'opened').length,
-    clicks: currentEvents.filter(e => e.event_type === 'clicked').length,
+    sends: countSendsResult.count || 0,
+    replies: countRepliesResult.count || 0,
+    opt_outs: countOptOutsResult.count || 0,
+    bounces: countBouncesResult.count || 0,
+    opens: countOpensResult.count || 0,
+    clicks: countClicksResult.count || 0,
   };
 
   // Calculate rates
@@ -415,11 +447,10 @@ async function fetchAggregateData(
     ? Number(((totals.clicks / totals.sends) * 100).toFixed(2))
     : 0;
 
-  // Previous period comparison
-  const prevEvents = prevEventsResult.data || [];
+  // Previous period comparison (using COUNT results)
   const prevTotals = {
-    sends: prevEvents.filter(e => e.event_type === 'sent').length,
-    replies: prevEvents.filter(e => e.event_type === 'replied').length,
+    sends: prevCountSendsResult.count || 0,
+    replies: prevCountRepliesResult.count || 0,
   };
   const prevReplyRatePct = prevTotals.sends > 0
     ? Number(((prevTotals.replies / prevTotals.sends) * 100).toFixed(2))
@@ -563,7 +594,7 @@ async function fetchAggregateData(
   const totalCalls = byProvider.reduce((sum, p) => sum + p.calls, 0);
 
   // ============================================
-  // PROCESS STEP BREAKDOWN DATA
+  // PROCESS STEP BREAKDOWN DATA (using stepBreakdownResult - only sent events)
   // ============================================
 
   const stepMap = new Map<number, { count: number; lastSent: string | null }>();
@@ -571,7 +602,17 @@ async function fetchAggregateData(
   const email1Recipients = new Set<string>();
   const email1RecipientsByCampaign = new Map<string, Set<string>>();
 
-  for (const event of currentEvents.filter(e => e.event_type === 'sent')) {
+  // Use stepBreakdownResult.data which only contains sent events (already filtered at DB level)
+  const sentEvents = stepBreakdownResult.data as Array<{
+    email_number?: number | null;
+    step?: number | null;
+    event_ts: string;
+    contact_email: string | null;
+    campaign_name?: string | null;
+    metadata?: Record<string, unknown> | null;
+  }> || [];
+
+  for (const event of sentEvents) {
     const campaignName = event.campaign_name || 'Unknown';
     const metadata = event.metadata as Record<string, unknown> | null | undefined;
     const rawStep =
@@ -651,33 +692,22 @@ async function fetchAggregateData(
     .map(name => ({ name }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  // Campaign stats (aggregate by campaign from email_events - source of truth)
+  // Campaign stats - aggregate from dailyStats which already has campaign breakdown (OOM-safe)
   const campaignStatsMap = new Map<string, { sends: number; replies: number; opt_outs: number; bounces: number }>();
   const campaignCostMap = new Map<string, number>();
   const campaignContactsMap = new Map<string, number>();
 
-  // Count by campaign from email_events (source of truth)
-  for (const event of currentEvents) {
-    const name = event.campaign_name || 'Unknown';
+  // Aggregate by campaign from dailyStats (already aggregated at DB level)
+  for (const row of dailyStats) {
+    const name = row.campaign_name || 'Unknown';
     if (shouldExcludeCampaign(name)) continue;
     
     const existing = campaignStatsMap.get(name) || { sends: 0, replies: 0, opt_outs: 0, bounces: 0 };
     
-    switch (event.event_type) {
-      case 'sent':
-      case 'delivered':
-        existing.sends++;
-        break;
-      case 'replied':
-        existing.replies++;
-        break;
-      case 'opt_out':
-        existing.opt_outs++;
-        break;
-      case 'bounced':
-        existing.bounces++;
-        break;
-    }
+    existing.sends += row.sends || 0;
+    existing.replies += row.replies || 0;
+    existing.opt_outs += row.opt_outs || 0;
+    existing.bounces += row.bounces || 0;
     
     campaignStatsMap.set(name, existing);
   }

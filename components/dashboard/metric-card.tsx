@@ -120,9 +120,6 @@ export function MetricCard({
         'relative overflow-hidden group/card hover:border-accent-primary/30 transition-all duration-300 h-full',
         className
       )}>
-        {isRefetching && (
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-accent-primary/60 animate-pulse" />
-        )}
         {/* Gradient glow on hover */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-700/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300" />
         
@@ -139,9 +136,6 @@ export function MetricCard({
             >
               {formattedValue}
             </motion.p>
-            {isRefetching && (
-              <span className="text-xs text-text-secondary">Updating…</span>
-            )}
 
             {change !== undefined && (
               <div className="flex items-center gap-1 sm:gap-1.5">

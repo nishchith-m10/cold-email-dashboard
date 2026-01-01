@@ -311,6 +311,11 @@
     background-size: 24px 24px;
   }
   
+  /* Hide dot pattern in light mode */
+  html.light .dot-pattern {
+    background-image: none;
+  }
+  
   /* Grid pattern background */
   .grid-pattern {
     background-image: 

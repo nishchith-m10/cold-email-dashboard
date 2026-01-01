@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
 import { validateWorkspaceAccess, extractWorkspaceId } from '@/lib/api-workspace-guard';
+import { getLeadsTableName } from '@/lib/workspace-db-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,8 +60,9 @@ export async function GET(
   }
 
   try {
+    const leadsTable = await getLeadsTableName(workspaceId);
     const { data: lead, error: leadError } = await supabaseAdmin
-      .from('leads_ohio')
+      .from(leadsTable)
       .select(
         `
           id,

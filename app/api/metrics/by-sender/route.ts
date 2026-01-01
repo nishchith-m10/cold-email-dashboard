@@ -13,6 +13,7 @@ import { cacheManager, apiCacheKey, CACHE_TTL } from '@/lib/cache';
 import { EXCLUDED_CAMPAIGNS, shouldExcludeCampaign } from '@/lib/db-queries';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { validateWorkspaceAccess } from '@/lib/api-workspace-guard';
+import { getLeadsTableName } from '@/lib/workspace-db-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,13 +82,14 @@ async function fetchBySenderData(
     throw error;
   }
 
-  // Get sender emails from leads_ohio table (join on contact_email)
+  // Get sender emails from workspace-specific leads table (join on contact_email)
   const contactEmails = [...new Set((events || []).map(e => e.contact_email).filter(Boolean))];
   
   let senderLookup = new Map<string, string>();
   if (contactEmails.length > 0) {
+    const leadsTable = await getLeadsTableName(workspaceId);
     const { data: leadsData } = await client
-      .from('leads_ohio')
+      .from(leadsTable)
       .select('email_address, sender_email')
       .eq('workspace_id', workspaceId)
       .in('email_address', contactEmails);
@@ -115,7 +117,7 @@ async function fetchBySenderData(
     // Skip events from excluded campaigns (safety filter)
     if (shouldExcludeCampaign(event.campaign_name)) continue;
 
-    // Get sender email: first check leads_ohio lookup, then metadata, fallback to 'unknown'
+    // Get sender email: first check leads lookup, then metadata, fallback to 'unknown'
     const senderEmail = 
       senderLookup.get(event.contact_email?.toLowerCase()) ||
       (event.metadata as Record<string, unknown>)?.sender_email as string || 

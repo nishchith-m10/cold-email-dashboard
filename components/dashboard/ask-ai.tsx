@@ -7,6 +7,7 @@ import { Sparkles, Send, Loader2, CheckCircle, Shield, ChevronDown, Square, User
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import DOMPurify from 'dompurify';
 
 interface AskAIProps {
   className?: string;
@@ -721,9 +722,12 @@ export function AskAI({ className }: AskAIProps) {
                         <div 
                           className="text-sm text-text-primary whitespace-pre-wrap leading-relaxed"
                           dangerouslySetInnerHTML={{ 
-                            __html: answer
-                              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                              .replace(/•/g, '<span class="text-accent-primary">•</span>')
+                            __html: DOMPurify.sanitize(
+                              answer
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/•/g, '<span class="text-accent-primary">•</span>'),
+                              { ALLOWED_TAGS: ['strong', 'span', 'br'], ALLOWED_ATTR: ['class'] }
+                            )
                           }}
                         />
                         {/* Blinking Cursor during streaming */}
