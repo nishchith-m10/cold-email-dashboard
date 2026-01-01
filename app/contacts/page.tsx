@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   createColumnHelper,
   flexRender,
@@ -156,14 +157,18 @@ export default function ContactsPage() {
   const [showMobileDetail, setShowMobileDetail] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   
-  // Date range state for filtering
-  const [startDate, setStartDate] = useState(() => toISODate(daysAgo(30)));
-  const [endDate, setEndDate] = useState(() => toISODate(new Date()));
+  // Date range state synced to URL
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const startDate = searchParams.get('start') ?? toISODate(daysAgo(30));
+  const endDate = searchParams.get('end') ?? toISODate(new Date());
   
   const handleDateChange = useCallback((start: string, end: string) => {
-    setStartDate(start);
-    setEndDate(end);
-  }, []);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('start', start);
+    params.set('end', end);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [searchParams, router]);
 
   const [detailError, setDetailError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -180,6 +185,7 @@ export default function ContactsPage() {
   const [addLoading, setAddLoading] = useState(false);
   const detailCache = useRef<Map<number, ContactDetail>>(new Map());
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Debounce search input
   useEffect(() => {
@@ -188,7 +194,7 @@ export default function ContactsPage() {
   }, [search]);
 
   const fetchPage = useCallback(
-    async (cursor: string | null, reset = false) => {
+    async (cursor: string | null, reset = false, signal?: AbortSignal) => {
       if (!workspaceId || !cursor) return;
       setLoading(true);
       setError(null);
@@ -205,7 +211,10 @@ export default function ContactsPage() {
       }
 
       try {
-        const res = await fetch(`/api/contacts?${params.toString()}`, { cache: 'no-store' });
+        const res = await fetch(`/api/contacts?${params.toString()}`, { 
+          cache: 'no-store',
+          signal,
+        });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           throw new Error(body.error || 'Failed to load contacts');
@@ -216,6 +225,8 @@ export default function ContactsPage() {
         setNextCursor(body.next_cursor);
         setHasMore(Boolean(body.next_cursor));
       } catch (err) {
+        // Ignore abort errors
+        if (err instanceof Error && err.name === 'AbortError') return;
         console.error(err);
         setError(err instanceof Error ? err.message : 'Failed to load contacts');
       } finally {
@@ -227,12 +238,23 @@ export default function ContactsPage() {
 
   // Initial + search + date range reload
   useEffect(() => {
+    // Abort any in-flight request before starting a new one
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setContacts([]);
     setNextCursor('1');
     setHasMore(true);
     if (workspaceId) {
-      fetchPage('1', true);
+      fetchPage('1', true, controller.signal);
     }
+
+    return () => {
+      controller.abort();
+    };
   }, [workspaceId, debouncedSearch, startDate, endDate, fetchPage]);
 
   // Infinite scroll observer
@@ -619,7 +641,8 @@ export default function ContactsPage() {
               {error && (
                 <div className="p-4 text-sm text-accent-danger bg-accent-danger/5">{error}</div>
               )}
-              <div ref={sentinelRef} className="h-6" />
+              {/* Sentinel for infinite scroll - must have dimension to be observed */}
+              <div ref={sentinelRef} className="h-4 w-full flex-shrink-0" aria-hidden="true" />
             </CardContent>
           </Card>
         </div>
@@ -656,7 +679,7 @@ export default function ContactsPage() {
                 {error && (
                   <div className="p-4 text-sm text-accent-danger bg-accent-danger/5 rounded-lg">{error}</div>
                 )}
-                <div ref={sentinelRef} className="h-6" />
+                <div ref={sentinelRef} className="h-4 w-full flex-shrink-0" aria-hidden="true" />
               </motion.div>
             ) : (
               // Detail View

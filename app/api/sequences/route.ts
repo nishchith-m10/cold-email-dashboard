@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
 import { validateWorkspaceAccess, extractWorkspaceId } from '@/lib/api-workspace-guard';
 import type { SequenceListResponse, SequenceListItem } from '@/lib/dashboard-types';
+import { getLeadsTableName } from '@/lib/workspace-db-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,55 +60,17 @@ export async function GET(req: NextRequest) {
   const endDate = searchParams.get('endDate');
 
   try {
-    // Step 1: If date filtering is requested, first get list of contact emails
-    // that have email activity within the date range
-    let activeEmails: string[] | null = null;
+    // NOTE: Date range filtering is NOT applied to the sequences list.
+    // All sequences are always shown. The date range can be used in the 
+    // detail panel if needed in the future.
+    // This aligns with Dashboard/Analytics behavior.
     
-    if (startDate || endDate) {
-      let eventsQuery = supabaseAdmin
-        .from('email_events')
-        .select('contact_email')
-        .eq('workspace_id', workspaceId);
-      
-      if (startDate) {
-        eventsQuery = eventsQuery.gte('event_ts', `${startDate}T00:00:00`);
-      }
-      if (endDate) {
-        eventsQuery = eventsQuery.lte('event_ts', `${endDate}T23:59:59`);
-      }
-      
-      const { data: eventsData, error: eventsError } = await eventsQuery;
-      
-      if (eventsError) {
-        console.error('Email events query error:', eventsError);
-        // Fall back to no date filtering if events query fails
-      } else if (eventsData) {
-        // Get unique emails
-        activeEmails = [...new Set(eventsData.map(e => e.contact_email?.toLowerCase()).filter(Boolean) as string[])];
-        
-        // If no activity in date range, return empty result
-        if (activeEmails.length === 0) {
-          return NextResponse.json({
-            items: [],
-            next_cursor: null,
-            total: 0,
-          } as SequenceListResponse, {
-            headers: { 'Cache-Control': 'private, max-age=30' },
-          });
-        }
-      }
-    }
-    
-    // Step 2: Build base query - SELECT ONLY lightweight columns (no body content)
+    // Build base query - SELECT ONLY lightweight columns (no body content)
+    const leadsTable = await getLeadsTableName(workspaceId);
     let baseQuery = supabaseAdmin
-      .from('leads_ohio')
+      .from(leadsTable)
       .select('id, full_name, email_address, organization_name, email_1_sent, email_2_sent, email_3_sent, created_at', { count: 'exact' })
       .eq('workspace_id', workspaceId);
-    
-    // Filter by active emails if date range was specified
-    if (activeEmails) {
-      baseQuery = baseQuery.in('email_address', activeEmails);
-    }
     
     baseQuery = baseQuery.order('id', { ascending: true });
     
@@ -121,16 +84,11 @@ export async function GET(req: NextRequest) {
 
     // For 'all' option, we need to fetch data in chunks due to PostgREST's 1000-row limit
     if (useAll) {
-      // First, get the total count (with activeEmails filter if date range specified)
+      // First, get the total count
       let countQuery = supabaseAdmin
-        .from('leads_ohio')
+        .from(leadsTable)
         .select('id', { count: 'exact', head: true })
         .eq('workspace_id', workspaceId);
-      
-      // Apply activeEmails filter to count query
-      if (activeEmails) {
-        countQuery = countQuery.in('email_address', activeEmails);
-      }
       
       const { count: totalCount, error: countError } = await countQuery;
       
@@ -153,14 +111,9 @@ export async function GET(req: NextRequest) {
         const chunkTo = Math.min(offset + CHUNK_SIZE - 1, totalRows - 1);
         
         let chunkQuery = supabaseAdmin
-          .from('leads_ohio')
+          .from(leadsTable)
           .select('id, full_name, email_address, organization_name, email_1_sent, email_2_sent, email_3_sent, created_at')
           .eq('workspace_id', workspaceId);
-        
-        // Apply activeEmails filter to chunk query
-        if (activeEmails) {
-          chunkQuery = chunkQuery.in('email_address', activeEmails);
-        }
         
         chunkQuery = chunkQuery.order('id', { ascending: true }).range(offset, chunkTo);
 

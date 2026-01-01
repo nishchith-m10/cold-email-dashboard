@@ -20,6 +20,7 @@ import { CampaignToggle } from './campaign-toggle';
 import { CampaignPulse } from './campaign-pulse';
 import { SyncLegend } from '@/components/ui/sync-legend';
 import { EditableText } from '@/components/ui/editable-text';
+import { useToast } from '@/hooks/use-toast';
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -50,9 +51,12 @@ export function CampaignManagementTable({
     error, 
     toggleCampaign, 
     updateCampaign,
+    deleteCampaign,
     isToggling, 
     refresh 
   } = useCampaigns({ workspaceId });
+
+  const { toast } = useToast();
 
   // Permission checks
   const canWrite = usePermission('write');
@@ -80,8 +84,11 @@ export function CampaignManagementTable({
     const result = await toggleCampaign(id, action);
     
     if (!result.success) {
-      // In a real app, show a toast here
-      console.error('Toggle failed:', result.error);
+      toast({
+        variant: 'destructive',
+        title: 'Toggle failed',
+        description: result.error || 'Failed to toggle campaign',
+      });
     }
   };
 
@@ -109,8 +116,24 @@ export function CampaignManagementTable({
   const handleBulkDelete = async () => {
     if (!confirm(`Delete ${selectedCount} campaign(s)? This action cannot be undone.`)) return;
     
-    // TODO: Implement bulk delete API endpoint
-    console.log('Bulk delete:', selectedIds);
+    const results = await Promise.all(
+      selectedIds.map(id => deleteCampaign(id))
+    );
+    
+    const failures = results.filter(r => !r.success);
+    if (failures.length > 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Partial failure',
+        description: `${failures.length} campaign(s) could not be deleted`,
+      });
+    } else {
+      toast({
+        title: 'Deleted',
+        description: `${selectedCount} campaign(s) deleted successfully`,
+      });
+    }
+    
     clearSelection();
   };
 
@@ -361,10 +384,21 @@ export function CampaignManagementTable({
                         {canManage && (
                           <ContextMenuItem
                             destructive
-                            onClick={() => {
+                            onClick={async () => {
                               if (confirm(`Are you sure you want to delete "${campaign.name}"?`)) {
-                                // TODO: Implement delete functionality
-                                console.log('Delete campaign:', campaign.id);
+                                const result = await deleteCampaign(campaign.id);
+                                if (result.success) {
+                                  toast({
+                                    title: 'Deleted',
+                                    description: `Campaign "${campaign.name}" deleted`,
+                                  });
+                                } else {
+                                  toast({
+                                    variant: 'destructive',
+                                    title: 'Delete failed',
+                                    description: result.error || 'Failed to delete campaign',
+                                  });
+                                }
                               }
                             }}
                           >

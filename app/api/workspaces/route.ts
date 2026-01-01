@@ -60,11 +60,14 @@ export async function GET(req: NextRequest) {
     // Get authenticated user
     const { userId } = await auth();
     
-    // Also support query param for backward compatibility
+    // SECURITY: Only super admins can query other users' workspaces
     const { searchParams } = new URL(req.url);
     const queryUserId = searchParams.get('user_id');
     
-    const effectiveUserId = userId || queryUserId;
+    // Use query param ONLY if authenticated user is a super admin
+    const effectiveUserId = (userId && queryUserId && isSuperAdmin(userId)) 
+      ? queryUserId 
+      : userId;
 
     // If no user ID, return default workspace only
     if (!effectiveUserId) {

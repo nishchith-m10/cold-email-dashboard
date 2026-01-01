@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
 import { validateWorkspaceAccess, extractWorkspaceId } from '@/lib/api-workspace-guard';
+import { getLeadsTableName } from '@/lib/workspace-db-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,48 +82,15 @@ export async function GET(req: NextRequest) {
   const endDate = searchParams.get('endDate');
 
   try {
-    // Step 1: If date filtering is requested, first get list of contact emails
-    // that have email activity within the date range
-    let activeEmails: string[] | null = null;
+    // NOTE: Date range filtering is NOT applied to the contacts list.
+    // All contacts are always shown. The date range is used only in the 
+    // detail panel to filter which events are displayed.
+    // This aligns with Dashboard/Analytics behavior.
     
-    if (startDate || endDate) {
-      let eventsQuery = supabaseAdmin
-        .from('email_events')
-        .select('contact_email')
-        .eq('workspace_id', workspaceId);
-      
-      if (startDate) {
-        eventsQuery = eventsQuery.gte('event_ts', `${startDate}T00:00:00`);
-      }
-      if (endDate) {
-        eventsQuery = eventsQuery.lte('event_ts', `${endDate}T23:59:59`);
-      }
-      
-      const { data: eventsData, error: eventsError } = await eventsQuery;
-      
-      if (eventsError) {
-        console.error('Email events query error:', eventsError);
-        // Fall back to no date filtering if events query fails
-      } else if (eventsData) {
-        // Get unique emails
-        activeEmails = [...new Set(eventsData.map(e => e.contact_email?.toLowerCase()).filter(Boolean) as string[])];
-        
-        // If no activity in date range, return empty result
-        if (activeEmails.length === 0) {
-          return NextResponse.json({
-            contacts: [],
-            next_cursor: null,
-            total: 0,
-          } as LeadListResponse, {
-            headers: { 'content-type': 'application/json' },
-          });
-        }
-      }
-    }
-    
-    // Step 2: Build leads query
+    // Build leads query
+    const leadsTable = await getLeadsTableName(workspaceId);
     let query = supabaseAdmin
-      .from('leads_ohio')
+      .from(leadsTable)
       .select(
         `
           id,
@@ -144,11 +112,6 @@ export async function GET(req: NextRequest) {
         { count: 'exact' }
       )
       .eq('workspace_id', workspaceId);
-    
-    // Filter by active emails if date range was specified
-    if (activeEmails) {
-      query = query.in('email_address', activeEmails);
-    }
     
     query = query.order('id', { ascending: true }).range(from, to);
 
@@ -179,44 +142,52 @@ export async function GET(req: NextRequest) {
       return 'not_sent';
     };
 
-    const contacts: LeadResponseItem[] = await Promise.all(
-      (data || []).map(async (row: LeadRow) => {
-        let lastTs: string | null = null;
-        const email = row.email_address;
-        const { data: ev, error: evErr } = supabaseAdmin
-          ? await supabaseAdmin
-              .from('email_events')
-              .select('event_ts')
-              .eq('workspace_id', workspaceId)
-              .or(`contact_email.eq.${email},contact_email.eq.${email.toLowerCase?.() || email}`)
-              .in('event_type', ['sent', 'delivered'])
-              .order('event_ts', { ascending: false })
-              .limit(1)
-          : { data: null, error: null };
-        if (!evErr && ev && ev.length > 0) {
-          lastTs = ev[0].event_ts;
-        }
+    // Batch fetch last_contacted_at for all contacts in ONE query (fixes N+1)
+    const emails = (data || []).map((row: LeadRow) => row.email_address?.toLowerCase?.() || row.email_address);
+    const emailToLastTs = new Map<string, string>();
 
-        return {
-          id: row.id,
-          name: row.full_name,
-          email: row.email_address,
-          company: row.organization_name,
-          status: deriveStatus(row),
-          last_contacted_at: lastTs,
-          created_at: row.created_at || null,
-          linkedin_url: row.linkedin_url,
-          organization_website: row.organization_website,
-          position: row.position,
-          industry: row.industry,
-          email_1_sent: row.email_1_sent,
-          email_2_sent: row.email_2_sent,
-          email_3_sent: row.email_3_sent,
-          replied: row.replied,
-          opted_out: row.opted_out,
-        };
-      })
-    );
+    if (supabaseAdmin && emails.length > 0) {
+      // Use a single query with IN clause and order to get latest events
+      const { data: events, error: evErr } = await supabaseAdmin
+        .from('email_events')
+        .select('contact_email, event_ts')
+        .eq('workspace_id', workspaceId)
+        .in('contact_email', emails)
+        .in('event_type', ['sent', 'delivered'])
+        .order('event_ts', { ascending: false });
+
+      if (!evErr && events) {
+        // Build a map of email -> latest timestamp (first occurrence per email due to DESC order)
+        for (const ev of events) {
+          const key = ev.contact_email?.toLowerCase?.() || ev.contact_email;
+          if (key && !emailToLastTs.has(key)) {
+            emailToLastTs.set(key, ev.event_ts);
+          }
+        }
+      }
+    }
+
+    const contacts: LeadResponseItem[] = (data || []).map((row: LeadRow) => {
+      const emailKey = row.email_address?.toLowerCase?.() || row.email_address;
+      return {
+        id: row.id,
+        name: row.full_name,
+        email: row.email_address,
+        company: row.organization_name,
+        status: deriveStatus(row),
+        last_contacted_at: emailToLastTs.get(emailKey) || null,
+        created_at: row.created_at || null,
+        linkedin_url: row.linkedin_url,
+        organization_website: row.organization_website,
+        position: row.position,
+        industry: row.industry,
+        email_1_sent: row.email_1_sent,
+        email_2_sent: row.email_2_sent,
+        email_3_sent: row.email_3_sent,
+        replied: row.replied,
+        opted_out: row.opted_out,
+      };
+    });
 
     const hasMore = contacts.length === limit && (count ? to + 1 < count : true);
 
@@ -260,7 +231,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    // Insert into leads_ohio; on conflict email + workspace, update enrichment fields
+    // Insert into leads table; on conflict email + workspace, update enrichment fields
     const insertPayload = {
       workspace_id: workspaceId,
       email_address: email,
@@ -277,9 +248,10 @@ export async function POST(req: NextRequest) {
       opted_out: body.opted_out ?? false,
     };
 
+    const leadsTablePost = await getLeadsTableName(workspaceId);
     let lead: LeadRow | null = null;
     const insertResult = await supabaseAdmin
-      .from('leads_ohio')
+      .from(leadsTablePost)
       .insert(insertPayload)
       .select(
         `
@@ -306,7 +278,7 @@ export async function POST(req: NextRequest) {
       // If conflict on unique email (or other), try fetch existing
       if (insertResult.error.code === '23505') {
         const { data: existing, error: existingErr } = await supabaseAdmin
-          .from('leads_ohio')
+          .from(leadsTablePost)
           .select(
             `
               id,

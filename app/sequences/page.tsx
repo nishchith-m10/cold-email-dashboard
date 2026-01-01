@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import useSWR from 'swr';
 import { useWorkspace } from '@/lib/workspace-context';
@@ -27,14 +28,18 @@ export default function SequencesPage() {
   const [showDetail, setShowDetail] = useState(false); // For mobile navigation
   const [showFilters, setShowFilters] = useState(false); // For mobile filter sheet
   
-  // Date range state for filtering
-  const [startDate, setStartDate] = useState(() => toISODate(daysAgo(30)));
-  const [endDate, setEndDate] = useState(() => toISODate(new Date()));
+  // Date range state synced to URL
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const startDate = searchParams.get('start') ?? toISODate(daysAgo(30));
+  const endDate = searchParams.get('end') ?? toISODate(new Date());
   
   const handleDateChange = useCallback((start: string, end: string) => {
-    setStartDate(start);
-    setEndDate(end);
-  }, []);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('start', start);
+    params.set('end', end);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [searchParams, router]);
 
   // Fetch lightweight list for sidebar
   const listUrl = workspaceId 

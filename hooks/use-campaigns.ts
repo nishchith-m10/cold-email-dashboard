@@ -36,6 +36,7 @@ interface UseCampaignsResult {
   error: Error | null;
   toggleCampaign: (id: string, action: 'activate' | 'deactivate') => Promise<ToggleResult>;
   updateCampaign: (id: string, updates: { name?: string; description?: string }) => Promise<{ success: boolean; error?: string }>;
+  deleteCampaign: (id: string) => Promise<{ success: boolean; error?: string }>;
   isToggling: (id: string) => boolean;
   refresh: () => void;
 }
@@ -229,6 +230,43 @@ export function useCampaigns(options: UseCampaignsOptions = {}): UseCampaignsRes
   }, [togglingIds]);
 
   /**
+   * Delete a campaign
+   * Uses optimistic updates for instant UI feedback
+   */
+  const deleteCampaign = useCallback(async (
+    id: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    // Find current campaign
+    const currentCampaign = campaigns.find(c => c.id === id);
+    if (!currentCampaign) return { success: false, error: 'Campaign not found' };
+
+    // Optimistic update - remove from list
+    const optimisticCampaigns = campaigns.filter(c => c.id !== id);
+    mutate({ campaigns: optimisticCampaigns }, false);
+
+    try {
+      const response = await fetch(`/api/campaigns/${id}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        // Rollback on error
+        mutate();
+        return { success: false, error: result.error || 'Failed to delete campaign' };
+      }
+
+      // Success - no rollback needed
+      return { success: true };
+    } catch (err) {
+      // Rollback on network error
+      mutate();
+      return { success: false, error: err instanceof Error ? err.message : 'Network error' };
+    }
+  }, [campaigns, mutate]);
+
+  /**
    * Force refresh campaigns from server
    */
   const refresh = useCallback(() => {
@@ -241,6 +279,7 @@ export function useCampaigns(options: UseCampaignsOptions = {}): UseCampaignsRes
     error: error ?? null,
     toggleCampaign,
     updateCampaign,
+    deleteCampaign,
     isToggling,
     refresh,
   };

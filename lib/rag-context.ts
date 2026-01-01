@@ -1,4 +1,5 @@
 import { supabaseAdmin } from './supabase';
+import { getLeadsTableName } from './workspace-db-config';
 
 export interface MetricsSummary {
   sends: number;
@@ -270,8 +271,9 @@ export async function buildRAGContext(
     .sort((a, b) => a.step - b.step);
 
   // Get total leads count
+  const leadsTable = await getLeadsTableName(workspaceId);
   const { count: totalLeads } = await supabase
-    .from('leads_ohio')
+    .from(leadsTable)
     .select('*', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId);
 
