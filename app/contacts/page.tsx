@@ -333,6 +333,7 @@ export default function ContactsPage() {
       ],
       []
     ),
+    getRowId: (row) => String(row.id),
     getCoreRowModel: getCoreRowModel(),
   });
 
