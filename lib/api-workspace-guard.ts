@@ -22,7 +22,7 @@ const supabase = createClient(
 );
 
 // Super admin users who can access all workspaces
-const SUPER_ADMIN_IDS = ['user_36QtXCPqQu6k0CXcYM0Sn2OQsgT'];
+const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
 
 // In-memory cache for workspace access (5 minute TTL)
 interface CacheEntry {
