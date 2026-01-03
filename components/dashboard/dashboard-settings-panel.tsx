@@ -43,7 +43,7 @@ export function DashboardSettingsPanel({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
             onClick={() => onOpenChange(false)}
           />
 
@@ -53,7 +53,7 @@ export function DashboardSettingsPanel({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 400, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[var(--surface)] border-l border-[var(--border)] shadow-2xl z-50 overflow-hidden flex flex-col"
+            className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[var(--surface)] border-l border-[var(--border)] shadow-2xl z-[60] overflow-hidden flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">

@@ -1262,7 +1262,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "LinkedIn Url": "={{ $item(0).$node[\"Wait\"].json[\"LinkedIn Url\"]\n  || $item(0).$node[\"Loop Over Items\"].json[\"LinkedIn Url\"]\n  || $item(0).$node[\"Fetch for Email 1\"].json[\"LinkedIn Url\"] }}",
+            "LinkedIn Url": "={{ $json.linkedin_url }}",
             "Email #1 Sent": "Not Sent"
           },
           "matchingColumns": [
@@ -1836,17 +1836,17 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "1bu356F6CrJ653Gy3DhetSZhBymXJUpAGucxJgreaze8",
+          "value": "1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8",
           "mode": "list",
-          "cachedResultName": "California Leads - Real Estate - Scraper City",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bu356F6CrJ653Gy3DhetSZhBymXJUpAGucxJgreaze8/edit?usp=drivesdk"
+          "cachedResultName": "3508 Leads - Ohio ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "California",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bu356F6CrJ653Gy3DhetSZhBymXJUpAGucxJgreaze8/edit#gid=0"
+          "cachedResultName": "Ohio",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit#gid=0"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -2481,8 +2481,8 @@
       "name": "Update to Google Sheets",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "p8ESE0UMGdJsRvZv",
-          "name": "YOUR_COMPANY_NAME"
+          "id": "2EUpgH0WFkM3Lr6E",
+          "name": "YOUR_NAME Sheets account"
         }
       }
     }
@@ -2661,17 +2661,18 @@
     "timeSavedPerExecution": 5,
     "availableInMCP": false
   },
-  "versionId": "9445a85a-746a-4b75-ba8d-0dd443a0ea8e",
+  "versionId": "90931181-5032-4a9f-ae7c-549e35e4296a",
   "meta": {
+    "templateCredsSetupCompleted": true,
     "instanceId": "fb0f3042150127121074617aaee31b106c313805cbc452132240d35f72eba898"
   },
-  "id": "qj0tpYECUDHJ3ZyX",
+  "id": "gRvMu0xqoUvcCJDt",
   "tags": [
     {
-      "updatedAt": "2026-01-02T21:22:19.238Z",
-      "createdAt": "2026-01-02T21:22:19.238Z",
-      "id": "s3swDg9UkXVYQsAD",
-      "name": "Cold Email Template"
+      "updatedAt": "2025-09-27T07:54:51.546Z",
+      "createdAt": "2025-09-27T07:54:51.546Z",
+      "id": "r8CZ5Y6mZ7dctfjE",
+      "name": "Cold Email"
     }
   ]
 }
