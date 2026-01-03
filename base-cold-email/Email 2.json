@@ -587,26 +587,26 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "1bu356F6CrJ653Gy3DhetSZhBymXJUpAGucxJgreaze8",
+          "value": "1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8",
           "mode": "list",
-          "cachedResultName": "California Leads - Real Estate - Scraper City",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bu356F6CrJ653Gy3DhetSZhBymXJUpAGucxJgreaze8/edit?usp=drivesdk"
+          "cachedResultName": "3508 Leads - Ohio ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "California",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bu356F6CrJ653Gy3DhetSZhBymXJUpAGucxJgreaze8/edit#gid=0"
+          "cachedResultName": "Ohio",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit#gid=0"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "Email #2 Sent": "Yes",
-            "Message ID": "={{ $json.threadId }}"
+            "email_2_sent": "true",
+            "linkedin_url": "={{ $('Select Leads for Email').item.json.linkedin_url }}"
           },
           "matchingColumns": [
-            "Message ID"
+            "linkedin_url"
           ],
           "schema": [
             {
@@ -630,8 +630,8 @@
               "removed": false
             },
             {
-              "id": "Email Adress ",
-              "displayName": "Email Adress ",
+              "id": "email_address",
+              "displayName": "email_address",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -640,18 +640,8 @@
               "removed": false
             },
             {
-              "id": "company_phone_number",
-              "displayName": "company_phone_number",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "LinkedIn Url",
-              "displayName": "LinkedIn Url",
+              "id": "linkedin_url",
+              "displayName": "linkedin_url",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -670,8 +660,18 @@
               "removed": false
             },
             {
-              "id": "seniority",
-              "displayName": "seniority",
+              "id": "industry",
+              "displayName": "industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "position",
+              "displayName": "position",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -690,288 +690,8 @@
               "removed": false
             },
             {
-              "id": "company_annual_revenue",
-              "displayName": "company_annual_revenue",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_annual_revenue_clean",
-              "displayName": "company_annual_revenue_clean",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_city",
-              "displayName": "company_city",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_country",
-              "displayName": "company_country",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_domain",
-              "displayName": "company_domain",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_facebook",
-              "displayName": "company_facebook",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_founded_year",
-              "displayName": "company_founded_year",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_id",
-              "displayName": "company_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_linkedin",
-              "displayName": "company_linkedin",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_linkedin_uid",
-              "displayName": "company_linkedin_uid",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_logo",
-              "displayName": "company_logo",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_market_cap",
-              "displayName": "company_market_cap",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_name",
-              "displayName": "company_name",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_postal_code",
-              "displayName": "company_postal_code",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_raw_address",
-              "displayName": "company_raw_address",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_seo_description",
-              "displayName": "company_seo_description",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_short_description",
-              "displayName": "company_short_description",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_state",
-              "displayName": "company_state",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_street_address",
-              "displayName": "company_street_address",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_technologies",
-              "displayName": "company_technologies",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_total_funding",
-              "displayName": "company_total_funding",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_total_funding_clean",
-              "displayName": "company_total_funding_clean",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_twitter",
-              "displayName": "company_twitter",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_website",
-              "displayName": "company_website",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
               "id": "country",
               "displayName": "country",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "department",
-              "displayName": "department",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "email_domain_catchall",
-              "displayName": "email_domain_catchall",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "employees_count",
-              "displayName": "employees_count",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "facebook_url",
-              "displayName": "facebook_url",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -990,8 +710,8 @@
               "removed": false
             },
             {
-              "id": "headline",
-              "displayName": "headline",
+              "id": "organization_city",
+              "displayName": "organization_city",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1000,8 +720,8 @@
               "removed": false
             },
             {
-              "id": "industry",
-              "displayName": "industry",
+              "id": "organization_country",
+              "displayName": "organization_country",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1010,8 +730,8 @@
               "removed": false
             },
             {
-              "id": "keywords",
-              "displayName": "keywords",
+              "id": "organization_description",
+              "displayName": "organization_description",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1020,8 +740,8 @@
               "removed": false
             },
             {
-              "id": "person_photo",
-              "displayName": "person_photo",
+              "id": "founded_year",
+              "displayName": "founded_year",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1030,8 +750,8 @@
               "removed": false
             },
             {
-              "id": "personal_email",
-              "displayName": "personal_email",
+              "id": "organization_linkedin_url",
+              "displayName": "organization_linkedin_url",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1040,8 +760,8 @@
               "removed": false
             },
             {
-              "id": "title",
-              "displayName": "title",
+              "id": "organization_name",
+              "displayName": "organization_name",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1050,8 +770,8 @@
               "removed": false
             },
             {
-              "id": "Analyse",
-              "displayName": "Analyse",
+              "id": "organization_size",
+              "displayName": "organization_size",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1060,17 +780,8 @@
               "removed": false
             },
             {
-              "id": "Research Report",
-              "displayName": "Research Report",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Email #1 Body ",
-              "displayName": "Email #1 Body ",
+              "id": "organization_specialities",
+              "displayName": "organization_specialities",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1079,8 +790,8 @@
               "removed": false
             },
             {
-              "id": "Email #1 Subject",
-              "displayName": "Email #1 Subject",
+              "id": "organization_state",
+              "displayName": "organization_state",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1089,8 +800,8 @@
               "removed": false
             },
             {
-              "id": "Email #2 Body ",
-              "displayName": "Email #2 Body ",
+              "id": "organization_website",
+              "displayName": "organization_website",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1099,8 +810,8 @@
               "removed": false
             },
             {
-              "id": "Email #3 Body",
-              "displayName": "Email #3 Body",
+              "id": "analyze",
+              "displayName": "analyze",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1109,8 +820,8 @@
               "removed": false
             },
             {
-              "id": "Email #3 Subject",
-              "displayName": "Email #3 Subject",
+              "id": "research_report",
+              "displayName": "research_report",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1119,17 +830,8 @@
               "removed": false
             },
             {
-              "id": "Sender Email",
-              "displayName": "Sender Email",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Email #1 Sent",
-              "displayName": "Email #1 Sent",
+              "id": "email_1_subject",
+              "displayName": "email_1_subject",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1138,8 +840,8 @@
               "removed": false
             },
             {
-              "id": "Email #2 Sent",
-              "displayName": "Email #2 Sent",
+              "id": "email_1_body",
+              "displayName": "email_1_body",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1148,8 +850,8 @@
               "removed": false
             },
             {
-              "id": "Email #3 Sent",
-              "displayName": "Email #3 Sent",
+              "id": "email_2_body",
+              "displayName": "email_2_body",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1158,17 +860,8 @@
               "removed": false
             },
             {
-              "id": "Replied",
-              "displayName": "Replied",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Token",
-              "displayName": "Token",
+              "id": "email_3_subject",
+              "displayName": "email_3_subject",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1177,17 +870,8 @@
               "removed": false
             },
             {
-              "id": "Opted Out",
-              "displayName": "Opted Out",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Message ID",
-              "displayName": "Message ID",
+              "id": "email_3_body",
+              "displayName": "email_3_body",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1196,8 +880,8 @@
               "removed": false
             },
             {
-              "id": "Report Sent",
-              "displayName": "Report Sent",
+              "id": "sender_email",
+              "displayName": "sender_email",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1206,8 +890,88 @@
               "removed": false
             },
             {
-              "id": "Email Prep",
-              "displayName": "Email Prep",
+              "id": "email_1_sent",
+              "displayName": "email_1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email_2_sent",
+              "displayName": "email_2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email_3_sent",
+              "displayName": "email_3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "replied",
+              "displayName": "replied",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "token",
+              "displayName": "token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "opted_out",
+              "displayName": "opted_out",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "report_sent",
+              "displayName": "report_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email_prep",
+              "displayName": "email_prep",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1231,8 +995,8 @@
       "name": "Mark Email 2 sent",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "p8ESE0UMGdJsRvZv",
-          "name": "YOUR_COMPANY_NAME"
+          "id": "2EUpgH0WFkM3Lr6E",
+          "name": "YOUR_NAME Sheets account"
         }
       },
       "onError": "continueRegularOutput"
@@ -1824,26 +1588,26 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "1bu356F6CrJ653Gy3DhetSZhBymXJUpAGucxJgreaze8",
+          "value": "1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8",
           "mode": "list",
-          "cachedResultName": "California Leads - Real Estate - Scraper City",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bu356F6CrJ653Gy3DhetSZhBymXJUpAGucxJgreaze8/edit?usp=drivesdk"
+          "cachedResultName": "3508 Leads - Ohio ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "California",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bu356F6CrJ653Gy3DhetSZhBymXJUpAGucxJgreaze8/edit#gid=0"
+          "cachedResultName": "Ohio",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit#gid=0"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "LinkedIn Url": "={{ $json[\"LinkedIn Url\"] }}",
-            "Replied": "Yes"
+            "linkedin_url": "={{ $('Select Leads for Email').item.json.linkedin_url }}",
+            "replied": "true"
           },
           "matchingColumns": [
-            "LinkedIn Url"
+            "linkedin_url"
           ],
           "schema": [
             {
@@ -1867,8 +1631,8 @@
               "removed": false
             },
             {
-              "id": "Email Adress ",
-              "displayName": "Email Adress ",
+              "id": "email_address",
+              "displayName": "email_address",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1877,18 +1641,8 @@
               "removed": false
             },
             {
-              "id": "company_phone_number",
-              "displayName": "company_phone_number",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "LinkedIn Url",
-              "displayName": "LinkedIn Url",
+              "id": "linkedin_url",
+              "displayName": "linkedin_url",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1907,8 +1661,18 @@
               "removed": false
             },
             {
-              "id": "seniority",
-              "displayName": "seniority",
+              "id": "industry",
+              "displayName": "industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "position",
+              "displayName": "position",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1927,288 +1691,8 @@
               "removed": false
             },
             {
-              "id": "company_annual_revenue",
-              "displayName": "company_annual_revenue",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_annual_revenue_clean",
-              "displayName": "company_annual_revenue_clean",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_city",
-              "displayName": "company_city",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_country",
-              "displayName": "company_country",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_domain",
-              "displayName": "company_domain",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_facebook",
-              "displayName": "company_facebook",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_founded_year",
-              "displayName": "company_founded_year",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_id",
-              "displayName": "company_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_linkedin",
-              "displayName": "company_linkedin",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_linkedin_uid",
-              "displayName": "company_linkedin_uid",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_logo",
-              "displayName": "company_logo",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_market_cap",
-              "displayName": "company_market_cap",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_name",
-              "displayName": "company_name",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_postal_code",
-              "displayName": "company_postal_code",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_raw_address",
-              "displayName": "company_raw_address",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_seo_description",
-              "displayName": "company_seo_description",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_short_description",
-              "displayName": "company_short_description",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_state",
-              "displayName": "company_state",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_street_address",
-              "displayName": "company_street_address",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_technologies",
-              "displayName": "company_technologies",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_total_funding",
-              "displayName": "company_total_funding",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_total_funding_clean",
-              "displayName": "company_total_funding_clean",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_twitter",
-              "displayName": "company_twitter",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "company_website",
-              "displayName": "company_website",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
               "id": "country",
               "displayName": "country",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "department",
-              "displayName": "department",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "email_domain_catchall",
-              "displayName": "email_domain_catchall",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "employees_count",
-              "displayName": "employees_count",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "facebook_url",
-              "displayName": "facebook_url",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2227,8 +1711,8 @@
               "removed": false
             },
             {
-              "id": "headline",
-              "displayName": "headline",
+              "id": "organization_city",
+              "displayName": "organization_city",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2237,8 +1721,8 @@
               "removed": false
             },
             {
-              "id": "industry",
-              "displayName": "industry",
+              "id": "organization_country",
+              "displayName": "organization_country",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2247,8 +1731,8 @@
               "removed": false
             },
             {
-              "id": "keywords",
-              "displayName": "keywords",
+              "id": "organization_description",
+              "displayName": "organization_description",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2257,8 +1741,8 @@
               "removed": false
             },
             {
-              "id": "person_photo",
-              "displayName": "person_photo",
+              "id": "founded_year",
+              "displayName": "founded_year",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2267,8 +1751,8 @@
               "removed": false
             },
             {
-              "id": "personal_email",
-              "displayName": "personal_email",
+              "id": "organization_linkedin_url",
+              "displayName": "organization_linkedin_url",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2277,8 +1761,8 @@
               "removed": false
             },
             {
-              "id": "title",
-              "displayName": "title",
+              "id": "organization_name",
+              "displayName": "organization_name",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2287,8 +1771,8 @@
               "removed": false
             },
             {
-              "id": "Analyse",
-              "displayName": "Analyse",
+              "id": "organization_size",
+              "displayName": "organization_size",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2297,17 +1781,8 @@
               "removed": false
             },
             {
-              "id": "Research Report",
-              "displayName": "Research Report",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Email #1 Body ",
-              "displayName": "Email #1 Body ",
+              "id": "organization_specialities",
+              "displayName": "organization_specialities",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2316,8 +1791,8 @@
               "removed": false
             },
             {
-              "id": "Email #1 Subject",
-              "displayName": "Email #1 Subject",
+              "id": "organization_state",
+              "displayName": "organization_state",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2326,8 +1801,8 @@
               "removed": false
             },
             {
-              "id": "Email #2 Body ",
-              "displayName": "Email #2 Body ",
+              "id": "organization_website",
+              "displayName": "organization_website",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2336,8 +1811,8 @@
               "removed": false
             },
             {
-              "id": "Email #3 Body",
-              "displayName": "Email #3 Body",
+              "id": "analyze",
+              "displayName": "analyze",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2346,8 +1821,8 @@
               "removed": false
             },
             {
-              "id": "Email #3 Subject",
-              "displayName": "Email #3 Subject",
+              "id": "research_report",
+              "displayName": "research_report",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2356,17 +1831,8 @@
               "removed": false
             },
             {
-              "id": "Sender Email",
-              "displayName": "Sender Email",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Email #1 Sent",
-              "displayName": "Email #1 Sent",
+              "id": "email_1_subject",
+              "displayName": "email_1_subject",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2375,8 +1841,8 @@
               "removed": false
             },
             {
-              "id": "Email #2 Sent",
-              "displayName": "Email #2 Sent",
+              "id": "email_1_body",
+              "displayName": "email_1_body",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2385,8 +1851,8 @@
               "removed": false
             },
             {
-              "id": "Email #3 Sent",
-              "displayName": "Email #3 Sent",
+              "id": "email_2_body",
+              "displayName": "email_2_body",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2395,17 +1861,8 @@
               "removed": false
             },
             {
-              "id": "Replied",
-              "displayName": "Replied",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Token",
-              "displayName": "Token",
+              "id": "email_3_subject",
+              "displayName": "email_3_subject",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2414,17 +1871,8 @@
               "removed": false
             },
             {
-              "id": "Opted Out",
-              "displayName": "Opted Out",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "Message ID",
-              "displayName": "Message ID",
+              "id": "email_3_body",
+              "displayName": "email_3_body",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2433,8 +1881,8 @@
               "removed": false
             },
             {
-              "id": "Report Sent",
-              "displayName": "Report Sent",
+              "id": "sender_email",
+              "displayName": "sender_email",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2443,8 +1891,88 @@
               "removed": false
             },
             {
-              "id": "Email Prep",
-              "displayName": "Email Prep",
+              "id": "email_1_sent",
+              "displayName": "email_1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email_2_sent",
+              "displayName": "email_2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email_3_sent",
+              "displayName": "email_3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "replied",
+              "displayName": "replied",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "token",
+              "displayName": "token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "opted_out",
+              "displayName": "opted_out",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "report_sent",
+              "displayName": "report_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email_prep",
+              "displayName": "email_prep",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2468,8 +1996,8 @@
       "name": "Replied = Yes",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "p8ESE0UMGdJsRvZv",
-          "name": "YOUR_COMPANY_NAME"
+          "id": "2EUpgH0WFkM3Lr6E",
+          "name": "YOUR_NAME Sheets account"
         }
       }
     },
@@ -2542,7 +2070,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"contact_email\": \"{{ $('Select Leads for Email').item.json.email_address }}\",\n  \"campaign\": \"YOUR_CAMPAIGN_NAME\",\n  \"step\": 2,\n  \"event_type\": \"sent\",\n  \"provider\": \"gmail\",\n  \"provider_message_id\": \"{{ $json.id }}\",\n  \"event_ts\": \"{{ new Date().toISOString() }}\",\n  \"subject\": \"Re: {{ $('Select Leads for Email').item.json.email_1_subject }}\",\n  \"body\": \"{{ $('Inject Click Tracking').item.json.tracked_body }}\",\n  \"idempotency_key\": \"email_{{ $execution.id }}_{{ $('Select Leads for Email').item.json.email_address }}_step2\",\n  \"n8n_execution_id\": \"{{ $execution.id }}\"\n}",
+        "jsonBody": "={\n  \"contact_email\": \"{{ $('Select Leads for Email').item.json.email_address }}\",\n  \"campaign\": \"Ohio\",\n  \"step\": 2,\n  \"event_type\": \"sent\",\n  \"provider\": \"gmail\",\n  \"provider_message_id\": \"{{ $json.id }}\",\n  \"event_ts\": \"{{ new Date().toISOString() }}\",\n  \"subject\": \"Re: {{ $('Select Leads for Email').item.json.email_1_subject }}\",\n  \"body\": \"{{ $('Inject Click Tracking').item.json.tracked_body }}\",\n  \"idempotency_key\": \"email_{{ $execution.id }}_{{ $('Select Leads for Email').item.json.email_address }}_step2\",\n  \"n8n_execution_id\": \"{{ $execution.id }}\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -2611,7 +2139,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================\n// EMAIL 2 CLICK TRACKING (RAW Format)\n// Wraps links with click tracking URLs\n// NO OPEN TRACKING (removed for accuracy)\n// ============================================\n\nconst DASHBOARD_URL = 'YOUR_DASHBOARD_URL';\nconst WORKSPACE_ID = 'default';\n\nconst rawBase64 = $json.raw;\nconst contactEmail = $('Select Leads for Email').item.json.email_address || '';\nconst campaign = 'YOUR_CAMPAIGN_NAME';\nconst step = 2;\n\n// Decode the base64url raw email\nlet decodedEmail = Buffer.from(\n  rawBase64.replace(/-/g, '+').replace(/_/g, '/'),\n  'base64'\n).toString('utf-8');\n\n// Split headers and body\nconst emailParts = decodedEmail.split('\\n\\n');\nconst headers = emailParts[0];\nlet body = emailParts.slice(1).join('\\n\\n');\n\n// ✅ CLICK TRACKING: Wrap all links with tracking URLs\nfunction wrapLink(originalUrl, linkId) {\n  return `${DASHBOARD_URL}/api/track/click?url=${encodeURIComponent(originalUrl)}&e=${encodeURIComponent(contactEmail)}&c=${encodeURIComponent(campaign)}&s=${step}&l=${encodeURIComponent(linkId || 'cta')}&w=${encodeURIComponent(WORKSPACE_ID)}`;\n}\n\nconst linkRegex = /<a\\s+([^>]*?)href=[\"']([^\"']+)[\"']([^>]*?)>/gi;\nlet linkIndex = 0;\n\nbody = body.replace(linkRegex, (match, before, url, after) => {\n  if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('#')) return match;\n  linkIndex++;\n  return `<a ${before}href=\"${wrapLink(url, 'link_' + linkIndex)}\"${after}>`;\n});\n\n// Reconstruct the email (NO open tracking pixel)\nconst trackedEmailContent = `${headers}\\n\\n${body}`;\n\n// Re-encode to base64url\nconst trackedRaw = Buffer.from(trackedEmailContent)\n  .toString('base64')\n  .replace(/\\+/g, '-')\n  .replace(/\\//g, '_')\n  .replace(/=+$/, '');\n\n// Return updated item with tracked raw and metadata\nreturn [\n  {\n    json: {\n      ...$json,\n      raw: trackedRaw,\n      original_raw: rawBase64,\n      tracked_body: body,\n      links_tracked: linkIndex\n    }\n  }\n];"
+        "jsCode": "// ============================================\n// EMAIL 2 CLICK TRACKING (RAW Format)\n// Wraps links with click tracking URLs\n// NO OPEN TRACKING (removed for accuracy)\n// ============================================\n\nconst DASHBOARD_URL = 'YOUR_DASHBOARD_URL';\nconst WORKSPACE_ID = 'default';\n\nconst rawBase64 = $json.raw;\nconst contactEmail = $('Select Leads for Email').item.json.email_address || '';\nconst campaign = 'Ohio';\nconst step = 2;\n\n// Decode the base64url raw email\nlet decodedEmail = Buffer.from(\n  rawBase64.replace(/-/g, '+').replace(/_/g, '/'),\n  'base64'\n).toString('utf-8');\n\n// Split headers and body\nconst emailParts = decodedEmail.split('\\n\\n');\nconst headers = emailParts[0];\nlet body = emailParts.slice(1).join('\\n\\n');\n\n// ✅ CLICK TRACKING: Wrap all links with tracking URLs\nfunction wrapLink(originalUrl, linkId) {\n  return `${DASHBOARD_URL}/api/track/click?url=${encodeURIComponent(originalUrl)}&e=${encodeURIComponent(contactEmail)}&c=${encodeURIComponent(campaign)}&s=${step}&l=${encodeURIComponent(linkId || 'cta')}&w=${encodeURIComponent(WORKSPACE_ID)}`;\n}\n\nconst linkRegex = /<a\\s+([^>]*?)href=[\"']([^\"']+)[\"']([^>]*?)>/gi;\nlet linkIndex = 0;\n\nbody = body.replace(linkRegex, (match, before, url, after) => {\n  if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('#')) return match;\n  linkIndex++;\n  return `<a ${before}href=\"${wrapLink(url, 'link_' + linkIndex)}\"${after}>`;\n});\n\n// Reconstruct the email (NO open tracking pixel)\nconst trackedEmailContent = `${headers}\\n\\n${body}`;\n\n// Re-encode to base64url\nconst trackedRaw = Buffer.from(trackedEmailContent)\n  .toString('base64')\n  .replace(/\\+/g, '-')\n  .replace(/\\//g, '_')\n  .replace(/=+$/, '');\n\n// Return updated item with tracked raw and metadata\nreturn [\n  {\n    json: {\n      ...$json,\n      raw: trackedRaw,\n      original_raw: rawBase64,\n      tracked_body: body,\n      links_tracked: linkIndex\n    }\n  }\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -2854,17 +2382,18 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "cb0c48c1-27f5-4e0c-a169-20ad678a275b",
+  "versionId": "fa4221df-9945-44e1-afc8-74e121eff77c",
   "meta": {
+    "templateCredsSetupCompleted": true,
     "instanceId": "fb0f3042150127121074617aaee31b106c313805cbc452132240d35f72eba898"
   },
-  "id": "3oGmwoyLW2L8DAHC",
+  "id": "d1uFgJoCWPLDhZnP",
   "tags": [
     {
-      "updatedAt": "2026-01-02T21:22:19.238Z",
-      "createdAt": "2026-01-02T21:22:19.238Z",
-      "id": "s3swDg9UkXVYQsAD",
-      "name": "Cold Email Template"
+      "updatedAt": "2025-09-27T07:54:51.546Z",
+      "createdAt": "2025-09-27T07:54:51.546Z",
+      "id": "r8CZ5Y6mZ7dctfjE",
+      "name": "Cold Email"
     }
   ]
 }
