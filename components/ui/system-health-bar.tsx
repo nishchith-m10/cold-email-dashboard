@@ -15,6 +15,7 @@ import type { SyncStatus } from '@/lib/types/health-types';
 interface SystemHealthBarProps {
   workspaceId: string;
   className?: string;
+  compact?: boolean; // When true, shows only dot + label (no icon)
 }
 
 const STATUS_CONFIG: Record<SyncStatus, {
@@ -31,7 +32,7 @@ const STATUS_CONFIG: Record<SyncStatus, {
   },
   syncing: {
     label: 'Syncing',
-    color: 'bg-amber-500',
+    color: 'bg-gray-500',
     icon: RefreshCw,
     pulse: false,
   },
@@ -49,14 +50,18 @@ const STATUS_CONFIG: Record<SyncStatus, {
   },
 };
 
-export function SystemHealthBar({ workspaceId, className }: SystemHealthBarProps) {
+export function SystemHealthBar({ workspaceId, className, compact = false }: SystemHealthBarProps) {
   const { health, refresh, isLoading } = useRealtimeHealth(workspaceId);
 
   if (isLoading) {
     return (
-      <div className={cn('flex items-center gap-2 px-3 py-1.5 bg-surface-elevated rounded-md', className)}>
+      <div className={cn(
+        'flex items-center gap-1.5',
+        compact ? 'px-2 py-1' : 'px-3 py-1.5 bg-surface-elevated rounded-md',
+        className
+      )}>
         <div className="h-2 w-2 bg-gray-400 rounded-full animate-pulse" />
-        <span className="text-xs text-text-secondary">Connecting...</span>
+        {!compact && <span className="text-xs text-text-secondary">Connecting...</span>}
       </div>
     );
   }
@@ -67,40 +72,34 @@ export function SystemHealthBar({ workspaceId, className }: SystemHealthBarProps
   return (
     <div 
       className={cn(
-        'flex items-center gap-2 px-3 py-1.5 bg-surface-elevated rounded-md transition-all',
+        'flex items-center transition-all group/health',
+        compact ? 'justify-center h-10 w-full' : 'gap-2 px-3 py-1.5 bg-surface-elevated rounded-md',
         className
       )}
+      title={compact ? config.label : undefined}
     >
-      <div className="relative flex items-center">
-        <div 
-          className={cn(
-            'h-2 w-2 rounded-full',
-            config.color,
-            config.pulse && 'animate-pulse'
-          )} 
-        />
-        {config.pulse && (
-          <div 
-            className={cn(
-              'absolute h-2 w-2 rounded-full animate-ping',
-              config.color,
-              'opacity-75'
-            )} 
-          />
-        )}
-      </div>
+      <Icon 
+        className={cn(
+          'flex-shrink-0',
+          compact ? 'h-5 w-5' : 'h-4 w-4',
+          health.status === 'live' && 'text-green-500',
+          health.status === 'syncing' && 'text-text-secondary animate-spin',
+          health.status === 'stale' && 'text-text-secondary',
+          health.status === 'error' && 'text-red-500'
+        )} 
+      />
 
-      <Icon className={cn('h-3.5 w-3.5', health.status === 'syncing' && 'animate-spin')} />
-      
-      <span className="text-xs font-medium">{config.label}</span>
+      {!compact && (
+        <span className="text-xs font-medium">{config.label}</span>
+      )}
 
-      {health.errorMessage && (
+      {health.errorMessage && !compact && (
         <span className="text-xs text-red-400 italic truncate max-w-[200px]" title={health.errorMessage}>
           {health.errorMessage}
         </span>
       )}
 
-      {!health.isConnected && (
+      {!health.isConnected && !compact && (
         <button
           onClick={refresh}
           className="ml-2 text-xs text-accent-primary hover:underline"

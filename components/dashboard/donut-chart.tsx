@@ -12,8 +12,10 @@ import {
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn, formatCurrencyShort, formatCurrencyPrecise } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { CHART_COLORS } from '@/lib/constants';
+import { useFormatCurrency } from '@/hooks/use-format-currency';
+import { formatCurrency as formatCurrencyUtil, Currency } from '@/lib/currency-context';
 
 interface DonutChartProps {
   title: string;
@@ -34,13 +36,16 @@ const DEFAULT_COLORS = [
 function CustomTooltip({ 
   active, 
   payload,
-  formatter 
-}: TooltipProps<number, string> & { formatter?: (v: number) => string }) {
+  formatter,
+  currency
+}: TooltipProps<number, string> & { formatter?: (v: number) => string; currency: Currency }) {
   if (!active || !payload?.length) return null;
 
   const item = payload[0];
   const value = item.value as number;
-  const formattedValue = formatter ? formatter(value) : formatCurrencyShort(value);
+  const formattedValue = formatter 
+    ? formatter(value) 
+    : formatCurrencyUtil(value, currency);
 
   return (
     <div className="bg-surface-elevated border border-border rounded-lg px-3 py-2 shadow-xl">
@@ -79,8 +84,10 @@ export function DonutChart({
   data,
   loading = false,
   className,
-  valueFormatter = formatCurrencyShort,
+  valueFormatter,
 }: DonutChartProps) {
+  const { formatCurrency, currency } = useFormatCurrency();
+  const formatter = valueFormatter || ((v: number) => formatCurrency(v));
   if (loading) {
     return (
       <Card className={className}>
@@ -139,16 +146,16 @@ export function DonutChart({
                     />
                   ))}
                 </Pie>
-                <Tooltip content={<CustomTooltip formatter={valueFormatter} />} />
+                <Tooltip content={<CustomTooltip formatter={formatter} currency={currency} />} />
                 <Legend content={<CustomLegend />} />
               </PieChart>
             </ResponsiveContainer>
             
             {/* Center label with tooltip for precise value */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-center -mt-8" title={formatCurrencyPrecise(total)}>
+              <div className="text-center -mt-8" title={formatCurrencyUtil(total, currency, { maximumFractionDigits: 4 })}>
                 <p className="text-2xl font-bold text-text-primary cursor-default">
-                  {formatCurrencyShort(total)}
+                  {formatCurrency(total)}
                 </p>
                 <p className="text-xs text-text-secondary">Total</p>
               </div>

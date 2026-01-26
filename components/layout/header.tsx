@@ -39,11 +39,11 @@ import { SystemHealthBar } from '@/components/ui/system-health-bar';
 import { RoleBadge } from '@/components/ui/role-badge';
 import { useNotifications } from '@/hooks/use-notifications';
 import { getNotificationIcon, getNotificationColor, formatTimeAgo as formatTime } from '@/lib/notification-utils';
-import { ShareDialog } from '@/components/dashboard/share-dialog';
 import { SignOutTransition } from '@/components/ui/sign-out-transition';
 
 interface HeaderProps {
   onCommandOpen?: () => void;
+  onShareOpen?: () => void;
 }
 
 // Theme hook
@@ -110,7 +110,7 @@ interface CacheStats {
 
 // Removed - now using types from use-notifications.ts
 
-export function Header({ onCommandOpen }: HeaderProps) {
+export function Header({ onCommandOpen, onShareOpen }: HeaderProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { theme, toggleTheme, changeTheme, mounted } = useTheme();
@@ -124,7 +124,6 @@ export function Header({ onCommandOpen }: HeaderProps) {
   // Dropdown states
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
   
   // Notifications from API
   const { notifications, unreadCount, markAsRead, dismiss } = useNotifications();
@@ -249,11 +248,20 @@ export function Header({ onCommandOpen }: HeaderProps) {
                     <Image src="/logo.png" alt="Logo" width={32} height={32} className="w-full h-full object-cover" />
                   </div>
                 </div>
-                <div className="text-base font-semibold text-text-primary transition-colors duration-200 group-hover:text-slate-400 hidden md:block">
-                  <p className="leading-tight">
+                <div className="text-base font-semibold transition-colors duration-200 hidden md:block">
+                  <p 
+                    className="leading-tight group-hover:opacity-80"
+                    style={{
+                      backgroundImage: 'var(--logo-gradient)',
+                      backgroundClip: 'text',
+                      WebkitBackgroundClip: 'text',
+                      color: 'transparent',
+                      WebkitTextFillColor: 'transparent',
+                    }}
+                  >
                     Cold Email
                   </p>
-                  <p className="text-[10px] uppercase tracking-wider font-medium text-slate-400 opacity-70">
+                  <p className="text-[10px] uppercase tracking-wider font-medium text-slate-800 dark:text-slate-400 opacity-80">
                     Analytics
                   </p>
                 </div>
@@ -440,10 +448,10 @@ export function Header({ onCommandOpen }: HeaderProps) {
                   <Search className="h-5 w-5 text-text-secondary hover:text-text-primary transition-colors" />
                 </Button>
 
-                {/* System Health Status - Only show on xl+ screens */}
+                {/* System Health Status - Compact mode, hidden on smaller screens */}
                 {workspaceId && (
                   <div className="hidden xl:block">
-                    <SystemHealthBar workspaceId={workspaceId} />
+                    <SystemHealthBar workspaceId={workspaceId} compact={true} />
                   </div>
                 )}
 
@@ -451,7 +459,7 @@ export function Header({ onCommandOpen }: HeaderProps) {
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  onClick={() => setShareOpen(true)}
+                  onClick={() => onShareOpen?.()}
                   className="relative"
                   title="Invite Team Members"
                 >
@@ -581,7 +589,7 @@ export function Header({ onCommandOpen }: HeaderProps) {
                     setShowNotifications(false);
                     setShowSettings(false);
                   }}
-                  className="relative h-9 w-9 rounded-full ring-2 ring-transparent hover:ring-accent-primary/50 transition-all overflow-hidden focus:outline-none focus:ring-accent-primary/50"
+                  className="relative h-8 w-8 rounded-full ring-2 ring-transparent hover:ring-accent-primary/50 transition-all overflow-hidden focus:outline-none focus:ring-accent-primary/50"
                 >
                   {user?.imageUrl ? (
                     <img 
@@ -591,7 +599,7 @@ export function Header({ onCommandOpen }: HeaderProps) {
                     />
                   ) : (
                     <div className="h-full w-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-                      <User className="h-5 w-5 text-white" />
+                      <User className="h-4 w-4 text-white" />
                     </div>
                   )}
                 </button>
@@ -759,9 +767,6 @@ export function Header({ onCommandOpen }: HeaderProps) {
         </div>
       </div>
     </motion.header>
-    
-    {/* Share Dialog */}
-    <ShareDialog open={shareOpen} onOpenChange={setShareOpen} />
     
     {/* Sign Out Transition Overlay */}
     <SignOutTransition isVisible={isSigningOut} />

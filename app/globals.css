@@ -22,6 +22,9 @@
   --accent-purple: #8b5cf6;
   --accent-magenta: #d946ef;
   
+  /* Logo gradient for dark mode */
+  --logo-gradient: linear-gradient(to right, #f1f5f9, #cbd5e1, #64748b);
+  
   /* Mobile Safe Area Insets */
   --safe-area-top: env(safe-area-inset-top);
   --safe-area-bottom: env(safe-area-inset-bottom);
@@ -52,6 +55,9 @@
   --accent-danger: #DC2626;
   --accent-purple: #7C3AED;
   --accent-magenta: #c026d3;
+  
+  /* Logo gradient for light mode - Aggressive gradient with high contrast */
+  --logo-gradient: linear-gradient(to right, #020617, #1e293b, #475569, #64748b);
 }
 
 /* ============================================================

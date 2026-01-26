@@ -3,6 +3,7 @@ import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
 import { API_HEADERS } from '@/lib/utils';
 import { auth } from '@clerk/nextjs/server';
 import { getWorkspaceAccess, isSuperAdmin } from '@/lib/workspace-access';
+import { checkBudgetReset } from '@/lib/budget-alerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -120,6 +121,35 @@ export async function GET(req: NextRequest) {
     // Plan limits (can be extended with a pricing table later)
     const planLimits = getPlanLimits(plan);
     const planFeatures = getPlanFeatures(plan);
+
+    // Check for budget reset (non-blocking)
+    // Compare current month with previous month
+    const currentMonth = `${year}-${String(month).padStart(2, '0')}`;
+    const previousMonthDate = new Date(year, month - 2, 1); // month - 2 because month is 1-indexed
+    const previousMonth = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
+    const prevStartDate = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}-01`;
+    const prevEndDate = new Date(previousMonthDate.getFullYear(), previousMonthDate.getMonth() + 1, 0);
+    const prevEndDateStr = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}-${String(prevEndDate.getDate()).padStart(2, '0')}`;
+
+    // Fetch previous month's cost (non-blocking)
+    Promise.all([
+      supabaseAdmin
+        .from('llm_usage')
+        .select('cost_usd')
+        .eq('workspace_id', workspaceId)
+        .gte('created_at', `${prevStartDate}T00:00:00Z`)
+        .lte('created_at', `${prevEndDateStr}T23:59:59Z`)
+        .then(({ data: prevLlmData }) => {
+          const previousMonthCost = prevLlmData?.reduce((sum, row) => sum + (Number(row.cost_usd) || 0), 0) || 0;
+          
+          // Check for budget reset
+          checkBudgetReset(workspaceId, llmCostUsd, previousMonthCost, currentMonth).catch((err) => {
+            console.error(`[Budget Alert] Error checking budget reset for workspace ${workspaceId}:`, err);
+          });
+        })
+    ]).catch((err) => {
+      console.error('[Budget Alert] Error fetching previous month data:', err);
+    });
 
     return NextResponse.json({
       period: {

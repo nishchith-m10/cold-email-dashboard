@@ -75,24 +75,7 @@ export function WorkspaceSwitcher({
   };
 
   return (
-    <div className={cn(
-      'inline-flex items-center justify-between gap-1 rounded-lg pr-2',
-      'bg-surface-elevated border border-border text-sm font-medium text-text-primary',
-      'min-w-[180px] transition-colors hover:bg-surface-elevated/80',
-      className
-    )}>
-      <div className="flex items-center gap-2 pl-3 py-2 flex-1 min-w-0">
-        <Building2 className="h-4 w-4 text-text-secondary flex-shrink-0" />
-        <EditableText 
-          value={workspace.name}
-          onSave={async (name) => {
-            if (workspace.id) await renameWorkspace(workspace.id, name);
-          }}
-          disabled={!canManage}
-          className="truncate"
-        />
-      </div>
-
+    <div className={cn('inline-flex items-center', className)}>
       <Select.Root
         value={workspace.id}
         onValueChange={handleValueChange}
@@ -100,16 +83,20 @@ export function WorkspaceSwitcher({
         onOpenChange={setIsOpen}
       >
         <Select.Trigger
-          className="p-1 hover:bg-black/5 rounded outline-none focus:ring-2 focus:ring-accent-primary"
+          className={cn(
+            'flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors',
+            'outline-none focus:ring-2 focus:ring-accent-primary bg-transparent',
+            'text-sm font-medium text-text-primary max-w-[200px]'
+          )}
           aria-label="Select workspace"
           disabled={isLoading}
         >
-          <Select.Icon>
-            <ChevronDown className={cn(
-              'h-4 w-4 text-text-secondary transition-transform flex-shrink-0',
-              isOpen && 'rotate-180'
-            )} />
-          </Select.Icon>
+          <Building2 className="h-4 w-4 text-text-secondary flex-shrink-0" />
+          <span className="truncate">{workspace.name}</span>
+          <ChevronDown className={cn(
+            'h-4 w-4 text-text-secondary transition-transform flex-shrink-0',
+            isOpen && 'rotate-180'
+          )} />
         </Select.Trigger>
 
       <Select.Portal>

@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase';
+import { createCampaignNotification } from '@/lib/create-campaign-notification';
 
 // ============================================
 // TYPES
@@ -113,10 +114,24 @@ export async function POST(req: NextRequest): Promise<NextResponse<WebhookRespon
     newN8nStatus = active ? 'active' : 'inactive';
   }
 
-  // 7. Update campaigns with matching workflow_id
-  // Only update if the incoming timestamp is newer than last_sync_at
+  // 7. Fetch campaigns before updating to check for status changes
   const webhookTime = new Date(timestamp).toISOString();
   
+  const { data: campaignsBeforeUpdate, error: fetchError } = await supabaseAdmin
+    .from('campaigns')
+    .select('id, name, workspace_id, n8n_status')
+    .eq('n8n_workflow_id', workflow_id);
+
+  if (fetchError) {
+    console.error('Webhook fetch error:', fetchError);
+    return NextResponse.json(
+      { success: false, message: 'Failed to fetch campaigns' },
+      { status: 500 }
+    );
+  }
+
+  // 8. Update campaigns with matching workflow_id
+  // Only update if the incoming timestamp is newer than last_sync_at
   const { data: updatedCampaigns, error: updateError } = await supabaseAdmin
     .from('campaigns')
     .update({
@@ -126,7 +141,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<WebhookRespon
     })
     .eq('n8n_workflow_id', workflow_id)
     .or(`last_sync_at.is.null,last_sync_at.lt.${webhookTime}`)
-    .select('id');
+    .select('id, name, workspace_id');
 
   if (updateError) {
     console.error('Webhook update error:', updateError);
@@ -137,6 +152,27 @@ export async function POST(req: NextRequest): Promise<NextResponse<WebhookRespon
   }
 
   const updatedCount = updatedCampaigns?.length ?? 0;
+
+  // 9. Create notifications for status changes
+  if (updatedCampaigns && updatedCampaigns.length > 0) {
+    for (const campaign of updatedCampaigns) {
+      const previousCampaign = campaignsBeforeUpdate?.find(c => c.id === campaign.id);
+      
+      // Create error notification if status changed to error
+      if (event_type === 'error' && previousCampaign && previousCampaign.n8n_status !== 'error') {
+        createCampaignNotification({
+          workspaceId: campaign.workspace_id,
+          campaignName: campaign.name,
+          campaignId: campaign.id,
+          type: 'error',
+          errorMessage: `n8n workflow error for workflow ${workflow_id}`,
+          userId: null, // Broadcast to all workspace users
+        }).catch((error) => {
+          console.error('Failed to create error notification:', error);
+        });
+      }
+    }
+  }
 
   console.log(`[n8n Webhook] Updated ${updatedCount} campaigns for workflow ${workflow_id} -> ${newN8nStatus}`);
 

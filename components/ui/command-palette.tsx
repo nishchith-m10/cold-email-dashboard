@@ -206,15 +206,55 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             )}
 
             {!loading && !search && (
-              <div className="py-8 text-center">
-                <Search className="h-12 w-12 text-text-secondary opacity-50 mx-auto mb-3" />
-                <p className="text-sm text-text-secondary">
-                  Type to search contacts, campaigns, or metrics
-                </p>
-                <p className="text-xs text-text-secondary mt-2">
-                  Press <kbd className="px-2 py-1 bg-surface-elevated rounded border border-border">ESC</kbd> to close
-                </p>
-              </div>
+              <>
+                <Command.Group heading="Quick Navigation" className="px-2 py-2">
+                  <Command.Item
+                    onSelect={() => handleSelect({ id: 'overview', type: 'page', title: 'Overview', subtitle: 'Dashboard', url: '/' })}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-elevated cursor-pointer"
+                  >
+                    <BarChart3 className="h-4 w-4 text-text-secondary" />
+                    <div>
+                      <div className="text-sm font-medium text-text-primary">Overview</div>
+                      <div className="text-xs text-text-secondary">Dashboard</div>
+                    </div>
+                  </Command.Item>
+                  <Command.Item
+                    onSelect={() => handleSelect({ id: 'analytics', type: 'page', title: 'Analytics', subtitle: 'Metrics & Reports', url: '/analytics' })}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-elevated cursor-pointer"
+                  >
+                    <BarChart3 className="h-4 w-4 text-text-secondary" />
+                    <div>
+                      <div className="text-sm font-medium text-text-primary">Analytics</div>
+                      <div className="text-xs text-text-secondary">Metrics & Reports</div>
+                    </div>
+                  </Command.Item>
+                  <Command.Item
+                    onSelect={() => handleSelect({ id: 'contacts', type: 'page', title: 'Contacts', subtitle: 'Manage contacts', url: '/contacts' })}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-elevated cursor-pointer"
+                  >
+                    <Mail className="h-4 w-4 text-text-secondary" />
+                    <div>
+                      <div className="text-sm font-medium text-text-primary">Contacts</div>
+                      <div className="text-xs text-text-secondary">Manage contacts</div>
+                    </div>
+                  </Command.Item>
+                  <Command.Item
+                    onSelect={() => handleSelect({ id: 'sequences', type: 'page', title: 'Sequences', subtitle: 'Email sequences', url: '/sequences' })}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-elevated cursor-pointer"
+                  >
+                    <FileText className="h-4 w-4 text-text-secondary" />
+                    <div>
+                      <div className="text-sm font-medium text-text-primary">Sequences</div>
+                      <div className="text-xs text-text-secondary">Email sequences</div>
+                    </div>
+                  </Command.Item>
+                </Command.Group>
+                <div className="px-4 py-2 border-t border-border">
+                  <p className="text-xs text-text-secondary text-center">
+                    Type to search contacts, campaigns, or metrics
+                  </p>
+                </div>
+              </>
             )}
 
             {!loading && items.length > 0 && (

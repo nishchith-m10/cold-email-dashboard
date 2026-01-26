@@ -3,10 +3,12 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { toISODate, daysAgo, formatCurrency, formatNumber } from '@/lib/utils';
+import { toISODate, daysAgo, formatNumber } from '@/lib/utils';
 import { getModelDisplayName } from '@/lib/constants';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useWorkspace } from '@/lib/workspace-context';
+import { useTimezone } from '@/lib/timezone-context';
+import { useFormatCurrency } from '@/hooks/use-format-currency';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,29 +39,12 @@ export default function AnalyticsPageClient() {
   
   const { workspace } = useWorkspace();
   const [selectedProvider, setSelectedProvider] = useState<ProviderId | undefined>();
-  const [timezone, setTimezone] = useState('America/Los_Angeles');
-  const workspaceId = workspace?.id;
   
-  useEffect(() => {
-    const savedTz = localStorage.getItem('dashboard_timezone');
-    if (workspace?.settings?.timezone && typeof workspace.settings.timezone === 'string') {
-      setTimezone(workspace.settings.timezone);
-      localStorage.setItem('dashboard_timezone', workspace.settings.timezone);
-    } else if (savedTz) {
-      setTimezone(savedTz);
-    }
-  }, [workspace?.settings]);
+  // Timezone from context (synced with workspace settings)
+  const { timezone, setTimezone } = useTimezone();
   
-  const handleTimezoneChange = useCallback((tz: string) => {
-    setTimezone(tz);
-    localStorage.setItem('dashboard_timezone', tz);
-    if (!workspaceId) return;
-    fetch('/api/workspaces/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ workspace_id: workspaceId, timezone: tz }),
-    }).catch(() => {});
-  }, [workspaceId]);
+  // Currency formatting from context
+  const { formatCurrency } = useFormatCurrency();
 
   const dashboardData = useDashboardData({
     startDate,
@@ -84,16 +69,6 @@ export default function AnalyticsPageClient() {
     uniqueContacts,
   } = dashboardData;
 
-  // Storage sync for timezone
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'dashboard_timezone' && e.newValue) {
-        setTimezone(e.newValue);
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
 
   const [efficiencyMode, setEfficiencyMode] = useState<'cpl' | 'cpm'>('cpl');
 
@@ -128,7 +103,7 @@ export default function AnalyticsPageClient() {
   }, [searchParams, router]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 pt-4 md:pt-6">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -162,7 +137,7 @@ export default function AnalyticsPageClient() {
           />
           <TimezoneSelector
             selectedTimezone={timezone}
-            onTimezoneChange={handleTimezoneChange}
+            onTimezoneChange={setTimezone}
           />
         </div>
       </motion.div>
