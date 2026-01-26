@@ -13368,6 +13368,607 @@ The architecture was designed assuming this separation exists. Trying to "make i
 
 ---
 
+## 69.9 TRANSITION-READY ARCHITECTURE PRINCIPLES
+
+**THE PROBLEM:**
+
+Phase 69 defines four deployment stages, but it doesn't architect for smooth transitions between them. Without upfront design, each migration will require weeks of refactoring instead of days of config changes.
+
+**THE SOLUTION: 12-Factor App Principles for Cloud-Agnostic Design**
+
+### 69.9.1 The Transition Friction Matrix
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     STAGE TRANSITION FRICTION ANALYSIS                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  STAGE 1 → STAGE 2: Vercel-Only → Vercel + Railway                         │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  FRICTION LEVEL: MEDIUM (6/10 smoothness)                             │  │
+│  │                                                                       │  │
+│  │  Required Changes:                                                    │  │
+│  │  • Extract BullMQ workers from Vercel API routes                      │  │
+│  │  • Create control-plane/ directory                                    │  │
+│  │  • Write Dockerfile                                                   │  │
+│  │  • Set up Redis (Upstash)                                             │  │
+│  │  • Deploy to Railway                                                  │  │
+│  │  • Update Vercel to write jobs to BullMQ (not process directly)       │  │
+│  │                                                                       │  │
+│  │  Refactor Scope: MODERATE (~200 lines of code)                        │  │
+│  │  Migration Time: 3-5 days                                             │  │
+│  │  Downtime: ~30 minutes                                                │  │
+│  │  Cost Overlap: ~$50 (1 month Railway while testing)                   │  │
+│  │                                                                       │  │
+│  │  IF DESIGNED UPFRONT: Friction drops to LOW (8/10 smoothness)         │  │
+│  │    - Workers already separated into modules                           │  │
+│  │    - Just deploy to Railway, no code changes                          │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  STAGE 2 → STAGE 3: Railway → AWS ECS                                      │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  FRICTION LEVEL: HIGH (4/10 smoothness)                               │  │
+│  │                                                                       │  │
+│  │  Required Changes:                                                    │  │
+│  │  • Convert railway.toml to ECS task definition JSON                   │  │
+│  │  • Set up VPC, subnets, security groups                               │  │
+│  │  • Create ECR repository for Docker images                            │  │
+│  │  • Set up Application Load Balancer                                   │  │
+│  │  • Configure auto-scaling policies                                    │  │
+│  │  • Migrate Redis to ElastiCache (optional)                            │  │
+│  │  • Set up CloudWatch logging                                          │  │
+│  │                                                                       │  │
+│  │  Refactor Scope: MINIMAL (if cloud-agnostic)                          │  │
+│  │  Infrastructure Scope: MAJOR (~40 hours AWS config)                   │  │
+│  │  Migration Time: 2-3 weeks                                            │  │
+│  │  Downtime: 0 (parallel deployment)                                    │  │
+│  │  Cost Overlap: ~$400 (running both for 2 weeks)                       │  │
+│  │                                                                       │  │
+│  │  IF DESIGNED UPFRONT: Friction stays HIGH (infrastructure is hard)    │  │
+│  │    - Code doesn't need changes, but AWS config is complex             │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  STAGE 3 → STAGE 4: AWS ECS → Kubernetes                                   │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  FRICTION LEVEL: VERY HIGH (3/10 smoothness)                          │  │
+│  │                                                                       │  │
+│  │  Required Changes:                                                    │  │
+│  │  • Convert ECS task definitions to K8s YAML manifests                 │  │
+│  │  • Set up EKS cluster                                                 │  │
+│  │  • Rewrite deployment pipeline for Helm charts                        │  │
+│  │  • Implement K8s-native health checks                                 │  │
+│  │  • Set up service mesh (Istio/Linkerd) if needed                      │  │
+│  │  • Migrate monitoring to Prometheus/Grafana                           │  │
+│  │                                                                       │  │
+│  │  Refactor Scope: MINIMAL (code doesn't change)                        │  │
+│  │  Infrastructure Scope: MASSIVE (~80 hours + learning curve)           │  │
+│  │  Migration Time: 1-2 months                                           │  │
+│  │  Downtime: 0 (parallel deployment)                                    │  │
+│  │  Cost Overlap: ~$1,000 (running both for 1 month)                     │  │
+│  │                                                                       │  │
+│  │  RECOMMENDATION: Hire DevOps engineer for this transition             │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 69.9.2 Cloud-Agnostic Design Principles
+
+To minimize transition friction, the Control Plane code MUST follow these principles from Day 1:
+
+**PRINCIPLE 1: Environment Externalization**
+
+```
+ALL configuration must come from environment variables, NEVER hardcoded:
+
+GOOD (Works on any platform):
+  const redis = new Redis(process.env.REDIS_URL);
+  const db = postgres(process.env.DATABASE_URL);
+  const port = process.env.PORT || 3000;
+
+BAD (Locked to specific platform):
+  const redis = new Redis(process.env.RAILWAY_REDIS_PRIVATE_URL);
+  const db = postgres('postgresql://user:pass@railway.internal:5432/db');
+  const port = 3847; // Hardcoded
+```
+
+**PRINCIPLE 2: Platform-Agnostic Logging**
+
+```
+Use structured JSON logging, not platform-specific formats:
+
+GOOD (Works everywhere):
+  import pino from 'pino';
+  const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
+  logger.info({ workspace_id: 'abc', event: 'wake_complete' }, 'Droplet woke successfully');
+
+BAD (Platform-specific):
+  console.log('Droplet abc woke successfully');
+  // Railway: Works but no structure
+  // AWS: Works but hard to query in CloudWatch
+  // K8s: Works but no context for tracing
+```
+
+**PRINCIPLE 3: Stateless Service Design**
+
+```
+Control Plane MUST NOT store any state locally:
+
+GOOD (Stateless):
+  • All job state in Redis (BullMQ)
+  • All tenant state in Supabase
+  • Worker can be killed/restarted anytime
+  • Can scale to 100 instances without coordination
+
+BAD (Stateful):
+  • Caching tenant data in memory
+  • Using local file system for temporary storage
+  • Maintaining in-process queues
+  • Requiring sticky sessions
+```
+
+**PRINCIPLE 4: Horizontal Scalability**
+
+```
+BullMQ workers MUST support multiple concurrent instances:
+
+DESIGN REQUIREMENT:
+  • 1 Railway instance (Stage 2): Concurrency = 100 jobs
+  • 10 AWS ECS instances (Stage 3): Each handles 100 jobs = 1,000 total
+  • 50 K8s pods (Stage 4): Each handles 100 jobs = 5,000 total
+
+IMPLEMENTATION:
+  • Use BullMQ concurrency limiter (not process-level)
+  • No shared in-memory state between workers
+  • Jobs must be idempotent (can retry safely)
+```
+
+**PRINCIPLE 5: Health Check Standardization**
+
+```
+Single /health endpoint works for all platforms:
+
+Railway:
+  healthcheckPath: "/health"
+  healthcheckTimeout: 30
+
+AWS ECS:
+  "healthCheck": {
+    "command": ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"],
+    "interval": 30
+  }
+
+Kubernetes:
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 3000
+    initialDelaySeconds: 30
+
+Same endpoint, different config syntax - NO CODE CHANGES needed.
+```
+
+### 69.9.3 The Abstraction Checklist
+
+| Abstraction | Purpose | Benefit |
+|-------------|---------|---------|
+| **Config Module** | Centralize all env var access | Change DB_URL in one place |
+| **Logger Module** | Structured logging interface | Switch from console to Datadog without code changes |
+| **Queue Module** | Abstract BullMQ operations | Could swap to SQS if needed (unlikely but possible) |
+| **Storage Module** | Abstract file uploads (if any) | Switch from local disk to S3 without refactoring |
+| **Metrics Module** | Abstract metric collection | Switch from console to Prometheus without refactoring |
+
+### 69.9.4 The "Migration Budget" Reality
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        COST OF POOR TRANSITION DESIGN                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  IF NOT DESIGNED FOR TRANSITIONS UPFRONT:                                   │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  Stage 1 → 2: 2 weeks refactoring + 3 days deployment                 │  │
+│  │  Stage 2 → 3: 3 weeks refactoring + 2 weeks AWS learning              │  │
+│  │  Stage 3 → 4: 1 month refactoring + 1 month K8s learning              │  │
+│  │                                                                       │  │
+│  │  TOTAL MIGRATION DEBT: ~3 months of your time                         │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  IF DESIGNED FOR TRANSITIONS UPFRONT:                                       │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  Stage 1 → 2: 0 days refactoring + 3 days deployment                  │  │
+│  │  Stage 2 → 3: 0 days refactoring + 2 weeks AWS config                 │  │
+│  │  Stage 3 → 4: 0 days refactoring + 2 weeks K8s config                 │  │
+│  │                                                                       │  │
+│  │  TOTAL MIGRATION DEBT: ~1 month of infrastructure work                │  │
+│  │                        (but code doesn't change)                      │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  THE DIFFERENCE: 2 months of your life saved                                │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 69.10 STAGE MIGRATION PLAYBOOKS
+
+### 69.10.1 Playbook: Stage 1 → Stage 2 (Add Railway Control Plane)
+
+**TRIGGER:** You hit 100 tenants or Vercel functions start timing out
+
+**PRE-MIGRATION CHECKLIST:**
+
+- [ ] BullMQ workers already extracted to modules (not inline in API routes)
+- [ ] All env vars use generic names (REDIS_URL not VERCEL_REDIS_URL)
+- [ ] Health check endpoint exists at /health
+- [ ] Logging uses structured format (JSON)
+- [ ] Control Plane code in separate directory (control-plane/)
+
+**MIGRATION SEQUENCE:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    STAGE 1 → STAGE 2 MIGRATION                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  DAY 1: INFRASTRUCTURE SETUP                                                │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  1. Create Railway account                                            │  │
+│  │  2. Set up Upstash Redis (free tier for testing)                      │  │
+│  │  3. Add REDIS_URL to Vercel env vars (both environments share Redis)  │  │
+│  │  4. Test: Vercel can write to Redis, confirm with redis-cli           │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  DAY 2: CONTROL PLANE DEPLOYMENT                                            │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  1. Push control-plane/ code to GitHub                                │  │
+│  │  2. Connect Railway to GitHub repo                                    │  │
+│  │  3. Configure Railway env vars:                                       │  │
+│  │     - REDIS_URL (from Upstash)                                        │  │
+│  │     - DATABASE_URL (from Supabase)                                    │  │
+│  │     - DIGITALOCEAN_API_TOKEN                                          │  │
+│  │  4. Railway auto-deploys on push                                      │  │
+│  │  5. Verify /health endpoint returns 200                               │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  DAY 3: PARALLEL RUN & TESTING                                              │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  1. Vercel writes wake jobs to BullMQ                                 │  │
+│  │  2. Railway Control Plane processes jobs                              │  │
+│  │  3. Monitor Railway logs for errors                                   │  │
+│  │  4. Test with 10 test tenants                                         │  │
+│  │  5. Confirm Watchdog running (check Sidecar heartbeats)               │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  DAY 4: PRODUCTION CUTOVER                                                  │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  1. Enable Control Plane for all tenants                              │  │
+│  │  2. Monitor for 24 hours                                              │  │
+│  │  3. No issues? Transition complete                                    │  │
+│  │  4. Update documentation                                              │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  TOTAL MIGRATION TIME: 4 days                                               │
+│  DOWNTIME: 0 seconds (parallel deployment)                                  │
+│  RISK: LOW (easy to rollback by disabling Control Plane)                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 69.10.2 Playbook: Stage 2 → Stage 3 (Railway → AWS ECS)
+
+**TRIGGER:** You hit 1,000 tenants or need auto-scaling beyond Railway's capacity
+
+**PRE-MIGRATION CHECKLIST:**
+
+- [ ] Control Plane uses environment variables for ALL config
+- [ ] No Railway-specific code (railway.toml → env vars only)
+- [ ] Docker image builds successfully
+- [ ] Health check endpoint tested
+- [ ] BullMQ workers are horizontally scalable (no shared state)
+
+**MIGRATION SEQUENCE:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    STAGE 2 → STAGE 3 MIGRATION                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  WEEK 1: AWS FOUNDATION                                                     │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Day 1-2: Create AWS account, VPC, subnets, security groups           │  │
+│  │  Day 3-4: Create ECS cluster, ECR repository                          │  │
+│  │  Day 5-6: Push Docker image to ECR, create task definition            │  │
+│  │  Day 7:   Deploy 1 ECS task, test health check                        │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  WEEK 2: PARALLEL DEPLOYMENT                                                │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Day 8-10:  Run Railway + AWS ECS simultaneously                       │  │
+│  │             Both processing jobs from same Redis queue                │  │
+│  │             Monitor: Jobs should distribute randomly                  │  │
+│  │                                                                       │  │
+│  │  Day 11-12: Scale ECS to 3 instances, test load distribution          │  │
+│  │  Day 13:    Stop Railway workers (keep health check alive)            │  │
+│  │  Day 14:    Monitor ECS-only for 24 hours                             │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  WEEK 3: CLEANUP & OPTIMIZATION                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Day 15-17: Set up auto-scaling (CPU-based, queue depth-based)        │  │
+│  │  Day 18-19: Migrate Redis to ElastiCache (optional)                   │  │
+│  │  Day 20:    Decommission Railway                                      │  │
+│  │  Day 21:    Update documentation                                      │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  TOTAL MIGRATION TIME: 3 weeks                                              │
+│  DOWNTIME: 0 seconds                                                         │
+│  COST OVERLAP: ~$400 (Railway + AWS for 3 weeks)                            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**ECS TASK DEFINITION CONVERSION:**
+
+```
+Railway railway.toml → AWS ECS task definition
+
+Railway:
+  [build]
+  builder = "DOCKERFILE"
+  
+  [deploy]
+  startCommand = "node dist/index.js"
+  healthcheckPath = "/health"
+
+AWS ECS (equivalent):
+  {
+    "family": "genesis-control-plane",
+    "containerDefinitions": [{
+      "name": "control-plane",
+      "image": "ECR_URL/genesis-control-plane:latest",
+      "command": ["node", "dist/index.js"],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3
+      },
+      "environment": [
+        { "name": "REDIS_URL", "value": "REDIS_CONNECTION_STRING" },
+        { "name": "DATABASE_URL", "value": "POSTGRES_CONNECTION_STRING" }
+      ]
+    }]
+  }
+
+NO CODE CHANGES - just different config format.
+```
+
+---
+
+### 69.10.3 Playbook: Database Migration (Supabase → AWS RDS)
+
+**TRIGGER:** You need more control, custom extensions, or >100M row performance
+
+**WHEN TO MIGRATE:**
+
+| Metric | Supabase Limit | When to Migrate |
+|--------|---------------|-----------------|
+| **Row Count** | 100M+ rows | >50M rows (plan migration) |
+| **Partition Count** | 15,000+ partitions | >12,000 partitions |
+| **Connection Count** | ~200 connections | >150 concurrent connections |
+| **Custom Extensions** | Limited pgcrypto, pg_cron | Need PostGIS, TimescaleDB, etc. |
+| **Backup Control** | Automatic (good) | Need PITR with custom retention |
+
+**MIGRATION STRATEGY: Logical Replication (Zero Downtime)**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   SUPABASE → AWS RDS MIGRATION                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  WEEK 1: RDS SETUP                                                          │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  1. Provision RDS Postgres 16 instance (same version as Supabase)     │  │
+│  │  2. Enable logical replication on Supabase (contact support)          │  │
+│  │  3. Create publication: CREATE PUBLICATION genesis FOR ALL TABLES;    │  │
+│  │  4. Create subscription on RDS pointing to Supabase                   │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  WEEK 2: REPLICATION SYNC                                                   │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  1. Wait for initial sync to complete (could take days for 50M rows)  │  │
+│  │  2. Monitor replication lag (should be <10 seconds)                   │  │
+│  │  3. Run data integrity checks (row counts, checksums)                 │  │
+│  │  4. Test read queries on RDS (verify RLS works)                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  WEEK 3: CUTOVER                                                            │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  1. Update DATABASE_URL env var to point to RDS                       │  │
+│  │  2. Deploy change (Control Plane + Vercel)                            │  │
+│  │  3. Monitor for 48 hours                                              │  │
+│  │  4. If stable, drop replication                                       │  │
+│  │  5. Keep Supabase as read-only backup for 1 week                      │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  TOTAL MIGRATION TIME: 3 weeks                                              │
+│  DOWNTIME: 0 seconds (logical replication is live)                          │
+│  COST OVERLAP: ~$600 (Supabase + RDS for 1 month)                           │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**NOTE:** This is OPTIONAL. Supabase can handle 100M+ rows with proper partitioning. Only migrate if you need custom extensions or more control.
+
+---
+
+### 69.10.4 The "Pre-Flight" Transition Test
+
+Before ANY stage migration, run this test:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         PRE-MIGRATION TEST SUITE                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  TEST 1: Configuration Portability                                          │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  • Can you change DATABASE_URL without code changes?                  │  │
+│  │  • Can you change REDIS_URL without code changes?                     │  │
+│  │  • Are all secrets in env vars (not hardcoded)?                       │  │
+│  │                                                                       │  │
+│  │  PASS CRITERIA: Change 5 env vars, restart, system works              │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  TEST 2: Horizontal Scalability                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  • Run 2 Control Plane instances locally (docker-compose scale=2)     │  │
+│  │  • Send 100 jobs to BullMQ                                            │  │
+│  │  • Verify both instances process jobs without conflict                │  │
+│  │                                                                       │  │
+│  │  PASS CRITERIA: No duplicate processing, no crashes                   │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  TEST 3: Stateless Verification                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  • Kill Control Plane mid-job                                         │  │
+│  │  • Restart Control Plane                                              │  │
+│  │  • Verify job resumes from BullMQ (not lost)                          │  │
+│  │                                                                       │  │
+│  │  PASS CRITERIA: No data loss, job completes                           │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  TEST 4: Rollback Speed                                                     │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  • Deploy to new platform                                             │  │
+│  │  • Inject artificial failure                                          │  │
+│  │  • Measure time to rollback to old platform                           │  │
+│  │                                                                       │  │
+│  │  PASS CRITERIA: Rollback in <5 minutes                                │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 69.10.5 The Emergency Rollback Protocol (Any Stage)
+
+If a migration goes wrong, you need instant rollback:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        MIGRATION ROLLBACK PROTOCOL                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  SCENARIO: Migrated to AWS ECS, but BullMQ workers are crashing            │
+│                                                                             │
+│  ROLLBACK SEQUENCE (Railway still running in background):                   │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  T+0:   Detect issue (error rate >1%)                                 │  │
+│  │  T+1:   Stop ECS tasks (aws ecs update-service --desired-count 0)     │  │
+│  │  T+2:   Restart Railway workers (railway up)                          │  │
+│  │  T+3:   Railway processes backlog from Redis                          │  │
+│  │  T+5:   System stable, investigation begins                           │  │
+│  │                                                                       │  │
+│  │  TOTAL ROLLBACK TIME: 5 minutes                                       │  │
+│  │  DATA LOSS: 0 (jobs are in Redis queue)                               │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  CRITICAL: Keep old platform running for 7 days after migration             │
+│  Don't decommission until new platform is proven stable.                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 69.10.6 The "Never Refactor Twice" Principle
+
+**DESIGN DECISION: Write Stage 4 code on Day 1**
+
+Even if you're only deploying to Vercel (Stage 1), write your Control Plane code as if it's already running on Kubernetes (Stage 4). This means:
+
+| Design Choice | Stage 1 Benefit | Stage 4 Benefit |
+|---------------|-----------------|-----------------|
+| **Use env vars for everything** | Easy local testing | Zero code changes to deploy to K8s |
+| **Structured JSON logging** | Better debugging | Works with Prometheus/Loki |
+| **Stateless workers** | Simple mental model | Horizontal scaling to 50 pods |
+| **Health check endpoint** | Vercel doesn't need it | K8s requires it (no refactor) |
+| **Graceful shutdown** | Nice to have | Required for K8s rolling updates |
+
+**THE PAYOFF:**
+
+If you follow these principles from Day 1:
+- **Stage 1 → 2:** 3 days (just deploy to Railway)
+- **Stage 2 → 3:** 2 weeks (AWS config, no code changes)
+- **Stage 3 → 4:** 2 weeks (K8s config, no code changes)
+
+If you DON'T follow these principles:
+- **Stage 1 → 2:** 2 weeks (extract workers, refactor)
+- **Stage 2 → 3:** 1 month (refactor + AWS config)
+- **Stage 3 → 4:** 2 months (major refactor + K8s config)
+
+**The difference: 3 months of your life saved.**
+
+---
+
+## 69.11 UPDATED DEPLOYMENT CHECKLIST
+
+**Phase 69 NOW delivers:**
+
+- [ ] Separation of Vercel Layer from Control Plane (69.1-69.2)
+- [ ] control-plane/ directory with Node.js service code (69.5-69.6)
+- [ ] Dockerfile for Control Plane deployment (69.6)
+- [ ] Railway/Render/AWS ECS configuration examples (69.4)
+- [ ] Health check endpoint (69.5)
+- [ ] Shared Redis + Supabase connection (69.2)
+- [ ] **NEW: Transition-Ready Architecture Principles (69.9)**
+- [ ] **NEW: Stage Migration Playbooks (69.10)**
+- [ ] **NEW: Pre-Flight Transition Test Suite (69.10.4)**
+- [ ] **NEW: Emergency Rollback Protocol (69.10.5)**
+- [ ] **NEW: Cost Overlap Budgets for Migrations (69.10)**
+- [ ] **NEW: Database Migration Playbook - Supabase to RDS (69.10.3)**
+
+**Integration points:**
+- Phase 52: BullMQ designed for horizontal scaling
+- Phase 43: Watchdog designed to run on any platform
+- Phase 68: Rollout engine cloud-agnostic
+
+---
+
+**THE CRITICAL TAKEAWAY:**
+
+**YES, the infrastructure is NOW architected for smooth transitions** - but ONLY if you follow the 12-Factor App principles from Day 1:
+
+1. **All config in env vars** (no hardcoded values)
+2. **Stateless services** (no local state)
+3. **Structured logging** (JSON format)
+4. **Horizontal scalability** (workers can scale to N instances)
+5. **Platform-agnostic code** (works on Railway, AWS, K8s without changes)
+
+**Migration Timeline (If Designed Correctly):**
+- Stage 1 → 2: 3-4 days, $0 downtime
+- Stage 2 → 3: 2-3 weeks, $0 downtime
+- Stage 3 → 4: 2-4 weeks, $0 downtime
+
+**Migration Timeline (If NOT Designed Correctly):**
+- Stage 1 → 2: 2 weeks (refactoring)
+- Stage 2 → 3: 1 month (major refactoring)
+- Stage 3 → 4: 2 months (complete rewrite)
+
+**The difference: 3+ months of development time saved by designing for transitions upfront.**
+
+---
+
 # ═══════════════════════════════════════════════════════════════════════════
 #                        PART X: EXTENDED IMPLEMENTATION
 # ═══════════════════════════════════════════════════════════════════════════
