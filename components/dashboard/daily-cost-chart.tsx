@@ -15,6 +15,8 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { useFormatDate } from '@/hooks/use-format-date';
+import { useFormatCurrency } from '@/hooks/use-format-currency';
 
 interface DailyCostChartProps {
   data: { day: string; value: number }[];
@@ -29,7 +31,8 @@ function CustomTooltip({
   active, 
   payload, 
   label,
-}: TooltipProps<number, string>) {
+  currencyFormatter,
+}: TooltipProps<number, string> & { currencyFormatter: (amount: number) => string }) {
   if (!active || !payload?.length) return null;
 
   const value = payload[0].value as number;
@@ -54,7 +57,7 @@ function CustomTooltip({
         {displayDate}
       </p>
       <p className="text-sm font-semibold text-text-primary">
-        ${value.toFixed(4)}
+        {currencyFormatter(value)}
       </p>
     </div>
   );
@@ -64,10 +67,13 @@ export function DailyCostChart({
   data,
   loading = false,
   className,
-  timezone = 'America/Los_Angeles',
+  timezone: timezoneProp,
   startDate,
   endDate,
 }: DailyCostChartProps) {
+  const { formatDate, timezone: contextTimezone } = useFormatDate();
+  const { formatCurrency, currency } = useFormatCurrency();
+  const timezone = timezoneProp || contextTimezone;
   // Format data with timezone-aware labels and fill gaps
   const formattedData = useMemo(() => {
     if (!data.length) return [];
@@ -152,10 +158,10 @@ export function DailyCostChart({
             <CardTitle className="text-base">Daily LLM Cost</CardTitle>
             <div className="flex items-center gap-4 text-xs">
               <div className="text-text-secondary">
-                Total: <span className="font-semibold text-text-primary">${totalCost.toFixed(2)}</span>
+                Total: <span className="font-semibold text-text-primary">{formatCurrency(totalCost)}</span>
               </div>
               <div className="text-text-secondary">
-                Avg: <span className="font-semibold text-text-primary">${avgDailyCost.toFixed(4)}/day</span>
+                Avg: <span className="font-semibold text-text-primary">{formatCurrency(avgDailyCost)}/day</span>
               </div>
             </div>
           </div>
@@ -191,11 +197,11 @@ export function DailyCostChart({
                   tickLine={false}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
                   tickMargin={8}
-                  tickFormatter={(v) => `$${v.toFixed(2)}`}
-                  width={60}
+                  tickFormatter={(v) => formatCurrency(v)}
+                  width={70}
                 />
                 <Tooltip 
-                  content={<CustomTooltip />}
+                  content={<CustomTooltip currencyFormatter={formatCurrency} />}
                   cursor={{ stroke: 'var(--border)', strokeDasharray: '4 4' }}
                 />
                 <Area

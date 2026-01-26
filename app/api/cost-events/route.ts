@@ -3,6 +3,7 @@ import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
 import { calculateLlmCost } from '@/lib/constants';
 import { z } from 'zod';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_WEBHOOK } from '@/lib/rate-limit';
+import { checkBudgetAlerts } from '@/lib/budget-alerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,45 @@ function validateToken(req: NextRequest): boolean {
   }
   
   return token === expectedToken;
+}
+
+// Plan limits helper (matches billing/usage route)
+interface PlanLimits {
+  emails_limit: number | null;
+  cost_limit: number | null;
+  campaigns_limit: number | null;
+  team_members_limit: number | null;
+}
+
+function getPlanLimits(plan: string): PlanLimits {
+  const limits: Record<string, PlanLimits> = {
+    free: {
+      emails_limit: 500,
+      cost_limit: 5.00,
+      campaigns_limit: 1,
+      team_members_limit: 1,
+    },
+    starter: {
+      emails_limit: 5000,
+      cost_limit: 50.00,
+      campaigns_limit: 5,
+      team_members_limit: 3,
+    },
+    pro: {
+      emails_limit: 25000,
+      cost_limit: 250.00,
+      campaigns_limit: null, // unlimited
+      team_members_limit: 10,
+    },
+    enterprise: {
+      emails_limit: null, // unlimited
+      cost_limit: null, // unlimited
+      campaigns_limit: null,
+      team_members_limit: null,
+    },
+  };
+
+  return limits[plan] || limits.free;
 }
 
 // POST /api/cost-events - Receive cost events from n8n
@@ -93,6 +133,7 @@ export async function POST(req: NextRequest) {
     
     const results = [];
     const errors = [];
+    const workspaceIds = new Set<string>();
 
     for (const event of events) {
       try {
@@ -118,11 +159,14 @@ export async function POST(req: NextRequest) {
           costUsd = 0;
         }
 
+        const workspaceId = event.workspace_id || DEFAULT_WORKSPACE_ID;
+        workspaceIds.add(workspaceId);
+
         // Insert into llm_usage table
         const { data, error } = await supabaseAdmin
           .from('llm_usage')
           .insert({
-            workspace_id: event.workspace_id || DEFAULT_WORKSPACE_ID,
+            workspace_id: workspaceId,
             campaign_name: event.campaign_name || null,
             contact_email: event.contact_email || null,
             provider: event.provider,
@@ -154,6 +198,59 @@ export async function POST(req: NextRequest) {
         }
       } catch (err) {
         errors.push({ event, error: String(err) });
+      }
+    }
+
+    // Check budget alerts for affected workspaces (non-blocking)
+    if (results.length > 0 && workspaceIds.size > 0) {
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const endDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+
+      // Check budget for each workspace (in parallel, non-blocking)
+      if (supabaseAdmin) {
+        const supabase = supabaseAdmin; // Capture for closure
+        Promise.all(
+          Array.from(workspaceIds).map(async (workspaceId) => {
+            try {
+              // Get workspace plan
+              const { data: workspace } = await supabase
+                .from('workspaces')
+                .select('plan')
+                .eq('id', workspaceId)
+                .single();
+
+              const plan = workspace?.plan || 'free';
+
+              // Get plan limits
+              const planLimits = getPlanLimits(plan);
+              const costLimit = planLimits.cost_limit;
+
+              if (costLimit !== null && costLimit > 0) {
+                // Get current month's cost
+                const { data: llmData } = await supabase
+                  .from('llm_usage')
+                  .select('cost_usd')
+                  .eq('workspace_id', workspaceId)
+                  .gte('created_at', `${startDate}T00:00:00Z`)
+                  .lte('created_at', `${endDateStr}T23:59:59Z`);
+
+                const currentCost = llmData?.reduce((sum, row) => sum + (Number(row.cost_usd) || 0), 0) || 0;
+
+                // Check budget alerts
+                await checkBudgetAlerts(workspaceId, currentCost, costLimit, currentMonth);
+              }
+            } catch (err) {
+              // Log but don't fail the request
+              console.error(`[Budget Alert] Error checking budget for workspace ${workspaceId}:`, err);
+            }
+          })
+        ).catch((err) => {
+          // Log but don't fail the request
+          console.error('[Budget Alert] Error in budget check:', err);
+        });
       }
     }
 

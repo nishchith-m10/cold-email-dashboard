@@ -15,45 +15,66 @@ export function formatNumber(num: number, decimals = 0): string {
 }
 
 // Format currency (4 decimal places for micro-costs < $1)
-export function formatCurrency(amount: number): string {
+// DEPRECATED: Use useFormatCurrency() hook for currency-aware formatting
+// Kept for backward compatibility with USD default
+export function formatCurrency(amount: number, currency: string = 'USD'): string {
   if (amount === 0) {
-    return '$0.00';
+    const symbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
+    const symbol = symbols[currency] || '$';
+    return `${symbol}0.00`;
   }
   
   // For micro-costs under $1, show 4 decimal places
-  if (Math.abs(amount) < 1) {
-    return `$${amount.toFixed(4)}`;
+  if (Math.abs(amount) < 1 && currency !== 'JPY') {
+    const symbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
+    const symbol = symbols[currency] || '$';
+    return `${symbol}${amount.toFixed(4)}`;
   }
   
-  // For regular amounts, show 2 decimal places
-  return new Intl.NumberFormat('en-US', {
+  // For regular amounts, use proper locale formatting
+  const locales: Record<string, string> = { USD: 'en-US', EUR: 'de-DE', GBP: 'en-GB', JPY: 'ja-JP' };
+  const decimals = currency === 'JPY' ? 0 : 2;
+  
+  return new Intl.NumberFormat(locales[currency] || 'en-US', {
     style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    currency: currency,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(amount);
 }
 
 // Format currency for display (clean 2 decimals) - use for main values
-export function formatCurrencyShort(amount: number): string {
+// DEPRECATED: Use useFormatCurrency() hook for currency-aware formatting
+export function formatCurrencyShort(amount: number, currency: string = 'USD'): string {
   if (amount === 0) {
-    return '$0.00';
+    const symbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
+    const symbol = symbols[currency] || '$';
+    return currency === 'JPY' ? `${symbol}0` : `${symbol}0.00`;
   }
   
-  return new Intl.NumberFormat('en-US', {
+  const locales: Record<string, string> = { USD: 'en-US', EUR: 'de-DE', GBP: 'en-GB', JPY: 'ja-JP' };
+  const decimals = currency === 'JPY' ? 0 : 2;
+  
+  return new Intl.NumberFormat(locales[currency] || 'en-US', {
     style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    currency: currency,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(amount);
 }
 
 // Format currency precise (4 decimals) - use for tooltips/hover
-export function formatCurrencyPrecise(amount: number): string {
+// DEPRECATED: Use useFormatCurrency() hook for currency-aware formatting
+export function formatCurrencyPrecise(amount: number, currency: string = 'USD'): string {
   if (amount === 0) {
-    return '$0.0000';
+    const symbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
+    const symbol = symbols[currency] || '$';
+    return currency === 'JPY' ? `${symbol}0` : `${symbol}0.0000`;
   }
-  return `$${amount.toFixed(4)}`;
+  const symbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
+  const symbol = symbols[currency] || '$';
+  const decimals = currency === 'JPY' ? 0 : 4;
+  return `${symbol}${amount.toFixed(decimals)}`;
 }
 
 // Format percentage

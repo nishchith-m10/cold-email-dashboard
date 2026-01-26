@@ -12,6 +12,7 @@ import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { toggleWorkflow, isN8nConfigured } from '@/lib/n8n-client';
 import type { N8nStatus, CampaignStatus } from '@/lib/dashboard-types';
+import { createCampaignNotification } from '@/lib/create-campaign-notification';
 
 // ============================================
 // TYPES
@@ -143,6 +144,18 @@ export async function POST(
       console.error('n8n toggle failed:', n8nResult.error);
       newN8nStatus = 'error';
       
+      // Create error notification
+      createCampaignNotification({
+        workspaceId: campaign.workspace_id,
+        campaignName: campaign.name,
+        campaignId: campaign.id,
+        type: 'error',
+        errorMessage: n8nResult.error.message,
+        userId: userId,
+      }).catch((error) => {
+        console.error('Failed to create error notification:', error);
+      });
+      
       return jsonResponse(
         { 
           success: false, 
@@ -188,7 +201,38 @@ export async function POST(
     return jsonResponse({ success: false, error: 'Failed to update campaign' }, 500);
   }
 
-  // 11. Return success response
+  // 11. Create notification for campaign status change
+  const previousStatus = campaign.status;
+  const newStatus = updatedCampaign.status;
+
+  // Only create notification if status actually changed
+  if (previousStatus !== newStatus) {
+    let notificationType: 'started' | 'paused' | 'completed' | 'error' | null = null;
+
+    if (newStatus === 'active' && previousStatus !== 'active') {
+      notificationType = 'started';
+    } else if (newStatus === 'paused' && previousStatus !== 'paused') {
+      notificationType = 'paused';
+    } else if (newStatus === 'completed' && previousStatus !== 'completed') {
+      notificationType = 'completed';
+    }
+
+    if (notificationType) {
+      // Create notification asynchronously (don't block response)
+      createCampaignNotification({
+        workspaceId: campaign.workspace_id,
+        campaignName: updatedCampaign.name,
+        campaignId: updatedCampaign.id,
+        type: notificationType,
+        userId: userId, // Notify the user who triggered the change
+      }).catch((error) => {
+        // Log but don't fail the request if notification creation fails
+        console.error('Failed to create campaign notification:', error);
+      });
+    }
+  }
+
+  // 12. Return success response
   return jsonResponse({
     success: true,
     campaign: {

@@ -9,6 +9,8 @@ import { toISODate, daysAgo } from '@/lib/utils';
 import { CHART_COLORS } from '@/lib/constants';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { useWorkspace } from '@/lib/workspace-context';
+import { useTimezone } from '@/lib/timezone-context';
+import { useFormatCurrency } from '@/hooks/use-format-currency';
 import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDashboardLayout } from '@/hooks/use-dashboard-layout';
@@ -60,43 +62,12 @@ export default function DashboardPageClient() {
     })
   );
 
-  // Timezone state - default to Los Angeles, persist in localStorage
+  // Workspace context
   const { workspace } = useWorkspace();
-  const [timezone, setTimezone] = useState('America/Los_Angeles');
   const workspaceId = workspace?.id;
-  
-  // Load timezone from localStorage on mount
-  useEffect(() => {
-    const savedTz = localStorage.getItem('dashboard_timezone');
-    if (workspace?.settings?.timezone && typeof workspace.settings.timezone === 'string') {
-      setTimezone(workspace.settings.timezone);
-      localStorage.setItem('dashboard_timezone', workspace.settings.timezone);
-    } else if (savedTz) {
-      setTimezone(savedTz);
-    }
-  }, [workspace?.settings]);
-  
-  // Save timezone to localStorage when changed
-  const handleTimezoneChange = useCallback((tz: string) => {
-    setTimezone(tz);
-    localStorage.setItem('dashboard_timezone', tz);
-    if (!workspaceId) return;
-    fetch('/api/workspaces/settings', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ workspace_id: workspaceId, timezone: tz }),
-    }).catch(() => {});
-  }, [workspaceId]);
 
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'dashboard_timezone' && e.newValue) {
-        setTimezone(e.newValue);
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  // Timezone from context (synced with workspace settings)
+  const { timezone, setTimezone } = useTimezone();
 
   // FETCH ALL DASHBOARD DATA (CENTRALIZED)
   const dashboardData = useDashboardData({
@@ -373,7 +344,7 @@ export default function DashboardPageClient() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 pt-4 md:pt-6">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -394,7 +365,7 @@ export default function DashboardPageClient() {
             <div className="hidden sm:block">
               <TimezoneSelector
                 selectedTimezone={timezone}
-                onTimezoneChange={handleTimezoneChange}
+                onTimezoneChange={setTimezone}
               />
             </div>
             {/* Desktop: Popover picker */}

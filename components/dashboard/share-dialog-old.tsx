@@ -1,7 +1,10 @@
 'use client';
 
 /**
- * Share Dialog Component - FIXED VERSION
+ * Share Dialog Component
+ * 
+ * Google Docs-style sharing dialog for inviting members
+ * and managing team roles.
  */
 
 import { useState, useEffect } from 'react';
@@ -137,18 +140,16 @@ export function ShareDialog({ open, onOpenChange }: ShareDialogProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', duration: 0.3 }}
-            className="fixed inset-0 flex items-center justify-center z-[51] p-4"
+            className="fixed inset-0 flex items-center justify-center z-50 p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-full max-w-lg bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="w-full max-w-lg bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-2xl overflow-hidden">
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] flex-shrink-0">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
                 <div>
                   <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                    Share &ldquo;{workspace?.name || 'Workspace'}&rdquo;
-                  </h2>
+                  Share &ldquo;{workspace?.name || 'Workspace'}&rdquo;
+                </h2>
                   <p className="text-sm text-[var(--text-secondary)]">
                     Invite team members or manage access
                   </p>
@@ -162,7 +163,7 @@ export function ShareDialog({ open, onOpenChange }: ShareDialogProps) {
               </div>
 
               {/* Tabs */}
-              <div className="flex border-b border-[var(--border)] flex-shrink-0">
+              <div className="flex border-b border-[var(--border)]">
                 <button
                   onClick={() => setActiveTab('invite')}
                   className={cn(
@@ -191,7 +192,7 @@ export function ShareDialog({ open, onOpenChange }: ShareDialogProps) {
 
               {/* Error Alert */}
               {error && (
-                <div className="mx-6 mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-sm text-red-500 flex-shrink-0">
+                <div className="mx-6 mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-sm text-red-500">
                   <AlertCircle className="h-4 w-4 flex-shrink-0" />
                   {error}
                   <button onClick={() => setError(null)} className="ml-auto">
@@ -200,8 +201,8 @@ export function ShareDialog({ open, onOpenChange }: ShareDialogProps) {
                 </div>
               )}
 
-              {/* Tab Content - Scrollable */}
-              <div className="p-6 overflow-y-auto flex-1">
+              {/* Tab Content */}
+              <div className="p-6 max-h-[400px] overflow-y-auto">
                 {activeTab === 'invite' && (
                   <div className="space-y-6">
                     {/* Create Invite Section */}

@@ -145,34 +145,7 @@ export function TimezoneSelector({
   );
 }
 
-// Helper function to format date in a specific timezone
-export function formatInTimezone(date: Date | string, timezone: string, formatStr: string = 'short'): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  
-  const options: Intl.DateTimeFormatOptions = {
-    timeZone: timezone,
-  };
-
-  switch (formatStr) {
-    case 'short':
-      return d.toLocaleDateString('en-US', { ...options, month: 'short', day: 'numeric' });
-    case 'long':
-      return d.toLocaleDateString('en-US', { ...options, month: 'long', day: 'numeric', year: 'numeric' });
-    case 'datetime':
-      return d.toLocaleString('en-US', { ...options, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-    case 'time':
-      return d.toLocaleTimeString('en-US', { ...options, hour: 'numeric', minute: '2-digit' });
-    case 'iso':
-      // Return YYYY-MM-DD in the specified timezone
-      const formatter = new Intl.DateTimeFormat('en-CA', { ...options, year: 'numeric', month: '2-digit', day: '2-digit' });
-      return formatter.format(d);
-    default:
-      return d.toLocaleDateString('en-US', { ...options, month: 'short', day: 'numeric' });
-  }
-}
-
-// Get current date in a specific timezone as YYYY-MM-DD
-export function getTodayInTimezone(timezone: string): string {
-  return formatInTimezone(new Date(), timezone, 'iso');
-}
+// Note: formatInTimezone and getTodayInTimezone are now exported from @/lib/timezone-context
+// These exports are kept for backward compatibility
+export { formatInTimezone, getTodayInTimezone } from '@/lib/timezone-context';
 

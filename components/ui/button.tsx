@@ -13,7 +13,7 @@ const buttonVariants = cva(
         secondary:
           'bg-surface-elevated text-text-primary hover:bg-surface-elevated/80 border border-border',
         ghost:
-          'hover:bg-surface-elevated text-text-secondary hover:text-text-primary',
+          'text-text-secondary hover:text-text-primary',
         outline:
           'border border-border bg-transparent hover:bg-surface-elevated text-text-primary',
         danger:

@@ -58,6 +58,7 @@
 | Phase | Title | Focus |
 |-------|-------|-------|
 | **60** | [Genesis Gateway Unified Onboarding](#phase-60-genesis-gateway-unified-onboarding) | OAuth proxy, BYO key collection |
+| **60.B** | [Email Provider Abstraction](#phase-60b-email-provider-abstraction) | Gmail + SMTP + future providers, unified sending interface |
 | **61** | [Friction-Reduction Protocols](#phase-61-friction-reduction-protocols) | Auto-scrape brand, DNS automation, booking validation |
 
 ### PART VII: COMPLIANCE & SECURITY
@@ -66,6 +67,7 @@
 |-------|-------|-------|
 | **62** | [Data Residency & GDPR Protocol](#phase-62-data-residency--gdpr-protocol) | Multi-region storage, partition-droplet co-location |
 | **63** | [Audit Logging & Support Access](#phase-63-audit-logging--support-access) | Compliance trail, time-limited debug access |
+| **63.B** | [Comprehensive Login Audit Trail](#phase-63b-comprehensive-login-audit-trail) | Login tracking, session history, action logging |
 | **64** | [Tenant Lifecycle Management](#phase-64-tenant-lifecycle-management) | Deletion protocol, data export, offboarding |
 
 ### PART VIII: PLATFORM OPERATIONS
@@ -84,6 +86,8 @@
 | **47** | [Hyper-Scale Stress Test & Red-Teaming](#phase-47-hyper-scale-stress-test--red-teaming) | Load, chaos, security testing |
 | **48** | [Production Cutover & Revert Protocol](#phase-48-production-cutover--revert-protocol) | Blue-green deployment, instant rollback |
 | **66** | [Disaster Recovery & Regional Failover](#phase-66-disaster-recovery--regional-failover) | Cross-region snapshots, mass restoration |
+| **66.B** | [Infrastructure as Code (Optional)](#phase-66b-infrastructure-as-code-optional) | Terraform for Dashboard DR, reproducible infra (LOW PRIORITY) |
+| **67** | [API Health Monitor & Sanity Check](#phase-67-api-health-monitor--sanity-check) | External API validation, health dashboard, auto-diagnosis |
 
 ### PART X: REFERENCE & APPENDICES
 
@@ -9548,6 +9552,1852 @@ For tenants on Enterprise plans, Genesis provides near-real-time cross-region da
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+# 📧 PHASE 60.B: EMAIL PROVIDER ABSTRACTION
+
+> **Phase Type:** V30 Flexibility Layer  
+> **Dependencies:** Phase 60, Phase 53 (UUID Mapper)  
+> **Risk Level:** MEDIUM (Integration Complexity)  
+> **Priority:** HIGH - Essential for Enterprise Clients
+
+---
+
+## 60.B.1 THE PROBLEM: GMAIL LOCK-IN
+
+The current cold email system is tightly coupled to Gmail's API. This creates friction for:
+
+| Client Type | Issue with Gmail-Only |
+|-------------|----------------------|
+| **Enterprise** | IT policy forbids third-party OAuth for email |
+| **Self-hosted enthusiasts** | Want full control over email infrastructure |
+| **High-volume senders** | Gmail's 500/day limit is insufficient |
+| **Privacy-focused** | Don't want Google touching their data |
+| **International** | Gmail blocked or unreliable in some regions |
+
+**The V30 Solution:** A unified Email Provider Abstraction that supports multiple sending methods through a single workflow architecture.
+
+---
+
+## 60.B.2 SUPPORTED EMAIL PROVIDERS
+
+| Provider | Type | Use Case | Daily Limit |
+|----------|------|----------|-------------|
+| **Gmail** | OAuth API | Default, easiest setup | 500/day (free), 2000/day (Workspace) |
+| **SMTP (Custom)** | Protocol | Self-hosted servers, any SMTP provider | Unlimited (server-dependent) |
+| **SendGrid** | API | High-volume transactional | 100/day free, unlimited paid |
+| **Mailgun** | API | Developer-friendly | 5,000/month free |
+| **Amazon SES** | API | AWS-native, very cheap | 50,000/day |
+| **Postmark** | API | Deliverability-focused | 100/month free |
+
+**V30 Initial Support:** Gmail + SMTP (others can be added later)
+
+---
+
+## 60.B.3 ARCHITECTURE: UNIFIED SENDING INTERFACE
+
+**The Key Insight:** Don't duplicate workflows. Use a **Switch Node** to route to the appropriate sending method based on workspace configuration.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    EMAIL PROVIDER ABSTRACTION LAYER                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  WORKFLOW STRUCTURE (Email 1, 2, 3 - Same Pattern):                        │
+│                                                                             │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────────────────┐  │
+│  │ Webhook  │───▶│ Get Lead │───▶│ AI Write │───▶│ Get Email Provider   │  │
+│  │ Trigger  │    │ Data     │    │ Content  │    │ Config               │  │
+│  └──────────┘    └──────────┘    └──────────┘    └──────────┬───────────┘  │
+│                                                              │              │
+│                                                              ▼              │
+│                                                   ┌──────────────────────┐  │
+│                                                   │     SWITCH NODE      │  │
+│                                                   │  (email_provider)    │  │
+│                                                   └──────────┬───────────┘  │
+│                                                              │              │
+│                              ┌────────────────┬──────────────┼──────────┐   │
+│                              │                │              │          │   │
+│                              ▼                ▼              ▼          ▼   │
+│                        ┌──────────┐    ┌──────────┐   ┌──────────┐  ┌─────┐│
+│                        │  Gmail   │    │   SMTP   │   │ SendGrid │  │ ... ││
+│                        │   API    │    │   Node   │   │   API    │  │     ││
+│                        └────┬─────┘    └────┬─────┘   └────┬─────┘  └──┬──┘│
+│                             │               │              │           │   │
+│                             └───────────────┴──────────────┴───────────┘   │
+│                                              │                              │
+│                                              ▼                              │
+│                                   ┌──────────────────────┐                  │
+│                                   │     MERGE NODE       │                  │
+│                                   │  (Converge paths)    │                  │
+│                                   └──────────┬───────────┘                  │
+│                                              │                              │
+│                                              ▼                              │
+│                                   ┌──────────────────────┐                  │
+│                                   │   Log Email Event    │                  │
+│                                   │   (Same for all)     │                  │
+│                                   └──────────────────────┘                  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Benefits of This Approach:**
+- Single workflow to maintain (not 6 duplicates)
+- Easy to add new providers (just add a Switch case)
+- Configuration-driven, not code-driven
+- Same logging/tracking regardless of provider
+
+---
+
+## 60.B.4 DATABASE SCHEMA: EMAIL PROVIDER CONFIGURATION
+
+```sql
+-- ============================================
+-- EMAIL PROVIDER CONFIGURATION
+-- ============================================
+-- Stores per-workspace email provider settings
+-- Encrypted credentials for SMTP
+-- ============================================
+
+-- Add email provider columns to workspaces or create dedicated table
+CREATE TABLE IF NOT EXISTS genesis.email_provider_config (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workspace_id TEXT NOT NULL REFERENCES genesis.workspaces(id) ON DELETE CASCADE,
+    
+    -- Provider selection
+    provider TEXT NOT NULL DEFAULT 'gmail' 
+        CHECK (provider IN ('gmail', 'smtp', 'sendgrid', 'mailgun', 'ses', 'postmark')),
+    
+    -- Gmail OAuth (if provider = 'gmail')
+    gmail_credential_id TEXT,  -- Reference to n8n credential
+    gmail_refresh_token_encrypted BYTEA,  -- Backup, encrypted with pgcrypto
+    gmail_email TEXT,  -- The Gmail address being used
+    
+    -- SMTP Configuration (if provider = 'smtp')
+    smtp_host TEXT,
+    smtp_port INTEGER DEFAULT 587,
+    smtp_username TEXT,
+    smtp_password_encrypted BYTEA,  -- Encrypted with pgcrypto
+    smtp_encryption TEXT DEFAULT 'starttls' CHECK (smtp_encryption IN ('none', 'ssl', 'starttls')),
+    smtp_from_name TEXT,
+    smtp_from_email TEXT,
+    
+    -- SendGrid (if provider = 'sendgrid')
+    sendgrid_api_key_encrypted BYTEA,
+    sendgrid_from_email TEXT,
+    
+    -- Connection health
+    last_test_at TIMESTAMPTZ,
+    last_test_success BOOLEAN,
+    last_test_error TEXT,
+    
+    -- Metadata
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    UNIQUE(workspace_id)
+);
+
+-- Index for quick lookups
+CREATE INDEX idx_email_provider_workspace ON genesis.email_provider_config(workspace_id);
+
+-- RLS Policy
+ALTER TABLE genesis.email_provider_config ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY email_provider_isolation ON genesis.email_provider_config
+    FOR ALL
+    USING (workspace_id = current_setting('app.workspace_id', true));
+```
+
+---
+
+## 60.B.5 N8N WORKFLOW MODIFICATION: THE SWITCH NODE
+
+**How to Update Email 1, 2, 3 Workflows:**
+
+### Step 1: Add "Get Email Config" Node
+
+Before your existing Gmail node, add an HTTP Request node:
+
+```
+Node Type: HTTP Request
+Name: "Get Email Config"
+
+Configuration:
+  Method: GET
+  URL: {{ $env.DASHBOARD_URL }}/api/workspace/email-config
+  Headers:
+    Authorization: Bearer {{ $env.SIDECAR_TOKEN }}
+    X-Workspace-ID: {{ $json.workspace_id }}
+  
+Response:
+{
+  "provider": "smtp",  // or "gmail"
+  "smtp_host": "mail.example.com",
+  "smtp_port": 587,
+  "smtp_username": "outbound@example.com",
+  "smtp_password": "decrypted_password",  // Dashboard decrypts before sending
+  "smtp_encryption": "starttls",
+  "from_name": "John from Company",
+  "from_email": "john@example.com"
+}
+```
+
+### Step 2: Add Switch Node
+
+```
+Node Type: Switch
+Name: "Route by Provider"
+
+Configuration:
+  Mode: Rules
+  Data Type: String
+  Value 1: {{ $json.provider }}
+  
+  Rules:
+    Output 0: Equals "gmail"    → Connect to Gmail Node
+    Output 1: Equals "smtp"     → Connect to SMTP Node
+    Output 2: Equals "sendgrid" → Connect to SendGrid Node (future)
+    Fallback: Output 0 (Gmail as default)
+```
+
+### Step 3: Configure SMTP Node
+
+```
+Node Type: SMTP
+Name: "Send via SMTP"
+
+Configuration:
+  Host: {{ $json.smtp_host }}
+  Port: {{ $json.smtp_port }}
+  User: {{ $json.smtp_username }}
+  Password: {{ $json.smtp_password }}
+  SSL/TLS: {{ $json.smtp_encryption === 'ssl' }}
+  
+  From Email: {{ $json.from_email }}
+  From Name: {{ $json.from_name }}
+  To Email: {{ $json.lead.email }}
+  Subject: {{ $json.email_subject }}
+  HTML: {{ $json.email_body }}
+```
+
+### Step 4: Add Merge Node
+
+```
+Node Type: Merge
+Name: "Merge Send Results"
+
+Configuration:
+  Mode: Merge By Index
+  
+Connect: Gmail output + SMTP output → Merge → Continue to logging
+```
+
+---
+
+## 60.B.6 VISUAL GUIDE: N8N EDITOR VIEW
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    EMAIL 1 WORKFLOW (With SMTP Support)                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  BEFORE (Current - Gmail Only):                                            │
+│  ══════════════════════════════                                            │
+│                                                                             │
+│  [Webhook] → [Get Lead] → [AI Content] → [Gmail Send] → [Log Event]       │
+│                                                                             │
+│                                                                             │
+│  AFTER (With Email Provider Abstraction):                                  │
+│  ════════════════════════════════════════                                  │
+│                                                                             │
+│                                                     ┌─────────────────┐     │
+│                                                  ┌──│  Gmail Send     │──┐  │
+│                                                  │  │  (Output 0)     │  │  │
+│  ┌────────┐   ┌────────┐   ┌────────┐   ┌──────┐│  └─────────────────┘  │  │
+│  │Webhook │──▶│Get Lead│──▶│   AI   │──▶│Switch│┤                       │  │
+│  │        │   │        │   │Content │   │      ││  ┌─────────────────┐  │  │
+│  └────────┘   └────────┘   └────────┘   └──────┘└──│  SMTP Send      │──┤  │
+│                                                    │  (Output 1)     │  │  │
+│                                                    └─────────────────┘  │  │
+│                                                                         │  │
+│                                                    ┌─────────────────┐  │  │
+│                                                    │     Merge       │◀─┘  │
+│                                                    └────────┬────────┘     │
+│                                                             │              │
+│                                                             ▼              │
+│                                                    ┌─────────────────┐     │
+│                                                    │   Log Event     │     │
+│                                                    └─────────────────┘     │
+│                                                                             │
+│  NODE COUNT: Was 5, Now 7 (+2 nodes: Switch, SMTP)                        │
+│  WORKFLOWS: Still just 3 (Email 1, 2, 3) - NOT duplicated                 │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 60.B.7 DASHBOARD UI: EMAIL PROVIDER SETTINGS
+
+**Location:** Settings → Email Configuration
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         EMAIL CONFIGURATION                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Choose how your cold emails are sent:                                     │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  ○ Gmail (Recommended)                                              │   │
+│  │    Connect your Gmail account via OAuth. Easy setup, reliable.      │   │
+│  │    Limit: 500 emails/day (free) or 2,000/day (Google Workspace)    │   │
+│  │                                                                     │   │
+│  │    Status: ✅ Connected as john@company.com                        │   │
+│  │    [Reconnect Gmail] [Disconnect]                                   │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  ● SMTP (Custom Server)                                             │   │
+│  │    Use your own mail server or any SMTP provider.                   │   │
+│  │    Full control, no daily limits (server-dependent).               │   │
+│  │                                                                     │   │
+│  │    ─── SMTP Settings ─────────────────────────────────────────────  │   │
+│  │                                                                     │   │
+│  │    SMTP Host:      [smtp.yourserver.com                 ]          │   │
+│  │    Port:           [587                                  ]          │   │
+│  │    Username:       [outbound@yourdomain.com              ]          │   │
+│  │    Password:       [••••••••••••                         ] [Show]   │   │
+│  │                                                                     │   │
+│  │    Encryption:     ○ None   ○ SSL/TLS   ● STARTTLS                 │   │
+│  │                                                                     │   │
+│  │    ─── Sender Identity ───────────────────────────────────────────  │   │
+│  │                                                                     │   │
+│  │    From Name:      [John Smith                           ]          │   │
+│  │    From Email:     [john@yourdomain.com                  ]          │   │
+│  │                                                                     │   │
+│  │    [Test Connection]                                                │   │
+│  │                                                                     │   │
+│  │    ✅ Connection successful! Test email sent.                      │   │
+│  │                                                                     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  ○ SendGrid (Coming Soon)                                           │   │
+│  │    High-volume sending via SendGrid API.                            │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│                                              [Cancel] [Save Configuration]  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 60.B.8 API ENDPOINT: EMAIL CONFIG
+
+```typescript
+// app/api/workspace/email-config/route.ts
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase';
+import { decrypt } from '@/lib/encryption';
+import { validateSidecarToken } from '@/lib/auth';
+
+export async function GET(request: NextRequest) {
+  // Validate request (from Sidecar or Dashboard)
+  const workspaceId = request.headers.get('X-Workspace-ID');
+  const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+  
+  if (!await validateSidecarToken(token, workspaceId)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  const supabase = createClient();
+  
+  // Get email provider config
+  const { data: config, error } = await supabase
+    .from('email_provider_config')
+    .select('*')
+    .eq('workspace_id', workspaceId)
+    .single();
+  
+  if (error || !config) {
+    // Default to Gmail if no config exists
+    return NextResponse.json({ provider: 'gmail' });
+  }
+  
+  // Build response based on provider
+  const response: any = {
+    provider: config.provider,
+  };
+  
+  if (config.provider === 'smtp') {
+    response.smtp_host = config.smtp_host;
+    response.smtp_port = config.smtp_port;
+    response.smtp_username = config.smtp_username;
+    response.smtp_password = decrypt(config.smtp_password_encrypted);  // Decrypt for n8n
+    response.smtp_encryption = config.smtp_encryption;
+    response.from_name = config.smtp_from_name;
+    response.from_email = config.smtp_from_email;
+  } else if (config.provider === 'gmail') {
+    response.gmail_email = config.gmail_email;
+    // Gmail credentials are in n8n's credential store, not passed here
+  }
+  
+  return NextResponse.json(response);
+}
+
+export async function POST(request: NextRequest) {
+  // Save email provider configuration
+  // ... implementation for saving settings from Dashboard UI
+}
+```
+
+---
+
+## 60.B.9 CREDENTIAL INJECTION FOR SMTP
+
+When a tenant selects SMTP, the Sidecar needs access to the SMTP credentials. This integrates with Phase 53 (Dynamic UUID Mapper):
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    SMTP CREDENTIAL INJECTION FLOW                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. ONBOARDING:                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                     │   │
+│  │  User enters SMTP settings in Dashboard UI                         │   │
+│  │       │                                                             │   │
+│  │       ▼                                                             │   │
+│  │  Dashboard encrypts password with pgcrypto                         │   │
+│  │       │                                                             │   │
+│  │       ▼                                                             │   │
+│  │  Stores in genesis.email_provider_config                           │   │
+│  │       │                                                             │   │
+│  │       ▼                                                             │   │
+│  │  Triggers Sidecar to create n8n SMTP credential                    │   │
+│  │       │                                                             │   │
+│  │       ▼                                                             │   │
+│  │  Sidecar calls n8n API: POST /credentials                          │   │
+│  │  {                                                                  │   │
+│  │    "name": "smtp_workspace_xyz",                                   │   │
+│  │    "type": "smtp",                                                 │   │
+│  │    "data": {                                                       │   │
+│  │      "host": "smtp.example.com",                                   │   │
+│  │      "port": 587,                                                  │   │
+│  │      "user": "outbound@example.com",                               │   │
+│  │      "password": "decrypted_from_vault"                            │   │
+│  │    }                                                               │   │
+│  │  }                                                                  │   │
+│  │       │                                                             │   │
+│  │       ▼                                                             │   │
+│  │  n8n returns credential UUID                                       │   │
+│  │       │                                                             │   │
+│  │       ▼                                                             │   │
+│  │  UUID Mapper stores: smtp_credential → {uuid}                      │   │
+│  │                                                                     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  2. RUNTIME (When workflow executes):                                      │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                                                                     │   │
+│  │  Workflow hits SMTP node                                           │   │
+│  │       │                                                             │   │
+│  │       ▼                                                             │   │
+│  │  n8n uses credential UUID from workflow definition                 │   │
+│  │       │                                                             │   │
+│  │       ▼                                                             │   │
+│  │  Credential already exists in local n8n (created at onboarding)    │   │
+│  │       │                                                             │   │
+│  │       ▼                                                             │   │
+│  │  Email sent via SMTP                                               │   │
+│  │                                                                     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 60.B.10 TESTING EMAIL CONFIGURATION
+
+**Test Connection Endpoint:**
+
+```typescript
+// app/api/workspace/email-config/test/route.ts
+
+export async function POST(request: NextRequest) {
+  const { provider, smtp_host, smtp_port, smtp_username, smtp_password, ... } = await request.json();
+  
+  if (provider === 'smtp') {
+    try {
+      // Create transient SMTP connection
+      const transporter = nodemailer.createTransport({
+        host: smtp_host,
+        port: smtp_port,
+        secure: smtp_port === 465,
+        auth: {
+          user: smtp_username,
+          pass: smtp_password,
+        },
+      });
+      
+      // Verify connection
+      await transporter.verify();
+      
+      // Send test email
+      await transporter.sendMail({
+        from: `"Genesis Test" <${smtp_username}>`,
+        to: smtp_username,  // Send to self
+        subject: 'Genesis SMTP Test',
+        text: 'Your SMTP configuration is working correctly!',
+      });
+      
+      return NextResponse.json({ success: true, message: 'Test email sent!' });
+    } catch (error) {
+      return NextResponse.json({ 
+        success: false, 
+        message: `Connection failed: ${error.message}`,
+        hint: getSmtpErrorHint(error)  // "Check port", "Check credentials", etc.
+      });
+    }
+  }
+}
+```
+
+---
+
+## 60.B.11 COMMON SMTP CONFIGURATIONS
+
+**Reference for users:**
+
+| Provider | Host | Port | Encryption | Notes |
+|----------|------|------|------------|-------|
+| **Zoho Mail** | smtp.zoho.com | 587 | STARTTLS | Free tier available |
+| **Outlook/Office365** | smtp.office365.com | 587 | STARTTLS | Requires app password |
+| **Yahoo Mail** | smtp.mail.yahoo.com | 587 | STARTTLS | Requires app password |
+| **Fastmail** | smtp.fastmail.com | 587 | STARTTLS | Privacy-focused |
+| **ProtonMail Bridge** | 127.0.0.1 | 1025 | None | Local bridge required |
+| **Mailgun** | smtp.mailgun.org | 587 | STARTTLS | API key as password |
+| **SendGrid** | smtp.sendgrid.net | 587 | STARTTLS | API key as password |
+| **Amazon SES** | email-smtp.{region}.amazonaws.com | 587 | STARTTLS | IAM credentials |
+| **Self-hosted (Postfix)** | mail.yourdomain.com | 587 | STARTTLS | Your own server |
+
+---
+
+## 60.B.12 IMPLEMENTATION CHECKLIST
+
+**Phase 60.B delivers:**
+
+- [ ] `email_provider_config` database table
+- [ ] Dashboard UI for email provider selection
+- [ ] SMTP settings form with validation
+- [ ] Test connection endpoint
+- [ ] Email config API for Sidecar
+- [ ] Updated Email 1, 2, 3 workflows with Switch node
+- [ ] SMTP credential injection via Sidecar
+- [ ] Provider-agnostic logging (same events regardless of provider)
+
+**Integration points:**
+- Phase 53: Uses UUID Mapper for SMTP credentials
+- Phase 60: Extends onboarding with email provider choice
+- Phase 61: Email tracking works with both providers
+- Phase 67: API Health Monitor checks email provider status
+
+---
+
+# 🔐 PHASE 63.B: COMPREHENSIVE LOGIN AUDIT TRAIL
+
+> **Phase Type:** V30 Compliance & Security  
+> **Dependencies:** Phase 63 (Audit Logging)  
+> **Risk Level:** LOW (Read-only logging)  
+> **Priority:** MEDIUM - Required for SOC2/Enterprise Compliance
+
+---
+
+## 63.B.1 WHAT IS AN AUDIT TRAIL?
+
+An audit trail is a chronological record of system activities that provides documentary evidence of the sequence of activities. For logins specifically, it tracks:
+
+- **Who** attempted to log in
+- **When** the attempt occurred
+- **Where** (IP address, location)
+- **What** device/browser was used
+- **Whether** the attempt succeeded or failed
+- **Why** it failed (if applicable)
+
+**Why This Matters:**
+
+| Stakeholder | Benefit |
+|-------------|---------|
+| **Security Team** | Detect brute force attacks, compromised accounts |
+| **Compliance** | SOC2, GDPR, HIPAA all require login audit trails |
+| **Support** | Debug "I can't log in" issues |
+| **Legal** | Evidence for unauthorized access claims |
+| **Admin** | Know who's accessing the system and when |
+
+---
+
+## 63.B.2 AUDIT EVENTS TO CAPTURE
+
+### Login Events
+
+| Event Type | Description | Captured Data |
+|------------|-------------|---------------|
+| `login_attempt` | User started login flow | timestamp, user_id (if known), IP, user_agent |
+| `login_success` | Successful authentication | timestamp, user_id, session_id, IP, user_agent, auth_method |
+| `login_failure` | Failed authentication | timestamp, attempted_email, IP, user_agent, failure_reason |
+| `logout` | User logged out | timestamp, user_id, session_id, logout_type (manual/timeout) |
+| `session_refresh` | Token refreshed | timestamp, user_id, session_id |
+| `session_revoked` | Session forcibly ended | timestamp, user_id, session_id, revoked_by, reason |
+
+### Authentication Events
+
+| Event Type | Description | Captured Data |
+|------------|-------------|---------------|
+| `password_change` | Password changed | timestamp, user_id, IP, initiated_by |
+| `password_reset_request` | Reset link requested | timestamp, email, IP |
+| `password_reset_complete` | Password reset completed | timestamp, user_id, IP |
+| `mfa_enabled` | 2FA turned on | timestamp, user_id, mfa_type |
+| `mfa_disabled` | 2FA turned off | timestamp, user_id, disabled_by |
+| `mfa_challenge` | 2FA code entered | timestamp, user_id, success, mfa_type |
+
+### Access Events (Beyond Login)
+
+| Event Type | Description | Captured Data |
+|------------|-------------|---------------|
+| `api_key_created` | New API key generated | timestamp, user_id, key_name, permissions |
+| `api_key_used` | API key authenticated | timestamp, key_id, IP, endpoint |
+| `api_key_revoked` | API key deleted | timestamp, user_id, key_id, reason |
+| `permission_granted` | Access granted | timestamp, granted_by, granted_to, permission |
+| `permission_revoked` | Access revoked | timestamp, revoked_by, user_id, permission |
+
+---
+
+## 63.B.3 DATABASE SCHEMA: AUDIT TRAIL
+
+```sql
+-- ============================================
+-- LOGIN AUDIT TRAIL
+-- ============================================
+-- Immutable log of all authentication events
+-- Write-only: No updates or deletes allowed
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS genesis.login_audit_trail (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Event classification
+    event_type TEXT NOT NULL,
+    event_category TEXT NOT NULL DEFAULT 'authentication',  -- 'authentication', 'authorization', 'session'
+    severity TEXT NOT NULL DEFAULT 'info',  -- 'info', 'warning', 'critical'
+    
+    -- Actor (who did this)
+    user_id TEXT,  -- NULL if login failed before identifying user
+    user_email TEXT,  -- Captured at event time (may differ from current email)
+    workspace_id TEXT,  -- If action is workspace-specific
+    
+    -- Session info
+    session_id TEXT,
+    
+    -- Request context
+    ip_address INET NOT NULL,
+    user_agent TEXT,
+    device_fingerprint TEXT,  -- Optional: browser fingerprint
+    
+    -- Geolocation (derived from IP)
+    geo_country TEXT,
+    geo_city TEXT,
+    geo_region TEXT,
+    
+    -- Event details
+    success BOOLEAN,
+    failure_reason TEXT,  -- 'invalid_password', 'account_locked', 'mfa_failed', etc.
+    
+    -- Additional metadata (flexible)
+    metadata JSONB DEFAULT '{}',
+    
+    -- Timestamp (immutable)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Prevent modifications
+    CONSTRAINT audit_immutable CHECK (TRUE)  -- Enforced by triggers
+);
+
+-- Indexes for common queries
+CREATE INDEX idx_audit_user ON genesis.login_audit_trail(user_id, created_at DESC);
+CREATE INDEX idx_audit_event ON genesis.login_audit_trail(event_type, created_at DESC);
+CREATE INDEX idx_audit_ip ON genesis.login_audit_trail(ip_address, created_at DESC);
+CREATE INDEX idx_audit_workspace ON genesis.login_audit_trail(workspace_id, created_at DESC);
+CREATE INDEX idx_audit_created ON genesis.login_audit_trail(created_at DESC);
+CREATE INDEX idx_audit_severity ON genesis.login_audit_trail(severity) WHERE severity IN ('warning', 'critical');
+
+-- Partitioning by month for efficient archival
+-- (Optional: Add if expecting high volume)
+-- CREATE TABLE genesis.login_audit_trail_2026_01 PARTITION OF genesis.login_audit_trail
+--     FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
+
+-- ============================================
+-- IMMUTABILITY ENFORCEMENT
+-- ============================================
+-- Prevent any updates or deletes to audit records
+
+CREATE OR REPLACE FUNCTION genesis.enforce_audit_immutability()
+RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION 'Audit trail records are immutable. Updates and deletes are not allowed.';
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER audit_no_update
+    BEFORE UPDATE ON genesis.login_audit_trail
+    FOR EACH ROW
+    EXECUTE FUNCTION genesis.enforce_audit_immutability();
+
+CREATE TRIGGER audit_no_delete
+    BEFORE DELETE ON genesis.login_audit_trail
+    FOR EACH ROW
+    EXECUTE FUNCTION genesis.enforce_audit_immutability();
+
+-- ============================================
+-- RLS: Only admins can read audit trail
+-- ============================================
+ALTER TABLE genesis.login_audit_trail ENABLE ROW LEVEL SECURITY;
+
+-- Super admins can see all
+CREATE POLICY audit_admin_read ON genesis.login_audit_trail
+    FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM genesis.workspace_members wm
+            WHERE wm.user_id = current_setting('app.user_id', true)
+            AND wm.role = 'super_admin'
+        )
+    );
+
+-- Workspace admins can see their workspace events
+CREATE POLICY audit_workspace_read ON genesis.login_audit_trail
+    FOR SELECT
+    USING (
+        workspace_id = current_setting('app.workspace_id', true)
+        AND EXISTS (
+            SELECT 1 FROM genesis.workspace_members wm
+            WHERE wm.user_id = current_setting('app.user_id', true)
+            AND wm.workspace_id = current_setting('app.workspace_id', true)
+            AND wm.role IN ('admin', 'owner')
+        )
+    );
+
+-- Everyone can insert (logging happens from backend)
+CREATE POLICY audit_insert_all ON genesis.login_audit_trail
+    FOR INSERT
+    WITH CHECK (TRUE);
+```
+
+---
+
+## 63.B.4 LOGGING SERVICE
+
+```typescript
+// lib/audit/login-audit.ts
+
+import { createClient } from '@/lib/supabase';
+import { headers } from 'next/headers';
+
+interface AuditEvent {
+  event_type: string;
+  event_category?: 'authentication' | 'authorization' | 'session';
+  severity?: 'info' | 'warning' | 'critical';
+  user_id?: string;
+  user_email?: string;
+  workspace_id?: string;
+  session_id?: string;
+  success?: boolean;
+  failure_reason?: string;
+  metadata?: Record<string, any>;
+}
+
+export async function logAuditEvent(event: AuditEvent) {
+  const headersList = headers();
+  const ip = headersList.get('x-forwarded-for')?.split(',')[0] || 
+             headersList.get('x-real-ip') || 
+             '0.0.0.0';
+  const userAgent = headersList.get('user-agent') || 'unknown';
+  
+  // Get geolocation from IP (optional, use service like MaxMind or ip-api)
+  const geo = await getGeoFromIP(ip);
+  
+  const supabase = createClient({ serviceRole: true });  // Use service role for logging
+  
+  await supabase.from('login_audit_trail').insert({
+    event_type: event.event_type,
+    event_category: event.event_category || 'authentication',
+    severity: event.severity || 'info',
+    user_id: event.user_id,
+    user_email: event.user_email,
+    workspace_id: event.workspace_id,
+    session_id: event.session_id,
+    ip_address: ip,
+    user_agent: userAgent,
+    geo_country: geo?.country,
+    geo_city: geo?.city,
+    geo_region: geo?.region,
+    success: event.success,
+    failure_reason: event.failure_reason,
+    metadata: event.metadata || {},
+  });
+}
+
+// Convenience functions
+export const auditLoginSuccess = (userId: string, email: string, sessionId: string) =>
+  logAuditEvent({
+    event_type: 'login_success',
+    severity: 'info',
+    user_id: userId,
+    user_email: email,
+    session_id: sessionId,
+    success: true,
+  });
+
+export const auditLoginFailure = (email: string, reason: string) =>
+  logAuditEvent({
+    event_type: 'login_failure',
+    severity: 'warning',
+    user_email: email,
+    success: false,
+    failure_reason: reason,
+  });
+
+export const auditSuspiciousActivity = (userId: string, reason: string, metadata: any) =>
+  logAuditEvent({
+    event_type: 'suspicious_activity',
+    severity: 'critical',
+    user_id: userId,
+    success: false,
+    failure_reason: reason,
+    metadata,
+  });
+```
+
+---
+
+## 63.B.5 INTEGRATION WITH CLERK (AUTHENTICATION)
+
+Since Genesis uses Clerk for authentication, integrate audit logging with Clerk webhooks:
+
+```typescript
+// app/api/webhooks/clerk/route.ts
+
+import { Webhook } from 'svix';
+import { logAuditEvent } from '@/lib/audit/login-audit';
+
+export async function POST(request: Request) {
+  const payload = await request.json();
+  const { type, data } = payload;
+  
+  switch (type) {
+    case 'session.created':
+      await logAuditEvent({
+        event_type: 'login_success',
+        user_id: data.user_id,
+        user_email: data.user?.email_addresses?.[0]?.email_address,
+        session_id: data.id,
+        success: true,
+        metadata: {
+          auth_method: data.authentication_method,
+          client_id: data.client_id,
+        },
+      });
+      break;
+      
+    case 'session.ended':
+      await logAuditEvent({
+        event_type: 'logout',
+        user_id: data.user_id,
+        session_id: data.id,
+        metadata: {
+          reason: data.status,  // 'ended', 'revoked', 'expired'
+        },
+      });
+      break;
+      
+    case 'user.created':
+      await logAuditEvent({
+        event_type: 'account_created',
+        event_category: 'authorization',
+        user_id: data.id,
+        user_email: data.email_addresses?.[0]?.email_address,
+        success: true,
+      });
+      break;
+      
+    // ... other Clerk events
+  }
+  
+  return new Response('OK', { status: 200 });
+}
+```
+
+---
+
+## 63.B.6 ADMIN UI: AUDIT TRAIL VIEWER
+
+**Location:** Admin → Security → Audit Trail
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           AUDIT TRAIL VIEWER                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Filters:                                                                   │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  Event Type: [All Events        ▼]   User: [All Users      ▼]      │   │
+│  │  Date Range: [Last 7 days       ▼]   Severity: [All        ▼]      │   │
+│  │  IP Address: [_________________ ]    [Search]                       │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ TIME               EVENT              USER           IP        LOC  │   │
+│  ├─────────────────────────────────────────────────────────────────────┤   │
+│  │ 2026-01-24 14:32  ✅ login_success   john@co.com   192.168.1.1  US │   │
+│  │ 2026-01-24 14:30  ❌ login_failure   john@co.com   192.168.1.1  US │   │
+│  │                    └─ Reason: Invalid password                      │   │
+│  │ 2026-01-24 13:15  ⚠️ mfa_challenge   sarah@co.com  10.0.0.5     UK │   │
+│  │                    └─ MFA type: TOTP, Success: Yes                  │   │
+│  │ 2026-01-24 12:00  ✅ login_success   sarah@co.com  10.0.0.5     UK │   │
+│  │ 2026-01-24 11:45  🚨 suspicious      bob@co.com    185.2.3.4    RU │   │
+│  │                    └─ Reason: Login from unusual location           │   │
+│  │                    └─ [Block User] [Investigate]                    │   │
+│  │ 2026-01-24 10:30  ✅ logout          mike@co.com   192.168.1.2  US │   │
+│  │                    └─ Type: Manual logout                           │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  Showing 1-50 of 1,234 events                    [← Previous] [Next →]     │
+│                                                                             │
+│  [Export CSV] [Export JSON]                                                │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 63.B.7 SECURITY ALERTS FROM AUDIT DATA
+
+**Automated Detection Rules:**
+
+| Pattern | Alert Type | Action |
+|---------|------------|--------|
+| 5+ failed logins from same IP in 5 min | Brute force attempt | Block IP temporarily |
+| Login from new country | Unusual location | Require MFA, notify user |
+| Login at unusual time | Anomalous behavior | Flag for review |
+| Session active in 2+ locations | Session hijacking | Revoke all sessions |
+| Password changed + immediate logout | Account takeover | Lock account, notify |
+
+```sql
+-- Example: Detect brute force attacks
+CREATE OR REPLACE FUNCTION genesis.detect_brute_force()
+RETURNS TRIGGER AS $$
+DECLARE
+    recent_failures INTEGER;
+BEGIN
+    IF NEW.event_type = 'login_failure' THEN
+        -- Count recent failures from same IP
+        SELECT COUNT(*) INTO recent_failures
+        FROM genesis.login_audit_trail
+        WHERE ip_address = NEW.ip_address
+          AND event_type = 'login_failure'
+          AND created_at > NOW() - INTERVAL '5 minutes';
+        
+        IF recent_failures >= 5 THEN
+            -- Log critical alert
+            INSERT INTO genesis.login_audit_trail (
+                event_type, severity, ip_address, user_agent, 
+                failure_reason, metadata
+            ) VALUES (
+                'brute_force_detected', 'critical', NEW.ip_address, NEW.user_agent,
+                'Multiple failed login attempts detected',
+                jsonb_build_object('attempt_count', recent_failures)
+            );
+            
+            -- Optionally: Add IP to blocklist
+            INSERT INTO genesis.blocked_ips (ip_address, reason, expires_at)
+            VALUES (NEW.ip_address, 'brute_force', NOW() + INTERVAL '1 hour')
+            ON CONFLICT (ip_address) DO UPDATE SET expires_at = NOW() + INTERVAL '1 hour';
+        END IF;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER audit_brute_force_detection
+    AFTER INSERT ON genesis.login_audit_trail
+    FOR EACH ROW
+    EXECUTE FUNCTION genesis.detect_brute_force();
+```
+
+---
+
+## 63.B.8 RETENTION & ARCHIVAL
+
+**Retention Policy:**
+
+| Data Type | Retention | Storage |
+|-----------|-----------|---------|
+| Login events (success) | 90 days active, 2 years archived | Supabase → S3 |
+| Login events (failure) | 90 days active, 2 years archived | Supabase → S3 |
+| Security alerts | 2 years active, 7 years archived | Supabase → S3 |
+| Session data | 30 days | Supabase only |
+
+**Archival Job (Monthly):**
+
+```sql
+-- Archive old audit records to cold storage
+CREATE OR REPLACE FUNCTION genesis.archive_old_audit_records()
+RETURNS INTEGER AS $$
+DECLARE
+    archived_count INTEGER;
+BEGIN
+    -- Export to S3/external storage first (handled by separate process)
+    
+    -- Then delete records older than retention period
+    WITH deleted AS (
+        DELETE FROM genesis.login_audit_trail
+        WHERE created_at < NOW() - INTERVAL '90 days'
+          AND severity = 'info'
+        RETURNING id
+    )
+    SELECT COUNT(*) INTO archived_count FROM deleted;
+    
+    RETURN archived_count;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+## 63.B.9 IMPLEMENTATION CHECKLIST
+
+**Phase 63.B delivers:**
+
+- [ ] `login_audit_trail` table with immutability triggers
+- [ ] `logAuditEvent()` service function
+- [ ] Clerk webhook integration
+- [ ] Brute force detection trigger
+- [ ] Admin UI audit trail viewer
+- [ ] Export to CSV/JSON
+- [ ] Retention/archival automation
+- [ ] Security alerts from patterns
+
+**Compliance achieved:**
+- SOC2 Type II: Login audit requirement
+- GDPR: Access logging for data subjects
+- HIPAA: Authentication event logging
+
+---
+
+# 🛠️ PHASE 66.B: INFRASTRUCTURE AS CODE (OPTIONAL)
+
+> **Phase Type:** V30 Operational Excellence  
+> **Dependencies:** Phase 50, Phase 66  
+> **Risk Level:** LOW (Supplementary tooling)  
+> **Priority:** 🟢 LOW - Nice to have, not critical for MVP
+
+---
+
+## 66.B.1 WHAT IS INFRASTRUCTURE AS CODE (IaC)?
+
+**Infrastructure as Code** means defining your infrastructure (servers, databases, networks) in configuration files rather than manual setup. This enables:
+
+- **Reproducibility:** Exact same infrastructure every time
+- **Version control:** Track changes, rollback if needed
+- **Disaster recovery:** Rebuild everything from code
+- **Documentation:** The code IS the documentation
+
+**The Two Main Tools:**
+
+| Tool | Purpose | Analogy |
+|------|---------|---------|
+| **Terraform** | Create cloud resources | "Build the house" |
+| **Ansible** | Configure servers | "Furnish the house" |
+
+---
+
+## 66.B.2 WHY THIS IS MARKED OPTIONAL/LOW PRIORITY
+
+**Current V30 Architecture Already Handles This:**
+
+| Task | V30 Solution | IaC Alternative |
+|------|--------------|-----------------|
+| Create tenant droplets | Ignition Orchestrator (Phase 41) | Terraform |
+| Configure droplets | Cloud-Init + Sidecar | Ansible |
+| Fleet-wide updates | BullMQ + Phase 56 | Ansible |
+| Credential injection | Sidecar + Vault | Ansible Vault |
+
+**The V30 architecture is PURPOSE-BUILT for dynamic, on-demand infrastructure.** Terraform/Ansible are better for static infrastructure.
+
+**Where IaC WOULD Help:**
+- Recreating the Dashboard itself after disaster
+- Setting up new environments (staging, production)
+- Provisioning the Redis cluster
+- Managing DNS records
+
+---
+
+## 66.B.3 TERRAFORM FOR DASHBOARD INFRASTRUCTURE
+
+If you want to use Terraform, here's what it would manage:
+
+```hcl
+# main.tf - Genesis Dashboard Infrastructure
+
+terraform {
+  required_providers {
+    digitalocean = {
+      source  = "digitalocean/digitalocean"
+      version = "~> 2.0"
+    }
+    supabase = {
+      source  = "supabase/supabase"
+      version = "~> 1.0"
+    }
+  }
+}
+
+# Variables
+variable "environment" {
+  description = "Environment name (staging, production)"
+  type        = string
+}
+
+variable "do_token" {
+  description = "DigitalOcean API token"
+  type        = string
+  sensitive   = true
+}
+
+# DigitalOcean Provider
+provider "digitalocean" {
+  token = var.do_token
+}
+
+# Dashboard Droplet (NOT tenant droplets - those are managed by the app)
+resource "digitalocean_droplet" "dashboard" {
+  name     = "genesis-dashboard-${var.environment}"
+  region   = "nyc1"
+  size     = "s-2vcpu-4gb"  # Larger than tenant droplets
+  image    = "ubuntu-22-04-x64"
+  
+  user_data = file("cloud-init/dashboard.yml")
+  
+  tags = ["genesis", "dashboard", var.environment]
+}
+
+# Redis for BullMQ
+resource "digitalocean_database_cluster" "redis" {
+  name       = "genesis-redis-${var.environment}"
+  engine     = "redis"
+  version    = "7"
+  size       = "db-s-1vcpu-1gb"
+  region     = "nyc1"
+  node_count = 1
+}
+
+# Load Balancer (optional, for high availability)
+resource "digitalocean_loadbalancer" "dashboard" {
+  name   = "genesis-lb-${var.environment}"
+  region = "nyc1"
+
+  forwarding_rule {
+    entry_port     = 443
+    entry_protocol = "https"
+    target_port    = 3000
+    target_protocol = "http"
+    certificate_name = digitalocean_certificate.dashboard.name
+  }
+
+  healthcheck {
+    port     = 3000
+    protocol = "http"
+    path     = "/api/health"
+  }
+
+  droplet_ids = [digitalocean_droplet.dashboard.id]
+}
+
+# DNS Record
+resource "digitalocean_record" "dashboard" {
+  domain = "genesis-platform.com"
+  type   = "A"
+  name   = var.environment == "production" ? "@" : var.environment
+  value  = digitalocean_loadbalancer.dashboard.ip
+  ttl    = 300
+}
+
+# Outputs
+output "dashboard_ip" {
+  value = digitalocean_droplet.dashboard.ipv4_address
+}
+
+output "redis_uri" {
+  value     = digitalocean_database_cluster.redis.uri
+  sensitive = true
+}
+```
+
+---
+
+## 66.B.4 WHEN TO IMPLEMENT IaC
+
+**Implement Later When:**
+- [ ] You have 1000+ paying customers (validate product first)
+- [ ] You need multiple environments (staging, production, demo)
+- [ ] You're hiring DevOps engineers who expect IaC
+- [ ] You need SOC2 Type II certification (requires change management)
+- [ ] Disaster recovery becomes a business requirement
+
+**Don't Implement Now If:**
+- [ ] You're still iterating on the core product
+- [ ] You're the only person managing infrastructure
+- [ ] The existing Cloud-Init + Sidecar approach works well
+
+---
+
+## 66.B.5 RECOMMENDATION
+
+**For Genesis V30:**
+
+1. **Skip Terraform for tenant droplets** - The Ignition Orchestrator is better suited for dynamic provisioning
+2. **Consider Terraform for Dashboard infra** - But only after product-market fit
+3. **Skip Ansible entirely** - The Sidecar + BullMQ approach is more elegant for this use case
+
+**If you DO implement IaC later:**
+- Start with Dashboard infrastructure only
+- Use Terraform Cloud for state management
+- Keep tenant droplet management in the app
+
+---
+
+# 🏥 PHASE 67: API HEALTH MONITOR & SANITY CHECK
+
+> **Phase Type:** V30 Observability  
+> **Dependencies:** Phase 44 (God Mode), Phase 60 (Onboarding)  
+> **Risk Level:** LOW (Read-only monitoring)  
+> **Priority:** 🔴 HIGH - Essential for Debugging
+
+---
+
+## 67.1 THE PROBLEM: API CONFIGURATION CHAOS
+
+Genesis integrates with many external APIs:
+
+| API | Purpose | Failure Impact |
+|-----|---------|----------------|
+| **OpenAI** | AI content generation | Emails not personalized |
+| **Claude/Anthropic** | Alternative AI | Fallback fails |
+| **Relevance AI** | Lead enrichment | No enriched data |
+| **Apify** | Web scraping | No lead discovery |
+| **Google CSE** | Search enrichment | Missing company info |
+| **Gmail** | Email sending | Emails not sent |
+| **DigitalOcean** | Droplet management | Can't provision tenants |
+| **Supabase** | Database | Total system failure |
+
+**The Pain Point:**
+When something breaks, you currently have to:
+1. Check logs (which logs? where?)
+2. Search through code for API calls
+3. Test each API manually
+4. Figure out if it's a config issue or API outage
+
+**The Solution:**
+A centralized API Health Dashboard that:
+- Tests all APIs automatically
+- Shows exactly what's broken
+- Points to exactly where to fix it
+- Alerts before users notice
+
+---
+
+## 67.2 API HEALTH DASHBOARD
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         API HEALTH DASHBOARD                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Last Check: 2 minutes ago                    [Refresh Now]                │
+│                                                                             │
+│  Overall Status: ⚠️ 1 Issue Detected                                       │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  SERVICE           STATUS    LATENCY   QUOTA      ISSUE             │   │
+│  ├─────────────────────────────────────────────────────────────────────┤   │
+│  │  OpenAI            ✅ OK     245ms     72% used   -                  │   │
+│  │  Claude            ✅ OK     312ms     45% used   -                  │   │
+│  │  Relevance AI      ❌ FAIL   -         -          Invalid API key    │   │
+│  │                              └─→ [Fix: Settings > API Keys > Relevance] │
+│  │  Apify             ✅ OK     1.2s      89% used   ⚠️ Quota warning   │   │
+│  │  Google CSE        ✅ OK     178ms     23% used   -                  │   │
+│  │  Gmail OAuth       ✅ OK     156ms     -          Token valid 28d    │   │
+│  │  DigitalOcean      ✅ OK     89ms      -          15/25 accounts ok  │   │
+│  │  Supabase          ✅ OK     12ms      -          -                  │   │
+│  │  Redis             ✅ OK     3ms       -          -                  │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ─── DETAILED VIEW: Relevance AI ──────────────────────────────────────    │
+│                                                                             │
+│  Status: ❌ AUTHENTICATION FAILED                                          │
+│  Last Success: 3 days ago                                                  │
+│  Error Message: "Invalid API key or key expired"                           │
+│                                                                             │
+│  Diagnostic Steps:                                                         │
+│  1. Go to Settings > API Keys > Relevance AI                              │
+│  2. Verify the API key matches your Relevance AI dashboard                │
+│  3. Check if the key has expired or been rotated                          │
+│  4. Click "Test Connection" after updating                                 │
+│                                                                             │
+│  [Go to Settings] [View Relevance AI Dashboard] [Contact Support]          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 67.3 API HEALTH CHECK DEFINITIONS
+
+```typescript
+// lib/api-health/checks.ts
+
+export interface HealthCheck {
+  name: string;
+  category: 'ai' | 'integration' | 'infrastructure' | 'email';
+  check: () => Promise<HealthCheckResult>;
+  fixPath: string;  // Where to fix if broken
+  criticalLevel: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export interface HealthCheckResult {
+  status: 'ok' | 'degraded' | 'error';
+  latencyMs?: number;
+  quotaUsed?: number;
+  quotaLimit?: number;
+  message?: string;
+  error?: string;
+  expiresAt?: Date;  // For tokens
+}
+
+// Define all health checks
+export const healthChecks: HealthCheck[] = [
+  {
+    name: 'OpenAI',
+    category: 'ai',
+    criticalLevel: 'critical',
+    fixPath: '/settings/api-keys#openai',
+    check: async () => {
+      const start = Date.now();
+      try {
+        const response = await fetch('https://api.openai.com/v1/models', {
+          headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` }
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          return { 
+            status: 'error', 
+            error: error.error?.message || 'Authentication failed',
+            latencyMs: Date.now() - start
+          };
+        }
+        
+        return { 
+          status: 'ok', 
+          latencyMs: Date.now() - start,
+          message: 'API key valid'
+        };
+      } catch (e) {
+        return { status: 'error', error: e.message };
+      }
+    }
+  },
+  
+  {
+    name: 'Relevance AI',
+    category: 'ai',
+    criticalLevel: 'high',
+    fixPath: '/settings/api-keys#relevance',
+    check: async () => {
+      const start = Date.now();
+      try {
+        // Test Relevance AI endpoint
+        const response = await fetch('https://api-xxx.relevanceai.com/v1/agents', {
+          headers: { 
+            'Authorization': process.env.RELEVANCE_API_KEY,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.status === 401) {
+          return { status: 'error', error: 'Invalid API key', latencyMs: Date.now() - start };
+        }
+        if (response.status === 403) {
+          return { status: 'error', error: 'API key lacks permissions', latencyMs: Date.now() - start };
+        }
+        if (!response.ok) {
+          return { status: 'degraded', error: `HTTP ${response.status}`, latencyMs: Date.now() - start };
+        }
+        
+        return { status: 'ok', latencyMs: Date.now() - start };
+      } catch (e) {
+        return { status: 'error', error: e.message };
+      }
+    }
+  },
+  
+  {
+    name: 'Apify',
+    category: 'integration',
+    criticalLevel: 'high',
+    fixPath: '/settings/api-keys#apify',
+    check: async () => {
+      const start = Date.now();
+      try {
+        // Get account info including quota
+        const response = await fetch('https://api.apify.com/v2/users/me', {
+          headers: { 'Authorization': `Bearer ${process.env.APIFY_API_KEY}` }
+        });
+        
+        if (!response.ok) {
+          return { status: 'error', error: 'Invalid API key', latencyMs: Date.now() - start };
+        }
+        
+        const data = await response.json();
+        const quotaUsed = data.data?.usage?.computeUnitsUsed || 0;
+        const quotaLimit = data.data?.subscription?.computeUnits || 100;
+        const quotaPercent = (quotaUsed / quotaLimit) * 100;
+        
+        return { 
+          status: quotaPercent > 90 ? 'degraded' : 'ok',
+          latencyMs: Date.now() - start,
+          quotaUsed: quotaPercent,
+          quotaLimit: 100,
+          message: quotaPercent > 90 ? 'Quota nearly exhausted' : undefined
+        };
+      } catch (e) {
+        return { status: 'error', error: e.message };
+      }
+    }
+  },
+  
+  {
+    name: 'Gmail OAuth',
+    category: 'email',
+    criticalLevel: 'critical',
+    fixPath: '/settings/email#gmail',
+    check: async () => {
+      const start = Date.now();
+      try {
+        // Check if OAuth token is valid and when it expires
+        const tokenInfo = await getGmailTokenInfo();
+        
+        if (!tokenInfo.valid) {
+          return { status: 'error', error: 'OAuth token invalid or expired' };
+        }
+        
+        const daysUntilExpiry = Math.floor((tokenInfo.expiresAt - Date.now()) / (1000 * 60 * 60 * 24));
+        
+        return { 
+          status: daysUntilExpiry < 7 ? 'degraded' : 'ok',
+          latencyMs: Date.now() - start,
+          expiresAt: new Date(tokenInfo.expiresAt),
+          message: daysUntilExpiry < 7 ? `Token expires in ${daysUntilExpiry} days` : `Token valid for ${daysUntilExpiry} days`
+        };
+      } catch (e) {
+        return { status: 'error', error: e.message };
+      }
+    }
+  },
+  
+  {
+    name: 'DigitalOcean',
+    category: 'infrastructure',
+    criticalLevel: 'critical',
+    fixPath: '/admin/do-accounts',
+    check: async () => {
+      const start = Date.now();
+      try {
+        // Check all DO accounts in pool
+        const accounts = await getActiveDoAccounts();
+        const results = await Promise.all(
+          accounts.map(async (acc) => {
+            const resp = await fetch('https://api.digitalocean.com/v2/account', {
+              headers: { 'Authorization': `Bearer ${decrypt(acc.token)}` }
+            });
+            return { id: acc.id, ok: resp.ok };
+          })
+        );
+        
+        const okCount = results.filter(r => r.ok).length;
+        const totalCount = results.length;
+        
+        return {
+          status: okCount === 0 ? 'error' : okCount < totalCount ? 'degraded' : 'ok',
+          latencyMs: Date.now() - start,
+          message: `${okCount}/${totalCount} accounts operational`
+        };
+      } catch (e) {
+        return { status: 'error', error: e.message };
+      }
+    }
+  },
+  
+  {
+    name: 'Supabase',
+    category: 'infrastructure',
+    criticalLevel: 'critical',
+    fixPath: '/admin/database',
+    check: async () => {
+      const start = Date.now();
+      try {
+        const supabase = createClient();
+        const { error } = await supabase.from('workspaces').select('count').limit(1);
+        
+        if (error) {
+          return { status: 'error', error: error.message };
+        }
+        
+        return { status: 'ok', latencyMs: Date.now() - start };
+      } catch (e) {
+        return { status: 'error', error: e.message };
+      }
+    }
+  },
+  
+  {
+    name: 'Redis (BullMQ)',
+    category: 'infrastructure',
+    criticalLevel: 'critical',
+    fixPath: '/admin/redis',
+    check: async () => {
+      const start = Date.now();
+      try {
+        const redis = getRedisClient();
+        await redis.ping();
+        
+        return { status: 'ok', latencyMs: Date.now() - start };
+      } catch (e) {
+        return { status: 'error', error: e.message };
+      }
+    }
+  }
+];
+```
+
+---
+
+## 67.4 HEALTH CHECK RUNNER
+
+```typescript
+// lib/api-health/runner.ts
+
+import { healthChecks, HealthCheckResult } from './checks';
+
+export interface HealthReport {
+  timestamp: Date;
+  overallStatus: 'healthy' | 'degraded' | 'unhealthy';
+  checks: Record<string, HealthCheckResult & { name: string; fixPath: string }>;
+  issueCount: number;
+}
+
+export async function runAllHealthChecks(): Promise<HealthReport> {
+  const results: HealthReport['checks'] = {};
+  let issueCount = 0;
+  
+  // Run all checks in parallel
+  const checkResults = await Promise.allSettled(
+    healthChecks.map(async (check) => ({
+      name: check.name,
+      fixPath: check.fixPath,
+      result: await check.check()
+    }))
+  );
+  
+  for (const outcome of checkResults) {
+    if (outcome.status === 'fulfilled') {
+      const { name, fixPath, result } = outcome.value;
+      results[name] = { ...result, name, fixPath };
+      if (result.status !== 'ok') issueCount++;
+    } else {
+      // Check itself threw an error
+      results['Unknown'] = { 
+        status: 'error', 
+        error: outcome.reason?.message || 'Check failed',
+        name: 'Unknown',
+        fixPath: '/admin'
+      };
+      issueCount++;
+    }
+  }
+  
+  // Determine overall status
+  const statuses = Object.values(results).map(r => r.status);
+  let overallStatus: HealthReport['overallStatus'] = 'healthy';
+  if (statuses.includes('error')) overallStatus = 'unhealthy';
+  else if (statuses.includes('degraded')) overallStatus = 'degraded';
+  
+  return {
+    timestamp: new Date(),
+    overallStatus,
+    checks: results,
+    issueCount
+  };
+}
+```
+
+---
+
+## 67.5 SCHEDULED HEALTH CHECKS
+
+```typescript
+// Runs every 15 minutes via cron or BullMQ repeatable job
+
+import { Queue } from 'bullmq';
+import { runAllHealthChecks } from './runner';
+
+const healthQueue = new Queue('api-health', { connection: redis });
+
+// Schedule repeating job
+await healthQueue.add('check-all-apis', {}, {
+  repeat: { every: 15 * 60 * 1000 }  // Every 15 minutes
+});
+
+// Worker
+const worker = new Worker('api-health', async (job) => {
+  const report = await runAllHealthChecks();
+  
+  // Store result
+  await supabase.from('api_health_snapshots').insert({
+    timestamp: report.timestamp,
+    overall_status: report.overallStatus,
+    checks: report.checks,
+    issue_count: report.issueCount
+  });
+  
+  // Alert if issues detected
+  if (report.overallStatus !== 'healthy') {
+    await sendAlert({
+      type: 'api_health',
+      severity: report.overallStatus === 'unhealthy' ? 'critical' : 'warning',
+      title: `API Health: ${report.issueCount} issue(s) detected`,
+      details: report.checks
+    });
+  }
+  
+  return report;
+}, { connection: redis });
+```
+
+---
+
+## 67.6 API HEALTH STORAGE
+
+```sql
+-- Store health check history
+CREATE TABLE IF NOT EXISTS genesis.api_health_snapshots (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    overall_status TEXT NOT NULL CHECK (overall_status IN ('healthy', 'degraded', 'unhealthy')),
+    checks JSONB NOT NULL,
+    issue_count INTEGER NOT NULL DEFAULT 0,
+    
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_health_timestamp ON genesis.api_health_snapshots(timestamp DESC);
+CREATE INDEX idx_health_status ON genesis.api_health_snapshots(overall_status);
+
+-- Keep last 7 days of snapshots
+-- Older ones are aggregated to daily summaries
+```
+
+---
+
+## 67.7 API HEALTH API ENDPOINT
+
+```typescript
+// app/api/admin/api-health/route.ts
+
+export async function GET(request: NextRequest) {
+  // Get latest health report
+  const { data: latest } = await supabase
+    .from('api_health_snapshots')
+    .select('*')
+    .order('timestamp', { ascending: false })
+    .limit(1)
+    .single();
+  
+  // Check if stale (>30 minutes old)
+  const isStale = latest && 
+    (Date.now() - new Date(latest.timestamp).getTime()) > 30 * 60 * 1000;
+  
+  if (!latest || isStale) {
+    // Run fresh check
+    const report = await runAllHealthChecks();
+    return NextResponse.json(report);
+  }
+  
+  return NextResponse.json(latest);
+}
+
+export async function POST(request: NextRequest) {
+  // Force refresh
+  const report = await runAllHealthChecks();
+  return NextResponse.json(report);
+}
+```
+
+---
+
+## 67.8 DIAGNOSTIC GUIDES
+
+For each API, provide specific troubleshooting steps:
+
+```typescript
+// lib/api-health/diagnostics.ts
+
+export const diagnosticGuides: Record<string, DiagnosticGuide> = {
+  'OpenAI': {
+    commonIssues: [
+      {
+        error: 'Invalid API key',
+        cause: 'API key is incorrect or has been revoked',
+        steps: [
+          '1. Go to https://platform.openai.com/api-keys',
+          '2. Create a new API key or copy existing one',
+          '3. Update in Settings > API Keys > OpenAI',
+          '4. Click "Test Connection"'
+        ]
+      },
+      {
+        error: 'Rate limit exceeded',
+        cause: 'Too many requests or quota exhausted',
+        steps: [
+          '1. Check your OpenAI usage at https://platform.openai.com/usage',
+          '2. Upgrade your plan if needed',
+          '3. Or wait for rate limit reset (usually 1 minute)'
+        ]
+      },
+      {
+        error: 'Insufficient quota',
+        cause: 'Billing not set up or quota exhausted',
+        steps: [
+          '1. Add payment method at https://platform.openai.com/account/billing',
+          '2. Set usage limits appropriately',
+          '3. Monitor usage in the dashboard'
+        ]
+      }
+    ]
+  },
+  
+  'Relevance AI': {
+    commonIssues: [
+      {
+        error: 'Invalid API key',
+        cause: 'API key format incorrect or expired',
+        steps: [
+          '1. Go to https://app.relevanceai.com/settings/api-keys',
+          '2. Generate a new API key',
+          '3. Copy the full key (including project ID)',
+          '4. Update in Settings > API Keys > Relevance AI'
+        ]
+      }
+    ]
+  },
+  
+  'Gmail OAuth': {
+    commonIssues: [
+      {
+        error: 'Token expired',
+        cause: 'OAuth refresh token has expired or been revoked',
+        steps: [
+          '1. Go to Settings > Email Configuration',
+          '2. Click "Reconnect Gmail"',
+          '3. Grant permissions again',
+          '4. Verify connection with "Test Connection"'
+        ]
+      },
+      {
+        error: 'Insufficient permissions',
+        cause: 'Gmail API not enabled or scopes missing',
+        steps: [
+          '1. Go to Google Cloud Console',
+          '2. Enable Gmail API',
+          '3. Verify OAuth consent screen scopes',
+          '4. Reconnect Gmail in Settings'
+        ]
+      }
+    ]
+  }
+  
+  // ... more diagnostic guides
+};
+```
+
+---
+
+## 67.9 INTEGRATION WITH GOD MODE
+
+The API Health Monitor integrates with Phase 44 (God Mode):
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    GOD MODE DASHBOARD (With API Health)                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Tabs:                                                                      │
+│  [Fleet] [Health Mesh] [Scale Health] [API Health] [Financial] [Templates] │
+│                                           ▲                                 │
+│                                           │                                 │
+│                                      NEW TAB                                │
+│                                                                             │
+│  Quick View (on Fleet tab):                                                │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  API Status: ⚠️ 1 issue | Fleet: ✅ 14,892 healthy | Wallet: $1,234 │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 67.10 IMPLEMENTATION CHECKLIST
+
+**Phase 67 delivers:**
+
+- [ ] Health check definitions for all external APIs
+- [ ] Health check runner with parallel execution
+- [ ] API Health Dashboard UI
+- [ ] Scheduled checks (every 15 minutes)
+- [ ] `api_health_snapshots` table
+- [ ] Alert routing for health issues
+- [ ] Diagnostic guides with fix steps
+- [ ] Integration with God Mode dashboard
+- [ ] API endpoint for programmatic access
+
+**APIs monitored:**
+- OpenAI
+- Claude/Anthropic
+- Relevance AI
+- Apify
+- Google CSE
+- Gmail OAuth
+- DigitalOcean (all accounts)
+- Supabase
+- Redis
 
 ---
 

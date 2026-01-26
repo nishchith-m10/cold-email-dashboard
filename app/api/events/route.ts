@@ -5,6 +5,61 @@ import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_WEBHOOK } fro
 
 export const dynamic = 'force-dynamic';
 
+// Notification configuration helper
+type NotificationType = 'reply' | 'opt_out' | 'budget_alert' | 'campaign_complete' | 'system';
+
+interface NotificationConfig {
+  type: NotificationType;
+  title: string;
+  message: string;
+}
+
+function getNotificationConfig(
+  eventType: string,
+  contactEmail: string
+): NotificationConfig | null {
+  switch (eventType) {
+    case 'sent':
+      return {
+        type: 'system',
+        title: 'Email Sent',
+        message: `Email sent to ${contactEmail}`,
+      };
+    case 'opened':
+      return {
+        type: 'system',
+        title: 'Email Opened',
+        message: `Email opened by ${contactEmail}`,
+      };
+    case 'clicked':
+      return {
+        type: 'system',
+        title: 'Link Clicked',
+        message: `${contactEmail} clicked a link`,
+      };
+    case 'replied':
+      return {
+        type: 'reply',
+        title: 'Reply Received',
+        message: `Reply from ${contactEmail}`,
+      };
+    case 'opt_out':
+      return {
+        type: 'opt_out',
+        title: 'Opt-Out',
+        message: `${contactEmail} opted out`,
+      };
+    case 'bounced':
+      return {
+        type: 'system',
+        title: 'Email Bounced',
+        message: `Email bounced: ${contactEmail}`,
+      };
+    default:
+      return null; // No notification for 'delivered' or other types
+  }
+}
+
 // Zod schema for event validation
 const eventSchema = z.object({
   contact_email: z.string().email('Invalid email format'),
@@ -142,8 +197,8 @@ export async function POST(req: NextRequest) {
     // Generate unique event key for deduplication
     const eventKey = idempotency_key || `${provider || 'unknown'}:${provider_message_id || contact_email}:${event_type}:${emailNumber || 0}`;
 
-    // Insert event
-    const { error: eventError } = await supabaseAdmin
+    // Insert event and get the inserted ID
+    const { data: insertedEvent, error: eventError } = await supabaseAdmin
       .from('email_events')
       .insert({
         workspace_id: workspaceId,
@@ -157,7 +212,9 @@ export async function POST(req: NextRequest) {
         provider_message_id: provider_message_id || null,
         event_key: eventKey,
         metadata: { ...(metadata || {}), idempotency_key },
-      });
+      })
+      .select('id')
+      .single();
 
     if (eventError) {
       // Check if duplicate (idempotent)
@@ -167,6 +224,33 @@ export async function POST(req: NextRequest) {
       }
       console.error('Event insert error:', eventError);
       return NextResponse.json({ error: eventError.message }, { status: 500 });
+    }
+
+    // Create notification for relevant event types
+    const notificationConfig = getNotificationConfig(event_type, contact_email);
+    if (notificationConfig && insertedEvent?.id) {
+      const { error: notificationError } = await supabaseAdmin
+        .from('notifications')
+        .insert({
+          workspace_id: workspaceId,
+          user_id: null, // Broadcast to all workspace users
+          type: notificationConfig.type,
+          title: notificationConfig.title,
+          message: notificationConfig.message,
+          related_email_event_id: insertedEvent.id,
+          related_campaign: campaignName,
+          payload: {
+            contact_email,
+            email_number: emailNumber,
+            event_type,
+            ...(metadata || {}),
+          },
+        });
+
+      if (notificationError) {
+        // Log but don't fail the request if notification creation fails
+        console.error('Notification creation error:', notificationError);
+      }
     }
 
     return NextResponse.json({ ok: true }, { headers: rateLimitHeaders(rateLimit) });

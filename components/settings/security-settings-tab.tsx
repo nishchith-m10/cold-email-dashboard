@@ -7,15 +7,28 @@
  */
 
 import { useState } from 'react';
+import { useUser, useSessionList } from '@clerk/nextjs';
 import { usePermission } from '@/components/ui/permission-gate';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/ui/form-field';
-import { Plus, Copy, Trash2, Key, Webhook, Shield, Check } from 'lucide-react';
+import { Plus, Copy, Trash2, Key, Webhook, Shield, Check, CheckCircle2 } from 'lucide-react';
+import { TwoFactorModal } from './two-factor-modal';
+import { ActiveSessionsModal } from './active-sessions-modal';
 
 export function SecuritySettingsTab() {
+  const { user } = useUser();
+  const { sessions } = useSessionList();
   const canManage = usePermission('manage');
   const [copied, setCopied] = useState<string | null>(null);
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [showSessionsModal, setShowSessionsModal] = useState(false);
+  
+  // Check if user has 2FA enabled
+  const has2FAEnabled = user?.twoFactorEnabled || false;
+  
+  // Get active session count
+  const activeSessionCount = sessions?.length || 0;
 
   // Mock API keys data (in real implementation, this would come from API)
   const [apiKeys] = useState([
@@ -204,39 +217,55 @@ export function SecuritySettingsTab() {
 
         <div className="space-y-4">
           <div className="flex items-center justify-between p-4 rounded-lg bg-[var(--surface-elevated)]">
-            <div>
-              <p className="text-sm font-medium text-[var(--text-primary)]">
-                Two-Factor Authentication
-              </p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-[var(--text-primary)]">
+                  Two-Factor Authentication
+                </p>
+                {has2FAEnabled && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Enabled
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-[var(--text-secondary)] mt-1">
                 Add an extra layer of security to your account
               </p>
             </div>
-            <Button variant="ghost" size="sm" disabled>
-              Enable
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShow2FAModal(true)}
+            >
+              {has2FAEnabled ? 'Manage' : 'Enable'}
             </Button>
           </div>
 
           <div className="flex items-center justify-between p-4 rounded-lg bg-[var(--surface-elevated)]">
-            <div>
-              <p className="text-sm font-medium text-[var(--text-primary)]">
-                Active Sessions
-              </p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-[var(--text-primary)]">
+                  Active Sessions
+                </p>
+                {activeSessionCount > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    {activeSessionCount} {activeSessionCount === 1 ? 'session' : 'sessions'}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-[var(--text-secondary)] mt-1">
                 View and manage active login sessions
               </p>
             </div>
-            <Button variant="ghost" size="sm" disabled>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShowSessionsModal(true)}
+            >
               Manage
             </Button>
           </div>
-        </div>
-
-        <div className="mt-4 p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-          <p className="text-xs text-[var(--text-secondary)]">
-            <strong className="text-[var(--text-primary)]">Roadmap:</strong> Advanced security
-            features are planned for future releases.
-          </p>
         </div>
       </div>
 
@@ -249,6 +278,10 @@ export function SecuritySettingsTab() {
           </p>
         </div>
       )}
+
+      {/* Modals */}
+      <TwoFactorModal open={show2FAModal} onClose={() => setShow2FAModal(false)} />
+      <ActiveSessionsModal open={showSessionsModal} onClose={() => setShowSessionsModal(false)} />
     </div>
   );
 }

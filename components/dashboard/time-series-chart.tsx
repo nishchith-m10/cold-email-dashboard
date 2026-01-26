@@ -17,6 +17,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CHART_COLORS } from '@/lib/constants';
+import { useFormatDate } from '@/hooks/use-format-date';
 
 interface TimeSeriesChartProps {
   title: string;
@@ -60,13 +61,12 @@ export function TimeSeriesChart({
   height = 280,
   subtitle,
 }: TimeSeriesChartProps) {
-  // Format day labels to be shorter (e.g., "Nov 25")
+  const { formatDate } = useFormatDate();
+  
+  // Format day labels to be shorter (e.g., "Nov 25") using user's timezone
   const formattedData = data.map(d => ({
     ...d,
-    displayDay: new Date(d.day).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    }),
+    displayDay: formatDate(d.day, 'short'),
   }));
 
   if (loading) {
