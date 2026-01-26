@@ -2280,6 +2280,7 @@ Docker is the required execution environment on every droplet. All tenant enviro
 | Container | Image | Purpose | Resource Limits |
 |-----------|-------|---------|-----------------|
 | **n8n** | n8nio/n8n:latest | Workflow execution engine | 512MB RAM, 0.5 CPU |
+| **postgres** | postgres:16 | n8n's internal database | 256MB RAM, 0.3 CPU |
 | **sidecar** | genesis/sidecar:v1.0 | Agent for Control Plane | 128MB RAM, 0.1 CPU |
 | **caddy** | caddy:2-alpine | Reverse proxy, SSL termination, tracking domains | 64MB RAM, 0.1 CPU |
 
@@ -2291,9 +2292,526 @@ Docker is the required execution environment on every droplet. All tenant enviro
 4. **Updates** - Blue-Green container swap with zero downtime
 5. **Debugging** - Consistent environment, reproducible issues
 
-### 50.1.4 Cloud-Init Atomic Ignition Protocol
+---
 
-The **Cloud-Init** script executes on first boot, transforming a bare Ubuntu VM into a fully operational tenant environment in under 60 seconds.
+### 50.1.4 The Production Docker Stack (Battle-Tested Configuration)
+
+This section shows the **actual production docker-compose.yml** that runs on every tenant droplet. This configuration has been battle-tested on $6 droplets (1 vCPU, 1 GB RAM) and is optimized for stability.
+
+#### **The Complete docker-compose.yml:**
+
+```yaml
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - n8n
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      # Domain Configuration (Dual-Mode: sslip.io for bootstrap, custom domain for production)
+      - N8N_HOST=${N8N_DOMAIN}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://${N8N_DOMAIN}/
+      - GENERIC_TIMEZONE=${TIMEZONE}
+      
+      # Security
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      
+      # Database Connection
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      
+      # 1GB RAM Optimization (CRITICAL)
+      - N8N_METRICS_CONTROLS_ENABLED=false
+      - NODE_OPTIONS=--max-old-space-size=512
+      
+    links:
+      - postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - db_storage:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  sidecar:
+    image: genesis/sidecar:v1.0
+    restart: always
+    environment:
+      - WORKSPACE_ID=${WORKSPACE_ID}
+      - DASHBOARD_URL=${DASHBOARD_URL}
+      - PROVISIONING_TOKEN=${PROVISIONING_TOKEN}
+      - N8N_URL=http://n8n:5678
+    depends_on:
+      - n8n
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # For Blue-Green container swaps
+
+volumes:
+  caddy_data:
+  caddy_config:
+  n8n_data:
+  db_storage:
+```
+
+#### **Dual-Mode Caddyfile (Bootstrap + Production):**
+
+```caddy
+# Bootstrap Mode: sslip.io (immediate SSL, no DNS setup required)
+{$DROPLET_IP}.sslip.io {
+    reverse_proxy n8n:5678 {
+        flush_interval -1  # Critical for n8n's streaming responses
+    }
+}
+
+# Production Mode: Custom tracking domain (requires CNAME setup)
+{$CUSTOM_DOMAIN} {
+    reverse_proxy n8n:5678 {
+        flush_interval -1
+    }
+}
+```
+
+**How Dual-Mode Works:**
+1. **Day 1 (Bootstrap)**: Droplet boots with `DROPLET_IP=159.223.x.x`, accessible at `https://159.223.x.x.sslip.io`
+2. **Day 2 (Production)**: User adds CNAME, Sidecar detects it, updates Caddy config to add `track.clientdomain.com`
+3. **Both work simultaneously**: sslip.io remains as fallback, custom domain becomes primary
+
+---
+
+### 50.1.5 The "Survival Mode" Configuration (1GB RAM Optimization)
+
+Running n8n + Postgres + Caddy + Sidecar on 1 GB RAM **will crash immediately** without these optimizations:
+
+#### **Critical System Configuration:**
+
+**1. Swap File (4GB Fake RAM):**
+```bash
+# Without Swap: OOM Killer terminates n8n when RAM hits 1GB
+# With Swap: System uses disk as overflow RAM (slower but doesn't crash)
+
+fallocate -l 4G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+```
+
+**Why 4GB?** n8n workflows with AI operations can spike to 1.5-2GB RAM temporarily. Swap prevents crashes.
+
+**2. Docker Log Limits (Prevent Disk Exhaustion):**
+```json
+// /etc/docker/daemon.json
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}
+```
+
+**Why?** Without limits, n8n logs can fill 25GB disk in a week, causing the droplet to become unresponsive.
+
+**3. Node.js Memory Cap:**
+```bash
+NODE_OPTIONS=--max-old-space-size=512  # Limit n8n to 512MB heap
+```
+
+**Why?** Prevents n8n from consuming all 1GB, leaving room for Postgres (256MB) + Caddy (64MB) + Sidecar (128MB) + OS (200MB).
+
+**4. Firewall (UFW):**
+```bash
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow 22/tcp   # SSH
+ufw allow 80/tcp   # HTTP (Caddy)
+ufw allow 443/tcp  # HTTPS (Caddy)
+ufw --force enable
+```
+
+**Why?** Closes all unnecessary ports. Postgres (5432) is NOT exposed to the internet (only accessible within Docker network).
+
+#### **Survival Mode Verification:**
+
+After Cloud-Init completes, the Sidecar runs this health check:
+
+```bash
+# Expected output for healthy droplet:
+free -h
+#              total        used        free
+# Mem:          981Mi       600Mi       381Mi
+# Swap:         4.0Gi        50Mi       3.9Gi   <-- Swap must show 4GB
+
+docker stats --no-stream
+# n8n:       ~400MB RAM
+# postgres:  ~150MB RAM
+# caddy:     ~20MB RAM
+# sidecar:   ~50MB RAM
+# TOTAL:     ~620MB (leaves 360MB buffer)
+```
+
+If Swap doesn't show 4GB, the droplet is flagged as `UNHEALTHY` and rolled back.
+
+### 50.1.6 Cloud-Init Atomic Ignition Protocol (The Actual Script)
+
+The **Cloud-Init** script executes on first boot, transforming a bare Ubuntu VM into a fully operational tenant environment in under 60 seconds. This section shows the **actual bash script** that the Ignition Orchestrator injects as `user_data` when provisioning the droplet.
+
+#### **The Complete Cloud-Init Script:**
+
+```bash
+#!/bin/bash
+set -e
+
+# === CLOUD-INIT USER-DATA SCRIPT ===
+# Injected by Ignition Orchestrator during droplet provisioning
+# Variables are templated by Dashboard before sending to DO API
+
+# === PHASE 1: SURVIVAL MODE (1GB RAM Hardening) ===
+
+# 1.1 Create 4GB Swap (Prevents OOM crashes)
+if [ ! -f /swapfile ]; then
+    echo "[CLOUD-INIT] Creating 4GB Swap..."
+    fallocate -l 4G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+    echo "[CLOUD-INIT] Swap active."
+fi
+
+# 1.2 Install Docker (if not in snapshot)
+if ! command -v docker &> /dev/null; then
+    echo "[CLOUD-INIT] Installing Docker..."
+    apt-get update -y
+    apt-get install -y docker.io docker-compose-v2 curl
+    systemctl enable docker
+    systemctl start docker
+    echo "[CLOUD-INIT] Docker installed."
+fi
+
+# 1.3 Configure Docker Log Limits (Prevents disk exhaustion)
+mkdir -p /etc/docker
+cat > /etc/docker/daemon.json <<EOF
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}
+EOF
+systemctl restart docker
+
+# 1.4 Configure Firewall (UFW)
+echo "[CLOUD-INIT] Setting up firewall..."
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow 22/tcp   # SSH
+ufw allow 80/tcp   # HTTP (Caddy)
+ufw allow 443/tcp  # HTTPS (Caddy)
+echo "y" | ufw enable
+echo "[CLOUD-INIT] Firewall active."
+
+# === PHASE 2: APPLICATION DEPLOYMENT ===
+
+# 2.1 Create application directory
+mkdir -p /opt/genesis
+cd /opt/genesis
+
+# 2.2 Detect public IP (for sslip.io bootstrap)
+export DROPLET_IP=$(curl -s ifconfig.me)
+echo "[CLOUD-INIT] Droplet IP: $DROPLET_IP"
+
+# 2.3 Write environment file
+cat > .env <<EOF
+# Tenant Identity (Injected by Dashboard)
+WORKSPACE_ID={{WORKSPACE_ID}}
+WORKSPACE_SLUG={{WORKSPACE_SLUG}}
+
+# Domain Configuration (Dual-Mode)
+N8N_DOMAIN=${DROPLET_IP}.sslip.io
+CUSTOM_DOMAIN={{CUSTOM_TRACKING_DOMAIN}}
+DROPLET_IP=${DROPLET_IP}
+
+# Database Credentials (Generated by Dashboard)
+POSTGRES_USER=n8n
+POSTGRES_PASSWORD={{POSTGRES_PASSWORD}}
+POSTGRES_DB=n8n
+
+# n8n Configuration
+N8N_ENCRYPTION_KEY={{N8N_ENCRYPTION_KEY}}
+TIMEZONE={{TIMEZONE}}
+
+# Dashboard Connection
+DASHBOARD_URL={{DASHBOARD_URL}}
+PROVISIONING_TOKEN={{PROVISIONING_TOKEN}}
+EOF
+
+# 2.4 Write docker-compose.yml (from Section 50.1.4 above)
+cat > docker-compose.yml <<'COMPOSE_EOF'
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - n8n
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_DOMAIN}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://${N8N_DOMAIN}/
+      - GENERIC_TIMEZONE=${TIMEZONE}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - N8N_METRICS_CONTROLS_ENABLED=false
+      - NODE_OPTIONS=--max-old-space-size=512
+    links:
+      - postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - db_storage:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  sidecar:
+    image: genesis/sidecar:v1.0
+    restart: always
+    environment:
+      - WORKSPACE_ID=${WORKSPACE_ID}
+      - DASHBOARD_URL=${DASHBOARD_URL}
+      - PROVISIONING_TOKEN=${PROVISIONING_TOKEN}
+      - N8N_URL=http://n8n:5678
+    depends_on:
+      - n8n
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  caddy_data:
+  caddy_config:
+  n8n_data:
+  db_storage:
+COMPOSE_EOF
+
+# 2.5 Write Caddyfile (Dual-Mode: Bootstrap + Production)
+cat > Caddyfile <<EOF
+# Bootstrap Mode: sslip.io (immediate SSL)
+${DROPLET_IP}.sslip.io {
+    reverse_proxy n8n:5678 {
+        flush_interval -1
+    }
+}
+
+# Production Mode: Custom domain (added dynamically by Sidecar)
+# Will be updated to track.clientdomain.com when CNAME is detected
+EOF
+
+# 2.6 Launch the stack
+echo "[CLOUD-INIT] Launching Docker stack..."
+docker compose up -d
+
+# 2.7 Wait for n8n to be ready
+echo "[CLOUD-INIT] Waiting for n8n to start..."
+for i in {1..30}; do
+    if curl -s http://localhost:5678/healthz > /dev/null 2>&1; then
+        echo "[CLOUD-INIT] n8n is ready."
+        break
+    fi
+    sleep 2
+done
+
+# === PHASE 3: SIDECAR HANDSHAKE ===
+# The Sidecar container (started above) will automatically:
+# 1. Wait for n8n to be healthy
+# 2. POST to Dashboard with webhook URL
+# 3. Receive credentials and inject them
+# 4. Deploy workflows from Golden Template
+
+echo "[CLOUD-INIT] Cloud-Init complete. Sidecar taking over."
+```
+
+#### **Variable Injection by Dashboard:**
+
+When the Ignition Orchestrator calls `doClient.dropletsCreate()`, it templates the script:
+
+```typescript
+const cloudInitScript = CLOUD_INIT_TEMPLATE
+  .replace('{{WORKSPACE_ID}}', workspace.id)
+  .replace('{{WORKSPACE_SLUG}}', workspace.slug)
+  .replace('{{POSTGRES_PASSWORD}}', generateSecurePassword())
+  .replace('{{N8N_ENCRYPTION_KEY}}', generateEncryptionKey())
+  .replace('{{TIMEZONE}}', workspace.timezone || 'America/Los_Angeles')
+  .replace('{{DASHBOARD_URL}}', process.env.NEXT_PUBLIC_APP_URL)
+  .replace('{{PROVISIONING_TOKEN}}', generateProvisioningToken())
+  .replace('{{CUSTOM_TRACKING_DOMAIN}}', workspace.tracking_domain || '');
+```
+
+---
+
+### 50.1.7 Dual-Mode Domain Strategy (Bootstrap + Production)
+
+The V30 architecture uses a **dual-mode DNS strategy** to balance immediate availability (sslip.io) with professional branding (custom domains):
+
+| Mode | DNS Pattern | SSL Method | Use Case | Setup Time |
+|------|-------------|------------|----------|------------|
+| **Bootstrap** | `159.223.x.x.sslip.io` | Automatic (sslip.io) | Immediate droplet access, testing | **0 seconds** |
+| **Production** | `track.clientdomain.com` | Caddy + Let's Encrypt | Client-facing tracking links | **2-5 minutes** |
+
+#### **Why Both?**
+
+**sslip.io (Bootstrap):**
+- ✅ **Zero DNS setup**: Works instantly after droplet boots
+- ✅ **Testing**: Sidecar can immediately POST handshake webhook
+- ✅ **Fallback**: If custom domain fails, sslip.io continues to work
+- ❌ **Not branded**: Ugly IP-based URLs
+
+**Custom Domain (Production):**
+- ✅ **Professional**: `track.acmecorp.com` looks legitimate in emails
+- ✅ **Deliverability**: Better email reputation than generic IPs
+- ✅ **Branding**: Each client uses their own domain
+- ❌ **Setup required**: User must add CNAME (automated via Entri)
+
+#### **The Handoff Flow:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    DUAL-MODE DNS HANDOFF                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  T+0s:    Droplet boots                                                    │
+│           Caddyfile has: 159.223.x.x.sslip.io (Bootstrap)                 │
+│           n8n webhook URL: https://159.223.x.x.sslip.io/webhook/abc       │
+│                                                                             │
+│  T+60s:   Sidecar POSTs Atomic Handshake                                   │
+│           Uses sslip.io URL (works immediately, no CNAME needed)          │
+│           Dashboard stores: workspace.webhook_url = "159...sslip.io"      │
+│                                                                             │
+│  T+300s:  User completes DNS setup via Entri                               │
+│           Adds CNAME: track.acmecorp.com → genesis-droplet-159.io         │
+│           Dashboard detects CNAME                                          │
+│                                                                             │
+│  T+320s:  Dashboard sends command to Sidecar: ADD_TRACKING_DOMAIN          │
+│           Sidecar updates Caddyfile:                                       │
+│           - Keeps 159.223.x.x.sslip.io (fallback)                         │
+│           - Adds track.acmecorp.com (primary)                              │
+│           Caddy reloads gracefully (zero downtime)                         │
+│           Let's Encrypt provisions SSL for track.acmecorp.com             │
+│                                                                             │
+│  T+360s:  Dashboard updates tracking links                                 │
+│           New emails use: https://track.acmecorp.com/webhook/abc          │
+│           Old sslip.io links still work (fallback)                         │
+│                                                                             │
+│  RESULT:  Both domains work. Custom domain is primary.                    │
+│           If custom domain DNS breaks, sslip.io continues working.         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### **Caddyfile Evolution:**
+
+**Stage 1: Bootstrap (T+0s to T+300s)**
+```caddy
+159.223.45.67.sslip.io {
+    reverse_proxy n8n:5678 {
+        flush_interval -1
+    }
+}
+```
+
+**Stage 2: Production (T+300s onward)**
+```caddy
+# Primary
+track.acmecorp.com {
+    reverse_proxy n8n:5678 {
+        flush_interval -1
+    }
+}
+
+# Fallback (kept active)
+159.223.45.67.sslip.io {
+    reverse_proxy n8n:5678 {
+        flush_interval -1
+    }
+}
+```
+
+**Benefits:**
+1. **Immediate availability**: Droplet works instantly for handshake
+2. **Professional branding**: Custom domain for client-facing links
+3. **Resilience**: If custom domain DNS breaks, sslip.io fallback continues working
+4. **Zero friction**: User doesn't need DNS setup to START, but can add it later for branding
+
+---
+
+### 50.1.8 Cloud-Init Timing & Verification
 
 **Cloud-Init Execution Sequence:**
 
@@ -2302,29 +2820,34 @@ The **Cloud-Init** script executes on first boot, transforming a bare Ubuntu VM 
 │                    CLOUD-INIT ATOMIC IGNITION SEQUENCE                      │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  T+0s:    Droplet boots (Ubuntu 22.04 with Docker pre-installed)          │
+│  T+0s:    Droplet boots (Ubuntu 22.04)                                     │
 │                                                                             │
 │  T+5s:    Cloud-Init reads user-data script                                │
-│           - Injects tenant-specific environment variables                   │
-│           - Downloads docker-compose.yml from Genesis CDN                   │
-│           - Downloads Sidecar binary                                        │
+│           - Creates 4GB swap                                                │
+│           - Installs Docker (if not in snapshot)                            │
+│           - Configures UFW firewall                                         │
+│           - Sets Docker log limits                                          │
 │                                                                             │
-│  T+15s:   Docker Compose pulls images (if not cached in snapshot)          │
+│  T+15s:   Docker Compose pulls images (if not cached)                      │
 │           - n8n image (~500MB)                                              │
+│           - Postgres image (~200MB)                                         │
 │           - Sidecar image (~50MB)                                           │
-│           - Caddy image (~40MB)                                             │
+│           - Caddy image (~15MB)                                             │
 │                                                                             │
 │  T+30s:   Containers start in dependency order                              │
-│           1. Caddy (reverse proxy)                                          │
-│           2. n8n (workflow engine)                                          │
-│           3. Sidecar (control agent)                                        │
+│           1. Postgres (with healthcheck)                                    │
+│           2. n8n (waits for Postgres healthy)                               │
+│           3. Caddy (reverse proxy)                                          │
+│           4. Sidecar (control agent)                                        │
 │                                                                             │
 │  T+40s:   Sidecar health check passes                                       │
 │           - Verifies n8n is responding on localhost:5678                    │
-│           - Verifies Caddy is proxying correctly                            │
+│           - Verifies Caddy is proxying at sslip.io URL                     │
+│           - Verifies swap is active (4GB)                                   │
 │                                                                             │
 │  T+45s:   Sidecar executes Atomic Handshake                                 │
 │           - POSTs to Dashboard: { droplet_id, webhook_url, token }         │
+│           - webhook_url uses sslip.io (e.g., https://159.223.x.x.sslip.io)│
 │           - Dashboard verifies provisioning_token                           │
 │           - Dashboard updates workspace.webhook_url                         │
 │                                                                             │
@@ -2342,11 +2865,17 @@ The **Cloud-Init** script executes on first boot, transforming a bare Ubuntu VM 
 │           - Droplet state: ACTIVE_HEALTHY                                   │
 │           - Workflows: ACTIVE                                               │
 │           - Heartbeat: STARTED                                              │
+│           - Accessible at: https://159.223.x.x.sslip.io (Bootstrap)       │
+│                                                                             │
+│  T+300s+: Custom Domain Added (Optional)                                    │
+│           - User adds CNAME via Entri                                       │
+│           - Sidecar updates Caddy to add track.clientdomain.com           │
+│           - Both domains work (sslip.io fallback, custom primary)          │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 50.1.5 Droplet Lifecycle States
+### 50.1.9 Droplet Lifecycle States
 
 | State | Definition | Trigger | Next States |
 |-------|------------|---------|-------------|
@@ -4899,20 +5428,118 @@ Before allowing a campaign to ignite, the Dashboard validates that the user's Ca
 
 ---
 
-## 61.4 AUTOMATED TRACKING DOMAINS
+## 61.4 AUTOMATED TRACKING DOMAINS (DUAL-MODE STRATEGY)
 
-The Sidecar automatically configures Caddy to handle custom tracking domains with automatic SSL.
+The V30 architecture uses a **dual-mode domain strategy** to balance immediate availability (sslip.io) with professional branding (custom domains).
 
-### 61.4.1 Tracking Domain Setup
+### 61.4.1 The Two-Tier Domain Architecture
 
-| Step | Actor | Action |
-|------|-------|--------|
-| 1 | User | Adds CNAME: `track.clientdomain.com` → `droplet-ip.genesis.io` |
-| 2 | Dashboard | Detects new CNAME via DNS lookup |
-| 3 | Dashboard | Sends command to Sidecar: `ADD_TRACKING_DOMAIN` |
-| 4 | Sidecar | Updates Caddy config with new domain |
-| 5 | Caddy | Automatically provisions SSL via Let's Encrypt |
-| 6 | Dashboard | Updates tracking links to use custom domain |
+| Mode | DNS Pattern | SSL Provider | When Used | Setup Required |
+|------|-------------|-------------|-----------|----------------|
+| **Bootstrap (Fallback)** | `{droplet-ip}.sslip.io` | sslip.io (automatic) | Immediate after provisioning, fallback if custom domain fails | None |
+| **Production (Primary)** | `track.{clientdomain}.com` | Caddy + Let's Encrypt | Client-facing tracking links | CNAME record (automated via Entri) |
+
+**Why Both?**
+- **sslip.io**: Guarantees droplet is immediately accessible for Atomic Handshake (Phase 42) and testing
+- **Custom domain**: Professional appearance, better email deliverability, branded tracking links
+
+---
+
+### 61.4.2 Bootstrap Mode: sslip.io (Instant SSL)
+
+**What is sslip.io?**
+- Free DNS service that maps `{any-ip}.sslip.io` to `{any-ip}`
+- Automatically provides valid SSL certificates
+- Zero configuration required
+
+**Example:**
+- Droplet IP: `159.223.45.67`
+- Instant URL: `https://159.223.45.67.sslip.io`
+- Works immediately after Cloud-Init completes
+
+**When Used:**
+1. **Atomic Handshake (T+45s)**: Sidecar POSTs webhook URL using sslip.io
+2. **Testing**: Dashboard can immediately test n8n health via sslip.io
+3. **Fallback**: If custom domain DNS fails, webhooks continue working via sslip.io
+
+**Configured in Caddyfile** (see Phase 50.1.7):
+```caddy
+159.223.45.67.sslip.io {
+    reverse_proxy n8n:5678 {
+        flush_interval -1
+    }
+}
+```
+
+---
+
+### 61.4.3 Production Mode: Custom Tracking Domains
+
+**What is a Custom Tracking Domain?**
+- Client provides their own domain (e.g., `acmecorp.com`)
+- They create a subdomain: `track.acmecorp.com`
+- Points to their dedicated droplet via CNAME
+
+**Why Custom Domains?**
+1. **Email Deliverability**: `track.acmecorp.com` looks legitimate vs. `159.223.x.x.sslip.io`
+2. **Branding**: Client's domain appears in tracking links
+3. **Trust**: Recipients trust links from known domains
+4. **Professional**: No IP addresses in URLs
+
+#### **Custom Domain Setup Flow:**
+
+| Step | Actor | Action | Duration |
+|------|-------|--------|----------|
+| 1 | User | Clicks "Setup Tracking Domain" in Dashboard | - |
+| 2 | Dashboard | Presents instructions: "Add CNAME: `track.acmecorp.com` → `{droplet-ip}.genesis.io`" | - |
+| 3 | User | Uses Entri integration (one-click) OR adds CNAME manually | 2-5 minutes |
+| 4 | Dashboard | Polls DNS every 30s to detect CNAME propagation | - |
+| 5 | Dashboard | Sends BullMQ command to Sidecar: `ADD_TRACKING_DOMAIN` | - |
+| 6 | Sidecar | Updates Caddyfile to add `track.acmecorp.com` block | Instant |
+| 7 | Sidecar | Reloads Caddy gracefully (`caddy reload --config /etc/caddy/Caddyfile`) | Zero downtime |
+| 8 | Caddy | Provisions Let's Encrypt SSL certificate for `track.acmecorp.com` | 5-10 seconds |
+| 9 | Dashboard | Updates tracking links in DB to use custom domain | - |
+| **Total** | | | **~5 minutes** |
+
+#### **Updated Caddyfile (After Custom Domain Added):**
+
+```caddy
+# PRIMARY: Custom tracking domain
+track.acmecorp.com {
+    reverse_proxy n8n:5678 {
+        flush_interval -1  # Critical for n8n's streaming responses
+    }
+}
+
+# FALLBACK: sslip.io (kept active for resilience)
+159.223.45.67.sslip.io {
+    reverse_proxy n8n:5678 {
+        flush_interval -1
+    }
+}
+```
+
+**Result:** Both domains work. Custom domain is primary. If custom domain DNS breaks, sslip.io continues serving webhooks.
+
+---
+
+### 61.4.4 Tracking Domain Lifecycle Management
+
+**Scenarios Handled:**
+
+| Scenario | Behavior | Failover |
+|----------|----------|----------|
+| **CNAME not set up** | Use sslip.io only | N/A (sslip.io works immediately) |
+| **CNAME set up** | Use custom domain, keep sslip.io fallback | Both active |
+| **Custom domain SSL expires** | Caddy auto-renews (Let's Encrypt) | If renewal fails, sslip.io continues |
+| **CNAME deleted** | Dashboard detects 404 on custom domain | Automatically reverts tracking links to sslip.io |
+| **Multiple domains** | User can add multiple subdomains (e.g., `click.`, `open.`) | All added to Caddyfile |
+
+**The Dual-Mode Guarantee:**
+- ✅ Droplet is **always accessible** (sslip.io never goes down)
+- ✅ Professional branding **when available** (custom domain)
+- ✅ Zero downtime **switching between modes** (Caddy reload is graceful)
+- ✅ Automatic SSL **for both modes** (sslip.io built-in, Let's Encrypt for custom)
 
 ---
 
