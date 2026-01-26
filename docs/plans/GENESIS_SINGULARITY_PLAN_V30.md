@@ -72,7 +72,7 @@
 
 | Phase | Title | Focus |
 |-------|-------|-------|
-| **44** | ["God Mode" Command & Control](#phase-44-god-mode-command--control) | Platform operations dashboard, health mesh |
+| **44** | ["God Mode" Command & Control](#phase-44-god-mode-command--control) | Platform operations dashboard, health mesh, scale monitoring & pre-failure alerts |
 | **45** | [Sandbox & Simulation Engine](#phase-45-sandbox--simulation-engine) | Mock environment, testing |
 | **65** | [Credential Rotation & Webhook Security](#phase-65-credential-rotation--webhook-security) | OAuth refresh, HMAC signatures, DLQ |
 
@@ -4704,6 +4704,1072 @@ async function processBulkUpdate(
   await logJobEvent(jobId, 'completed', { processed, failed });
 }
 ```
+
+---
+
+## 44.3 SCALE HEALTH MONITORING & PRE-FAILURE ALERTS
+
+**The Problem:**
+At scale, infrastructure failures are inevitable. The difference between production-grade systems and hobbyist projects is this: **Production systems predict failures 30-60 days in advance**, not react to them after they happen.
+
+**The V30 Solution:**
+A multi-layered monitoring system that tracks critical scale metrics and alerts BEFORE thresholds are breached, giving time to optimize without impacting users.
+
+---
+
+### 44.3.1 The Alert Threshold Matrix
+
+This table defines the exact thresholds that trigger alerts, giving runway to optimize before breaking.
+
+| Metric | Green Zone | Yellow Zone (30-day alert) | Red Zone (7-day alert) | Action Required |
+|--------|-----------|---------------------------|------------------------|-----------------|
+| **Total partitions** | <10,000 | 10,000-12,000 | >12,000 | Enable Phase 40 catalog optimizations |
+| **Largest partition** | <500K rows | 500K-1M rows | >1M rows | Archive old data or sub-partition |
+| **Average partition** | <50K rows | 50K-100K rows | >100K rows | Review data retention policy |
+| **Query P95 latency** | <100ms | 100-200ms | >200ms | Add indexes or refresh MVs |
+| **Catalog query time** | <20ms | 20-100ms | >100ms | Optimize `pg_class` queries |
+| **Total storage** | <500GB | 500GB-1TB | >1TB | Archive or export historical data |
+| **Global index size** | <100GB | 100-300GB | >300GB | Consolidate or drop unused indexes |
+| **DO account capacity** | <70% full | 70-85% full | >85% full | Add new DO account to pool |
+| **Wallet balance** | >$100 | $20-$100 | <$20 | Alert user to top up |
+| **Snapshot garbage** | <50 orphans | 50-100 orphans | >100 orphans | Run cleanup protocol |
+
+**Runway Calculation Logic:**
+
+```typescript
+// Example: Partition count growth rate
+const currentPartitions = 10500;
+const threshold = 12000;
+const dailyGrowth = 100; // New customers/day
+
+const daysUntilThreshold = (threshold - currentPartitions) / dailyGrowth;
+// = (12000 - 10500) / 100 = 15 days runway
+
+if (daysUntilThreshold <= 30) {
+  sendAlert('YELLOW', 'Partition capacity at 70%', daysUntilThreshold);
+}
+```
+
+---
+
+### 44.3.2 The Monitoring SQL Queries
+
+**Database: `genesis.scale_health_checks`**
+
+```sql
+-- ============================================
+-- SCALE HEALTH CHECK QUERIES
+-- ============================================
+-- These queries run every 6 hours via pg_cron
+-- Results stored in scale_alerts table
+-- ============================================
+
+-- CHECK 1: Total Partition Count
+CREATE OR REPLACE FUNCTION genesis.check_partition_count()
+RETURNS TABLE (
+    metric TEXT,
+    current_value BIGINT,
+    threshold_yellow BIGINT,
+    threshold_red BIGINT,
+    status TEXT,
+    days_until_red INTEGER
+) AS $$
+DECLARE
+    v_count BIGINT;
+    v_growth_rate NUMERIC;
+    v_days_until_red INTEGER;
+BEGIN
+    -- Count total partitions
+    SELECT COUNT(*) INTO v_count
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'genesis'
+      AND c.relkind = 'r'
+      AND c.relispartition = TRUE;
+    
+    -- Calculate growth rate (partitions added in last 7 days)
+    SELECT (v_count - COALESCE(
+        (SELECT partition_count FROM genesis.scale_metrics 
+         WHERE metric_date = CURRENT_DATE - INTERVAL '7 days'
+         LIMIT 1), 0
+    )) / 7.0 INTO v_growth_rate;
+    
+    -- Calculate days until red threshold
+    IF v_growth_rate > 0 THEN
+        v_days_until_red := ((12000 - v_count) / v_growth_rate)::INTEGER;
+    ELSE
+        v_days_until_red := NULL; -- No growth, infinite runway
+    END IF;
+    
+    RETURN QUERY SELECT
+        'partition_count'::TEXT,
+        v_count,
+        10000::BIGINT,
+        12000::BIGINT,
+        CASE 
+            WHEN v_count >= 12000 THEN 'RED'
+            WHEN v_count >= 10000 THEN 'YELLOW'
+            ELSE 'GREEN'
+        END::TEXT,
+        v_days_until_red;
+END;
+$$ LANGUAGE plpgsql;
+
+-- CHECK 2: Largest Partition Size
+CREATE OR REPLACE FUNCTION genesis.check_largest_partition()
+RETURNS TABLE (
+    metric TEXT,
+    partition_name TEXT,
+    row_count BIGINT,
+    size_gb NUMERIC,
+    threshold_yellow BIGINT,
+    threshold_red BIGINT,
+    status TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    WITH partition_sizes AS (
+        SELECT 
+            c.relname::TEXT AS part_name,
+            c.reltuples::BIGINT AS estimated_rows,
+            pg_total_relation_size(c.oid) / (1024^3) AS size_gigabytes
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'genesis'
+          AND c.relkind = 'r'
+          AND c.relispartition = TRUE
+        ORDER BY c.reltuples DESC
+        LIMIT 1
+    )
+    SELECT
+        'largest_partition'::TEXT,
+        ps.part_name,
+        ps.estimated_rows,
+        ps.size_gigabytes,
+        500000::BIGINT,
+        1000000::BIGINT,
+        CASE 
+            WHEN ps.estimated_rows >= 1000000 THEN 'RED'
+            WHEN ps.estimated_rows >= 500000 THEN 'YELLOW'
+            ELSE 'GREEN'
+        END::TEXT
+    FROM partition_sizes ps;
+END;
+$$ LANGUAGE plpgsql;
+
+-- CHECK 3: Query P95 Latency
+CREATE OR REPLACE FUNCTION genesis.check_query_latency()
+RETURNS TABLE (
+    metric TEXT,
+    p95_latency_ms NUMERIC,
+    p99_latency_ms NUMERIC,
+    threshold_yellow NUMERIC,
+    threshold_red NUMERIC,
+    status TEXT,
+    slow_query_count BIGINT
+) AS $$
+DECLARE
+    v_p95 NUMERIC;
+    v_p99 NUMERIC;
+    v_slow_count BIGINT;
+BEGIN
+    -- Get P95/P99 from pg_stat_statements
+    SELECT 
+        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY mean_exec_time),
+        PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY mean_exec_time),
+        COUNT(*) FILTER (WHERE mean_exec_time > 200)
+    INTO v_p95, v_p99, v_slow_count
+    FROM pg_stat_statements
+    WHERE query LIKE '%genesis.leads%'
+      AND calls > 10;  -- Only queries with significant volume
+    
+    RETURN QUERY SELECT
+        'query_p95_latency'::TEXT,
+        v_p95,
+        v_p99,
+        100.0::NUMERIC,
+        200.0::NUMERIC,
+        CASE 
+            WHEN v_p95 >= 200 THEN 'RED'
+            WHEN v_p95 >= 100 THEN 'YELLOW'
+            ELSE 'GREEN'
+        END::TEXT,
+        v_slow_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- CHECK 4: DigitalOcean Account Capacity
+CREATE OR REPLACE FUNCTION genesis.check_do_account_capacity()
+RETURNS TABLE (
+    metric TEXT,
+    account_id TEXT,
+    current_droplets INTEGER,
+    max_droplets INTEGER,
+    utilization_pct NUMERIC,
+    status TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        'do_account_capacity'::TEXT,
+        a.account_id,
+        a.current_droplets,
+        a.max_droplets,
+        (a.current_droplets::NUMERIC / a.max_droplets * 100)::NUMERIC(5,2),
+        CASE 
+            WHEN a.current_droplets::NUMERIC / a.max_droplets >= 0.85 THEN 'RED'
+            WHEN a.current_droplets::NUMERIC / a.max_droplets >= 0.70 THEN 'YELLOW'
+            ELSE 'GREEN'
+        END::TEXT
+    FROM genesis.do_accounts a
+    WHERE a.status = 'active'
+    ORDER BY (a.current_droplets::NUMERIC / a.max_droplets) DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- CHECK 5: Storage Growth Rate
+CREATE OR REPLACE FUNCTION genesis.check_storage_growth()
+RETURNS TABLE (
+    metric TEXT,
+    current_size_gb NUMERIC,
+    growth_rate_gb_per_day NUMERIC,
+    days_until_1tb INTEGER,
+    threshold_yellow NUMERIC,
+    threshold_red NUMERIC,
+    status TEXT
+) AS $$
+DECLARE
+    v_current_size NUMERIC;
+    v_growth_rate NUMERIC;
+    v_days_until_red INTEGER;
+BEGIN
+    -- Get current total size
+    SELECT 
+        SUM(pg_total_relation_size(c.oid)) / (1024^3)
+    INTO v_current_size
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'genesis';
+    
+    -- Calculate growth rate (last 7 days)
+    SELECT 
+        (v_current_size - COALESCE(
+            (SELECT total_size_gb FROM genesis.scale_metrics 
+             WHERE metric_date = CURRENT_DATE - INTERVAL '7 days'
+             LIMIT 1), 0
+        )) / 7.0
+    INTO v_growth_rate;
+    
+    -- Days until 1TB
+    IF v_growth_rate > 0 THEN
+        v_days_until_red := ((1000 - v_current_size) / v_growth_rate)::INTEGER;
+    ELSE
+        v_days_until_red := NULL;
+    END IF;
+    
+    RETURN QUERY SELECT
+        'storage_growth'::TEXT,
+        v_current_size,
+        v_growth_rate,
+        v_days_until_red,
+        500.0::NUMERIC,
+        1000.0::NUMERIC,
+        CASE 
+            WHEN v_current_size >= 1000 THEN 'RED'
+            WHEN v_current_size >= 500 THEN 'YELLOW'
+            ELSE 'GREEN'
+        END::TEXT;
+END;
+$$ LANGUAGE plpgsql;
+
+-- CHECK 6: Per-Partition Size Analysis
+CREATE OR REPLACE FUNCTION genesis.check_oversized_partitions()
+RETURNS TABLE (
+    partition_name TEXT,
+    workspace_id TEXT,
+    row_count BIGINT,
+    size_gb NUMERIC,
+    status TEXT,
+    recommendation TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    WITH partition_stats AS (
+        SELECT 
+            c.relname::TEXT AS part_name,
+            -- Extract workspace_id from partition name
+            REGEXP_REPLACE(c.relname, 'leads_p_', '') AS ws_id,
+            c.reltuples::BIGINT AS est_rows,
+            pg_total_relation_size(c.oid) / (1024^3) AS size_gigabytes
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'genesis'
+          AND c.relkind = 'r'
+          AND c.relispartition = TRUE
+          AND c.reltuples > 100000  -- Only check partitions with 100k+ rows
+        ORDER BY c.reltuples DESC
+    )
+    SELECT
+        ps.part_name,
+        ps.ws_id,
+        ps.est_rows,
+        ps.size_gigabytes,
+        CASE 
+            WHEN ps.est_rows >= 1000000 THEN 'RED'
+            WHEN ps.est_rows >= 500000 THEN 'YELLOW'
+            ELSE 'GREEN'
+        END::TEXT,
+        CASE 
+            WHEN ps.est_rows >= 1000000 THEN 'URGENT: Archive data or implement sub-partitioning'
+            WHEN ps.est_rows >= 500000 THEN 'WARNING: Monitor query performance, plan archival'
+            ELSE 'OK: Within normal operating range'
+        END::TEXT
+    FROM partition_stats ps
+    WHERE ps.est_rows >= 500000;  -- Only return partitions in yellow/red
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+### 44.3.3 Scale Metrics History Table
+
+**Purpose:** Track metrics over time to calculate growth rates and predict future thresholds.
+
+```sql
+-- ============================================
+-- SCALE METRICS HISTORY
+-- ============================================
+-- Stores daily snapshots of scale metrics
+-- Used for trend analysis and runway calculations
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS genesis.scale_metrics (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    metric_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    
+    -- Partition metrics
+    partition_count INTEGER NOT NULL,
+    largest_partition_rows BIGINT,
+    largest_partition_name TEXT,
+    avg_partition_rows BIGINT,
+    
+    -- Storage metrics
+    total_size_gb NUMERIC(10,2),
+    index_size_gb NUMERIC(10,2),
+    table_size_gb NUMERIC(10,2),
+    
+    -- Performance metrics
+    p95_latency_ms NUMERIC(10,2),
+    p99_latency_ms NUMERIC(10,2),
+    slow_query_count BIGINT,
+    
+    -- DO capacity
+    total_do_accounts INTEGER,
+    total_droplet_capacity INTEGER,
+    total_droplets_active INTEGER,
+    do_utilization_pct NUMERIC(5,2),
+    
+    -- Financial
+    total_wallet_balance_usd NUMERIC(10,2),
+    daily_wallet_burn_usd NUMERIC(10,2),
+    
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    UNIQUE(metric_date)
+);
+
+CREATE INDEX idx_scale_metrics_date ON genesis.scale_metrics(metric_date DESC);
+```
+
+---
+
+### 44.3.4 Scale Alerts Table
+
+**Purpose:** Store active alerts and track resolution status.
+
+```sql
+-- ============================================
+-- SCALE ALERTS TABLE
+-- ============================================
+-- Stores active alerts triggered by threshold breaches
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS genesis.scale_alerts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    alert_type TEXT NOT NULL,  -- 'partition_count', 'large_partition', 'query_latency', etc.
+    severity TEXT NOT NULL CHECK (severity IN ('YELLOW', 'RED')),
+    
+    -- Alert details
+    metric_name TEXT NOT NULL,
+    current_value TEXT NOT NULL,
+    threshold_value TEXT NOT NULL,
+    runway_days INTEGER,  -- Days until red threshold (if yellow) or days overdue (if red)
+    
+    -- Affected resources
+    workspace_id TEXT,  -- If alert is specific to one workspace
+    partition_name TEXT,
+    
+    -- Action guidance
+    recommendation TEXT NOT NULL,
+    remediation_link TEXT,  -- Link to docs or admin action page
+    
+    -- Status tracking
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'acknowledged', 'resolved', 'ignored')),
+    acknowledged_at TIMESTAMPTZ,
+    acknowledged_by TEXT,
+    resolved_at TIMESTAMPTZ,
+    resolution_notes TEXT,
+    
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_scale_alerts_status ON genesis.scale_alerts(status) WHERE status = 'active';
+CREATE INDEX idx_scale_alerts_severity ON genesis.scale_alerts(severity);
+CREATE INDEX idx_scale_alerts_type ON genesis.scale_alerts(alert_type);
+CREATE INDEX idx_scale_alerts_workspace ON genesis.scale_alerts(workspace_id) WHERE workspace_id IS NOT NULL;
+```
+
+---
+
+### 44.3.5 Automated Health Check Runner
+
+**Scheduled Job: Every 6 hours via `pg_cron`**
+
+```sql
+-- ============================================
+-- SCALE HEALTH CHECK RUNNER
+-- ============================================
+-- Runs all health checks and creates/updates alerts
+-- Schedule: Every 6 hours
+-- ============================================
+
+CREATE OR REPLACE FUNCTION genesis.run_scale_health_checks()
+RETURNS TABLE (
+    check_name TEXT,
+    status TEXT,
+    alerts_created INTEGER,
+    duration_ms INTEGER
+) AS $$
+DECLARE
+    v_start_time TIMESTAMPTZ := clock_timestamp();
+    v_alerts_created INTEGER := 0;
+BEGIN
+    -- ============================================
+    -- CHECK 1: Partition Count
+    -- ============================================
+    PERFORM genesis.process_partition_count_check();
+    
+    -- ============================================
+    -- CHECK 2: Largest Partitions
+    -- ============================================
+    PERFORM genesis.process_oversized_partitions_check();
+    
+    -- ============================================
+    -- CHECK 3: Query Performance
+    -- ============================================
+    PERFORM genesis.process_query_latency_check();
+    
+    -- ============================================
+    -- CHECK 4: DO Account Capacity
+    -- ============================================
+    PERFORM genesis.process_do_capacity_check();
+    
+    -- ============================================
+    -- CHECK 5: Storage Growth
+    -- ============================================
+    PERFORM genesis.process_storage_growth_check();
+    
+    -- ============================================
+    -- Record metrics snapshot
+    -- ============================================
+    INSERT INTO genesis.scale_metrics (
+        partition_count,
+        largest_partition_rows,
+        largest_partition_name,
+        total_size_gb,
+        p95_latency_ms
+    )
+    SELECT
+        (SELECT current_value FROM genesis.check_partition_count()),
+        (SELECT row_count FROM genesis.check_oversized_partitions() LIMIT 1),
+        (SELECT partition_name FROM genesis.check_oversized_partitions() LIMIT 1),
+        (SELECT current_size_gb FROM genesis.check_storage_growth()),
+        (SELECT p95_latency_ms FROM genesis.check_query_latency());
+    
+    -- Return summary
+    RETURN QUERY SELECT
+        'scale_health_checks'::TEXT,
+        'completed'::TEXT,
+        v_alerts_created,
+        EXTRACT(MILLISECONDS FROM clock_timestamp() - v_start_time)::INTEGER;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Schedule with pg_cron (built into Supabase)
+SELECT cron.schedule(
+    'scale-health-checks',
+    '0 */6 * * *',  -- Every 6 hours
+    $$SELECT genesis.run_scale_health_checks();$$
+);
+```
+
+---
+
+### 44.3.6 Alert Processing Function
+
+**Purpose:** Creates or updates alerts based on threshold checks.
+
+```sql
+CREATE OR REPLACE FUNCTION genesis.process_partition_count_check()
+RETURNS VOID AS $$
+DECLARE
+    v_check RECORD;
+    v_existing_alert UUID;
+BEGIN
+    -- Get current metric
+    SELECT * INTO v_check FROM genesis.check_partition_count();
+    
+    -- Check if alert already exists
+    SELECT id INTO v_existing_alert
+    FROM genesis.scale_alerts
+    WHERE alert_type = 'partition_count'
+      AND status = 'active'
+    LIMIT 1;
+    
+    IF v_check.status = 'GREEN' THEN
+        -- Resolve existing alert if any
+        IF v_existing_alert IS NOT NULL THEN
+            UPDATE genesis.scale_alerts
+            SET status = 'resolved',
+                resolved_at = NOW(),
+                resolution_notes = 'Metric returned to green zone'
+            WHERE id = v_existing_alert;
+        END IF;
+        
+    ELSIF v_check.status IN ('YELLOW', 'RED') THEN
+        -- Create or update alert
+        IF v_existing_alert IS NULL THEN
+            -- Create new alert
+            INSERT INTO genesis.scale_alerts (
+                alert_type,
+                severity,
+                metric_name,
+                current_value,
+                threshold_value,
+                runway_days,
+                recommendation,
+                remediation_link
+            ) VALUES (
+                'partition_count',
+                v_check.status,
+                'Total Partitions',
+                v_check.current_value::TEXT,
+                CASE 
+                    WHEN v_check.status = 'RED' THEN v_check.threshold_red::TEXT
+                    ELSE v_check.threshold_yellow::TEXT
+                END,
+                v_check.days_until_red,
+                CASE 
+                    WHEN v_check.status = 'RED' THEN 
+                        'CRITICAL: Approaching partition limit. Enable Phase 40 catalog optimizations immediately.'
+                    ELSE 
+                        'WARNING: Partition count growing. Review Phase 40 optimizations within 30 days.'
+                END,
+                '/admin/scale-health?metric=partition_count'
+            );
+        ELSE
+            -- Update existing alert
+            UPDATE genesis.scale_alerts
+            SET severity = v_check.status,
+                current_value = v_check.current_value::TEXT,
+                runway_days = v_check.days_until_red,
+                updated_at = NOW()
+            WHERE id = v_existing_alert;
+        END IF;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+---
+
+### 44.3.7 Admin Dashboard Widget (God Mode UI)
+
+**Location:** `/admin` → New tab: "Scale Health"
+
+**Widget Design:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         SCALE HEALTH DASHBOARD                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  🟢 Overall Status: HEALTHY                                                │
+│  Last Check: 2 hours ago                                                   │
+│                                                                             │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │  METRIC                        CURRENT    THRESHOLD    STATUS   RUNWAY │ │
+│  ├────────────────────────────────────────────────────────────────────────┤ │
+│  │  Total Partitions               8,234    10,000-12k    🟢      120d   │ │
+│  │  Largest Partition              342K     500K-1M        🟢      -      │ │
+│  │  Query P95 Latency              78ms     100-200ms      🟢      -      │ │
+│  │  DO Account Capacity            65%      70-85%         🟢      45d    │ │
+│  │  Total Storage                  387GB    500-1TB        🟢      90d    │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│  🟡 ACTIVE WARNINGS (2):                                                   │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │  ⚠️  DO Account 3 (EU-Frankfurt): 72% capacity (36/50 droplets)       │ │
+│  │      Runway: 42 days at current growth rate                           │ │
+│  │      Action: Add new EU DO account within 30 days                     │ │
+│  │      [View Details] [Acknowledge] [Add Account]                       │ │
+│  │                                                                         │ │
+│  │  ⚠️  Partition "leads_p_enterprise_456": 587K rows                     │ │
+│  │      Threshold: 500K (yellow), 1M (red)                                │ │
+│  │      Action: Review data retention with customer                      │ │
+│  │      [View Partition] [Contact Customer] [Archive Data]               │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│  🔴 CRITICAL ALERTS (0):                                                   │
+│  None - all systems operating within safe thresholds                       │
+│                                                                             │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │  GROWTH TRENDS (Last 30 Days)                                          │ │
+│  │                                                                         │ │
+│  │  Partitions:   +1,234 (+17%)   [Chart: 📈]                            │ │
+│  │  Storage:      +45GB  (+13%)   [Chart: 📈]                            │ │
+│  │  Latency:      -12ms  (-13%)   [Chart: 📉] ← Improved!               │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│  [Refresh Now] [Download Report] [Configure Thresholds]                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 44.3.8 Alert Notification Routing
+
+**Multi-Channel Alert Delivery:**
+
+```typescript
+// lib/genesis/alert-routing.ts
+
+interface ScaleAlert {
+  id: string;
+  severity: 'YELLOW' | 'RED';
+  metric: string;
+  current: string;
+  threshold: string;
+  runway_days: number | null;
+  recommendation: string;
+}
+
+async function routeAlert(alert: ScaleAlert) {
+  const channels: AlertChannel[] = [];
+  
+  // Determine routing based on severity
+  if (alert.severity === 'YELLOW') {
+    channels.push(
+      'in_app',        // Show in Admin dashboard
+      'email_daily'    // Include in daily digest
+    );
+  } else if (alert.severity === 'RED') {
+    channels.push(
+      'in_app',        // Immediate banner in Admin dashboard
+      'email_urgent',  // Send immediately
+      'slack',         // Post to #genesis-alerts channel (if configured)
+      'sms'            // SMS to admin (optional, for critical only)
+    );
+  }
+  
+  // Send to each channel
+  for (const channel of channels) {
+    switch (channel) {
+      case 'in_app':
+        await createInAppNotification(alert);
+        break;
+      case 'email_daily':
+        await queueForDailyDigest(alert);
+        break;
+      case 'email_urgent':
+        await sendUrgentEmail(alert);
+        break;
+      case 'slack':
+        await postToSlack(alert);
+        break;
+      case 'sms':
+        await sendSMS(alert);
+        break;
+    }
+  }
+}
+
+// In-app notification (shown in Admin dashboard)
+async function createInAppNotification(alert: ScaleAlert) {
+  await supabase.from('notifications').insert({
+    user_id: SUPER_ADMIN_ID,
+    type: alert.severity === 'RED' ? 'critical_alert' : 'warning',
+    title: `Scale Alert: ${alert.metric}`,
+    message: alert.recommendation,
+    action_url: `/admin/scale-health?alert_id=${alert.id}`,
+    metadata: {
+      current_value: alert.current,
+      threshold: alert.threshold,
+      runway_days: alert.runway_days
+    }
+  });
+}
+
+// Email notification (urgent for RED, daily digest for YELLOW)
+async function sendUrgentEmail(alert: ScaleAlert) {
+  await sendEmail({
+    to: ADMIN_EMAIL,
+    subject: `🚨 CRITICAL: ${alert.metric} Alert`,
+    html: `
+      <h2>Critical Scale Alert</h2>
+      <p><strong>Metric:</strong> ${alert.metric}</p>
+      <p><strong>Current Value:</strong> ${alert.current}</p>
+      <p><strong>Threshold:</strong> ${alert.threshold}</p>
+      <p><strong>Runway:</strong> ${alert.runway_days} days</p>
+      
+      <h3>Recommended Action:</h3>
+      <p>${alert.recommendation}</p>
+      
+      <a href="${DASHBOARD_URL}/admin/scale-health?alert_id=${alert.id}">
+        View Details in Dashboard
+      </a>
+    `
+  });
+}
+```
+
+---
+
+### 44.3.9 Auto-Remediation Strategies
+
+For certain alerts, the system can automatically take corrective action (with admin approval).
+
+| Alert Type | Auto-Remediation | Requires Approval | Action |
+|------------|------------------|-------------------|--------|
+| **Partition count > 10k** | Enable catalog optimizations | No | Update `postgresql.conf` via Supabase API |
+| **Large partition (>500k)** | Archive data older than 1 year | Yes | Run `DELETE FROM partition WHERE created_at < NOW() - INTERVAL '1 year'` |
+| **DO account >70% full** | Add new DO account | Yes | Prompt admin to add API token |
+| **Slow queries** | Add missing indexes | No | Run `genesis.create_jsonb_index()` |
+| **Low wallet balance** | Pause managed services | Yes | Set `wallet_locked = true` |
+| **Orphan snapshots** | Delete snapshots >30 days | No | Run garbage collection |
+
+**Auto-Remediation Flow:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    AUTO-REMEDIATION DECISION TREE                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Alert Created                                                              │
+│       │                                                                     │
+│       ▼                                                                     │
+│  ┌─────────────────┐                                                        │
+│  │ Check if alert  │                                                        │
+│  │ has auto-remedy │                                                        │
+│  └────────┬────────┘                                                        │
+│           │                                                                 │
+│  ┌────────┴────────┐                                                        │
+│  │                 │                                                        │
+│  ▼                 ▼                                                        │
+│ YES               NO                                                        │
+│  │                 │                                                        │
+│  │                 └──► [Send Alert Only]                                  │
+│  │                                                                          │
+│  ▼                                                                          │
+│ ┌─────────────────┐                                                         │
+│ │ Requires admin  │                                                         │
+│ │ approval?       │                                                         │
+│ └────────┬────────┘                                                         │
+│          │                                                                  │
+│  ┌───────┴───────┐                                                          │
+│  │               │                                                          │
+│  ▼               ▼                                                          │
+│ YES             NO                                                          │
+│  │               │                                                          │
+│  │               └──► [Execute Immediately]                                │
+│  │                    [Log Action]                                          │
+│  │                                                                          │
+│  ▼                                                                          │
+│ [Send Approval Request]                                                     │
+│ [Wait for Admin Click]                                                      │
+│       │                                                                     │
+│       ▼                                                                     │
+│ ┌─────────────────┐                                                         │
+│ │ Admin approves? │                                                         │
+│ └────────┬────────┘                                                         │
+│          │                                                                  │
+│  ┌───────┴───────┐                                                          │
+│  │               │                                                          │
+│  ▼               ▼                                                          │
+│ YES             NO                                                          │
+│  │               │                                                          │
+│  │               └──► [Mark: ignored]                                      │
+│  │                                                                          │
+│  ▼                                                                          │
+│ [Execute Remediation]                                                       │
+│ [Log Action + Result]                                                       │
+│ [Resolve Alert]                                                             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 44.3.10 Example Alert Scenarios
+
+**Scenario 1: Partition Count Approaching Limit**
+
+```
+TIME: Day 1
+EVENT: Health check detects 10,200 partitions (threshold: 10,000 yellow)
+ACTION:
+  1. Create YELLOW alert in database
+  2. Calculate runway: (12,000 - 10,200) / 120 daily growth = 15 days
+  3. Send in-app notification
+  4. Add to daily digest email
+  5. Show banner in Admin dashboard
+
+ADMIN SEES:
+  ⚠️ Partition Capacity Alert
+  Current: 10,200 partitions (68% of 15k target)
+  Yellow Threshold: 10,000
+  Red Threshold: 12,000
+  Runway: 15 days until RED
+  
+  Recommendation:
+  - Review Phase 40 catalog optimizations
+  - Consider increasing max_locks_per_transaction
+  - Plan for partition cleanup (inactive customers)
+  
+  [Acknowledge] [View Phase 40] [Schedule Optimization]
+
+TIME: Day 10
+EVENT: Admin clicks "Schedule Optimization"
+ACTION:
+  1. Mark alert as 'acknowledged'
+  2. Create task reminder for Day 14
+  3. Continue monitoring
+  
+TIME: Day 14
+EVENT: Admin enables Phase 40 optimizations
+ACTION:
+  1. Alert remains active (still at 10,800 partitions)
+  2. Runway recalculated: slower growth rate due to optimizations
+  
+TIME: Day 30
+EVENT: Partition count stabilizes at 11,000 (below 12k red threshold)
+ACTION:
+  1. Alert status: acknowledged (not resolved, still in yellow zone)
+  2. Continue monitoring
+```
+
+**Scenario 2: Large Partition Detected**
+
+```
+TIME: Day 1
+EVENT: Enterprise customer "workspace_789" hits 520K rows
+ACTION:
+  1. Create YELLOW alert
+  2. No auto-remediation (requires customer contact)
+  3. Show in Admin dashboard
+
+ADMIN SEES:
+  ⚠️ Large Partition Alert
+  Workspace: enterprise-customer-789
+  Partition: leads_p_789
+  Rows: 520,000 (threshold: 500K yellow, 1M red)
+  Size: 5.2 GB
+  
+  Impact: Query latency: 85ms (still acceptable)
+  
+  Recommendation:
+  - Contact customer about data retention
+  - Archive leads older than 1 year
+  - Consider sub-partitioning strategy
+  
+  [Contact Customer] [View Partition Details] [Archive Options]
+
+TIME: Day 5
+EVENT: Admin contacts customer, agrees to archive old data
+ACTION:
+  1. Run archival query (DELETE leads WHERE created_at < NOW() - INTERVAL '1 year')
+  2. Partition size: 520K → 180K rows
+  3. Alert auto-resolves (below 500K threshold)
+  
+RESULT:
+  ✅ Alert resolved
+  Query latency: 85ms → 35ms (improved)
+  Storage freed: 3.4 GB
+```
+
+---
+
+### 44.3.11 Alert Notification Preferences
+
+**Admin can configure alert preferences:**
+
+```sql
+CREATE TABLE IF NOT EXISTS genesis.alert_preferences (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_user_id TEXT NOT NULL,
+    
+    -- Channel preferences
+    enable_email BOOLEAN DEFAULT TRUE,
+    enable_slack BOOLEAN DEFAULT FALSE,
+    enable_sms BOOLEAN DEFAULT FALSE,
+    
+    -- Severity filters
+    notify_yellow BOOLEAN DEFAULT TRUE,
+    notify_red BOOLEAN DEFAULT TRUE,
+    
+    -- Digest settings
+    daily_digest_enabled BOOLEAN DEFAULT TRUE,
+    daily_digest_time TIME DEFAULT '09:00:00',
+    
+    -- Slack webhook (optional)
+    slack_webhook_url TEXT,
+    
+    -- SMS (optional)
+    phone_number TEXT,
+    
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+---
+
+### 44.3.12 Scale Health API Endpoints
+
+**New API routes for Scale Health:**
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/admin/scale-health` | GET | Fetch current health status |
+| `/api/admin/scale-health/alerts` | GET | List active alerts |
+| `/api/admin/scale-health/alerts/:id/acknowledge` | POST | Mark alert as acknowledged |
+| `/api/admin/scale-health/alerts/:id/resolve` | POST | Manually resolve alert |
+| `/api/admin/scale-health/run-checks` | POST | Trigger health checks manually |
+| `/api/admin/scale-health/history` | GET | Historical metrics |
+
+---
+
+### 44.3.13 Benefits of Pre-Failure Alerts
+
+| Traditional Approach | V30 Pre-Failure Alerts |
+|---------------------|------------------------|
+| ❌ Wait for system to break | ✅ Predict failure 30-60 days ahead |
+| ❌ Users experience downtime | ✅ Optimize during off-hours |
+| ❌ Panic-driven fixes | ✅ Planned, tested optimizations |
+| ❌ No historical data | ✅ Trend analysis shows patterns |
+| ❌ Manual monitoring | ✅ Automated checks every 6 hours |
+| ❌ Reactive engineering | ✅ Proactive engineering |
+
+**Real-World Impact:**
+
+```
+Without Alerts:
+  Day 100: System hits 15k partitions
+  Day 100: Queries start timing out (500ms+)
+  Day 100: Users complain about slow dashboard
+  Day 100: Emergency optimization session
+  Day 101: Enable Phase 40 configs (risky during crisis)
+  Impact: 24 hours downtime, 1,000+ angry users
+
+With Pre-Failure Alerts:
+  Day 70: YELLOW alert: 10,200 partitions (runway: 30 days)
+  Day 71: Admin acknowledges, schedules optimization
+  Day 75: Enable Phase 40 configs during low-traffic window
+  Day 76: Test and validate
+  Day 100: System hits 15k partitions smoothly
+  Impact: Zero downtime, zero user complaints
+```
+
+---
+
+### 44.3.14 Integration with Existing God Mode (Phase 44)
+
+The Scale Health Monitoring integrates seamlessly with existing God Mode features:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    GOD MODE DASHBOARD (Enhanced)                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Tabs:                                                                      │
+│  [Fleet Overview] [Health Mesh] [Scale Health] [Financial] [Template Mgmt] │
+│                                    ▲                                        │
+│                                    │                                        │
+│                                NEW TAB                                      │
+│                                                                             │
+│  Fleet Overview (Existing):                                                │
+│  - Droplet health states (Phase 54)                                        │
+│  - Watchdog status (Phase 43)                                              │
+│  - Heartbeat monitoring                                                    │
+│                                                                             │
+│  Scale Health (NEW):                                                       │
+│  - Partition metrics                                                       │
+│  - Query performance                                                       │
+│  - Storage growth                                                          │
+│  - DO capacity                                                             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 44.3.15 Monitoring Best Practices
+
+**Check Frequency:**
+- Critical metrics: Every 6 hours
+- Storage metrics: Daily
+- Trend analysis: Weekly
+
+**Alert Fatigue Prevention:**
+- Don't alert on transient spikes (use 24h moving average)
+- Auto-resolve when metrics return to green
+- Group related alerts (don't send 10 separate emails)
+
+**Runway Calculations:**
+- Based on 7-day moving average growth rate
+- Accounts for seasonality (weekends, holidays)
+- Conservative estimates (assume worst-case growth)
+
+**Historical Data Retention:**
+- Keep raw metrics: 90 days
+- Keep aggregated metrics: 2 years
+- Keep alert history: Forever (for compliance)
+
+---
+
+## 44.3.16 Implementation Checklist
+
+**Phase 44.3 delivers:**
+
+- ✅ 6 monitoring SQL functions (partition, storage, latency, DO capacity, etc.)
+- ✅ `scale_metrics` history table
+- ✅ `scale_alerts` table
+- ✅ `alert_preferences` configuration
+- ✅ `pg_cron` scheduled job (every 6 hours)
+- ✅ Admin dashboard widget (Scale Health tab)
+- ✅ Alert routing (in-app, email, Slack, SMS)
+- ✅ Auto-remediation framework (with approval gates)
+- ✅ Historical trend analysis
+- ✅ API endpoints for programmatic access
+
+**Integration points:**
+- Phase 40: Uses partition optimization recommendations
+- Phase 43: Complements Watchdog (droplet health vs scale health)
+- Phase 50: Monitors DO account pool capacity
+- Phase 58: Monitors wallet balance thresholds
 
 ---
 
