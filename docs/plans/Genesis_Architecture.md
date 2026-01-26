@@ -911,37 +911,37 @@ sequenceDiagram
 ```mermaid
 graph TB
     subgraph DASHBOARD["Dashboard Ignition Request"]
-        REQ[Provision Request<br/>workspace_id, region, size]
+        REQ[Provision Request]
     end
 
     subgraph SELECTOR["Account Selector Algorithm"]
-        QUERY[Query do_accounts<br/>WHERE region = :region<br/>AND status = 'active'<br/>AND current < max]
-        SORT[Sort by current_droplets<br/>ASC (least loaded first)]
+        QUERY[Query do_accounts by region]
+        SORT[Sort by current_droplets ASC]
         SELECT[Select Top Account]
     end
 
     subgraph POOL["DigitalOcean Account Pool"]
         subgraph Active["Active Accounts"]
-            ACC1[Account 1<br/>us-east<br/>45/50 droplets]
-            ACC2[Account 2<br/>us-east<br/>30/50 droplets]
-            ACC3[Account 3<br/>eu-frankfurt<br/>20/50 droplets]
+            ACC1[Account 1 us-east 45/50]
+            ACC2[Account 2 us-east 30/50]
+            ACC3[Account 3 eu-frankfurt 20/50]
         end
         
-        subgraph Standby["Standby (Full)"]
-            ACC_FULL[Account X<br/>50/50 droplets<br/>STANDBY]
+        subgraph Standby["Standby Full"]
+            ACC_FULL[Account X 50/50 STANDBY]
         end
     end
 
     subgraph CREATE["Droplet Creation"]
-        DECRYPT[Decrypt API Token<br/>pgcrypto]
-        API_CALL[DO API Call<br/>dropletsCreate]
-        INCREMENT[Increment Counter<br/>current_droplets + 1]
-        TAG[Apply Tags<br/>genesis:workspace_id]
+        DECRYPT[Decrypt API Token]
+        API_CALL[DO API dropletsCreate]
+        INCREMENT[Increment Counter]
+        TAG[Apply Tags]
     end
 
     subgraph RESULT["Result"]
-        SUCCESS[Return droplet_id<br/>+ droplet_ip]
-        FAILOVER[Failover to<br/>Next Account]
+        SUCCESS[Return droplet_id]
+        FAILOVER[Failover to Next Account]
     end
 
     REQ --> QUERY
@@ -957,9 +957,6 @@ graph TB
     
     API_CALL -->|Failure| FAILOVER
     FAILOVER --> ACC1
-
-    style POOL fill:#1b263b,stroke:#ffd60a,stroke-width:2px
-    style SELECTOR fill:#1a1a2e,stroke:#00d4ff,stroke-width:2px
 ```
 
 ---
@@ -969,35 +966,35 @@ graph TB
 ```mermaid
 graph LR
     subgraph PRODUCERS["Command Producers"]
-        FLEET_API[Fleet API<br/>User Actions]
-        WATCHDOG[Watchdog<br/>Auto-Healing]
-        SCHEDULER[Scheduler<br/>Cron Jobs]
+        FLEET_API[Fleet API]
+        WATCHDOG[Watchdog]
+        SCHEDULER[Scheduler]
     end
 
     subgraph REDIS["Redis Cluster"]
         subgraph Queues["Command Queues"]
-            Q_DEPLOY[deploy-workflow<br/>Priority: HIGH]
-            Q_CREDS[inject-credentials<br/>Priority: HIGH]
-            Q_UPDATE[update-n8n<br/>Priority: MEDIUM]
-            Q_REBOOT[hard-reboot<br/>Priority: CRITICAL]
-            Q_HIBERNATE[hibernate-droplet<br/>Priority: LOW]
+            Q_DEPLOY[deploy-workflow HIGH]
+            Q_CREDS[inject-credentials HIGH]
+            Q_UPDATE[update-n8n MEDIUM]
+            Q_REBOOT[hard-reboot CRITICAL]
+            Q_HIBERNATE[hibernate-droplet LOW]
         end
         
         subgraph State["State Storage"]
-            JOBS[Job Status<br/>Pending/Active/Done]
-            RETRIES[Retry Counter<br/>Max 3 Attempts]
+            JOBS[Job Status]
+            RETRIES[Retry Counter]
         end
     end
 
     subgraph GOVERNOR["Concurrency Governor"]
-        LIMITER[Rate Limiter<br/>50 concurrent/account]
-        BACKOFF[Exponential Backoff<br/>1s → 2s → 4s]
+        LIMITER[Rate Limiter 50 concurrent]
+        BACKOFF[Exponential Backoff]
     end
 
-    subgraph CONSUMERS["Sidecar Consumers (15,000+)"]
-        SIDE_A[Sidecar A<br/>Listening on workspace_id]
-        SIDE_B[Sidecar B<br/>Listening on workspace_id]
-        SIDE_N[Sidecar N<br/>Listening on workspace_id]
+    subgraph CONSUMERS["Sidecar Consumers 15000+"]
+        SIDE_A[Sidecar A]
+        SIDE_B[Sidecar B]
+        SIDE_N[Sidecar N]
     end
 
     PRODUCERS --> Queues
@@ -1005,9 +1002,6 @@ graph LR
     GOVERNOR --> CONSUMERS
     JOBS --> CONSUMERS
     CONSUMERS --> JOBS
-
-    style REDIS fill:#dc143c,stroke:#ff6b6b,stroke-width:2px
-    style GOVERNOR fill:#ffd93d,stroke:#000,stroke-width:2px
 ```
 
 ---
@@ -1017,30 +1011,30 @@ graph LR
 ```mermaid
 flowchart TB
     subgraph TRIGGER["Workflow Execution Trigger"]
-        N8N_START[n8n Workflow Starts<br/>e.g., Apify Scrape]
+        N8N_START[n8n Workflow Starts]
     end
 
-    subgraph PREFLIGHT["Pre-Flight Check (n8n Node)"]
-        CALC[Calculate Estimated Cost<br/>1 Apify = $0.02]
-        API_CHECK[Call Dashboard API<br/>GET /api/wallet/preflight]
+    subgraph PREFLIGHT["Pre-Flight Check"]
+        CALC[Calculate Estimated Cost]
+        API_CHECK[Call Dashboard API]
     end
 
     subgraph DASHBOARD["Dashboard Wallet API"]
-        REDIS_CHECK[Check Redis Cache<br/>wallet:{workspace_id}]
-        DB_CHECK[Query Supabase<br/>wallet_balance]
-        DECISION{Balance >= Cost?}
+        REDIS_CHECK[Check Redis Cache]
+        DB_CHECK[Query Supabase]
+        DECISION{Balance >= Cost}
     end
 
     subgraph EXECUTION["Workflow Execution"]
-        PROCEED[✅ Proceed<br/>Execute Apify Node]
-        DEDUCT[Deduct from Wallet<br/>Atomic DECRBY]
-        LOG[Log to Ledger<br/>wallet_ledger]
+        PROCEED[PROCEED - Execute Apify]
+        DEDUCT[Deduct from Wallet]
+        LOG[Log to Ledger]
     end
 
     subgraph HALT["Kill Switch"]
-        STOP[❌ HALT Workflow<br/>Insufficient Funds]
-        ALERT[Send Notification<br/>to User]
-        AUDIT[Log Kill Event<br/>audit_log]
+        STOP[HALT - Insufficient Funds]
+        ALERT[Send Notification]
+        AUDIT[Log Kill Event]
     end
 
     TRIGGER --> CALC
@@ -1058,9 +1052,6 @@ flowchart TB
     
     STOP --> ALERT
     ALERT --> AUDIT
-
-    style HALT fill:#4a0000,stroke:#ff0000,stroke-width:2px
-    style EXECUTION fill:#003300,stroke:#00ff00,stroke-width:2px
 ```
 
 ---
@@ -1070,28 +1061,28 @@ flowchart TB
 ```mermaid
 flowchart TB
     subgraph DETECT["Inactivity Detection"]
-        MONITOR[Monitor last_activity<br/>in fleet_status]
-        CHECK{72h Since<br/>Last Activity?}
+        MONITOR[Monitor last_activity]
+        CHECK{72h Since Last Activity}
     end
 
     subgraph HIBERNATE["Hibernation Process"]
-        NOTIFY[Notify User<br/>Hibernation Warning]
-        SNAPSHOT[Create DO Snapshot<br/>~$0.02/GB/mo]
-        DESTROY[Destroy Droplet<br/>Stop $6/mo billing]
-        UPDATE_DB[Update fleet_status<br/>state = HIBERNATED]
+        NOTIFY[Notify User Warning]
+        SNAPSHOT[Create DO Snapshot]
+        DESTROY[Destroy Droplet]
+        UPDATE_DB[Update fleet_status HIBERNATED]
     end
 
     subgraph STORAGE["Snapshot Storage"]
-        SNAP_STORE[(DO Snapshot<br/>5-10GB typical)]
-        META[Metadata Stored<br/>snapshot_id, size]
+        SNAP_STORE[(DO Snapshot 5-10GB)]
+        META[Metadata Stored]
     end
 
     subgraph WAKE["Wake Process"]
-        USER_ACTION[User Activity<br/>Dashboard Access]
-        RESTORE[Create Droplet<br/>FROM Snapshot]
-        BOOT[Cloud-Init<br/>Minimal (no re-download)]
-        HANDSHAKE[Sidecar Handshake<br/>Re-establish Link]
-        ACTIVE[State: ACTIVE_HEALTHY<br/>< 15s total]
+        USER_ACTION[User Activity Detected]
+        RESTORE[Create Droplet FROM Snapshot]
+        BOOT[Cloud-Init Minimal]
+        HANDSHAKE[Sidecar Handshake]
+        ACTIVE[State ACTIVE_HEALTHY 15s]
     end
 
     MONITOR --> CHECK
@@ -1107,10 +1098,6 @@ flowchart TB
     RESTORE --> BOOT
     BOOT --> HANDSHAKE
     HANDSHAKE --> ACTIVE
-
-    style HIBERNATE fill:#1a1a2e,stroke:#00d4ff,stroke-width:2px
-    style WAKE fill:#0d1b2a,stroke:#00ff88,stroke-width:2px
-    style STORAGE fill:#2d2d44,stroke:#7b68ee,stroke-width:2px
 ```
 
 ---
@@ -1119,26 +1106,26 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    subgraph TEMPLATE["Golden Template (Master)"]
-        TEMPLATE_WF[Workflow JSON<br/>with Placeholder UUIDs]
-        TEMPLATE_CREDS[Credential References<br/>TEMPLATE_GMAIL_UUID<br/>TEMPLATE_OPENAI_UUID]
+    subgraph TEMPLATE["Golden Template Master"]
+        TEMPLATE_WF[Workflow JSON with Placeholders]
+        TEMPLATE_CREDS[Credential References]
     end
 
     subgraph DEPLOY["Deployment Process"]
-        FETCH[Fetch Template<br/>from workflow_templates]
-        PARSE[Parse JSON<br/>Find UUID Placeholders]
-        LOOKUP[Lookup Tenant UUIDs<br/>from credential_mapping]
-        REPLACE[String Replace<br/>TEMPLATE_* → Actual UUID]
-        PUSH[Push to n8n API<br/>POST /workflows]
+        FETCH[Fetch Template]
+        PARSE[Parse JSON Find Placeholders]
+        LOOKUP[Lookup Tenant UUIDs]
+        REPLACE[String Replace to Actual UUID]
+        PUSH[Push to n8n API]
     end
 
     subgraph TENANT["Tenant n8n Instance"]
-        N8N_CREDS[(Credentials<br/>Created by Sidecar)]
-        N8N_WF[(Workflows<br/>With Real UUIDs)]
+        N8N_CREDS[(Credentials)]
+        N8N_WF[(Workflows With Real UUIDs)]
     end
 
     subgraph MAPPING["UUID Mapping Table"]
-        MAP_TABLE[(credential_mapping<br/>workspace_id<br/>template_key<br/>actual_uuid)]
+        MAP_TABLE[(credential_mapping)]
     end
 
     TEMPLATE --> FETCH
@@ -1149,9 +1136,6 @@ flowchart LR
     REPLACE --> PUSH
     PUSH --> N8N_WF
     N8N_CREDS --> MAP_TABLE
-
-    style TEMPLATE fill:#ffd93d,stroke:#000,stroke-width:2px
-    style MAPPING fill:#6c5ce7,stroke:#fff,stroke-width:2px
 ```
 
 ---
