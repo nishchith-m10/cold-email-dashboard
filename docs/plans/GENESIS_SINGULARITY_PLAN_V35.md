@@ -1,9 +1,9 @@
-# 🧬 THE GENESIS ENGINE: SOVEREIGN SINGULARITY PLAN V30.0
+# 🧬 THE GENESIS ENGINE: SOVEREIGN SINGULARITY PLAN V35.0
 
 > **Document Type:** Ultra-Complex Forensic Systems Architecture Specification  
 > **Status:** Complete - All Phases & Gap Closures Documented  
 > **Created:** 2026-01-24  
-> **Last Updated:** 2026-01-25  
+> **Last Updated:** 2026-01-26  
 > **Architect Level:** L10 Distinguished Principal Systems Architect  
 > **Target:** 100M+ Leads | 15,000+ Sovereign Droplets | Zero-Failure Tolerance
 
@@ -15,8 +15,8 @@
 
 | Section | Title | Focus |
 |---------|-------|-------|
-| **1** | [Executive Summary](#section-1-executive-summary) | V30 Mandate, Strategic Pivots, Architecture Overview |
-| **2** | [V30 Architectural Pillars](#section-2-v30-architectural-pillars) | Sovereign Isolation, Fleet Orchestration, Unified Onboarding |
+| **1** | [Executive Summary](#section-1-executive-summary) | V35 Mandate, Strategic Pivots, Architecture Overview |
+| **2** | [V35 Architectural Pillars](#section-2-v35-architectural-pillars) | Sovereign Isolation, Fleet Orchestration, Unified Onboarding |
 | **3** | [The Ohio Exception](#section-3-the-ohio-exception) | Legacy Workspace Isolation Protocol |
 
 ### PART II: INFRASTRUCTURE PHYSICS
@@ -88,6 +88,8 @@
 | **66** | [Disaster Recovery & Regional Failover](#phase-66-disaster-recovery--regional-failover) | Cross-region snapshots, mass restoration |
 | **66.B** | [Infrastructure as Code (Optional)](#phase-66b-infrastructure-as-code-optional) | Terraform for Dashboard DR, reproducible infra (LOW PRIORITY) |
 | **67** | [API Health Monitor & Sanity Check](#phase-67-api-health-monitor--sanity-check) | External API validation, health dashboard, auto-diagnosis |
+| **68** | [Zero-Downtime Fleet Update Protocol](#phase-68-zero-downtime-fleet-update-protocol) | Version control, canary rollout, instant rollback for 15K+ tenants |
+| **69** | [Control Plane Deployment Architecture](#phase-69-control-plane-deployment-architecture) | Vercel + Railway/AWS hybrid, long-running services separation |
 
 ### PART X: REFERENCE & APPENDICES
 
@@ -103,17 +105,17 @@
 
 ## SECTION 1: EXECUTIVE SUMMARY
 
-### 1.1 The V30 Sovereign Singularity Mandate
+### 1.1 The V35 Sovereign Singularity Mandate
 
-The V30 architecture represents a **complete strategic pivot** from the V20 shared-resource model to a **Sovereign, Decoupled, and Managed** infrastructure. The primary objective is to eliminate the **"Onboarding Friction Wall"** and the **"Fleet Orchestration Death Traps"** that would plague any shared n8n deployment at scale.
+The V35 architecture represents a **complete strategic pivot** from the V20 shared-resource model to a **Sovereign, Decoupled, and Managed** infrastructure. The primary objective is to eliminate the **"Onboarding Friction Wall"** and the **"Fleet Orchestration Death Traps"** that would plague any shared n8n deployment at scale.
 
 **The Core Principle: Perfect Isolation**
 
 Every tenant receives their own dedicated DigitalOcean Droplet running a standardized n8n instance, managed by a lightweight Sidecar Agent, orchestrated by a central Dashboard Control Plane.
 
-### 1.2 Strategic Pivots from V20 to V30
+### 1.2 Strategic Pivots from V20 to V35
 
-| Aspect | V20 Approach (Rejected) | V30 Approach (Adopted) | Rationale |
+| Aspect | V20 Approach (Rejected) | V35 Approach (Adopted) | Rationale |
 |--------|------------------------|------------------------|-----------|
 | **n8n Hosting** | Shared n8n Cloud instance | Sovereign Droplet per tenant | Eliminates "Noisy Neighbor" problem |
 | **Workflow Management** | API polling from Dashboard | Sidecar Agent push-based | Prevents "Thundering Herd" at 15k scale |
@@ -122,7 +124,7 @@ Every tenant receives their own dedicated DigitalOcean Droplet running a standar
 | **Webhook Discovery** | Fragile API polling | Atomic Handshake Protocol | Registration Node POSTs URL back |
 | **Cost Model** | Opaque shared resources | $6/droplet/tenant linear model | Predictable per-tenant margins |
 
-### 1.3 V30 Architectural Pillars
+### 1.3 V35 Architectural Pillars
 
 | Pillar | Core Function | Strategic Rationale |
 |--------|---------------|---------------------|
@@ -134,7 +136,7 @@ Every tenant receives their own dedicated DigitalOcean Droplet running a standar
 
 ### 1.4 Target Metrics
 
-| Metric | Current State | V30 Target |
+| Metric | Current State | V35 Target |
 |--------|---------------|------------|
 | Tenant Capacity | 1 (hardcoded Ohio) | 15,000+ Sovereign Droplets |
 | Lead Capacity | ~10k (single table) | 100M+ (partitioned by workspace) |
@@ -153,9 +155,9 @@ The "Ohio" workspace represents legacy infrastructure that **must NOT be migrate
 3. Legacy connection logic is maintained ONLY for Ohio's specific workspace ID
 4. This prevents a total system break while enabling clean architecture for new tenants
 
-### 1.6 Top 15 Critical Risks (V30 Updated)
+### 1.6 Top 15 Critical Risks (V35 Updated)
 
-| # | Risk | Severity | Phase | V30 Status |
+| # | Risk | Severity | Phase | V35 Status |
 |---|------|----------|-------|------------|
 | 1 | RLS null bypass vulnerability | CRITICAL | 40 | SOLVED - Fail-closed COALESCE |
 | 2 | `leads_ohio` hardcoding | HIGH | 40 | SOLVED - Ohio Exception Protocol |
@@ -175,11 +177,11 @@ The "Ohio" workspace represents legacy infrastructure that **must NOT be migrate
 
 ---
 
-## SECTION 2: V30 ARCHITECTURAL PILLARS
+## SECTION 2: V35 ARCHITECTURAL PILLARS
 
 ### 2.1 Pillar I: Sovereign Isolation Physics
 
-The decision to move from a shared n8n instance to a **Sovereign Droplet Factory** is the foundational pivot of V30. This is not a preference but a **scaling necessity** driven by the physics of long-running, stateful workflows.
+The decision to move from a shared n8n instance to a **Sovereign Droplet Factory** is the foundational pivot of V35. This is not a preference but a **scaling necessity** driven by the physics of long-running, stateful workflows.
 
 **Why Sovereign Droplets Over Shared n8n:**
 
@@ -261,7 +263,7 @@ The Orchestration Layer is the Control Plane that manages 15,000 isolated Data P
 │  │                                                                     │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
-│  WITH BULLMQ (V30 Solution - "Concurrency Governor"):                      │
+│  WITH BULLMQ (V35 Solution - "Concurrency Governor"):                      │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │                                                                     │   │
 │  │   Dashboard: "Update template for all tenants"                     │   │
@@ -293,7 +295,7 @@ The Orchestration Layer is the Control Plane that manages 15,000 isolated Data P
 
 ### 2.3 Pillar III: Unified Onboarding (Genesis Gateway)
 
-The V30 plan mandates the **Genesis Gateway** as the default onboarding experience, eliminating the "10+ Dashboard" friction that kills user adoption.
+The V35 plan mandates the **Genesis Gateway** as the default onboarding experience, eliminating the "10+ Dashboard" friction that kills user adoption.
 
 **The Onboarding Friction Analysis:**
 
@@ -327,11 +329,11 @@ The V30 plan mandates the **Genesis Gateway** as the default onboarding experien
 
 ### 3.1 The Legacy Workspace Isolation Protocol
 
-The "Ohio" workspace is legacy infrastructure that predates the V30 Sovereign Singularity architecture. It uses hardcoded references to `leads_ohio` and connects to a legacy n8n instance. Migrating Ohio to a Sovereign Droplet would risk breaking a production system with active campaigns.
+The "Ohio" workspace is legacy infrastructure that predates the V35 Sovereign Singularity architecture. It uses hardcoded references to `leads_ohio` and connects to a legacy n8n instance. Migrating Ohio to a Sovereign Droplet would risk breaking a production system with active campaigns.
 
 **The Strategic Decision:**
 
-Ohio remains on legacy infrastructure indefinitely. All new tenants are provisioned through the V30 Sovereign Droplet Factory. The codebase is refactored to:
+Ohio remains on legacy infrastructure indefinitely. All new tenants are provisioned through the V35 Sovereign Droplet Factory. The codebase is refactored to:
 
 1. **Remove all hardcoded Ohio references** from shared code paths
 2. **Isolate Ohio-specific logic** behind a workspace ID check
@@ -353,7 +355,7 @@ Ohio remains on legacy infrastructure indefinitely. All new tenants are provisio
 │      YES                          NO                                       │
 │       ↓                           ↓                                        │
 │  ┌───────────────┐           ┌───────────────────────────────────────┐    │
-│  │ LEGACY PATH   │           │ V30 SOVEREIGN PATH                    │    │
+│  │ LEGACY PATH   │           │ V35 SOVEREIGN PATH                    │    │
 │  │               │           │                                       │    │
 │  │ - leads_ohio  │           │ - genesis.leads_p_{slug}              │    │
 │  │ - legacy n8n  │           │ - Sovereign Droplet                   │    │
@@ -376,7 +378,7 @@ Ohio remains on legacy infrastructure indefinitely. All new tenants are provisio
 │  │                                                                     │   │
 │  │  4. All webhook handlers use:                                      │   │
 │  │     - If Ohio: Legacy webhook verification                         │   │
-│  │     - If Other: V30 Atomic Handshake verification                  │   │
+│  │     - If Other: V35 Atomic Handshake verification                  │   │
 │  │                                                                     │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
@@ -399,10 +401,128 @@ The Ohio Exception protocol explicitly does NOT include:
 
 1. **Migration of Ohio data** to the new partitioned schema
 2. **Provisioning Ohio** on a Sovereign Droplet
-3. **Upgrading Ohio's n8n** to the V30 Sidecar model
-4. **Applying V30 features** (Kill-Switch, Heartbeat, etc.) to Ohio
+3. **Upgrading Ohio's n8n** to the V35 Sidecar model
+4. **Applying V35 features** (Kill-Switch, Heartbeat, etc.) to Ohio
 
 Ohio remains a static, legacy workspace that will eventually be deprecated when the client is ready to migrate.
+
+### 3.5 Ohio Firewall Enforcement (Code-Level Protection)
+
+**THE RISK:**  
+Despite best intentions, developers can accidentally write code that "leaks" Ohio logic into new tenant code paths, or vice versa. For example:
+- Using `leads_ohio` in a function that should work for all tenants
+- Calling legacy n8n API for non-Ohio workspaces
+- Forgetting the `workspace_id` check in critical paths
+
+**THE SOLUTION:**  
+Implement runtime firewalls in critical functions to **hard-fail** if Ohio logic is invoked for non-Ohio tenants, or V35 logic for Ohio.
+
+```typescript
+// lib/ohio-firewall.ts
+
+const OHIO_WORKSPACE_ID = process.env.NEXT_PUBLIC_OHIO_WORKSPACE_ID!;
+
+/**
+ * OHIO FIREWALL: Prevents Ohio-specific code from running for non-Ohio tenants
+ * Use this at the entry of any function that accesses legacy infrastructure
+ */
+export function assertIsOhio(workspaceId: string, context: string): void {
+  if (workspaceId !== OHIO_WORKSPACE_ID) {
+    const error = new Error(
+      `OHIO_FIREWALL_VIOLATION: ${context} invoked for non-Ohio workspace ${workspaceId}. ` +
+      `This function must ONLY be used for the Ohio legacy workspace.`
+    );
+    // Log to monitoring (Sentry, Datadog, etc.)
+    console.error(error);
+    // Hard fail to prevent silent corruption
+    throw error;
+  }
+}
+
+/**
+ * V35 FIREWALL: Prevents V35-specific code from running for Ohio
+ * Use this at the entry of any function that accesses Sovereign Droplet infrastructure
+ */
+export function assertIsNotOhio(workspaceId: string, context: string): void {
+  if (workspaceId === OHIO_WORKSPACE_ID) {
+    const error = new Error(
+      `V35_FIREWALL_VIOLATION: ${context} invoked for Ohio workspace. ` +
+      `This function must NOT be used for the legacy Ohio workspace.`
+    );
+    console.error(error);
+    throw error;
+  }
+}
+
+/**
+ * Safe table name getter with Ohio awareness
+ */
+export function getLeadsTable(workspaceId: string): string {
+  if (workspaceId === OHIO_WORKSPACE_ID) {
+    return 'leads_ohio';
+  }
+  return 'genesis.leads'; // Uses RLS with workspace_id
+}
+```
+
+**USAGE EXAMPLES:**
+
+```typescript
+// app/api/campaigns/start/route.ts
+
+import { assertIsNotOhio } from '@/lib/ohio-firewall';
+
+export async function POST(req: Request) {
+  const { workspaceId } = await getWorkspaceContext(req);
+  
+  // FIREWALL: This endpoint requires Sovereign Droplet (Sidecar + BullMQ)
+  assertIsNotOhio(workspaceId, 'api/campaigns/start');
+  
+  // Safe to proceed with V35 logic
+  await bullmq.add('start-campaign', { workspaceId });
+  // ...
+}
+```
+
+```typescript
+// lib/legacy-n8n-client.ts
+
+import { assertIsOhio } from '@/lib/ohio-firewall';
+
+export async function callLegacyN8nAPI(workspaceId: string, endpoint: string) {
+  // FIREWALL: This function must ONLY be called for Ohio
+  assertIsOhio(workspaceId, 'callLegacyN8nAPI');
+  
+  // Safe to proceed with legacy logic
+  const response = await fetch(`${LEGACY_N8N_URL}${endpoint}`, {
+    headers: { 'X-N8N-API-KEY': process.env.OHIO_N8N_API_KEY }
+  });
+  // ...
+}
+```
+
+**FIREWALL DEPLOYMENT CHECKLIST:**
+
+| Location | Firewall Required | Type |
+|----------|------------------|------|
+| `lib/legacy-n8n-client.ts` | ✓ | `assertIsOhio` |
+| `lib/genesis/ignition-orchestrator.ts` | ✓ | `assertIsNotOhio` |
+| `lib/genesis/sidecar-commands.ts` | ✓ | `assertIsNotOhio` |
+| `app/api/droplets/*/route.ts` | ✓ | `assertIsNotOhio` |
+| `app/api/events/route.ts` | ✗ | No firewall (handles both) |
+| `app/api/track/*/route.ts` | ✗ | No firewall (handles both) |
+| `lib/db-queries.ts` | ✗ | Use `getLeadsTable()` instead |
+
+**MONITORING:**
+
+All firewall violations are logged to:
+1. **Console/Logs**: Immediate visibility for debugging
+2. **Error Tracking** (Sentry/Datadog): Alert on first occurrence
+3. **Metrics Dashboard**: Track violation count per function
+
+**THE BENEFIT:**
+
+This approach provides **defense-in-depth** against the "Ohio Exception" becoming a "leaky abstraction" that corrupts the V35 architecture. Violations fail loudly during development and QA, not silently in production.
 
 ---
 
@@ -1600,7 +1720,7 @@ COMMIT;
 
 # 🏭 PHASE 50: SOVEREIGN DROPLET FACTORY
 
-> **Phase Type:** V30 Core Infrastructure  
+> **Phase Type:** V35 Core Infrastructure  
 > **Dependencies:** None (New Foundation)  
 > **Risk Level:** CRITICAL (Foundation Layer)
 
@@ -1608,7 +1728,7 @@ COMMIT;
 
 ## 50.1 DROPLET FACTORY ARCHITECTURE
 
-The Sovereign Droplet Factory is the V30 infrastructure layer that provisions, manages, and terminates dedicated DigitalOcean VMs for each tenant. This replaces the V20 shared n8n Cloud model entirely.
+The Sovereign Droplet Factory is the V35 infrastructure layer that provisions, manages, and terminates dedicated DigitalOcean VMs for each tenant. This replaces the V20 shared n8n Cloud model entirely.
 
 ### 50.1.1 Droplet Specification Matrix
 
@@ -1672,7 +1792,7 @@ The Sovereign Droplet Factory is the V30 infrastructure layer that provisions, m
 
 ## 50.2 MULTI-ACCOUNT POOL ARCHITECTURE
 
-**Critical Constraint:** DigitalOcean **DOES NOT** support 15,000 droplets under a single account. The V30 architecture mandates a **Multi-Account Pool Strategy** to achieve scale.
+**Critical Constraint:** DigitalOcean **DOES NOT** support 15,000 droplets under a single account. The V35 architecture mandates a **Multi-Account Pool Strategy** to achieve scale.
 
 ### 50.2.1 DigitalOcean Account Limits & Growth Path
 
@@ -2722,7 +2842,7 @@ const cloudInitScript = CLOUD_INIT_TEMPLATE
 
 ### 50.1.7 Dual-Mode Domain Strategy (Bootstrap + Production)
 
-The V30 architecture uses a **dual-mode DNS strategy** to balance immediate availability (sslip.io) with professional branding (custom domains):
+The V35 architecture uses a **dual-mode DNS strategy** to balance immediate availability (sslip.io) with professional branding (custom domains):
 
 | Mode | DNS Pattern | SSL Method | Use Case | Setup Time |
 |------|-------------|------------|----------|------------|
@@ -3019,7 +3139,7 @@ If any provisioning step fails, the system must execute compensating transaction
 
 # 🤖 PHASE 51: SIDECAR AGENT ARCHITECTURE
 
-> **Phase Type:** V30 Core Infrastructure  
+> **Phase Type:** V35 Core Infrastructure  
 > **Dependencies:** Phase 50  
 > **Risk Level:** CRITICAL (Security Boundary)
 
@@ -3180,7 +3300,7 @@ All communication between the Dashboard and Sidecar is secured using **Signed JW
 
 # 📡 PHASE 52: BULLMQ EVENT BUS & CONCURRENCY GOVERNOR
 
-> **Phase Type:** V30 Fleet Orchestration  
+> **Phase Type:** V35 Fleet Orchestration  
 > **Dependencies:** Phase 51  
 > **Risk Level:** HIGH (System Coordination)
 
@@ -3258,7 +3378,7 @@ The **Concurrency Governor** prevents the "Thundering Herd" scenario by rate-lim
 
 # 🔗 PHASE 53: DYNAMIC UUID MAPPER
 
-> **Phase Type:** V30 Credential Management  
+> **Phase Type:** V35 Credential Management  
 > **Dependencies:** Phase 51  
 > **Risk Level:** HIGH (Security Critical)
 
@@ -3383,6 +3503,295 @@ The Dynamic UUID Mapper also handles non-credential placeholders in templates:
 
 ---
 
+## 53.4 WORKFLOW VALIDATION LAYER (Schema Drift Protection)
+
+**THE RISK:**
+
+When deploying workflows via Phase 68 (Fleet Updates), a malformed workflow JSON could break n8n for hundreds or thousands of tenants. For example:
+- Missing required nodes (e.g., removing the "Schedule Trigger")
+- Invalid credential references (UUID that doesn't exist)
+- Broken node connections (pointing to non-existent node IDs)
+- Invalid n8n API schema (wrong node type names, malformed parameters)
+
+**THE SOLUTION:**
+
+Before pushing any workflow to the fleet, validate it against a **Golden Workflow Schema** that defines the structural requirements.
+
+### 53.4.1 Validation Rules
+
+```typescript
+// lib/genesis/workflow-validator.ts
+
+import { z } from 'zod';
+
+// ============================================
+// N8N WORKFLOW SCHEMA (Strict Validation)
+// ============================================
+
+const N8nNodeSchema = z.object({
+  id: z.string().uuid('Node ID must be valid UUID'),
+  name: z.string().min(1, 'Node name cannot be empty'),
+  type: z.string().regex(/^n8n-nodes-/, 'Node type must start with n8n-nodes-'),
+  position: z.tuple([z.number(), z.number()]),
+  parameters: z.record(z.unknown()),
+  credentials: z.record(z.object({
+    id: z.string().uuid('Credential ID must be valid UUID'),
+    name: z.string().min(1)
+  })).optional(),
+});
+
+const N8nWorkflowSchema = z.object({
+  name: z.string().min(1, 'Workflow name required'),
+  nodes: z.array(N8nNodeSchema).min(1, 'Workflow must have at least one node'),
+  connections: z.record(z.unknown()),
+  active: z.boolean().optional(),
+  settings: z.object({}).passthrough().optional(),
+  staticData: z.record(z.unknown()).nullable().optional(),
+});
+
+// ============================================
+// GOLDEN TEMPLATE REQUIREMENTS
+// ============================================
+
+interface WorkflowRequirements {
+  requiredNodes: string[]; // Node types that MUST exist
+  requiredCredentials: string[]; // Credential types that MUST be referenced
+  forbiddenNodes?: string[]; // Node types that MUST NOT exist (e.g., "Execute Command")
+}
+
+const GOLDEN_TEMPLATE_REQUIREMENTS: Record<string, WorkflowRequirements> = {
+  email_1: {
+    requiredNodes: ['n8n-nodes-base.scheduleTrigger', 'n8n-nodes-base.postgres'],
+    requiredCredentials: ['gmailOAuth2', 'postgres'],
+  },
+  email_2: {
+    requiredNodes: ['n8n-nodes-base.scheduleTrigger', 'n8n-nodes-base.postgres', 'n8n-nodes-base.httpRequest'],
+    requiredCredentials: ['gmailOAuth2', 'postgres'],
+  },
+  email_3: {
+    requiredNodes: ['n8n-nodes-base.scheduleTrigger', 'n8n-nodes-base.postgres', 'n8n-nodes-base.gmail'],
+    requiredCredentials: ['gmailOAuth2', 'postgres'],
+  },
+  research_report: {
+    requiredNodes: ['n8n-nodes-base.webhook', 'n8n-nodes-base.openAi'],
+    requiredCredentials: ['openAiApi', 'postgres'],
+  },
+};
+
+// ============================================
+// VALIDATION FUNCTION
+// ============================================
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export function validateWorkflowJSON(
+  workflowName: string,
+  workflowJSON: unknown
+): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // STEP 1: Schema validation
+  const parseResult = N8nWorkflowSchema.safeParse(workflowJSON);
+  if (!parseResult.success) {
+    errors.push(...parseResult.error.errors.map(e => `Schema: ${e.path.join('.')} - ${e.message}`));
+    return { valid: false, errors, warnings };
+  }
+
+  const workflow = parseResult.data;
+  const requirements = GOLDEN_TEMPLATE_REQUIREMENTS[workflowName];
+
+  if (!requirements) {
+    warnings.push(`No validation requirements defined for workflow "${workflowName}"`);
+    return { valid: true, errors, warnings };
+  }
+
+  // STEP 2: Required nodes check
+  const nodeTypes = new Set(workflow.nodes.map(n => n.type));
+  for (const requiredType of requirements.requiredNodes) {
+    if (!nodeTypes.has(requiredType)) {
+      errors.push(`Missing required node type: ${requiredType}`);
+    }
+  }
+
+  // STEP 3: Forbidden nodes check
+  if (requirements.forbiddenNodes) {
+    for (const forbiddenType of requirements.forbiddenNodes) {
+      if (nodeTypes.has(forbiddenType)) {
+        errors.push(`Forbidden node type detected: ${forbiddenType}`);
+      }
+    }
+  }
+
+  // STEP 4: Credential references check
+  const credentialTypes = new Set<string>();
+  for (const node of workflow.nodes) {
+    if (node.credentials) {
+      for (const credType of Object.keys(node.credentials)) {
+        credentialTypes.add(credType);
+      }
+    }
+  }
+
+  for (const requiredCred of requirements.requiredCredentials) {
+    if (!credentialTypes.has(requiredCred)) {
+      errors.push(`Missing required credential type: ${requiredCred}`);
+    }
+  }
+
+  // STEP 5: Connection integrity check
+  const nodeIds = new Set(workflow.nodes.map(n => n.id));
+  const connections = workflow.connections as Record<string, unknown>;
+  for (const [sourceId, targets] of Object.entries(connections)) {
+    if (!nodeIds.has(sourceId)) {
+      errors.push(`Connection references non-existent node: ${sourceId}`);
+    }
+    // Could add more detailed connection validation here
+  }
+
+  // STEP 6: Placeholder detection (should have been replaced by UUID Mapper)
+  const workflowStr = JSON.stringify(workflow);
+  if (workflowStr.includes('TEMPLATE_') || workflowStr.includes('YOUR_')) {
+    warnings.push('Workflow contains unreplaced placeholders (TEMPLATE_* or YOUR_*). UUID Mapper may not have run.');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+```
+
+### 53.4.2 Integration with Deployment Pipeline
+
+```typescript
+// lib/genesis/workflow-deployment.ts
+
+import { validateWorkflowJSON } from './workflow-validator';
+
+export async function deployWorkflowToTenant(
+  workspaceId: string,
+  workflowName: string,
+  workflowJSON: unknown
+): Promise<void> {
+  // STEP 1: Validate before deployment
+  const validation = validateWorkflowJSON(workflowName, workflowJSON);
+
+  if (!validation.valid) {
+    throw new Error(
+      `Workflow validation failed for ${workflowName}:\n` +
+      validation.errors.join('\n')
+    );
+  }
+
+  // Log warnings (non-blocking)
+  if (validation.warnings.length > 0) {
+    console.warn(`Workflow warnings for ${workflowName}:`, validation.warnings);
+  }
+
+  // STEP 2: Apply UUID mapping (Phase 53)
+  const mappedWorkflow = await applyUUIDMapping(workspaceId, workflowJSON);
+
+  // STEP 3: Re-validate after mapping
+  const postMapValidation = validateWorkflowJSON(workflowName, mappedWorkflow);
+  if (!postMapValidation.valid) {
+    throw new Error(
+      `Post-mapping validation failed for ${workflowName}:\n` +
+      postMapValidation.errors.join('\n')
+    );
+  }
+
+  // STEP 4: Push to Sidecar via BullMQ
+  await bullmq.add('workflow-deploy', {
+    workspace_id: workspaceId,
+    workflow_name: workflowName,
+    workflow_json: mappedWorkflow,
+  });
+}
+```
+
+### 53.4.3 God Mode Validation Dashboard
+
+Add a "Pre-Flight Check" UI in God Mode (Phase 44) for admins:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    WORKFLOW PRE-FLIGHT VALIDATION                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Upload New Workflow Template:                                              │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Workflow: [Email 1                v]                                 │  │
+│  │  Version:  [1.3.0                   ]                                 │  │
+│  │  File:     [Choose File] email_1_v1.3.0.json                          │  │
+│  │                                                                       │  │
+│  │  [Validate]  [Deploy to Canary]  [Deploy to Fleet]                   │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  VALIDATION RESULTS:                                                        │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  ✓ Schema validation passed                                           │  │
+│  │  ✓ Required nodes: scheduleTrigger, postgres, gmail                   │  │
+│  │  ✓ Required credentials: gmailOAuth2, postgres                        │  │
+│  │  ✓ Connection integrity: 18 connections verified                      │  │
+│  │  ⚠️  WARNING: Workflow contains 2 unreplaced placeholders             │  │
+│  │     - YOUR_DASHBOARD_URL (line 45)                                    │  │
+│  │     - YOUR_WEBHOOK_TOKEN (line 67)                                    │  │
+│  │                                                                       │  │
+│  │  [View Full Report]                                                   │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  RECENT VALIDATIONS:                                                        │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  email_1 v1.2.0  ✓ PASSED   2026-01-24 10:15 AM                      │  │
+│  │  email_2 v1.1.5  ✗ FAILED   2026-01-24 09:42 AM                      │  │
+│  │    └─ Missing required node: httpRequest                             │  │
+│  │  research v2.0.0 ✓ PASSED   2026-01-23 04:30 PM                      │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 53.4.4 Integration with Phase 68 (Fleet Updates)
+
+```typescript
+// Phase 68: Zero-Downtime Fleet Update Protocol
+// Modified to include validation
+
+export async function initiateFleetUpdate(
+  workflowName: string,
+  newVersion: string,
+  workflowJSON: unknown
+): Promise<void> {
+  // CRITICAL: Validate BEFORE queuing 15,000 updates
+  const validation = validateWorkflowJSON(workflowName, workflowJSON);
+
+  if (!validation.valid) {
+    throw new Error(
+      `Cannot deploy to fleet: Workflow validation failed\n` +
+      validation.errors.join('\n')
+    );
+  }
+
+  // Store in template repository
+  await storeWorkflowTemplate(workflowName, newVersion, workflowJSON);
+
+  // Proceed with canary rollout (Phase 68.4)
+  await startCanaryRollout(workflowName, newVersion);
+}
+```
+
+**THE BENEFIT:**
+
+This validation layer prevents the "bad workflow propagation" disaster scenario where a single malformed JSON breaks workflows for thousands of tenants, requiring emergency rollback (Phase 68.6).
+
+---
+
 # 🚀 PHASE 41: THE "IGNITION" ORCHESTRATOR
 
 > **Phase Type:** Provisioning Infrastructure  
@@ -3391,13 +3800,13 @@ The Dynamic UUID Mapper also handles non-credential placeholders in templates:
 
 ---
 
-## 41.1 ORCHESTRATOR ARCHITECTURE (V30 SOVEREIGN MODEL)
+## 41.1 ORCHESTRATOR ARCHITECTURE (V35 SOVEREIGN MODEL)
 
-The V30 Ignition Orchestrator provisions a complete Sovereign Stack: database partition, DigitalOcean droplet, credentials, and workflows. Each step has a compensating rollback action.
+The V35 Ignition Orchestrator provisions a complete Sovereign Stack: database partition, DigitalOcean droplet, credentials, and workflows. Each step has a compensating rollback action.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    V30 IGNITION ORCHESTRATOR STATE MACHINE                  │
+│                    V35 IGNITION ORCHESTRATOR STATE MACHINE                  │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  STEP 1         STEP 2         STEP 3          STEP 4         STEP 5       │
@@ -3415,7 +3824,7 @@ The V30 Ignition Orchestrator provisions a complete Sovereign Stack: database pa
 │     │                                                                ▼      │
 │     └────────────────────────────────────────────────────────────  ACTIVE  │
 │                                                                             │
-│  V30 ADDITIONS:                                                            │
+│  V35 ADDITIONS:                                                            │
 │  - DROPLET_PROVISIONING: Creates DigitalOcean VM, waits for boot          │
 │  - HANDSHAKE_PENDING: Waits for Sidecar to POST webhook URL               │
 │  - Compensating transactions for each step ensure atomic rollback          │
@@ -3455,7 +3864,7 @@ export interface CredentialConfig {
   templatePlaceholder: string;  // e.g., TEMPLATE_GMAIL_UUID
 }
 
-// V30 Status includes Droplet and Sidecar states
+// V35 Status includes Droplet and Sidecar states
 export type IgnitionStatus = 
   | 'pending'
   | 'partition_creating'
@@ -3474,9 +3883,9 @@ export interface IgnitionState {
   currentStep: number;
   totalSteps: number;
   partitionName?: string;
-  dropletId?: string;  // V30: DigitalOcean droplet ID
-  dropletIp?: string;  // V30: Droplet public IP
-  webhookUrl?: string;  // V30: Sidecar-reported webhook URL
+  dropletId?: string;  // V35: DigitalOcean droplet ID
+  dropletIp?: string;  // V35: Droplet public IP
+  webhookUrl?: string;  // V35: Sidecar-reported webhook URL
   workflowIds?: string[];
   credentialIds?: string[];
   error?: string;
@@ -3672,21 +4081,21 @@ async function saveState(state: IgnitionState): Promise<void> {
 
 # 🔗 PHASE 42: ATOMIC HANDSHAKE PROTOCOL
 
-> **Phase Type:** V30 Integration Layer  
+> **Phase Type:** V35 Integration Layer  
 > **Dependencies:** Phase 41, Phase 50, Phase 51  
 > **Risk Level:** HIGH (Trust Establishment)
 
 ---
 
-## 42.1 THE REGISTRATION NODE PATTERN (V30)
+## 42.1 THE REGISTRATION NODE PATTERN (V35)
 
-The V30 Atomic Handshake Protocol solves the "Ghost Webhook" paradox from V20. In V20, we had to poll the n8n API after workflow creation to discover webhook URLs - a fragile and error-prone approach. V30 inverts this: the Sidecar **pushes** the webhook URL back to the Dashboard.
+The V35 Atomic Handshake Protocol solves the "Ghost Webhook" paradox from V20. In V20, we had to poll the n8n API after workflow creation to discover webhook URLs - a fragile and error-prone approach. V35 inverts this: the Sidecar **pushes** the webhook URL back to the Dashboard.
 
 ### 42.1.1 The Handshake Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    V30 ATOMIC HANDSHAKE PROTOCOL                            │
+│                    V35 ATOMIC HANDSHAKE PROTOCOL                            │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  CONTEXT: Droplet just booted via Cloud-Init, Sidecar is starting          │
@@ -3851,15 +4260,15 @@ async function processEvent(event: z.infer<typeof EventSchema>): Promise<void> {
 
 # 🔍 PHASE 43: STATE RECONCILIATION WATCHDOG
 
-> **Phase Type:** V30 Reliability Layer  
+> **Phase Type:** V35 Reliability Layer  
 > **Dependencies:** Phase 51, Phase 54  
 > **Risk Level:** HIGH (System Consistency)
 
 ---
 
-## 43.0 V30 INTEGRATION WITH HEARTBEAT STATE MACHINE
+## 43.0 V35 INTEGRATION WITH HEARTBEAT STATE MACHINE
 
-In V30, the Watchdog works in concert with the **Heartbeat State Machine (Phase 54)** and the **Sidecar Agent (Phase 51)**. The Watchdog focuses on detecting **logical drift** (workflow state, credential validity, data consistency), while the Heartbeat detects **physical drift** (Sidecar responsiveness, container health).
+In V35, the Watchdog works in concert with the **Heartbeat State Machine (Phase 54)** and the **Sidecar Agent (Phase 51)**. The Watchdog focuses on detecting **logical drift** (workflow state, credential validity, data consistency), while the Heartbeat detects **physical drift** (Sidecar responsiveness, container health).
 
 ### 43.0.1 Watchdog vs. Heartbeat Responsibilities
 
@@ -3969,7 +4378,7 @@ export async function healDrift(drift: DriftResult): Promise<boolean> {
 
 # 💓 PHASE 54: HEARTBEAT STATE MACHINE
 
-> **Phase Type:** V30 Fleet Operations  
+> **Phase Type:** V35 Fleet Operations  
 > **Dependencies:** Phase 51, Phase 52  
 > **Risk Level:** HIGH (Fleet Visibility)
 
@@ -3977,7 +4386,7 @@ export async function healDrift(drift: DriftResult): Promise<boolean> {
 
 ## 54.1 THE HEARTBEAT PROTOCOL
 
-A binary Up/Down status is insufficient for managing 15,000 droplets. The V30 architecture mandates a **Granular Heartbeat State Machine** where each Sidecar reports detailed health every 60 seconds.
+A binary Up/Down status is insufficient for managing 15,000 droplets. The V35 architecture mandates a **Granular Heartbeat State Machine** where each Sidecar reports detailed health every 60 seconds.
 
 ### 54.1.1 Heartbeat Payload Structure
 
@@ -4147,7 +4556,7 @@ The Dashboard implements a **Last Heartbeat Watchdog** that monitors all droplet
 
 # 😴 PHASE 55: HIBERNATION & WAKE PHYSICS
 
-> **Phase Type:** V30 Cost Optimization  
+> **Phase Type:** V35 Cost Optimization  
 > **Dependencies:** Phase 54  
 > **Risk Level:** MEDIUM (Resource Management)
 
@@ -4155,7 +4564,7 @@ The Dashboard implements a **Last Heartbeat Watchdog** that monitors all droplet
 
 ## 55.1 HIBERNATION STRATEGY
 
-To optimize the $6/month per tenant cost, V30 introduces **Droplet Hibernation**. Droplets for inactive tenants are powered down, reducing compute costs while preserving state.
+To optimize the $6/month per tenant cost, V35 introduces **Droplet Hibernation**. Droplets for inactive tenants are powered down, reducing compute costs while preserving state.
 
 ### 55.1.1 Hibernation Eligibility Criteria
 
@@ -4399,9 +4808,263 @@ For **Enterprise** and **High-Priority** tenants who require sub-5-second respon
 
 ---
 
+## 55.2 STAGGERED WAKE PROTOCOL (Anti-Thundering Herd)
+
+**THE RISK:**
+
+The Pre-Warming Protocol describes **individual tenant wake scenarios**. But what happens when **hundreds or thousands of hibernating tenants need to wake simultaneously**? For example:
+- Mass email sends scheduled for 9:00 AM Monday
+- System-wide maintenance completes, all tenants resume
+- Regional power/network restoration after outage
+
+**THE PROBLEM: "Thundering Herd" on DigitalOcean API**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    THE SIMULTANEOUS WAKE DISASTER                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  SCENARIO: 5,000 hibernating tenants all have campaigns starting at 9 AM   │
+│                                                                             │
+│  WITHOUT STAGGERING:                                                        │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  9:00:00 AM: 5,000 wake commands queued to BullMQ                    │  │
+│  │  9:00:05 AM: Dashboard sends 5,000 DigitalOcean "power_on" API calls │  │
+│  │  9:00:10 AM: DigitalOcean rate limit exceeded (429 Too Many Requests)│  │
+│  │  9:00:15 AM: Retry logic kicks in, 5,000 more API calls              │  │
+│  │  9:00:20 AM: Rate limit still exceeded, exponential backoff begins   │  │
+│  │  9:00:30 AM: Some droplets start booting, others still queued        │  │
+│  │  9:01:00 AM: ~40% of tenants still waiting to wake                   │  │
+│  │  9:03:00 AM: Finally all tenants awake (3 minutes late)              │  │
+│  │                                                                       │  │
+│  │  RESULT: Campaigns delayed, angry users, API ban risk                │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 55.2.1 Staggered Wake Algorithm
+
+```typescript
+// lib/genesis/staggered-wake.ts
+
+interface WakeRequest {
+  workspaceId: string;
+  dropletId: string;
+  targetTime: Date; // When the tenant needs to be awake
+  priority: 'enterprise' | 'high' | 'standard';
+}
+
+/**
+ * STAGGERED WAKE SCHEDULER
+ * 
+ * Distributes wake operations over time to avoid API rate limits
+ * while ensuring all tenants are ready by their target time.
+ */
+export async function scheduleStaggeredWake(
+  requests: WakeRequest[]
+): Promise<void> {
+  // STEP 1: Sort by priority and target time
+  const sorted = requests.sort((a, b) => {
+    // Enterprise always first
+    if (a.priority === 'enterprise' && b.priority !== 'enterprise') return -1;
+    if (b.priority === 'enterprise' && a.priority !== 'enterprise') return 1;
+    // Then by target time (earliest first)
+    return a.targetTime.getTime() - b.targetTime.getTime();
+  });
+
+  // STEP 2: Calculate stagger interval
+  // DigitalOcean API limit: ~5,000 requests/hour = ~83/minute = ~1.4/second
+  // Safe limit: 1 wake request per second (leaves headroom for other API calls)
+  const WAKE_INTERVAL_MS = 1000; // 1 second per wake
+
+  // STEP 3: Calculate when to start waking
+  const totalWakeTime = sorted.length * WAKE_INTERVAL_MS; // milliseconds
+  const latestTarget = sorted[sorted.length - 1].targetTime;
+  const startTime = new Date(latestTarget.getTime() - totalWakeTime - (60 * 1000)); // 1 min buffer
+
+  // STEP 4: Schedule each wake with stagger
+  for (let i = 0; i < sorted.length; i++) {
+    const request = sorted[i];
+    const wakeTime = new Date(startTime.getTime() + (i * WAKE_INTERVAL_MS));
+
+    // Queue wake job to BullMQ with scheduled execution time
+    await bullmq.add(
+      'wake-droplet',
+      {
+        workspace_id: request.workspaceId,
+        droplet_id: request.dropletId,
+        reason: 'scheduled_campaign',
+      },
+      {
+        delay: Math.max(0, wakeTime.getTime() - Date.now()),
+        priority: request.priority === 'enterprise' ? 1 : 2,
+      }
+    );
+  }
+
+  console.log(
+    `Scheduled ${sorted.length} staggered wakes over ${(totalWakeTime / 1000 / 60).toFixed(1)} minutes`
+  );
+}
+```
+
+### 55.2.2 Predictive Wake Scheduler (Cron Job)
+
+```typescript
+// app/api/cron/predictive-wake/route.ts
+
+/**
+ * Runs every hour: Analyzes upcoming scheduled campaigns and pre-wakes hibernating droplets
+ */
+export async function GET(req: Request) {
+  // Verify cron secret
+  if (req.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const now = new Date();
+  const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+
+  // STEP 1: Find all scheduled campaigns starting in the next hour
+  const upcomingCampaigns = await supabase
+    .from('campaigns')
+    .select('workspace_id, scheduled_start_time, priority')
+    .eq('status', 'SCHEDULED')
+    .gte('scheduled_start_time', now.toISOString())
+    .lte('scheduled_start_time', oneHourFromNow.toISOString());
+
+  if (upcomingCampaigns.data.length === 0) {
+    return new Response('No upcoming campaigns', { status: 200 });
+  }
+
+  // STEP 2: Check which workspaces are hibernating
+  const workspaceIds = upcomingCampaigns.data.map(c => c.workspace_id);
+  const dropletHealth = await supabase
+    .from('droplet_health')
+    .select('workspace_id, droplet_id, state')
+    .in('workspace_id', workspaceIds)
+    .eq('state', 'HIBERNATING');
+
+  const hibernatingWorkspaces = new Set(
+    dropletHealth.data.map(d => d.workspace_id)
+  );
+
+  // STEP 3: Build wake requests for hibernating workspaces with upcoming campaigns
+  const wakeRequests: WakeRequest[] = [];
+  for (const campaign of upcomingCampaigns.data) {
+    if (hibernatingWorkspaces.has(campaign.workspace_id)) {
+      const droplet = dropletHealth.data.find(
+        d => d.workspace_id === campaign.workspace_id
+      );
+      if (droplet) {
+        wakeRequests.push({
+          workspaceId: campaign.workspace_id,
+          dropletId: droplet.droplet_id,
+          targetTime: new Date(campaign.scheduled_start_time),
+          priority: campaign.priority || 'standard',
+        });
+      }
+    }
+  }
+
+  // STEP 4: Schedule staggered wakes
+  await scheduleStaggeredWake(wakeRequests);
+
+  return Response.json({
+    scheduled: wakeRequests.length,
+    message: `Scheduled ${wakeRequests.length} predictive wakes`,
+  });
+}
+```
+
+### 55.2.3 Staggered Wake Monitoring
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    STAGGERED WAKE DASHBOARD                                  │
+│                    (God Mode - Phase 44)                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  CURRENT WAVE:                                                              │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Start Time: 8:45 AM                                                  │  │
+│  │  Target Completion: 9:00 AM                                           │  │
+│  │  Tenants Waking: 347                                                  │  │
+│  │                                                                       │  │
+│  │  Progress: [████████████████░░░░] 283/347 (81%)                      │  │
+│  │                                                                       │  │
+│  │  API Rate:   1.2 requests/sec (within limit: 1.4/sec)                │  │
+│  │  Failed:     3 (0.9%)                                                 │  │
+│  │  Remaining:  64 tenants (~1 min)                                      │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  UPCOMING WAVES:                                                            │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  9:00 AM - 9:12 AM:  423 tenants (scheduled)                          │  │
+│  │  10:00 AM - 10:08 AM: 198 tenants (scheduled)                         │  │
+│  │  12:00 PM - 12:15 PM: 562 tenants (scheduled)                         │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  WAVE HISTORY (Last 24h):                                                   │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Yesterday 9 AM:  412 tenants, 99.8% success, 11m 47s                 │  │
+│  │  Yesterday 6 PM:  234 tenants, 100% success, 3m 54s                   │  │
+│  │  Today 6 AM:      89 tenants, 100% success, 1m 29s                    │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 55.2.4 Emergency Override: "Wake All Now"
+
+For true emergencies (system-wide restoration), provide override with risk acknowledgment:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       EMERGENCY WAKE OVERRIDE                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ⚠️  WARNING: Emergency wake will attempt to power on all hibernating       │
+│     droplets immediately without staggering.                                │
+│                                                                             │
+│  CONSEQUENCES:                                                              │
+│  • May exceed DigitalOcean API rate limits (risk of temporary ban)          │
+│  • Unpredictable wake times (5-30 minutes)                                  │
+│  • Potential Dashboard instability from API backpressure                    │
+│                                                                             │
+│  USE ONLY FOR:                                                              │
+│  • Regional outage recovery                                                 │
+│  • Critical system-wide incident                                            │
+│                                                                             │
+│  Current hibernating tenants: 2,847                                         │
+│                                                                             │
+│  [X] I understand the risks and have exhausted all other options            │
+│                                                                             │
+│  Enter "WAKE ALL NOW" to confirm: [_________________________]               │
+│                                                                             │
+│  [Cancel]  [EXECUTE EMERGENCY WAKE]                                         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**THE BENEFIT:**
+
+This protocol prevents the "simultaneous wake disaster" by:
+1. **Predicting** when tenants will need to wake (scheduled campaigns)
+2. **Staggering** wake operations to respect API rate limits
+3. **Prioritizing** enterprise tenants in the wake order
+4. **Monitoring** wave progress to detect issues early
+5. **Providing override** for true emergencies with clear risk disclosure
+
+---
+
 # 🔄 PHASE 56: FLEET-WIDE TEMPLATE RECONCILIATION
 
-> **Phase Type:** V30 Fleet Operations  
+> **Phase Type:** V35 Fleet Operations  
 > **Dependencies:** Phase 52, Phase 53  
 > **Risk Level:** HIGH (Mass Update)
 
@@ -4422,7 +5085,7 @@ When the "Golden Template" is updated (bug fix, new feature, security patch), pu
 
 ### 56.1.2 Blue-Green Container Update Protocol
 
-For n8n version updates or Sidecar binary updates, V30 uses a **Blue-Green Container Swap** to achieve zero-downtime updates.
+For n8n version updates or Sidecar binary updates, V35 uses a **Blue-Green Container Swap** to achieve zero-downtime updates.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -4544,15 +5207,15 @@ For non-critical updates, the Concurrency Governor executes a **Batched Rollout*
 
 # 🎮 PHASE 44: "GOD MODE" COMMAND & CONTROL
 
-> **Phase Type:** V30 Platform Operations  
+> **Phase Type:** V35 Platform Operations  
 > **Dependencies:** Phase 54, Phase 55, Phase 56  
 > **Risk Level:** MEDIUM (Observability)
 
 ---
 
-## 44.0 V30 GOD MODE ENHANCEMENTS
+## 44.0 V35 GOD MODE ENHANCEMENTS
 
-The V30 God Mode dashboard provides comprehensive visibility into the entire fleet of 15,000 Sovereign Droplets. It integrates data from the Heartbeat State Machine, Watchdog, Financial Ledger, and a new **Metric Aggregator** for cross-tenant analytics.
+The V35 God Mode dashboard provides comprehensive visibility into the entire fleet of 15,000 Sovereign Droplets. It integrates data from the Heartbeat State Machine, Watchdog, Financial Ledger, and a new **Metric Aggregator** for cross-tenant analytics.
 
 ### 44.0.1 God Mode Dashboard Components
 
@@ -4716,7 +5379,7 @@ async function processBulkUpdate(
 **The Problem:**
 At scale, infrastructure failures are inevitable. The difference between production-grade systems and hobbyist projects is this: **Production systems predict failures 30-60 days in advance**, not react to them after they happen.
 
-**The V30 Solution:**
+**The V35 Solution:**
 A multi-layered monitoring system that tracks critical scale metrics and alerts BEFORE thresholds are breached, giving time to optimize without impacting users.
 
 ---
@@ -5668,7 +6331,7 @@ CREATE TABLE IF NOT EXISTS genesis.alert_preferences (
 
 ### 44.3.13 Benefits of Pre-Failure Alerts
 
-| Traditional Approach | V30 Pre-Failure Alerts |
+| Traditional Approach | V35 Pre-Failure Alerts |
 |---------------------|------------------------|
 | ❌ Wait for system to break | ✅ Predict failure 30-60 days ahead |
 | ❌ Users experience downtime | ✅ Optimize during off-hours |
@@ -5858,7 +6521,7 @@ export class RateLimiter {
 
 # 💰 PHASE 57: MANAGED VS. BYO SERVICE MATRIX
 
-> **Phase Type:** V30 Financial Architecture  
+> **Phase Type:** V35 Financial Architecture  
 > **Dependencies:** Phase 60  
 > **Risk Level:** HIGH (Financial Sustainability)
 
@@ -5866,7 +6529,7 @@ export class RateLimiter {
 
 ## 57.1 THE SERVICE CATEGORIZATION FRAMEWORK
 
-To achieve the "frictionless" onboarding experience while protecting the platform's financial stability, V30 categorizes all external services into a **Managed vs. BYO (Bring Your Own)** matrix.
+To achieve the "frictionless" onboarding experience while protecting the platform's financial stability, V35 categorizes all external services into a **Managed vs. BYO (Bring Your Own)** matrix.
 
 ### 57.1.1 Service Categories Defined
 
@@ -5910,7 +6573,7 @@ To achieve the "frictionless" onboarding experience while protecting the platfor
 
 # 💳 PHASE 58: FINANCIAL KILL-SWITCH & GENESIS WALLET
 
-> **Phase Type:** V30 Financial Controls  
+> **Phase Type:** V35 Financial Controls  
 > **Dependencies:** Phase 57  
 > **Risk Level:** CRITICAL (Financial Safety)
 
@@ -6038,7 +6701,7 @@ The **Financial Kill-Switch** is a mandatory safety mechanism for all Managed (W
 
 # 📊 PHASE 59: COST MODEL & RATE LIMIT ORCHESTRATION
 
-> **Phase Type:** V30 Financial Optimization  
+> **Phase Type:** V35 Financial Optimization  
 > **Dependencies:** Phase 57, Phase 58  
 > **Risk Level:** MEDIUM (Sustainability)
 
@@ -6101,7 +6764,7 @@ The Dashboard maintains a **Cost Ledger** that tracks all costs associated with 
 
 ## 59.2 EXTERNAL API RATE LIMIT ORCHESTRATION
 
-Beyond the Financial Kill-Switch, V30 must manage **external API rate limits** to prevent any single tenant from exhausting shared quotas.
+Beyond the Financial Kill-Switch, V35 must manage **external API rate limits** to prevent any single tenant from exhausting shared quotas.
 
 ### 59.2.1 Rate Limit Registry
 
@@ -6160,7 +6823,7 @@ Beyond the Financial Kill-Switch, V30 must manage **external API rate limits** t
 
 # 🚪 PHASE 60: GENESIS GATEWAY UNIFIED ONBOARDING
 
-> **Phase Type:** V30 User Experience  
+> **Phase Type:** V35 User Experience  
 > **Dependencies:** Phase 57  
 > **Risk Level:** MEDIUM (User Adoption)
 
@@ -6405,7 +7068,7 @@ The Genesis Gateway presents users with **droplet sizing and region selection** 
 
 # 🔧 PHASE 61: FRICTION-REDUCTION PROTOCOLS
 
-> **Phase Type:** V30 User Experience  
+> **Phase Type:** V35 User Experience  
 > **Dependencies:** Phase 60  
 > **Risk Level:** LOW (Enhancement)
 
@@ -6500,7 +7163,7 @@ Before allowing a campaign to ignite, the Dashboard validates that the user's Ca
 
 ## 61.4 AUTOMATED TRACKING DOMAINS (DUAL-MODE STRATEGY)
 
-The V30 architecture uses a **dual-mode domain strategy** to balance immediate availability (sslip.io) with professional branding (custom domains).
+The V35 architecture uses a **dual-mode domain strategy** to balance immediate availability (sslip.io) with professional branding (custom domains).
 
 ### 61.4.1 The Two-Tier Domain Architecture
 
@@ -6615,7 +7278,7 @@ track.acmecorp.com {
 
 # 🌍 PHASE 62: DATA RESIDENCY & GDPR PROTOCOL
 
-> **Phase Type:** V30 Compliance  
+> **Phase Type:** V35 Compliance  
 > **Dependencies:** Phase 50, Phase 40  
 > **Risk Level:** HIGH (Regulatory)
 
@@ -6691,7 +7354,7 @@ When a tenant is provisioned, they can select their data region. The database pa
 
 # 📝 PHASE 63: AUDIT LOGGING & SUPPORT ACCESS
 
-> **Phase Type:** V30 Compliance  
+> **Phase Type:** V35 Compliance  
 > **Dependencies:** Phase 51  
 > **Risk Level:** MEDIUM (Compliance)
 
@@ -6821,7 +7484,7 @@ Support staff need controlled access to tenant environments for debugging, but t
 
 # 🗑️ PHASE 64: TENANT LIFECYCLE MANAGEMENT
 
-> **Phase Type:** V30 Operations  
+> **Phase Type:** V35 Operations  
 > **Dependencies:** Phase 50, Phase 40, Phase 62  
 > **Risk Level:** HIGH (Data Safety)
 
@@ -6961,7 +7624,7 @@ For tenants with >100,000 leads, the export is chunked:
 
 # 🔑 PHASE 65: CREDENTIAL ROTATION & WEBHOOK SECURITY
 
-> **Phase Type:** V30 Security Operations  
+> **Phase Type:** V35 Security Operations  
 > **Dependencies:** Phase 51, Phase 53  
 > **Risk Level:** MEDIUM (Security)
 
@@ -9121,7 +9784,7 @@ export async function bulkInsertLeads(
 
 # 🛡️ PHASE 66: DISASTER RECOVERY & REGIONAL FAILOVER
 
-> **Phase Type:** V30 Business Continuity  
+> **Phase Type:** V35 Business Continuity  
 > **Dependencies:** Phase 50, Phase 62  
 > **Risk Level:** CRITICAL (Business Continuity)
 
@@ -9129,7 +9792,7 @@ export async function bulkInsertLeads(
 
 ## 66.1 DISASTER SCENARIOS
 
-The V30 architecture must be resilient to multiple failure modes, from individual droplet failures to complete regional outages.
+The V35 architecture must be resilient to multiple failure modes, from individual droplet failures to complete regional outages.
 
 ### 66.1.1 Failure Mode Catalog
 
@@ -9557,7 +10220,7 @@ For tenants on Enterprise plans, Genesis provides near-real-time cross-region da
 
 # 📧 PHASE 60.B: EMAIL PROVIDER ABSTRACTION
 
-> **Phase Type:** V30 Flexibility Layer  
+> **Phase Type:** V35 Flexibility Layer  
 > **Dependencies:** Phase 60, Phase 53 (UUID Mapper)  
 > **Risk Level:** MEDIUM (Integration Complexity)  
 > **Priority:** HIGH - Essential for Enterprise Clients
@@ -9576,7 +10239,7 @@ The current cold email system is tightly coupled to Gmail's API. This creates fr
 | **Privacy-focused** | Don't want Google touching their data |
 | **International** | Gmail blocked or unreliable in some regions |
 
-**The V30 Solution:** A unified Email Provider Abstraction that supports multiple sending methods through a single workflow architecture.
+**The V35 Solution:** A unified Email Provider Abstraction that supports multiple sending methods through a single workflow architecture.
 
 ---
 
@@ -9591,7 +10254,7 @@ The current cold email system is tightly coupled to Gmail's API. This creates fr
 | **Amazon SES** | API | AWS-native, very cheap | 50,000/day |
 | **Postmark** | API | Deliverability-focused | 100/month free |
 
-**V30 Initial Support:** Gmail + SMTP (others can be added later)
+**V35 Initial Support:** Gmail + SMTP (others can be added later)
 
 ---
 
@@ -10089,7 +10752,345 @@ export async function POST(request: NextRequest) {
 
 ---
 
-## 60.B.12 IMPLEMENTATION CHECKLIST
+## 60.B.12 COMBINED GMAIL + SMTP WORKFLOW ARCHITECTURE
+
+This section details how to combine Gmail and SMTP email providers into a **single unified workflow** using n8n's Switch node. This eliminates the need for 6 separate workflows (3 Gmail + 3 SMTP) and maintains a single codebase.
+
+### 60.B.12.1 The Problem: Duplicate Workflow Maintenance
+
+**WITHOUT Provider Abstraction:**
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  6 SEPARATE WORKFLOWS TO MAINTAIN:                                          │
+│                                                                             │
+│  Gmail Path:                    SMTP Path:                                  │
+│  ├── Email 1 (Gmail).json       ├── Email 1 (SMTP).json                    │
+│  ├── Email 2 (Gmail).json       ├── Email 2 (SMTP).json                    │
+│  └── Email 3 (Gmail).json       └── Email 3 (SMTP).json                    │
+│                                                                             │
+│  PROBLEMS:                                                                  │
+│  - Bug fix requires 6 updates                                              │
+│  - Feature addition requires 6 updates                                     │
+│  - Version drift between Gmail and SMTP versions                           │
+│  - Template reconciliation nightmare at scale                              │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**WITH Provider Abstraction (Switch Node):**
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  3 UNIFIED WORKFLOWS TO MAINTAIN:                                           │
+│                                                                             │
+│  ├── Email 1.json (Gmail + SMTP combined)                                  │
+│  ├── Email 2.json (Gmail + SMTP combined)                                  │
+│  └── Email 3.json (Gmail + SMTP combined)                                  │
+│                                                                             │
+│  BENEFITS:                                                                  │
+│  - Single source of truth                                                  │
+│  - One bug fix = all providers fixed                                       │
+│  - Provider selection is runtime decision                                  │
+│  - Easy to add future providers (SendGrid, Mailgun, etc.)                 │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 60.B.12.2 The Switch Node Pattern
+
+The Switch node in n8n routes execution based on a value. Here's the pattern:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     UNIFIED WORKFLOW FLOW                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  [Schedule Trigger] → [Get Leads] → [Get Email Config] → [Limit]    │  │
+│  │                                           │                          │  │
+│  │                                           ▼                          │  │
+│  │                                    email_provider                    │  │
+│  │                                    (from API)                        │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                           │                                  │
+│                                           ▼                                  │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  [Loop Over Items] → [If Email Exists] → [Inject Tracking]          │  │
+│  │                                                 │                    │  │
+│  │                                                 ▼                    │  │
+│  │                                    ┌────────────────────┐            │  │
+│  │                                    │    SWITCH NODE     │            │  │
+│  │                                    │                    │            │  │
+│  │                                    │   email_provider   │            │  │
+│  │                                    │        │           │            │  │
+│  │                                    │   ┌────┼────┐      │            │  │
+│  │                                    │   │    │    │      │            │  │
+│  │                                    │ gmail smtp other   │            │  │
+│  │                                    │   │    │    │      │            │  │
+│  │                                    └───┼────┼────┼──────┘            │  │
+│  │                                        │    │    │                   │  │
+│  │                                        ▼    ▼    ▼                   │  │
+│  │                                      [Gmail][SMTP][Future]           │  │
+│  │                                        │    │    │                   │  │
+│  │                                        └────┼────┘                   │  │
+│  │                                             │                        │  │
+│  │                                             ▼                        │  │
+│  │                                    ┌────────────────┐                │  │
+│  │                                    │  MERGE NODE    │                │  │
+│  │                                    │  (Reunify)     │                │  │
+│  │                                    └───────┬────────┘                │  │
+│  │                                            │                         │  │
+│  │                                            ▼                         │  │
+│  │                                  [Track Email Sent]                 │  │
+│  │                                            │                         │  │
+│  │                                            ▼                         │  │
+│  │                                   [Update DB Status]                │  │
+│  │                                            │                         │  │
+│  │                                            ▼                         │  │
+│  │                                      [Wait/Loop]                    │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 60.B.12.3 SMTP Relay Architecture
+
+The SMTP implementation uses a local relay service pattern (based on proven production implementation):
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    SMTP RELAY SERVICE ARCHITECTURE                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  OPTION A: n8n Native SMTP Node (Recommended for V35)                       │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  Workflow → [SMTP Node] → External SMTP Server                       │  │
+│  │                │                                                      │  │
+│  │                └── Uses n8n credential store                         │  │
+│  │                    (UUID mapped via Phase 53)                        │  │
+│  │                                                                       │  │
+│  │  PROS: Native, simple, no extra service                              │  │
+│  │  CONS: Less control over threading/raw format                        │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  OPTION B: Local SMTP Relay Microservice (For advanced threading)           │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  Workflow → [HTTP POST to 127.0.0.1:3847/send] → SMTP Relay → SMTP   │  │
+│  │                          │                                           │  │
+│  │                          └── Supports:                               │  │
+│  │                              - Raw RFC 2822 format                   │  │
+│  │                              - In-Reply-To headers (threading)       │  │
+│  │                              - IMAP reply checking (/check-reply)    │  │
+│  │                                                                       │  │
+│  │  docker-compose service:                                             │  │
+│  │  smtp-relay:                                                         │  │
+│  │    image: genesis/smtp-relay:latest                                  │  │
+│  │    ports:                                                            │  │
+│  │      - "127.0.0.1:3847:3847"                                        │  │
+│  │    environment:                                                      │  │
+│  │      - SMTP_HOST                                                     │  │
+│  │      - SMTP_PORT                                                     │  │
+│  │      - SMTP_USER                                                     │  │
+│  │      - SMTP_PASS                                                     │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  RECOMMENDATION: Start with Option A (n8n native SMTP node) for simplicity. │
+│  Migrate to Option B only if advanced threading support is required.        │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 60.B.12.4 Step-by-Step Workflow Modification Guide
+
+**NODE 1: Get Email Provider Config (HTTP Request)**
+
+Insert AFTER the "Select Leads" node, BEFORE the main loop:
+
+| Setting | Value |
+|---------|-------|
+| **Method** | GET |
+| **URL** | `{{ $env.DASHBOARD_URL }}/api/workspace/email-config` |
+| **Headers** | X-Workspace-ID: `{{ $env.WORKSPACE_ID }}` |
+| **Headers** | Authorization: `Bearer {{ $env.WEBHOOK_TOKEN }}` |
+| **Output** | `{ provider: "gmail" | "smtp", smtp_host, smtp_port, ... }` |
+
+**NODE 2: Switch Node (Email Provider Router)**
+
+Insert AFTER the "Inject Tracking" code node:
+
+| Setting | Value |
+|---------|-------|
+| **Data Type** | String |
+| **Value 1** | `{{ $('Get Email Config').item.json.provider }}` |
+| **Rule 1** | Value 2: `gmail`, Output: 0 |
+| **Rule 2** | Value 2: `smtp`, Output: 1 |
+| **Fallback** | Output 0 (default to Gmail) |
+
+**NODE 3A: Gmail Path (Existing)**
+
+Keep the existing Gmail node unchanged. It only executes when Switch routes to Output 0.
+
+| Email | Gmail Node Type | Notes |
+|-------|-----------------|-------|
+| Email 1 | `n8n-nodes-base.gmail` (send) | Standard send |
+| Email 2 | HTTP Request to Gmail API (raw) | Threading via threadId |
+| Email 3 | `n8n-nodes-base.gmail` (send) | Standard send |
+
+**NODE 3B: SMTP Path (New)**
+
+Add SMTP sending nodes that execute when Switch routes to Output 1.
+
+| Method | For Emails 1 & 3 | For Email 2 |
+|--------|-----------------|-------------|
+| **Node Type** | HTTP Request | HTTP Request |
+| **URL** | `http://127.0.0.1:3847/send` | `http://127.0.0.1:3847/send` |
+| **Body** | `{ to, subject, htmlBody }` | `{ to, subject, htmlBody, raw, inReplyTo }` |
+| **Threading** | N/A | Uses `In-Reply-To` header |
+
+**NODE 4: Merge Node (Reunify)**
+
+Combines the Gmail and SMTP paths back into a single flow:
+
+| Setting | Value |
+|---------|-------|
+| **Mode** | Combine |
+| **Combine By** | Position |
+| **Output** | Single unified item for downstream processing |
+
+### 60.B.12.5 Email 2 Special Handling: Threading Support
+
+Email 2 requires special handling for both Gmail and SMTP to maintain thread continuity:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    EMAIL THREADING IMPLEMENTATION                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  GMAIL THREADING:                                                           │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Uses Gmail API directly (HTTP Request, not Gmail node)               │  │
+│  │  POST https://www.googleapis.com/gmail/v1/users/me/messages/send     │  │
+│  │  Body:                                                                │  │
+│  │  {                                                                    │  │
+│  │    "raw": "<base64url encoded RFC 2822 email>",                      │  │
+│  │    "threadId": "{{ message_id from Email 1 }}"                       │  │
+│  │  }                                                                    │  │
+│  │                                                                       │  │
+│  │  The threadId links Email 2 to the original Email 1 thread.          │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  SMTP THREADING:                                                            │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Uses In-Reply-To and References headers (RFC 2822 standard)          │  │
+│  │                                                                       │  │
+│  │  Code Node builds raw email:                                          │  │
+│  │  const headers = [                                                    │  │
+│  │    'Subject: Re: ' + originalSubject,                                │  │
+│  │    'From: ' + senderEmail,                                           │  │
+│  │    'To: ' + recipientEmail,                                          │  │
+│  │    'MIME-Version: 1.0',                                              │  │
+│  │    'Content-Type: text/html; charset="UTF-8"',                       │  │
+│  │    'In-Reply-To: ' + originalMessageId,  // THREADING                │  │
+│  │    'References: ' + originalMessageId,   // THREADING                │  │
+│  │  ];                                                                   │  │
+│  │                                                                       │  │
+│  │  HTTP POST to SMTP relay:                                            │  │
+│  │  {                                                                    │  │
+│  │    "to": recipientEmail,                                             │  │
+│  │    "subject": "Re: " + originalSubject,                              │  │
+│  │    "htmlBody": emailBody,                                            │  │
+│  │    "raw": base64UrlEncode(headers.join('\n') + '\n\n' + body),      │  │
+│  │    "inReplyTo": originalMessageId                                    │  │
+│  │  }                                                                    │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 60.B.12.6 Reply Detection: Gmail vs SMTP
+
+| Method | Gmail | SMTP |
+|--------|-------|------|
+| **Node Type** | Gmail node (getAll) | HTTP Request |
+| **Endpoint** | N/A (native node) | `http://127.0.0.1:3847/check-reply` |
+| **Query** | `sender: contact@email.com` | `?email=contact@email.com&message_id=xxx` |
+| **Returns** | Array of replies | `{ replied: true/false }` |
+| **Integration** | Edit Fields node sets `replied: Yes/No` | Same Edit Fields node |
+
+### 60.B.12.7 Visual Workflow Modification (n8n Editor)
+
+```
+BEFORE (Gmail Only):
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  [Schedule] → [Select Leads] → [Limit] → [Loop] → [If] → [Inject]          │
+│                                                              │              │
+│                                                              ▼              │
+│                                                          [Gmail]            │
+│                                                              │              │
+│                                                              ▼              │
+│                                                       [Track Sent]          │
+│                                                              │              │
+│                                                              ▼              │
+│                                                        [Update DB]          │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+AFTER (Gmail + SMTP Combined):
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│  [Schedule] → [Select Leads] → [Get Config] → [Limit] → [Loop] → [If]      │
+│                                                                    │        │
+│                                                                    ▼        │
+│                                                              [Inject]       │
+│                                                                    │        │
+│                                                                    ▼        │
+│                                                     ┌─────────────────────┐ │
+│                                                     │      SWITCH         │ │
+│                                                     │  ┌───────┬───────┐  │ │
+│                                                     │  │ gmail │ smtp  │  │ │
+│                                                     └──┼───────┼───────┼──┘ │
+│                                                        │       │       │    │
+│                                                        ▼       ▼       │    │
+│                                                    [Gmail] [SMTP]      │    │
+│                                                        │       │       │    │
+│                                                        └───┬───┘       │    │
+│                                                            ▼           │    │
+│                                                        [MERGE]◄────────┘    │
+│                                                            │                │
+│                                                            ▼                │
+│                                                      [Track Sent]           │
+│                                                            │                │
+│                                                            ▼                │
+│                                                       [Update DB]           │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 60.B.12.8 Environment Variables for SMTP Path
+
+Each tenant's Sidecar needs these environment variables set (injected during provisioning):
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `SMTP_HOST` | SMTP server hostname | `smtp.zoho.com` |
+| `SMTP_PORT` | SMTP server port | `587` |
+| `SMTP_USER` | Authentication username | `outbound@clientdomain.com` |
+| `SMTP_PASS` | Authentication password | (encrypted in vault) |
+| `SMTP_FROM_EMAIL` | Default sender address | `outbound@clientdomain.com` |
+| `SMTP_FROM_NAME` | Default sender display name | `Client Company` |
+| `SMTP_ENCRYPTION` | TLS setting | `STARTTLS` |
+
+---
+
+## 60.B.13 IMPLEMENTATION CHECKLIST
 
 **Phase 60.B delivers:**
 
@@ -10101,18 +11102,22 @@ export async function POST(request: NextRequest) {
 - [ ] Updated Email 1, 2, 3 workflows with Switch node
 - [ ] SMTP credential injection via Sidecar
 - [ ] Provider-agnostic logging (same events regardless of provider)
+- [ ] Combined workflow architecture (Gmail + SMTP in single workflow)
+- [ ] Threading support for both Gmail (threadId) and SMTP (In-Reply-To)
+- [ ] Reply detection for both providers (Gmail node / IMAP HTTP)
 
 **Integration points:**
 - Phase 53: Uses UUID Mapper for SMTP credentials
 - Phase 60: Extends onboarding with email provider choice
 - Phase 61: Email tracking works with both providers
 - Phase 67: API Health Monitor checks email provider status
+- Phase 68: Workflow updates use version-controlled templates
 
 ---
 
 # 🔐 PHASE 63.B: COMPREHENSIVE LOGIN AUDIT TRAIL
 
-> **Phase Type:** V30 Compliance & Security  
+> **Phase Type:** V35 Compliance & Security  
 > **Dependencies:** Phase 63 (Audit Logging)  
 > **Risk Level:** LOW (Read-only logging)  
 > **Priority:** MEDIUM - Required for SOC2/Enterprise Compliance
@@ -10603,7 +11608,7 @@ $$ LANGUAGE plpgsql;
 
 # 🛠️ PHASE 66.B: INFRASTRUCTURE AS CODE (OPTIONAL)
 
-> **Phase Type:** V30 Operational Excellence  
+> **Phase Type:** V35 Operational Excellence  
 > **Dependencies:** Phase 50, Phase 66  
 > **Risk Level:** LOW (Supplementary tooling)  
 > **Priority:** 🟢 LOW - Nice to have, not critical for MVP
@@ -10630,16 +11635,16 @@ $$ LANGUAGE plpgsql;
 
 ## 66.B.2 WHY THIS IS MARKED OPTIONAL/LOW PRIORITY
 
-**Current V30 Architecture Already Handles This:**
+**Current V35 Architecture Already Handles This:**
 
-| Task | V30 Solution | IaC Alternative |
+| Task | V35 Solution | IaC Alternative |
 |------|--------------|-----------------|
 | Create tenant droplets | Ignition Orchestrator (Phase 41) | Terraform |
 | Configure droplets | Cloud-Init + Sidecar | Ansible |
 | Fleet-wide updates | BullMQ + Phase 56 | Ansible |
 | Credential injection | Sidecar + Vault | Ansible Vault |
 
-**The V30 architecture is PURPOSE-BUILT for dynamic, on-demand infrastructure.** Terraform/Ansible are better for static infrastructure.
+**The V35 architecture is PURPOSE-BUILT for dynamic, on-demand infrastructure.** Terraform/Ansible are better for static infrastructure.
 
 **Where IaC WOULD Help:**
 - Recreating the Dashboard itself after disaster
@@ -10770,7 +11775,7 @@ output "redis_uri" {
 
 ## 66.B.5 RECOMMENDATION
 
-**For Genesis V30:**
+**For Genesis V35:**
 
 1. **Skip Terraform for tenant droplets** - The Ignition Orchestrator is better suited for dynamic provisioning
 2. **Consider Terraform for Dashboard infra** - But only after product-market fit
@@ -10785,7 +11790,7 @@ output "redis_uri" {
 
 # 🏥 PHASE 67: API HEALTH MONITOR & SANITY CHECK
 
-> **Phase Type:** V30 Observability  
+> **Phase Type:** V35 Observability  
 > **Dependencies:** Phase 44 (God Mode), Phase 60 (Onboarding)  
 > **Risk Level:** LOW (Read-only monitoring)  
 > **Priority:** 🔴 HIGH - Essential for Debugging
@@ -11398,6 +12403,968 @@ The API Health Monitor integrates with Phase 44 (God Mode):
 - DigitalOcean (all accounts)
 - Supabase
 - Redis
+
+---
+
+# 🔄 PHASE 68: ZERO-DOWNTIME FLEET UPDATE PROTOCOL
+
+> **Phase Type:** V35 Critical Operations  
+> **Dependencies:** Phase 56 (Template Reconciliation), Phase 52 (BullMQ), Phase 51 (Sidecar)  
+> **Risk Level:** CRITICAL - Production disruption if mishandled  
+> **Priority:** HIGH - Required for sustainable multi-tenant operations
+
+---
+
+## 68.1 THE UPDATE CHALLENGE AT SCALE
+
+When operating a fleet of 15,000+ sovereign droplets, updates become a distributed systems problem. A single bug fix or feature improvement must propagate safely across all tenants without:
+
+- Disrupting running email campaigns
+- Causing data loss
+- Creating version inconsistencies
+- Breaking production for paying customers
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      THE SCALE OF THE PROBLEM                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  SINGLE TENANT (Current State):                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  You make a change → Deploy to Vercel → Done                          │  │
+│  │  n8n workflow change → Edit directly in n8n → Done                    │  │
+│  │                                                                       │  │
+│  │  Total deployment time: ~2 minutes                                    │  │
+│  │  Risk: Low (only affects you)                                         │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  MULTI-TENANT V35 (Future State):                                           │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Dashboard change → Vercel deployment (Easy, same as before)          │  │
+│  │  Database migration → Supabase migration (Medium, careful planning)   │  │
+│  │  n8n workflow change → 15,000+ separate n8n instances (!!)            │  │
+│  │  Sidecar update → 15,000+ Docker containers (!!)                      │  │
+│  │                                                                       │  │
+│  │  Total deployment time: 8-15 minutes for full fleet                   │  │
+│  │  Risk: CRITICAL (affects all paying customers)                        │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 68.2 UPDATE CATEGORIES & STRATEGIES
+
+Different components require different update strategies:
+
+| Component | Update Mechanism | Risk Level | Rollback Time | Strategy |
+|-----------|-----------------|------------|---------------|----------|
+| **Dashboard (Next.js)** | Vercel deployment | LOW | Instant | Standard CI/CD |
+| **Database Schema** | Supabase migrations | MEDIUM | Manual | Backward-compatible |
+| **n8n Workflows** | Sidecar API push | HIGH | 30 seconds | Canary → Staged |
+| **Sidecar Agent** | Docker image pull | MEDIUM | 2 minutes | Blue-Green |
+| **Droplet OS/Base** | Immutable rebuild | LOW | 5 minutes | Replace, not update |
+
+---
+
+## 68.3 THE VERSION REGISTRY (Central Source of Truth)
+
+All versions are tracked centrally in Supabase:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         VERSION REGISTRY SCHEMA                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  genesis.tenant_versions (What each tenant is running)                      │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  workspace_id         UUID PRIMARY KEY                                │  │
+│  │  dashboard_version    TEXT DEFAULT '1.0.0'                            │  │
+│  │  workflow_email_1     TEXT DEFAULT '1.0.0'                            │  │
+│  │  workflow_email_2     TEXT DEFAULT '1.0.0'                            │  │
+│  │  workflow_email_3     TEXT DEFAULT '1.0.0'                            │  │
+│  │  workflow_research    TEXT DEFAULT '1.0.0'                            │  │
+│  │  sidecar_version      TEXT DEFAULT '1.0.0'                            │  │
+│  │  last_update_at       TIMESTAMPTZ                                     │  │
+│  │  update_status        TEXT (current|updating|failed|rollback)         │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  genesis.workflow_templates (Golden Template versions)                      │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  id                   UUID PRIMARY KEY                                │  │
+│  │  workflow_name        TEXT NOT NULL (email_1, email_2, etc.)          │  │
+│  │  version              TEXT NOT NULL (semver: 1.2.3)                   │  │
+│  │  workflow_json        JSONB NOT NULL (the actual n8n workflow)        │  │
+│  │  changelog            TEXT (what changed)                             │  │
+│  │  is_current           BOOLEAN DEFAULT FALSE                           │  │
+│  │  is_canary            BOOLEAN DEFAULT FALSE                           │  │
+│  │  created_at           TIMESTAMPTZ                                     │  │
+│  │  created_by           TEXT (admin user ID)                            │  │
+│  │                                                                       │  │
+│  │  UNIQUE(workflow_name, version)                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  genesis.update_history (Audit trail for all updates)                       │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  id                   UUID PRIMARY KEY                                │  │
+│  │  workspace_id         UUID (NULL for fleet-wide)                      │  │
+│  │  component            TEXT (workflow_email_1, sidecar, etc.)          │  │
+│  │  from_version         TEXT                                            │  │
+│  │  to_version           TEXT                                            │  │
+│  │  status               TEXT (success|failed|rolled_back)               │  │
+│  │  error_message        TEXT                                            │  │
+│  │  executed_at          TIMESTAMPTZ                                     │  │
+│  │  executed_by          TEXT                                            │  │
+│  │  rollout_strategy     TEXT (canary|staged|immediate)                  │  │
+│  │  affected_tenants     INTEGER                                         │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 68.4 THE ROLLOUT ENGINE
+
+Updates follow a staged rollout to minimize blast radius:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          ROLLOUT ENGINE FLOW                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  PHASE 1: CANARY (1% of tenants, ~150 tenants)                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  1. Select 150 random tenants (prefer test/dev accounts first)        │  │
+│  │  2. Push update via BullMQ                                            │  │
+│  │  3. Monitor for 1 hour:                                               │  │
+│  │     - Error rates                                                     │  │
+│  │     - Execution failures                                              │  │
+│  │     - Sidecar heartbeat health                                        │  │
+│  │  4. IF error_rate > 0.1%: AUTO-ROLLBACK all canaries                  │  │
+│  │  5. IF success: Proceed to PHASE 2                                    │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  PHASE 2: STAGED ROLLOUT                                                    │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Wave 1: 10% of tenants (~1,500)                                      │  │
+│  │     └── Monitor 30 minutes, auto-halt if errors > 0.5%                │  │
+│  │                                                                       │  │
+│  │  Wave 2: 25% of tenants (~3,750)                                      │  │
+│  │     └── Monitor 30 minutes, auto-halt if errors > 0.5%                │  │
+│  │                                                                       │  │
+│  │  Wave 3: 50% of tenants (~7,500)                                      │  │
+│  │     └── Monitor 30 minutes, auto-halt if errors > 0.5%                │  │
+│  │                                                                       │  │
+│  │  Wave 4: 100% of tenants (remaining ~1,500)                           │  │
+│  │     └── Final deployment                                              │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  TOTAL ROLLOUT TIME: ~2.5 hours (with monitoring gaps)                      │
+│  EMERGENCY OVERRIDE: Skip to 100% (use with extreme caution)                │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 68.5 N8N WORKFLOW UPDATE PROTOCOL
+
+This is the most critical update type since n8n workflows are the core business logic.
+
+### 68.5.1 Golden Template Repository
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    GOLDEN TEMPLATE MANAGEMENT                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Location: Dashboard server (or S3/GCS for redundancy)                      │
+│                                                                             │
+│  /templates/                                                                 │
+│    ├── email_1/                                                             │
+│    │   ├── v1.0.0.json  (Gmail only - legacy)                              │
+│    │   ├── v1.1.0.json  (Gmail + SMTP Switch)                              │
+│    │   ├── v1.2.0.json  (Gmail + SMTP + SendGrid)                          │
+│    │   └── current.json (symlink to current version)                       │
+│    ├── email_2/                                                             │
+│    │   └── ...                                                              │
+│    ├── email_3/                                                             │
+│    │   └── ...                                                              │
+│    ├── research/                                                            │
+│    │   └── ...                                                              │
+│    └── opt_out/                                                             │
+│        └── ...                                                              │
+│                                                                             │
+│  VERSION NAMING: Semantic Versioning (MAJOR.MINOR.PATCH)                    │
+│    - MAJOR: Breaking changes (credential restructure)                       │
+│    - MINOR: New features (add SMTP support)                                 │
+│    - PATCH: Bug fixes (fix tracking URL encoding)                          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 68.5.2 Update Push Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   WORKFLOW UPDATE PUSH SEQUENCE                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. ADMIN INITIATES UPDATE (God Mode Dashboard)                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Admin uploads new workflow JSON to template repository               │  │
+│  │  Admin writes changelog ("Fixed click tracking for edge case URLs")   │  │
+│  │  Admin selects rollout strategy (canary/staged/immediate)             │  │
+│  │  Admin clicks "Deploy to Fleet"                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                              │                                               │
+│                              ▼                                               │
+│  2. DASHBOARD QUEUES UPDATE COMMANDS                                        │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  For each tenant in rollout wave:                                     │  │
+│  │    BullMQ.add('workflow-update', {                                    │  │
+│  │      workspace_id: tenant.workspace_id,                               │  │
+│  │      workflow_name: 'email_1',                                        │  │
+│  │      from_version: tenant.current_version,                            │  │
+│  │      to_version: '1.2.0',                                            │  │
+│  │      template_url: 'https://dashboard/api/templates/email_1/v1.2.0', │  │
+│  │    });                                                                │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                              │                                               │
+│                              ▼                                               │
+│  3. SIDECAR RECEIVES COMMAND                                                │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Sidecar pulls update command from BullMQ                             │  │
+│  │  Sidecar downloads new workflow JSON from template_url                │  │
+│  │  Sidecar applies UUID mapping (Phase 53)                              │  │
+│  │  Sidecar calls n8n API: PUT /workflows/{workflow_id}                  │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                              │                                               │
+│                              ▼                                               │
+│  4. SIDECAR REPORTS RESULT                                                  │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  SUCCESS:                                                             │  │
+│  │    Update genesis.tenant_versions with new version                    │  │
+│  │    Log to genesis.update_history with status='success'                │  │
+│  │                                                                       │  │
+│  │  FAILURE:                                                             │  │
+│  │    Log error to genesis.update_history with status='failed'           │  │
+│  │    Attempt rollback to previous version                               │  │
+│  │    Alert admin via God Mode dashboard                                 │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 68.6 THE "OH SHIT" BUTTON (Emergency Rollback)
+
+When things go wrong, immediate rollback is critical:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       EMERGENCY ROLLBACK UI                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  [!] EMERGENCY ROLLBACK                                               │  │
+│  │                                                                       │  │
+│  │  Component: [Email 1 Workflow          v]                             │  │
+│  │                                                                       │  │
+│  │  Current Version: 1.2.0                                               │  │
+│  │  Deployed: 47 minutes ago                                             │  │
+│  │  Error Rate: 2.3% (CRITICAL)                                          │  │
+│  │                                                                       │  │
+│  │  Rollback To: [1.1.0 (stable)          v]                             │  │
+│  │                                                                       │  │
+│  │  Scope:                                                               │  │
+│  │    ( ) All Tenants (15,234)                                           │  │
+│  │    (*) Affected Only (347 - those on v1.2.0)                          │  │
+│  │    ( ) Specific Tenant [________________________]                     │  │
+│  │                                                                       │  │
+│  │  Estimated Time: ~30 seconds                                          │  │
+│  │                                                                       │  │
+│  │  [X] I understand this will immediately revert affected tenants       │  │
+│  │                                                                       │  │
+│  │             [ Cancel ]    [EXECUTE ROLLBACK]                          │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ROLLBACK MECHANICS:                                                        │
+│  1. Fetch previous version JSON from template repository                   │
+│  2. Push via BullMQ with PRIORITY=CRITICAL (jumps queue)                   │
+│  3. All Sidecars process rollback within 30 seconds                        │
+│  4. Update version registry atomically                                     │
+│  5. Alert all admins of rollback event                                     │
+│                                                                             │
+│  ROLLBACK TIMING:                                                           │
+│  - 1,000 tenants: ~30 seconds                                              │
+│  - 5,000 tenants: ~90 seconds                                              │
+│  - 15,000 tenants: ~5 minutes                                              │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 68.7 SIDECAR UPDATE PROTOCOL
+
+Sidecar updates require container replacement:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     SIDECAR UPDATE SEQUENCE                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  STRATEGY: Blue-Green Container Swap                                        │
+│                                                                             │
+│  1. PREPARATION                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  - New Sidecar image pushed to registry (genesis/sidecar:1.3.0)       │  │
+│  │  - Image pre-pulled to all droplets (background, during quiet hours)  │  │
+│  │  - Rollout scheduled for low-activity window                          │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  2. PER-DROPLET UPDATE                                                      │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  Current Sidecar receives "prepare-for-update" command                │  │
+│  │       │                                                               │  │
+│  │       ▼                                                               │  │
+│  │  Sidecar completes any in-progress operations                         │  │
+│  │       │                                                               │  │
+│  │       ▼                                                               │  │
+│  │  Sidecar saves state checkpoint to local volume                       │  │
+│  │       │                                                               │  │
+│  │       ▼                                                               │  │
+│  │  Sidecar signals "ready-for-swap"                                     │  │
+│  │       │                                                               │  │
+│  │       ▼                                                               │  │
+│  │  Docker Compose: Stop old container, start new container              │  │
+│  │  (docker compose up -d sidecar --force-recreate)                      │  │
+│  │       │                                                               │  │
+│  │       ▼                                                               │  │
+│  │  New Sidecar starts, loads state checkpoint                           │  │
+│  │       │                                                               │  │
+│  │       ▼                                                               │  │
+│  │  New Sidecar sends heartbeat confirming healthy                       │  │
+│  │       │                                                               │  │
+│  │       ▼                                                               │  │
+│  │  Dashboard marks tenant as updated                                    │  │
+│  │                                                                       │  │
+│  │  TOTAL DOWNTIME: ~5 seconds per droplet                               │  │
+│  │  (n8n continues running during Sidecar swap)                          │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  3. FAILURE HANDLING                                                        │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  IF new Sidecar fails to send healthy heartbeat within 60 seconds:    │  │
+│  │    - Automatic rollback: docker compose up -d sidecar (uses old tag)  │  │
+│  │    - Alert sent to admin                                              │  │
+│  │    - Tenant marked as "update_failed"                                 │  │
+│  │    - Tenant excluded from further update waves                        │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 68.8 DATABASE MIGRATION PROTOCOL
+
+Schema changes require backward-compatible migrations:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                  DATABASE MIGRATION STRATEGY                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  RULE: All migrations must be BACKWARD-COMPATIBLE                           │
+│                                                                             │
+│  WHY: During staged rollout, some tenants run old code, some run new.       │
+│  Both must work with the same database schema.                              │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  ALLOWED MIGRATIONS:                                                  │  │
+│  │    [OK] ADD COLUMN with DEFAULT value                                │  │
+│  │    [OK] ADD TABLE                                                    │  │
+│  │    [OK] ADD INDEX CONCURRENTLY                                       │  │
+│  │    [OK] ADD CONSTRAINT (if data already valid)                       │  │
+│  │                                                                       │  │
+│  │  FORBIDDEN MIGRATIONS (until 100% rollout complete):                  │  │
+│  │    [X] DROP COLUMN                                                   │  │
+│  │    [X] RENAME COLUMN                                                 │  │
+│  │    [X] CHANGE COLUMN TYPE                                            │  │
+│  │    [X] DROP TABLE                                                    │  │
+│  │    [X] REMOVE CONSTRAINT                                             │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  TWO-PHASE MIGRATION PATTERN:                                               │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                       │  │
+│  │  Phase A (Week 1): Add new column alongside old                       │  │
+│  │    ALTER TABLE leads ADD COLUMN status_v2 TEXT;                       │  │
+│  │    (Old code ignores status_v2, new code writes to both)             │  │
+│  │                                                                       │  │
+│  │  Phase B (Week 2): Deploy code that reads from new column             │  │
+│  │    (100% rollout complete)                                            │  │
+│  │                                                                       │  │
+│  │  Phase C (Week 3): Remove old column                                  │  │
+│  │    ALTER TABLE leads DROP COLUMN status;                              │  │
+│  │    ALTER TABLE leads RENAME COLUMN status_v2 TO status;               │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 68.9 UPDATE MONITORING DASHBOARD
+
+Real-time visibility into update progress:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    UPDATE MONITORING DASHBOARD                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  ACTIVE ROLLOUT: Email 1 Workflow v1.1.0 → v1.2.0                     │  │
+│  │  Strategy: Staged (Canary → 10% → 25% → 50% → 100%)                   │  │
+│  │  Started: 2026-01-24 14:30 UTC                                        │  │
+│  │                                                                       │  │
+│  │  ┌─────────────────────────────────────────────────────────────────┐  │  │
+│  │  │  PROGRESS                                                       │  │  │
+│  │  │  ████████████████████░░░░░░░░░░░░░░░░░░░░  47% (7,145/15,234)   │  │  │
+│  │  └─────────────────────────────────────────────────────────────────┘  │  │
+│  │                                                                       │  │
+│  │  WAVE STATUS:                                                         │  │
+│  │  ┌────────┬──────────┬─────────┬──────────┬─────────────────────┐    │  │
+│  │  │ Wave   │ Tenants  │ Status  │ Errors   │ Time                │    │  │
+│  │  ├────────┼──────────┼─────────┼──────────┼─────────────────────┤    │  │
+│  │  │ Canary │ 150      │ [DONE]  │ 0 (0.0%) │ 14:30-15:30        │    │  │
+│  │  │ 10%    │ 1,500    │ [DONE]  │ 2 (0.1%) │ 15:30-16:00        │    │  │
+│  │  │ 25%    │ 3,750    │ [LIVE]  │ 3 (0.1%) │ 16:00-NOW          │    │  │
+│  │  │ 50%    │ 7,500    │ Pending │ -        │ -                  │    │  │
+│  │  │ 100%   │ 2,334    │ Pending │ -        │ -                  │    │  │
+│  │  └────────┴──────────┴─────────┴──────────┴─────────────────────┘    │  │
+│  │                                                                       │  │
+│  │  HEALTH METRICS:                                                      │  │
+│  │  ┌─────────────────────────────────────────────────────────────────┐  │  │
+│  │  │  Error Rate: 0.08%  [OK - below 0.5% threshold]                 │  │  │
+│  │  │  Execution Success: 99.92%                                      │  │  │
+│  │  │  Avg Update Time: 1.2s per tenant                               │  │  │
+│  │  │  Failed Updates: 5 (auto-retried, 3 succeeded)                  │  │  │
+│  │  │  Stuck Updates: 0                                               │  │  │
+│  │  └─────────────────────────────────────────────────────────────────┘  │  │
+│  │                                                                       │  │
+│  │  ACTIONS:                                                             │  │
+│  │  [Pause Rollout]  [Skip to 100%]  [Abort & Rollback]                 │  │
+│  │                                                                       │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 68.10 VERSION COMPATIBILITY MATRIX
+
+Track which versions work together:
+
+| Dashboard | Sidecar | Workflow | Status |
+|-----------|---------|----------|--------|
+| 2.0.x | 1.0.x - 1.2.x | 1.0.x - 1.1.x | Stable |
+| 2.1.x | 1.2.x - 1.3.x | 1.0.x - 1.2.x | Current |
+| 2.2.x | 1.3.x+ | 1.2.x+ | Future |
+
+**Compatibility Rules:**
+- Dashboard must support N-2 workflow versions during rollout
+- Sidecar must support N-1 protocol versions
+- New features gated by version checks in Dashboard
+
+---
+
+## 68.11 IMPLEMENTATION CHECKLIST
+
+**Phase 68 delivers:**
+
+- [ ] `tenant_versions` table for version tracking
+- [ ] `workflow_templates` table with versioned JSON storage
+- [ ] `update_history` table for audit trail
+- [ ] Rollout Engine with canary/staged/immediate strategies
+- [ ] Update Monitoring Dashboard in God Mode
+- [ ] Emergency Rollback UI with one-click revert
+- [ ] BullMQ queue for update commands (`workflow-update`, `sidecar-update`)
+- [ ] Sidecar update handler with state checkpointing
+- [ ] Backward-compatible migration guidelines enforced
+- [ ] Version compatibility matrix tracking
+
+**Integration points:**
+- Phase 52: Uses BullMQ for update distribution
+- Phase 51: Sidecar receives and executes updates
+- Phase 44: God Mode displays update progress
+- Phase 56: Extends Template Reconciliation with versioning
+
+---
+
+# 🏗️ PHASE 69: CONTROL PLANE DEPLOYMENT ARCHITECTURE
+
+> **Phase Type:** V35 Critical Infrastructure  
+> **Dependencies:** Phase 52 (BullMQ), Phase 54 (Heartbeat), Phase 43 (Watchdog)  
+> **Risk Level:** CRITICAL - Misunderstanding this leads to production failures  
+> **Priority:** HIGH - Must be understood before implementing long-running services
+
+---
+
+## 69.1 THE VERCEL LIMITATION REALITY
+
+At 15,000 tenants, the V35 architecture requires **long-running background services** that Vercel serverless functions cannot support:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      VERCEL VS DEDICATED SERVERS                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  WHAT VERCEL CAN HANDLE:                                                    │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  ✓ Next.js frontend (React pages, routes)                             │  │
+│  │  ✓ API Routes for CRUD operations                                     │  │
+│  │  ✓ Webhook ingestion (/api/events, /api/track/*)                      │  │
+│  │  ✓ Database queries (via Supabase)                                    │  │
+│  │  ✓ Short-lived operations (<60s on Pro, <900s on Enterprise)          │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  WHAT VERCEL CANNOT HANDLE:                                                 │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  ✗ BullMQ Workers (need persistent connection to Redis)                │  │
+│  │  ✗ Watchdog Service (polls 15k Sidecars every 60s, runs forever)      │  │
+│  │  ✗ Concurrency Governor (rate-limits BullMQ processing)               │  │
+│  │  ✗ WebSocket Server (God Mode real-time updates)                      │  │
+│  │  ✗ Cron jobs (Vercel Cron works but serverless, not ideal for heavy) │  │
+│  │  ✗ Stateful processes (container must stay alive)                     │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  THE PROBLEM:                                                               │
+│  Phases 52, 43, 54, 56, 68 all assume long-running services.               │
+│  These services CANNOT run on Vercel without major architectural changes.   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 69.2 THE HYBRID ARCHITECTURE (The Solution)
+
+V35 requires a **Control Plane / API Layer separation**:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        V35 HYBRID DEPLOYMENT                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                         VERCEL LAYER                                 │   │
+│  │                    (Frontend + Lightweight API)                      │   │
+│  │                                                                     │   │
+│  │  ┌────────────────────────────────────────────────────────────┐    │   │
+│  │  │  NEXT.JS APPLICATION                                        │    │   │
+│  │  │                                                            │    │   │
+│  │  │  • God Mode Dashboard UI (React)                           │    │   │
+│  │  │  • Settings, Analytics, Sequences pages                    │    │   │
+│  │  │  • API Routes:                                             │    │   │
+│  │  │    - /api/track/* (click/open tracking)                    │    │   │
+│  │  │    - /api/events (webhook ingestion from n8n)              │    │   │
+│  │  │    - /api/workspace/* (CRUD operations)                    │    │   │
+│  │  │    - /api/contacts, /api/analytics (read queries)          │    │   │
+│  │  │  • Edge Middleware (auth, RLS setup)                       │    │   │
+│  │  │                                                            │    │   │
+│  │  └────────────────────────────────────────────────────────────┘    │   │
+│  │                                                                     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                              │                                              │
+│                              │ (Shared Redis + Supabase)                    │
+│                              ▼                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │              CONTROL PLANE SERVICE                                  │   │
+│  │         (Railway / Render / AWS ECS / DigitalOcean App)             │   │
+│  │                                                                     │   │
+│  │  ┌────────────────────────────────────────────────────────────┐    │   │
+│  │  │  GENESIS CONTROL PLANE (Node.js 24/7 Service)              │    │   │
+│  │  │                                                            │    │   │
+│  │  │  • BullMQ Workers (process fleet commands)                 │    │   │
+│  │  │    - workflow-update                                       │    │   │
+│  │  │    - sidecar-update                                        │    │   │
+│  │  │    - wake-droplet                                          │    │   │
+│  │  │    - credential-inject                                     │    │   │
+│  │  │                                                            │    │   │
+│  │  │  • Watchdog Service (Phase 43)                             │    │   │
+│  │  │    - Polls 15k Sidecars every 60s                          │    │   │
+│  │  │    - Detects zombies, triggers reboots                     │    │   │
+│  │  │                                                            │    │   │
+│  │  │  • Concurrency Governor (Phase 52)                         │    │   │
+│  │  │    - Limits concurrent BullMQ jobs to 100                  │    │   │
+│  │  │                                                            │    │   │
+│  │  │  • Heartbeat Processor (Phase 54)                          │    │   │
+│  │  │    - Receives 15k pings/min from Sidecars                  │    │   │
+│  │  │    - Updates droplet_health in real-time                   │    │   │
+│  │  │                                                            │    │   │
+│  │  │  • Snapshot Cleanup Worker (Phase 50)                      │    │   │
+│  │  │    - Deletes orphaned DigitalOcean snapshots               │    │   │
+│  │  │                                                            │    │   │
+│  │  │  • Scale Alerts Worker (Phase 44.3)                        │    │   │
+│  │  │    - Monitors database metrics every 15 minutes            │    │   │
+│  │  │                                                            │    │   │
+│  │  └────────────────────────────────────────────────────────────┘    │   │
+│  │                                                                     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                              │                                              │
+│                              ▼                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │                     SHARED INFRASTRUCTURE                           │   │
+│  │                                                                     │   │
+│  │  • Redis: Upstash or self-hosted (BullMQ queue)                    │   │
+│  │  • PostgreSQL: Supabase (shared by both layers)                    │   │
+│  │  • DigitalOcean API: Accessed by Control Plane                     │   │
+│  │                                                                     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 69.3 DEPLOYMENT OPTION COMPARISON
+
+| Option | Cost/Month | Complexity | Auto-Scaling | Best For |
+|--------|-----------|------------|--------------|----------|
+| **Vercel + Railway** | ~$20-50 (Railway) | LOW | Manual | 0-1,000 tenants |
+| **Vercel + Render** | ~$25-100 (Render) | LOW | Yes | 0-1,000 tenants |
+| **Vercel + DigitalOcean App** | ~$12-48 (DO App) | MEDIUM | Yes | 1,000-5,000 tenants |
+| **Vercel + AWS ECS Fargate** | ~$50-200 (ECS) | HIGH | Yes | 5,000-15,000 tenants |
+| **Full AWS Migration** | ~$200-500+ | VERY HIGH | Yes | 15,000+ tenants |
+
+---
+
+## 69.4 RECOMMENDED STAGED ROLLOUT
+
+### STAGE 1: MVP (0-100 tenants)
+
+```
+Keep everything on Vercel
+  - Use Vercel Cron for lightweight background jobs
+  - Accept 60s timeout limitation
+  - Focus on building features, not infrastructure
+  
+COST: $20/month (Vercel Pro)
+COMPLEXITY: Minimal
+```
+
+### STAGE 2: Growth (100-1,000 tenants)
+
+```
+Hybrid: Vercel + Railway
+
+VERCEL:
+  - Next.js frontend
+  - API routes for tracking, webhooks, CRUD
+
+RAILWAY:
+  - Deploy genesis-control-plane as Node.js service
+  - Runs BullMQ workers, Watchdog, Concurrency Governor
+  - 1 instance, 2GB RAM, $20-50/month
+  
+SHARED:
+  - Supabase (Postgres)
+  - Upstash (Redis for BullMQ)
+  
+COST: ~$50-100/month
+COMPLEXITY: LOW (Railway has Docker deploy from GitHub)
+DEPLOYMENT: Push to GitHub → Railway auto-deploys
+```
+
+**Railway Setup:**
+
+```yaml
+# railway.toml
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "./control-plane/Dockerfile"
+
+[deploy]
+startCommand = "node dist/index.js"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+[[env]]
+name = "DATABASE_URL"
+value = "${{Supabase.DATABASE_URL}}"
+
+[[env]]
+name = "REDIS_URL"
+value = "${{Upstash.REDIS_URL}}"
+```
+
+### STAGE 3: Scale (1,000-5,000 tenants)
+
+```
+Hybrid: Vercel + AWS ECS or DigitalOcean App
+
+VERCEL:
+  - Same as Stage 2
+
+AWS ECS / DO APP:
+  - Auto-scaling Control Plane (2-10 instances)
+  - Load balancer for health checks
+  - CloudWatch/Datadog monitoring
+  
+SHARED:
+  - Supabase or AWS RDS
+  - AWS ElastiCache or self-hosted Redis
+  
+COST: ~$200-500/month
+COMPLEXITY: MEDIUM (need to learn container orchestration)
+```
+
+### STAGE 4: Hyper-Scale (5,000-15,000 tenants)
+
+```
+Full AWS or Multi-Cloud
+
+FRONTEND:
+  - Vercel or CloudFlare Pages or AWS Amplify
+
+BACKEND:
+  - AWS ECS/EKS (Kubernetes)
+  - Multi-region deployment
+  - Auto-scaling 10-50 instances
+  
+DATABASE:
+  - AWS Aurora Multi-AZ
+  - Read replicas per region
+  
+MONITORING:
+  - AWS CloudWatch + Datadog/New Relic
+  - PagerDuty for alerts
+  
+COST: ~$1,000-3,000/month
+COMPLEXITY: HIGH (need DevOps engineer)
+```
+
+---
+
+## 69.5 THE CONTROL PLANE SERVICE STRUCTURE
+
+```typescript
+// control-plane/src/index.ts
+
+import { Worker } from 'bullmq';
+import { createClient } from '@supabase/supabase-js';
+import Redis from 'ioredis';
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+const redis = new Redis(process.env.REDIS_URL!);
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!
+);
+
+// ============================================
+// BULLMQ WORKERS (Phase 52)
+// ============================================
+
+const workflowUpdateWorker = new Worker(
+  'workflow-update',
+  async (job) => {
+    const { workspace_id, workflow_name, workflow_json } = job.data;
+    // Call Sidecar API to update workflow
+    await updateWorkflowViaSidecar(workspace_id, workflow_name, workflow_json);
+  },
+  { connection: redis, concurrency: 100 } // Concurrency Governor
+);
+
+const wakeDropletWorker = new Worker(
+  'wake-droplet',
+  async (job) => {
+    const { workspace_id, droplet_id } = job.data;
+    // Call DigitalOcean API to power on
+    await powerOnDroplet(droplet_id);
+  },
+  { connection: redis, concurrency: 50 }
+);
+
+// ============================================
+// WATCHDOG SERVICE (Phase 43)
+// ============================================
+
+async function watchdogLoop() {
+  while (true) {
+    try {
+      // Fetch all active droplets
+      const { data: droplets } = await supabase
+        .from('droplet_health')
+        .select('*')
+        .in('state', ['ACTIVE_HEALTHY', 'ACTIVE_DEGRADED']);
+
+      // Check each Sidecar's health
+      for (const droplet of droplets) {
+        const lastHeartbeat = new Date(droplet.last_heartbeat_at);
+        const now = new Date();
+        const minutesSinceHeartbeat = (now.getTime() - lastHeartbeat.getTime()) / 60000;
+
+        if (minutesSinceHeartbeat > 5) {
+          // Sidecar is a zombie, trigger reboot
+          await bullmq.add('hard-reboot-droplet', {
+            droplet_id: droplet.droplet_id,
+            reason: 'watchdog_heartbeat_timeout',
+          });
+        }
+      }
+
+      // Wait 60 seconds before next check
+      await sleep(60000);
+    } catch (error) {
+      console.error('Watchdog error:', error);
+      await sleep(10000); // Shorter retry on error
+    }
+  }
+}
+
+// ============================================
+// SCALE ALERTS WORKER (Phase 44.3)
+// ============================================
+
+async function scaleAlertsLoop() {
+  while (true) {
+    try {
+      // Check database metrics
+      const partitionCount = await getPartitionCount();
+      if (partitionCount > 14000) {
+        await sendAlert('CRITICAL', `Partition count: ${partitionCount}/15000 (93%)`);
+      }
+
+      // Wait 15 minutes before next check
+      await sleep(900000);
+    } catch (error) {
+      console.error('Scale alerts error:', error);
+      await sleep(60000);
+    }
+  }
+}
+
+// ============================================
+// STARTUP
+// ============================================
+
+async function main() {
+  console.log('Genesis Control Plane starting...');
+
+  // Start all workers and loops
+  watchdogLoop();
+  scaleAlertsLoop();
+
+  // Health check endpoint
+  const express = require('express');
+  const app = express();
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'healthy',
+      workers: {
+        workflow_update: workflowUpdateWorker.isRunning(),
+        wake_droplet: wakeDropletWorker.isRunning(),
+      },
+    });
+  });
+  app.listen(3000, () => console.log('Control Plane health check on :3000'));
+}
+
+main().catch(console.error);
+```
+
+---
+
+## 69.6 THE MONOREPO STRUCTURE
+
+```
+cold-email-dashboard-starter/
+├── app/                          # Next.js (Vercel)
+│   ├── api/
+│   ├── page.tsx
+│   └── ...
+├── control-plane/                # Node.js service (Railway/AWS)
+│   ├── src/
+│   │   ├── index.ts             # Main entry point
+│   │   ├── workers/
+│   │   │   ├── workflow-update.ts
+│   │   │   ├── wake-droplet.ts
+│   │   │   └── sidecar-update.ts
+│   │   ├── services/
+│   │   │   ├── watchdog.ts
+│   │   │   ├── scale-alerts.ts
+│   │   │   └── heartbeat-processor.ts
+│   │   └── utils/
+│   ├── Dockerfile
+│   ├── package.json
+│   └── tsconfig.json
+├── packages/
+│   └── shared/                   # Shared types/utils
+│       ├── types.ts
+│       └── constants.ts
+├── lib/                          # Shared with Next.js
+├── components/                   # React components
+└── package.json                  # Root
+```
+
+---
+
+## 69.7 DEPLOYMENT CHECKLIST
+
+**Phase 69 delivers:**
+
+- [ ] Separation of Vercel Layer (API) from Control Plane (long-running services)
+- [ ] `control-plane/` directory with Node.js service code
+- [ ] Dockerfile for Control Plane deployment
+- [ ] Railway/Render/AWS ECS configuration
+- [ ] Health check endpoint for Control Plane
+- [ ] Shared Redis connection between layers
+- [ ] Shared Supabase connection between layers
+- [ ] Deployment documentation for Railway (Stage 2)
+- [ ] Migration guide from Vercel-only to Hybrid
+- [ ] Cost tracking for Control Plane compute
+
+**Integration points:**
+- Phase 52: BullMQ workers run in Control Plane
+- Phase 43: Watchdog service runs in Control Plane
+- Phase 54: Heartbeat processor runs in Control Plane
+- Phase 44.3: Scale alerts run in Control Plane
+- Phase 68: Rollout engine runs in Control Plane
+
+---
+
+## 69.8 CRITICAL UNDERSTANDING
+
+**This is NOT optional.** At scale, you CANNOT run V35 architecture on Vercel alone. The decision is:
+
+1. **Stage 2+**: Add Railway/Render/DO App for Control Plane (~$50/month)
+2. **Stage 3+**: Migrate to AWS ECS/Fargate (~$200-500/month)
+3. **Stage 4**: Full AWS with Kubernetes (~$1,000+/month)
+
+The architecture was designed assuming this separation exists. Trying to "make it work" on Vercel will result in:
+- Dropped heartbeats (Sidecar timeouts)
+- Failed fleet updates (BullMQ jobs not processing)
+- Zombie droplets (Watchdog not running)
+- API rate limit violations (Concurrency Governor not active)
+
+**When to implement:** Before deploying the first 100 Sovereign Droplets. The Control Plane MUST be running for the Sidecar architecture to function.
 
 ---
 
@@ -22361,14 +24328,14 @@ export function ConfirmationDialog({
 ---
 
 # ═══════════════════════════════════════════════════════════════════════════
-#                        V30 TRANSFORMATION SUMMARY
+#                        V35 TRANSFORMATION SUMMARY
 # ═══════════════════════════════════════════════════════════════════════════
 
-## V30 SOVEREIGN SINGULARITY - KEY ARCHITECTURAL DECISIONS
+## V35 SOVEREIGN SINGULARITY - KEY ARCHITECTURAL DECISIONS
 
 ### Core Strategic Pivots
 
-| Decision | V20 Approach (Rejected) | V30 Approach (Adopted) |
+| Decision | V20 Approach (Rejected) | V35 Approach (Adopted) |
 |----------|------------------------|------------------------|
 | n8n Hosting | Shared n8n Cloud | Sovereign Droplet per tenant |
 | Fleet Control | Direct API polling | BullMQ Event Bus + Sidecar Agent |
@@ -22378,9 +24345,9 @@ export function ConfirmationDialog({
 | Onboarding | 10+ manual dashboards | Genesis Gateway unified UX |
 | Data Residency | Single region | Per-tenant region selection |
 
-### V30 Problem Resolutions
+### V35 Problem Resolutions
 
-| Original Problem | V30 Solution | Phase |
+| Original Problem | V35 Solution | Phase |
 |------------------|--------------|-------|
 | Ohio hardcoding | Ohio Exception Protocol | Section 3 |
 | Shared n8n noisy neighbor | Sovereign Droplet Factory | Phase 50 |
@@ -22396,7 +24363,7 @@ export function ConfirmationDialog({
 | OAuth token expiration | Batch Credential Rotation | Phase 65 |
 | Regional disaster | Cross-Region Snapshot + Mass Restoration | Phase 66 |
 
-### Gap Closures from V30 Analysis
+### Gap Closures from V35 Analysis
 
 | Gap | Solution Implemented | Status |
 |-----|---------------------|--------|
@@ -22411,7 +24378,7 @@ export function ConfirmationDialog({
 
 ---
 
-## CRITICAL SUCCESS METRICS (V30)
+## CRITICAL SUCCESS METRICS (V35)
 
 ### Infrastructure Targets
 
@@ -22443,7 +24410,7 @@ export function ConfirmationDialog({
 
 ---
 
-## DOCUMENTATION COVERAGE (V30)
+## DOCUMENTATION COVERAGE (V35)
 
 | Part | Phases | Focus | Estimated Lines |
 |------|--------|-------|-----------------|
@@ -22462,10 +24429,10 @@ export function ConfirmationDialog({
 
 ## CHANGE LOG
 
-### V30.0 (2026-01-25) - Sovereign Singularity Release
+### V35.0 (2026-01-25) - Sovereign Singularity Release
 
 **Major Additions:**
-- Section 2: V30 Architectural Pillars (Sovereign Isolation, Managed Orchestration, Unified Onboarding)
+- Section 2: V35 Architectural Pillars (Sovereign Isolation, Managed Orchestration, Unified Onboarding)
 - Section 3: The Ohio Exception Protocol
 - Phase 50: Sovereign Droplet Factory (DigitalOcean VM provisioning)
 - Phase 51: Sidecar Agent Architecture (Zero-Trust JWT communication)
@@ -22486,8 +24453,8 @@ export function ConfirmationDialog({
 - Phase 66: Disaster Recovery & Regional Failover
 
 **Major Updates:**
-- Executive Summary: Rewritten for V30 strategic pivots
-- Top 15 Critical Risks: Updated with V30 solutions
+- Executive Summary: Rewritten for V35 strategic pivots
+- Top 15 Critical Risks: Updated with V35 solutions
 - Phase 41: Added droplet provisioning states
 - Phase 42: Replaced with Atomic Handshake Protocol
 - Phase 43: Integrated with Heartbeat State Machine
@@ -22514,12 +24481,12 @@ export function ConfirmationDialog({
 ---
 
 **Document Information:**
-- Version: 30.0 (Sovereign Singularity)
+- Version: 35.0 (Sovereign Singularity)
 - Last Updated: 2026-01-25
 - Total Lines: ~18,000
 - Author: L10 Distinguished Principal Systems Architect
-- Status: Production Ready (V30 Architecture Complete)
+- Status: Production Ready (V35 Architecture Complete)
 
 ---
 
-**END OF GENESIS ENGINE: SOVEREIGN SINGULARITY WAR PLAN V30.0**
+**END OF GENESIS ENGINE: SOVEREIGN SINGULARITY WAR PLAN V35.0**
