@@ -199,64 +199,64 @@ The V30 architecture introduces **Sovereign Isolation** - each tenant gets their
 
 ```mermaid
 graph TB
-    subgraph GENESIS["🏛️ GENESIS CONTROL PLANE (Vercel)"]
-        subgraph Dashboard["Dashboard (Next.js 14)"]
-            UI[Client UI<br/>Desktop + Mobile]
-            ADMIN_UI[Admin Console<br/>Fleet Management]
-            ONBOARD[Onboarding Wizard<br/>OAuth + Keys]
+    subgraph GENESIS["GENESIS CONTROL PLANE - Vercel"]
+        subgraph Dashboard["Dashboard - Next.js 14"]
+            UI[Client UI]
+            ADMIN_UI[Admin Console]
+            ONBOARD[Onboarding Wizard]
         end
 
-        subgraph API_LAYER["API Layer (60+ Routes)"]
-            API_CORE[Core APIs<br/>Dashboard, Metrics]
-            API_FLEET[Fleet APIs<br/>Ignition, Commands]
-            API_WALLET[Wallet APIs<br/>Balance, Ledger]
-            API_WEBHOOK[Webhook Receiver<br/>Events from n8n]
+        subgraph API_LAYER["API Layer - 60+ Routes"]
+            API_CORE[Core APIs]
+            API_FLEET[Fleet APIs]
+            API_WALLET[Wallet APIs]
+            API_WEBHOOK[Webhook Receiver]
         end
 
         subgraph ORCHESTRATION["Orchestration Engine"]
-            IGNITION[Ignition Orchestrator<br/>Droplet Provisioning]
-            BULLMQ[BullMQ Event Bus<br/>Redis-backed Commands]
-            WATCHDOG[Fleet Watchdog<br/>Heartbeat Monitor]
-            HIBERNATE[Hibernation Controller<br/>Snapshot Manager]
+            IGNITION[Ignition Orchestrator]
+            BULLMQ[BullMQ Event Bus]
+            WATCHDOG[Fleet Watchdog]
+            HIBERNATE[Hibernation Controller]
         end
     end
 
-    subgraph CENTRAL_DB["🗄️ CENTRAL DATABASE (Supabase)"]
+    subgraph CENTRAL_DB["CENTRAL DATABASE - Supabase"]
         subgraph Control["Control Tables"]
-            WS_T[(workspaces<br/>Tenant Registry)]
-            FLEET_T[(fleet_status<br/>Droplet Health)]
-            LEDGER_T[(wallet_ledger<br/>Usage Tracking)]
+            WS_T[(workspaces)]
+            FLEET_T[(fleet_status)]
+            LEDGER_T[(wallet_ledger)]
         end
 
         subgraph Vault["Credential Vault"]
-            CREDS[(credentials<br/>Encrypted Keys)]
-            DO_POOL[(do_accounts<br/>API Token Pool)]
-            TEMPLATES[(workflow_templates<br/>Golden Configs)]
+            CREDS[(credentials)]
+            DO_POOL[(do_accounts)]
+            TEMPLATES[(workflow_templates)]
         end
 
-        subgraph Analytics["Analytics (Partitioned)"]
-            EVENTS_P[(email_events<br/>workspace_id Partitioned)]
-            LEADS_P[(leads<br/>workspace_id Partitioned)]
-            MV_P[Materialized Views<br/>Per-Workspace]
+        subgraph Analytics["Analytics - Partitioned"]
+            EVENTS_P[(email_events)]
+            LEADS_P[(leads)]
+            MV_P[Materialized Views]
         end
     end
 
-    subgraph DO_POOL_LAYER["☁️ DIGITALOCEAN ACCOUNT POOL"]
-        DO1[DO Account 1<br/>US-East, 50 slots]
-        DO2[DO Account 2<br/>US-West, 50 slots]
-        DO3[DO Account 3<br/>EU-Frankfurt, 50 slots]
-        DON[DO Account N<br/>Scalable Pool]
+    subgraph DO_POOL_LAYER["DIGITALOCEAN ACCOUNT POOL"]
+        DO1[DO Account 1 - US-East]
+        DO2[DO Account 2 - US-West]
+        DO3[DO Account 3 - EU-Frankfurt]
+        DON[DO Account N - Scalable]
     end
 
-    subgraph TENANT_FLEET["🚀 TENANT DROPLET FLEET (15,000+)"]
-        subgraph Droplet1["Tenant A Droplet ($6/mo)"]
-            N8N_1[n8n Container<br/>Workflows]
-            PG_1[Postgres<br/>Local DB]
-            CADDY_1[Caddy<br/>SSL + Proxy]
-            SIDECAR_1[Sidecar Agent<br/>Control Link]
+    subgraph TENANT_FLEET["TENANT DROPLET FLEET - 15000+"]
+        subgraph Droplet1["Tenant A Droplet - $6/mo"]
+            N8N_1[n8n Container]
+            PG_1[Postgres]
+            CADDY_1[Caddy]
+            SIDECAR_1[Sidecar Agent]
         end
 
-        subgraph Droplet2["Tenant B Droplet ($6/mo)"]
+        subgraph Droplet2["Tenant B Droplet - $6/mo"]
             N8N_2[n8n Container]
             PG_2[Postgres]
             CADDY_2[Caddy]
@@ -270,81 +270,72 @@ graph TB
             SIDECAR_N[Sidecar Agent]
         end
 
-        subgraph Hibernated["💤 Hibernated (Snapshots)"]
-            SNAP1[Tenant X<br/>$0.02/GB/mo]
-            SNAP2[Tenant Y<br/>$0.02/GB/mo]
+        subgraph Hibernated["Hibernated - Snapshots"]
+            SNAP1[Tenant X Snapshot]
+            SNAP2[Tenant Y Snapshot]
             SNAPN[...]
         end
     end
 
-    subgraph EXTERNAL_V30["🔗 EXTERNAL SERVICES"]
-        subgraph Managed["Genesis Managed (Pooled)"]
-            APIFY[Apify<br/>Scraping Pool]
-            PROXY[Residential Proxy<br/>IP Pool]
-            CSE[Google CSE<br/>Search Pool]
+    subgraph EXTERNAL_V30["EXTERNAL SERVICES"]
+        subgraph Managed["Genesis Managed - Pooled"]
+            APIFY[Apify]
+            PROXY[Residential Proxy]
+            CSE[Google CSE]
         end
 
-        subgraph BYO["Bring Your Own (Per-Tenant)"]
-            GMAIL[Gmail OAuth<br/>Per-User]
-            OPENAI_T[OpenAI<br/>User's API Key]
-            CLAUDE_T[Claude<br/>User's API Key]
-            CALENDLY[Calendly<br/>Per-User]
+        subgraph BYO["Bring Your Own"]
+            GMAIL[Gmail OAuth]
+            OPENAI_T[OpenAI]
+            CLAUDE_T[Claude]
+            CALENDLY[Calendly]
         end
 
         subgraph DNS["DNS Services"]
-            ENTRI[Entri<br/>Auto CNAME]
-            SSLIP[sslip.io<br/>Bootstrap SSL]
-            CUSTOM[Custom Domains<br/>track.client.com]
+            ENTRI[Entri]
+            SSLIP[sslip.io]
+            CUSTOM[Custom Domains]
         end
     end
 
-    %% Control Plane Flows
     UI --> API_CORE
     ADMIN_UI --> API_FLEET
     ONBOARD --> API_WALLET
     API_WEBHOOK --> BULLMQ
     
-    %% Orchestration
     IGNITION --> DO_POOL_LAYER
     BULLMQ --> TENANT_FLEET
     WATCHDOG --> FLEET_T
     HIBERNATE --> Hibernated
 
-    %% Database Connections
     API_CORE --> Analytics
     API_FLEET --> Control
     API_WALLET --> LEDGER_T
     IGNITION --> DO_POOL
     IGNITION --> TEMPLATES
 
-    %% DO Pool to Droplets
     DO1 --> Droplet1
     DO2 --> Droplet2
     DON --> DropletN
 
-    %% Sidecar Communications (Bidirectional)
-    SIDECAR_1 <--> BULLMQ
-    SIDECAR_2 <--> BULLMQ
-    SIDECAR_N <--> BULLMQ
+    SIDECAR_1 --> BULLMQ
+    BULLMQ --> SIDECAR_1
+    SIDECAR_2 --> BULLMQ
+    BULLMQ --> SIDECAR_2
+    SIDECAR_N --> BULLMQ
+    BULLMQ --> SIDECAR_N
     SIDECAR_1 --> API_WEBHOOK
     SIDECAR_2 --> API_WEBHOOK
 
-    %% External Service Flows
     Managed --> API_WALLET
     N8N_1 --> BYO
     N8N_2 --> BYO
     CADDY_1 --> DNS
     CADDY_2 --> DNS
 
-    %% Credential Injection
     CREDS --> SIDECAR_1
     CREDS --> SIDECAR_2
     CREDS --> SIDECAR_N
-
-    style GENESIS fill:#1a1a2e,stroke:#00d4ff,stroke-width:3px
-    style TENANT_FLEET fill:#0d1b2a,stroke:#00ff88,stroke-width:3px
-    style DO_POOL_LAYER fill:#1b263b,stroke:#ffd60a,stroke-width:2px
-    style CENTRAL_DB fill:#2d2d44,stroke:#7b68ee,stroke-width:2px
 ```
 
 ---
@@ -353,27 +344,24 @@ graph TB
 
 ```mermaid
 graph LR
-    subgraph LEGACY["❌ LEGACY (Pre-V30)"]
-        L_N8N[Single n8n<br/>Shared by ALL]
-        L_DB[(Single Database<br/>RLS Only)]
-        L_CREDS[Shared Credentials<br/>Mixed Keys]
-        L_COST[$200+/mo Fixed<br/>Regardless of Usage]
+    subgraph LEGACY["LEGACY - Pre-V30"]
+        L_N8N[Single n8n - Shared]
+        L_DB[(Single Database)]
+        L_CREDS[Shared Credentials]
+        L_COST[$200+/mo Fixed]
     end
 
-    subgraph V30["✅ V30 SINGULARITY"]
-        V_N8N[Dedicated n8n<br/>Per Tenant]
-        V_DB[(Isolated Postgres<br/>Per Droplet)]
-        V_CREDS[Encrypted Vault<br/>Per Workspace]
-        V_COST[$6/mo Per Tenant<br/>Hibernate = $0.02/GB]
+    subgraph V30["V30 SINGULARITY"]
+        V_N8N[Dedicated n8n - Per Tenant]
+        V_DB[(Isolated Postgres)]
+        V_CREDS[Encrypted Vault]
+        V_COST[$6/mo Per Tenant]
     end
 
-    L_N8N -->|"Evolution"| V_N8N
-    L_DB -->|"Evolution"| V_DB
-    L_CREDS -->|"Evolution"| V_CREDS
-    L_COST -->|"Evolution"| V_COST
-
-    style LEGACY fill:#4a0000,stroke:#ff0000,stroke-width:2px
-    style V30 fill:#003300,stroke:#00ff00,stroke-width:2px
+    L_N8N -->|Evolution| V_N8N
+    L_DB -->|Evolution| V_DB
+    L_CREDS -->|Evolution| V_CREDS
+    L_COST -->|Evolution| V_COST
 ```
 
 ---
@@ -388,243 +376,211 @@ This is the **complete, final architecture** combining all V30 components with t
 
 ```mermaid
 graph TB
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% TIER 1: CLIENT APPLICATIONS
-    %% ═══════════════════════════════════════════════════════════════════════
-    
-    subgraph CLIENTS["👥 CLIENT TIER"]
+    subgraph CLIENTS["CLIENT TIER"]
         subgraph WebApp["Web Application"]
-            DESKTOP[Desktop UI<br/>Full Dashboard]
-            MOBILE[Mobile UI<br/>Bottom Nav + Drawer]
-            PWA[PWA Mode<br/>Offline Capable]
+            DESKTOP[Desktop UI]
+            MOBILE[Mobile UI]
+            PWA[PWA Mode]
         end
         
         subgraph AdminPortal["Admin Portal"]
-            SUPER_ADMIN[Super Admin<br/>Fleet Overview]
-            WORKSPACE_ADMIN[Workspace Admin<br/>Team Management]
-            FLEET_MONITOR[Fleet Monitor<br/>Real-time Health]
+            SUPER_ADMIN[Super Admin]
+            WORKSPACE_ADMIN[Workspace Admin]
+            FLEET_MONITOR[Fleet Monitor]
         end
         
         subgraph Onboarding["Onboarding Flow"]
-            SIGNUP[Sign Up<br/>Clerk Auth]
-            OAUTH_FLOW[OAuth Flow<br/>Gmail + Calendly]
-            KEY_INPUT[API Key Input<br/>OpenAI, Claude, etc.]
-            DROPLET_CONFIG[Droplet Config<br/>Region + Size]
+            SIGNUP[Sign Up]
+            OAUTH_FLOW[OAuth Flow]
+            KEY_INPUT[API Key Input]
+            DROPLET_CONFIG[Droplet Config]
         end
     end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% TIER 2: STATE & CACHING
-    %% ═══════════════════════════════════════════════════════════════════════
-    
-    subgraph STATE_TIER["⚡ STATE TIER"]
+    subgraph STATE_TIER["STATE TIER"]
         subgraph ClientState["Client State"]
-            SWR_CACHE[SWR Cache<br/>10s Deduplication]
-            DASHBOARD_CTX[Dashboard Context<br/>Filters + Dates]
-            WORKSPACE_CTX[Workspace Context<br/>Active Tenant]
-            PERMS_HOOK[Permissions Hook<br/>RBAC Enforcement]
+            SWR_CACHE[SWR Cache]
+            DASHBOARD_CTX[Dashboard Context]
+            WORKSPACE_CTX[Workspace Context]
+            PERMS_HOOK[Permissions Hook]
         end
         
         subgraph ServerCache["Server Cache"]
-            REDIS[Redis<br/>BullMQ + Sessions]
-            WALLET_CACHE[Wallet Cache<br/>Balance Lookup]
-            RATE_CACHE[Rate Limit Cache<br/>Sliding Window]
+            REDIS[Redis]
+            WALLET_CACHE[Wallet Cache]
+            RATE_CACHE[Rate Limit Cache]
         end
     end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% TIER 3: SECURITY FORTRESS
-    %% ═══════════════════════════════════════════════════════════════════════
-    
-    subgraph SECURITY_TIER["🛡️ SECURITY TIER"]
+    subgraph SECURITY_TIER["SECURITY TIER"]
         subgraph AuthN["Authentication"]
-            CLERK_AUTH[Clerk Auth<br/>SSO + MFA]
-            JWT_VERIFY[JWT Verification<br/>Signed Tokens]
-            SESSION_MGR[Session Manager<br/>Secure Cookies]
+            CLERK_AUTH[Clerk Auth]
+            JWT_VERIFY[JWT Verification]
+            SESSION_MGR[Session Manager]
         end
         
         subgraph AuthZ["Authorization"]
-            RBAC_ENGINE[RBAC Engine<br/>4 Roles]
-            WORKSPACE_GUARD[Workspace Guard<br/>Tenant Isolation]
-            FEATURE_FLAGS[Feature Flags<br/>Plan-based Access]
+            RBAC_ENGINE[RBAC Engine]
+            WORKSPACE_GUARD[Workspace Guard]
+            FEATURE_FLAGS[Feature Flags]
         end
         
         subgraph Protection["Protection"]
-            RATE_LIMITER[Rate Limiter<br/>Sliding Window]
-            INPUT_SANITIZE[Input Sanitizer<br/>XSS Prevention]
-            RESPONSE_CLEAN[Response Cleaner<br/>Data Scrubbing]
-            ENCRYPTION[AES-256-GCM<br/>At-Rest Encryption]
+            RATE_LIMITER[Rate Limiter]
+            INPUT_SANITIZE[Input Sanitizer]
+            RESPONSE_CLEAN[Response Cleaner]
+            ENCRYPTION[AES-256-GCM]
         end
         
-        subgraph ZeroTrust["Zero-Trust (Sidecar)"]
-            SIGNED_JWT[Signed JWT Headers<br/>Workspace Verification]
-            PROVISIONING_TOKEN[Provisioning Token<br/>One-Time Use]
-            HEARTBEAT_AUTH[Heartbeat Auth<br/>Continuous Validation]
+        subgraph ZeroTrust["Zero-Trust Sidecar"]
+            SIGNED_JWT[Signed JWT Headers]
+            PROVISIONING_TOKEN[Provisioning Token]
+            HEARTBEAT_AUTH[Heartbeat Auth]
         end
     end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% TIER 4: API GATEWAY
-    %% ═══════════════════════════════════════════════════════════════════════
-    
-    subgraph API_TIER["🚪 API TIER (70+ Routes)"]
+    subgraph API_TIER["API TIER - 70+ Routes"]
         subgraph CoreAPIs["Core APIs"]
-            API_DASHBOARD[/api/dashboard<br/>Aggregated Metrics]
-            API_METRICS[/api/metrics/*<br/>Time Series]
-            API_SEARCH[/api/search<br/>Global Search]
-            API_ANALYTICS[/api/analytics<br/>Charts Data]
+            API_DASHBOARD[api/dashboard]
+            API_METRICS[api/metrics]
+            API_SEARCH[api/search]
+            API_ANALYTICS[api/analytics]
         end
         
         subgraph DataAPIs["Data APIs"]
-            API_CAMPAIGNS[/api/campaigns/*<br/>CRUD + Bulk]
-            API_CONTACTS[/api/contacts/*<br/>Lead Management]
-            API_SEQUENCES[/api/sequences/*<br/>Email Steps]
-            API_NOTIFICATIONS[/api/notifications/*<br/>Alerts]
+            API_CAMPAIGNS[api/campaigns]
+            API_CONTACTS[api/contacts]
+            API_SEQUENCES[api/sequences]
+            API_NOTIFICATIONS[api/notifications]
         end
         
-        subgraph FleetAPIs["Fleet APIs (V30 NEW)"]
-            API_IGNITION[/api/fleet/ignition<br/>Droplet Provision]
-            API_COMMANDS[/api/fleet/commands<br/>BullMQ Dispatch]
-            API_STATUS[/api/fleet/status<br/>Health Query]
-            API_HIBERNATE[/api/fleet/hibernate<br/>Snapshot Control]
+        subgraph FleetAPIs["Fleet APIs - V30"]
+            API_IGNITION[api/fleet/ignition]
+            API_COMMANDS[api/fleet/commands]
+            API_STATUS[api/fleet/status]
+            API_HIBERNATE[api/fleet/hibernate]
         end
         
-        subgraph WalletAPIs["Wallet APIs (V30 NEW)"]
-            API_BALANCE[/api/wallet/balance<br/>Current Balance]
-            API_TOPUP[/api/wallet/topup<br/>Stripe Checkout]
-            API_LEDGER[/api/wallet/ledger<br/>Transaction History]
-            API_PREFLIGHT[/api/wallet/preflight<br/>Cost Check]
+        subgraph WalletAPIs["Wallet APIs - V30"]
+            API_BALANCE[api/wallet/balance]
+            API_TOPUP[api/wallet/topup]
+            API_LEDGER[api/wallet/ledger]
+            API_PREFLIGHT[api/wallet/preflight]
         end
         
         subgraph WebhookAPIs["Webhook APIs"]
-            API_EVENTS[/api/events<br/>n8n Event Receiver]
-            API_TRACKING[/api/track/*<br/>Open + Click]
-            API_CLERK_WH[/api/webhooks/clerk<br/>User Sync]
-            API_SIDECAR_WH[/api/webhooks/sidecar<br/>Heartbeat + Handshake]
+            API_EVENTS[api/events]
+            API_TRACKING[api/track]
+            API_CLERK_WH[api/webhooks/clerk]
+            API_SIDECAR_WH[api/webhooks/sidecar]
         end
         
         subgraph AdminAPIs["Admin APIs"]
-            API_ADMIN[/api/admin/*<br/>Super Admin]
-            API_WORKSPACES[/api/workspaces/*<br/>Tenant CRUD]
-            API_AUDIT[/api/audit/*<br/>Activity Logs]
-            API_GOVERNANCE[/api/governance/*<br/>Freeze Controls]
+            API_ADMIN[api/admin]
+            API_WORKSPACES[api/workspaces]
+            API_AUDIT[api/audit]
+            API_GOVERNANCE[api/governance]
         end
     end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% TIER 5: ORCHESTRATION ENGINE (V30 NEW)
-    %% ═══════════════════════════════════════════════════════════════════════
-    
-    subgraph ORCHESTRATION_TIER["🎛️ ORCHESTRATION TIER (V30)"]
+    subgraph ORCHESTRATION_TIER["ORCHESTRATION TIER - V30"]
         subgraph Provisioning["Provisioning Engine"]
-            IGNITION_ORCH[Ignition Orchestrator<br/>DO API Calls]
-            CLOUD_INIT[Cloud-Init Generator<br/>Script Templating]
-            ACCOUNT_SELECTOR[Account Selector<br/>Load Balancing]
-            ROLLBACK_ENGINE[Rollback Engine<br/>Failure Recovery]
+            IGNITION_ORCH[Ignition Orchestrator]
+            CLOUD_INIT[Cloud-Init Generator]
+            ACCOUNT_SELECTOR[Account Selector]
+            ROLLBACK_ENGINE[Rollback Engine]
         end
         
-        subgraph CommandControl["Command & Control"]
-            BULLMQ_BUS[BullMQ Event Bus<br/>Redis Queue]
-            COMMAND_ROUTER[Command Router<br/>Tenant Dispatch]
-            CONCURRENCY_GOV[Concurrency Governor<br/>Rate Control]
+        subgraph CommandControl["Command and Control"]
+            BULLMQ_BUS[BullMQ Event Bus]
+            COMMAND_ROUTER[Command Router]
+            CONCURRENCY_GOV[Concurrency Governor]
         end
         
         subgraph FleetManagement["Fleet Management"]
-            WATCHDOG[Fleet Watchdog<br/>Heartbeat Monitor]
-            HIBERNATE_CTRL[Hibernation Controller<br/>Snapshot Lifecycle]
-            UPDATE_MANAGER[Update Manager<br/>Blue-Green Deploy]
-            PRE_WARMER[Pre-Warmer<br/>High-Priority Wake]
+            WATCHDOG[Fleet Watchdog]
+            HIBERNATE_CTRL[Hibernation Controller]
+            UPDATE_MANAGER[Update Manager]
+            PRE_WARMER[Pre-Warmer]
         end
     end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% TIER 6: CENTRAL DATABASE
-    %% ═══════════════════════════════════════════════════════════════════════
-    
-    subgraph DATABASE_TIER["🗄️ DATABASE TIER (Supabase)"]
+    subgraph DATABASE_TIER["DATABASE TIER - Supabase"]
         subgraph ControlPlane["Control Plane Tables"]
-            TB_WORKSPACES[(workspaces<br/>Tenant Registry)]
-            TB_USERS[(user_workspaces<br/>RBAC Mapping)]
-            TB_FLEET[(fleet_status<br/>Droplet Health)]
-            TB_DO_ACCOUNTS[(do_accounts<br/>API Token Pool)]
+            TB_WORKSPACES[(workspaces)]
+            TB_USERS[(user_workspaces)]
+            TB_FLEET[(fleet_status)]
+            TB_DO_ACCOUNTS[(do_accounts)]
         end
         
         subgraph DataPlane["Data Plane Tables"]
-            TB_LEADS[(leads<br/>Partitioned by workspace_id)]
-            TB_EVENTS[(email_events<br/>Partitioned by workspace_id)]
-            TB_LLM[(llm_usage<br/>Cost Tracking)]
-            TB_NOTIFICATIONS[(notifications<br/>User Alerts)]
+            TB_LEADS[(leads)]
+            TB_EVENTS[(email_events)]
+            TB_LLM[(llm_usage)]
+            TB_NOTIFICATIONS[(notifications)]
         end
         
-        subgraph FinancialPlane["Financial Tables (V30)"]
-            TB_WALLET[(wallet_balance<br/>Prepaid Balance)]
-            TB_LEDGER[(wallet_ledger<br/>Transaction Log)]
-            TB_SUBSCRIPTIONS[(subscriptions<br/>Stripe Sync)]
+        subgraph FinancialPlane["Financial Tables - V30"]
+            TB_WALLET[(wallet_balance)]
+            TB_LEDGER[(wallet_ledger)]
+            TB_SUBSCRIPTIONS[(subscriptions)]
         end
         
         subgraph SecurityPlane["Security Tables"]
-            TB_CREDENTIALS[(credentials<br/>Encrypted Vault)]
-            TB_AUDIT[(audit_log<br/>Activity Timeline)]
-            TB_TEMPLATES[(workflow_templates<br/>Golden Configs)]
+            TB_CREDENTIALS[(credentials)]
+            TB_AUDIT[(audit_log)]
+            TB_TEMPLATES[(workflow_templates)]
         end
         
         subgraph Performance["Performance Layer"]
-            MV_DAILY[mv_daily_stats<br/>Pre-aggregated]
-            MV_LLM[mv_llm_cost<br/>Cost Summary]
-            MV_FUNNEL[mv_funnel_metrics<br/>Conversion Rates]
-            IDX_WORKSPACE[workspace_id Indexes<br/>Fast Lookups]
+            MV_DAILY[mv_daily_stats]
+            MV_LLM[mv_llm_cost]
+            MV_FUNNEL[mv_funnel_metrics]
+            IDX_WORKSPACE[workspace_id Indexes]
         end
         
         subgraph Security["Security Layer"]
-            RLS_POLICIES{RLS Policies<br/>Row Isolation}
-            PG_CRYPTO[pgcrypto<br/>Encryption Functions]
-            TRIGGERS[Audit Triggers<br/>Change Tracking]
+            RLS_POLICIES{RLS Policies}
+            PG_CRYPTO[pgcrypto]
+            TRIGGERS[Audit Triggers]
         end
     end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% TIER 7: DIGITALOCEAN INFRASTRUCTURE
-    %% ═══════════════════════════════════════════════════════════════════════
-    
-    subgraph DO_TIER["☁️ DIGITALOCEAN TIER"]
-        subgraph AccountPool["Account Pool (15+ Accounts)"]
-            DO_ACC_1[Account 1<br/>US-East, 50 slots]
-            DO_ACC_2[Account 2<br/>US-West, 50 slots]
-            DO_ACC_3[Account 3<br/>EU-Frankfurt, 50 slots]
-            DO_ACC_4[Account 4<br/>SG-Singapore, 50 slots]
-            DO_ACC_N[Account N<br/>Scalable]
+    subgraph DO_TIER["DIGITALOCEAN TIER"]
+        subgraph AccountPool["Account Pool - 15+ Accounts"]
+            DO_ACC_1[Account 1 - US-East]
+            DO_ACC_2[Account 2 - US-West]
+            DO_ACC_3[Account 3 - EU-Frankfurt]
+            DO_ACC_4[Account 4 - SG-Singapore]
+            DO_ACC_N[Account N - Scalable]
         end
         
         subgraph Regions["Regional Distribution"]
-            REGION_NYC[NYC1/NYC3<br/>US East Coast]
-            REGION_SFO[SFO2/SFO3<br/>US West Coast]
-            REGION_FRA[FRA1<br/>EU Germany]
-            REGION_SGP[SGP1<br/>Asia Pacific]
-            REGION_LON[LON1<br/>UK/GDPR]
+            REGION_NYC[NYC - US East]
+            REGION_SFO[SFO - US West]
+            REGION_FRA[FRA - EU Germany]
+            REGION_SGP[SGP - Asia Pacific]
+            REGION_LON[LON - UK/GDPR]
         end
     end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% TIER 8: TENANT DROPLET FLEET
-    %% ═══════════════════════════════════════════════════════════════════════
-    
-    subgraph FLEET_TIER["🚀 TENANT FLEET (15,000+ Droplets)"]
+    subgraph FLEET_TIER["TENANT FLEET - 15000+ Droplets"]
         subgraph ActiveDroplets["Active Droplets"]
-            subgraph Droplet_A["Tenant A ($6/mo)"]
-                D_A_N8N[n8n Container<br/>Workflows Running]
-                D_A_PG[Postgres 16<br/>Local Database]
-                D_A_CADDY[Caddy 2<br/>SSL + Reverse Proxy]
-                D_A_SIDECAR[Sidecar Agent<br/>Control Link]
+            subgraph Droplet_A["Tenant A - $6/mo"]
+                D_A_N8N[n8n Container]
+                D_A_PG[Postgres 16]
+                D_A_CADDY[Caddy 2]
+                D_A_SIDECAR[Sidecar Agent]
             end
             
-            subgraph Droplet_B["Tenant B ($6/mo)"]
+            subgraph Droplet_B["Tenant B - $6/mo"]
                 D_B_N8N[n8n Container]
                 D_B_PG[Postgres 16]
                 D_B_CADDY[Caddy 2]
                 D_B_SIDECAR[Sidecar Agent]
             end
             
-            subgraph Droplet_N["Tenant N ($6-$48/mo)"]
+            subgraph Droplet_N["Tenant N - $6-48/mo"]
                 D_N_N8N[n8n Container]
                 D_N_PG[Postgres 16]
                 D_N_CADDY[Caddy 2]
@@ -632,85 +588,71 @@ graph TB
             end
         end
         
-        subgraph HibernatedDroplets["Hibernated (Snapshots)"]
-            SNAPSHOT_X[Tenant X Snapshot<br/>$0.02/GB/mo]
-            SNAPSHOT_Y[Tenant Y Snapshot<br/>$0.02/GB/mo]
-            SNAPSHOT_Z[Tenant Z Snapshot<br/>$0.02/GB/mo]
+        subgraph HibernatedDroplets["Hibernated Snapshots"]
+            SNAPSHOT_X[Tenant X Snapshot]
+            SNAPSHOT_Y[Tenant Y Snapshot]
+            SNAPSHOT_Z[Tenant Z Snapshot]
         end
         
-        subgraph PreWarmed["Pre-Warmed Pool (VIP)"]
-            HOT_SPARE_1[Hot Spare 1<br/>Instant Failover]
-            HOT_SPARE_2[Hot Spare 2<br/>Instant Failover]
+        subgraph PreWarmed["Pre-Warmed Pool - VIP"]
+            HOT_SPARE_1[Hot Spare 1]
+            HOT_SPARE_2[Hot Spare 2]
         end
     end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% TIER 9: EXTERNAL INTEGRATIONS
-    %% ═══════════════════════════════════════════════════════════════════════
-    
-    subgraph EXTERNAL_TIER["🔗 EXTERNAL TIER"]
-        subgraph ManagedServices["Genesis Managed (Pooled)"]
-            EXT_APIFY[Apify<br/>Scraping Pool]
-            EXT_PROXY[Residential Proxy<br/>IP Rotation]
-            EXT_CSE[Google CSE<br/>Search API Pool]
-            EXT_RELEVANCE[Relevance AI<br/>Enrichment]
+    subgraph EXTERNAL_TIER["EXTERNAL TIER"]
+        subgraph ManagedServices["Genesis Managed - Pooled"]
+            EXT_APIFY[Apify]
+            EXT_PROXY[Residential Proxy]
+            EXT_CSE[Google CSE]
+            EXT_RELEVANCE[Relevance AI]
         end
         
-        subgraph BYOServices["Bring Your Own (Per-Tenant)"]
-            EXT_GMAIL[Gmail OAuth<br/>User's Account]
-            EXT_OPENAI[OpenAI<br/>User's API Key]
-            EXT_CLAUDE[Claude<br/>User's API Key]
-            EXT_CALENDLY[Calendly OAuth<br/>User's Account]
+        subgraph BYOServices["Bring Your Own"]
+            EXT_GMAIL[Gmail OAuth]
+            EXT_OPENAI[OpenAI]
+            EXT_CLAUDE[Claude]
+            EXT_CALENDLY[Calendly OAuth]
         end
         
-        subgraph DNSServices["DNS & SSL"]
-            EXT_ENTRI[Entri<br/>One-Click CNAME]
-            EXT_SSLIP[sslip.io<br/>Bootstrap SSL]
-            EXT_LETSENCRYPT[Let's Encrypt<br/>Custom Domain SSL]
+        subgraph DNSServices["DNS and SSL"]
+            EXT_ENTRI[Entri]
+            EXT_SSLIP[sslip.io]
+            EXT_LETSENCRYPT[Lets Encrypt]
         end
         
         subgraph Payments["Payment Processing"]
-            EXT_STRIPE[Stripe<br/>Subscriptions + Wallet]
+            EXT_STRIPE[Stripe]
         end
     end
 
-    %% ═══════════════════════════════════════════════════════════════════════
-    %% CONNECTION FLOWS
-    %% ═══════════════════════════════════════════════════════════════════════
-    
-    %% Client to State
     CLIENTS --> STATE_TIER
     SWR_CACHE --> DASHBOARD_CTX
     DASHBOARD_CTX --> WORKSPACE_CTX
     WORKSPACE_CTX --> PERMS_HOOK
     
-    %% State to Security
     STATE_TIER --> SECURITY_TIER
     CLERK_AUTH --> JWT_VERIFY
     JWT_VERIFY --> RBAC_ENGINE
     RBAC_ENGINE --> WORKSPACE_GUARD
     
-    %% Security to API
     SECURITY_TIER --> API_TIER
     WORKSPACE_GUARD --> CoreAPIs
     WORKSPACE_GUARD --> DataAPIs
     WORKSPACE_GUARD --> FleetAPIs
     WORKSPACE_GUARD --> WalletAPIs
     
-    %% API to Orchestration
     FleetAPIs --> ORCHESTRATION_TIER
     IGNITION_ORCH --> ACCOUNT_SELECTOR
     ACCOUNT_SELECTOR --> DO_TIER
     BULLMQ_BUS --> COMMAND_ROUTER
     
-    %% API to Database
     CoreAPIs --> Performance
     DataAPIs --> DataPlane
     FleetAPIs --> ControlPlane
     WalletAPIs --> FinancialPlane
     AdminAPIs --> SecurityPlane
     
-    %% Orchestration to Fleet
     IGNITION_ORCH --> ActiveDroplets
     HIBERNATE_CTRL --> HibernatedDroplets
     PRE_WARMER --> PreWarmed
@@ -718,49 +660,32 @@ graph TB
     BULLMQ_BUS --> D_B_SIDECAR
     BULLMQ_BUS --> D_N_SIDECAR
     
-    %% DO to Fleet
     AccountPool --> ActiveDroplets
     Regions --> ActiveDroplets
     
-    %% Sidecar to Dashboard
     D_A_SIDECAR --> WebhookAPIs
     D_B_SIDECAR --> WebhookAPIs
     D_N_SIDECAR --> WebhookAPIs
     
-    %% n8n to External
     D_A_N8N --> ManagedServices
     D_A_N8N --> BYOServices
     D_B_N8N --> ManagedServices
     D_B_N8N --> BYOServices
     
-    %% Caddy to DNS
     D_A_CADDY --> DNSServices
     D_B_CADDY --> DNSServices
     D_N_CADDY --> DNSServices
     
-    %% Credentials Flow
     TB_CREDENTIALS --> D_A_SIDECAR
     TB_CREDENTIALS --> D_B_SIDECAR
     TB_CREDENTIALS --> D_N_SIDECAR
     
-    %% Payments
     Payments --> FinancialPlane
     
-    %% RLS
     RLS_POLICIES --> DataPlane
     RLS_POLICIES --> ControlPlane
     PG_CRYPTO --> TB_CREDENTIALS
     PG_CRYPTO --> TB_DO_ACCOUNTS
-
-    %% Styling
-    style CLIENTS fill:#1a1a2e,stroke:#00d4ff,stroke-width:2px
-    style SECURITY_TIER fill:#2d1b1b,stroke:#ff6b6b,stroke-width:2px
-    style API_TIER fill:#1b2d1b,stroke:#4ecdc4,stroke-width:2px
-    style ORCHESTRATION_TIER fill:#2d2d1b,stroke:#ffd93d,stroke-width:2px
-    style DATABASE_TIER fill:#1b1b2d,stroke:#6c5ce7,stroke-width:2px
-    style DO_TIER fill:#1b2d2d,stroke:#00b894,stroke-width:2px
-    style FLEET_TIER fill:#0d1b2a,stroke:#00ff88,stroke-width:3px
-    style EXTERNAL_TIER fill:#2d1b2d,stroke:#fd79a8,stroke-width:2px
 ```
 
 ---
@@ -771,48 +696,48 @@ This diagram shows how data flows through the entire system.
 
 ```mermaid
 flowchart TB
-    subgraph INPUT["📥 DATA INGESTION"]
-        USER_ACTION[User Action<br/>Dashboard Click]
-        N8N_EVENT[n8n Event<br/>Email Sent/Opened]
-        WEBHOOK_EXT[External Webhook<br/>Stripe, Clerk]
+    subgraph INPUT["DATA INGESTION"]
+        USER_ACTION[User Action]
+        N8N_EVENT[n8n Event]
+        WEBHOOK_EXT[External Webhook]
     end
 
-    subgraph PROCESSING["⚙️ PROCESSING LAYER"]
+    subgraph PROCESSING["PROCESSING LAYER"]
         subgraph Validation["Validation"]
-            AUTH_CHECK{Auth Check<br/>Clerk JWT}
-            RBAC_CHECK{RBAC Check<br/>Role Verify}
-            WORKSPACE_CHECK{Workspace Check<br/>Tenant Verify}
+            AUTH_CHECK{Auth Check}
+            RBAC_CHECK{RBAC Check}
+            WORKSPACE_CHECK{Workspace Check}
         end
         
         subgraph Business["Business Logic"]
-            RATE_LIMIT[Rate Limiter<br/>Sliding Window]
-            WALLET_CHECK[Wallet Preflight<br/>Balance Check]
-            IDEMPOTENCY[Idempotency<br/>Duplicate Prevention]
+            RATE_LIMIT[Rate Limiter]
+            WALLET_CHECK[Wallet Preflight]
+            IDEMPOTENCY[Idempotency]
         end
     end
 
-    subgraph ROUTING["🔀 ROUTING LAYER"]
-        API_ROUTER{API Router<br/>Route Selection}
-        BULLMQ_ROUTER{BullMQ Router<br/>Command Dispatch}
+    subgraph ROUTING["ROUTING LAYER"]
+        API_ROUTER{API Router}
+        BULLMQ_ROUTER{BullMQ Router}
     end
 
-    subgraph STORAGE["💾 STORAGE LAYER"]
+    subgraph STORAGE["STORAGE LAYER"]
         subgraph WriteOps["Write Operations"]
-            EVENT_WRITE[Event Write<br/>email_events]
-            LEDGER_WRITE[Ledger Write<br/>wallet_ledger]
-            AUDIT_WRITE[Audit Write<br/>audit_log]
+            EVENT_WRITE[Event Write]
+            LEDGER_WRITE[Ledger Write]
+            AUDIT_WRITE[Audit Write]
         end
         
         subgraph ReadOps["Read Operations"]
-            MV_READ[Materialized View<br/>Fast Aggregates]
-            CACHE_READ[Redis Cache<br/>Hot Data]
+            MV_READ[Materialized View]
+            CACHE_READ[Redis Cache]
         end
     end
 
-    subgraph DISPATCH["📤 DISPATCH LAYER"]
-        SIDECAR_CMD[Sidecar Command<br/>via BullMQ]
-        WEBHOOK_OUT[Webhook Out<br/>to n8n]
-        UI_UPDATE[UI Update<br/>SWR Revalidate]
+    subgraph DISPATCH["DISPATCH LAYER"]
+        SIDECAR_CMD[Sidecar Command]
+        WEBHOOK_OUT[Webhook Out]
+        UI_UPDATE[UI Update]
     end
 
     %% Flow
@@ -910,29 +835,29 @@ stateDiagram-v2
 
 ```mermaid
 sequenceDiagram
-    participant User as 👤 User
-    participant Dashboard as 🖥️ Dashboard
-    participant Vault as 🔐 Vault (Supabase)
-    participant BullMQ as 📨 BullMQ
-    participant Sidecar as 🤖 Sidecar
-    participant n8n as ⚡ n8n
+    participant User
+    participant Dashboard
+    participant Vault
+    participant BullMQ
+    participant Sidecar
+    participant n8n
 
-    User->>Dashboard: 1. Submit API Keys (OpenAI, Gmail OAuth)
-    Dashboard->>Vault: 2. Encrypt with pgcrypto (AES-256-GCM)
+    User->>Dashboard: 1. Submit API Keys
+    Dashboard->>Vault: 2. Encrypt with pgcrypto
     Vault-->>Dashboard: 3. Stored securely
     
     Note over Dashboard,Sidecar: Droplet Provisioning Starts
     
-    Dashboard->>BullMQ: 4. Queue INJECT_CREDENTIALS command
-    BullMQ->>Sidecar: 5. Deliver command (signed JWT)
-    Sidecar->>Dashboard: 6. Request credential bundle (with auth)
+    Dashboard->>BullMQ: 4. Queue INJECT_CREDENTIALS
+    BullMQ->>Sidecar: 5. Deliver command with JWT
+    Sidecar->>Dashboard: 6. Request credential bundle
     Dashboard->>Vault: 7. Decrypt credentials
-    Vault-->>Dashboard: 8. Return plaintext (in-memory only)
-    Dashboard-->>Sidecar: 9. Send encrypted bundle (TLS)
-    Sidecar->>n8n: 10. Create credentials via n8n API
+    Vault-->>Dashboard: 8. Return plaintext
+    Dashboard-->>Sidecar: 9. Send encrypted bundle
+    Sidecar->>n8n: 10. Create credentials via API
     n8n-->>Sidecar: 11. Credential UUIDs returned
     Sidecar->>Dashboard: 12. Report UUID mapping
-    Dashboard->>Vault: 13. Store UUID mapping for Dynamic Mapper
+    Dashboard->>Vault: 13. Store UUID mapping
     
     Note over User,n8n: Credentials never touch disk unencrypted
 ```
@@ -943,36 +868,36 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant Cloud as ☁️ Cloud-Init
-    participant Caddy as 🔒 Caddy
-    participant sslip as 🌐 sslip.io
-    participant User as 👤 User
-    participant Entri as 🔗 Entri
-    participant DNS as 📡 DNS
-    participant LE as 🔐 Let's Encrypt
+    participant Cloud as CloudInit
+    participant Caddy
+    participant sslip as sslip.io
+    participant User
+    participant Entri
+    participant DNS
+    participant LE as LetsEncrypt
 
-    Note over Cloud,Caddy: Phase 1: Bootstrap (T+0s to T+60s)
+    Note over Cloud,Caddy: Phase 1 Bootstrap T+0s to T+60s
     
-    Cloud->>Cloud: Detect IP: 159.223.45.67
-    Cloud->>Caddy: Configure: 159.223.45.67.sslip.io
-    Caddy->>sslip: Request SSL for IP-based domain
-    sslip-->>Caddy: SSL Certificate (automatic)
+    Cloud->>Cloud: Detect IP 159.223.45.67
+    Cloud->>Caddy: Configure sslip.io domain
+    Caddy->>sslip: Request SSL for IP domain
+    sslip-->>Caddy: SSL Certificate automatic
     
-    Note over Cloud,Caddy: Droplet accessible immediately at<br/>https://159.223.45.67.sslip.io
+    Note over Cloud,Caddy: Droplet accessible immediately
     
-    Note over User,LE: Phase 2: Production (T+5min+)
+    Note over User,LE: Phase 2 Production T+5min+
     
-    User->>Entri: Click "Setup Tracking Domain"
-    Entri->>DNS: Add CNAME: track.acme.com → droplet
+    User->>Entri: Click Setup Tracking Domain
+    Entri->>DNS: Add CNAME track.acme.com
     DNS-->>Entri: CNAME propagated
     Entri-->>User: DNS setup complete
     
     User->>Caddy: Dashboard sends ADD_TRACKING_DOMAIN
     Caddy->>LE: Request SSL for track.acme.com
-    LE-->>Caddy: SSL Certificate (valid 90 days)
-    Caddy->>Caddy: Reload config (zero downtime)
+    LE-->>Caddy: SSL Certificate valid 90 days
+    Caddy->>Caddy: Reload config zero downtime
     
-    Note over Cloud,LE: Both domains now active:<br/>• track.acme.com (primary)<br/>• 159.223.45.67.sslip.io (fallback)
+    Note over Cloud,LE: Both domains now active
 ```
 
 ---
