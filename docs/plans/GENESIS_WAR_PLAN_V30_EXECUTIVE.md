@@ -112,7 +112,7 @@ Every tenant receives their own dedicated DigitalOcean Droplet running a standar
 | **Credential Injection** | Dashboard calls n8n API | Sidecar injects locally | Zero-Trust security perimeter |
 | **Fleet Updates** | Sequential API calls | BullMQ Event Bus + Concurrency Governor | Rate-limited, prioritized distribution |
 | **Webhook Discovery** | Fragile API polling | Atomic Handshake Protocol | Registration Node POSTs URL back |
-| **Cost Model** | Opaque shared resources | $4/droplet/tenant linear model | Predictable per-tenant margins |
+| **Cost Model** | Opaque shared resources | $6/droplet/tenant linear model | Predictable per-tenant margins |
 
 ### 1.3 V30 Architectural Pillars
 
@@ -180,7 +180,7 @@ The decision to move from a shared n8n instance to a **Sovereign Droplet Factory
 | Resource contention | One tenant's heavy workflow starves others | Dedicated CPU/RAM per tenant |
 | Security isolation | Logical only (credentials visible to operator) | OS-level (separate VM) |
 | Scaling limits | n8n Cloud API rate limits | Only DO API limits (much higher) |
-| Cost model | Opaque, per-execution pricing | Linear $4/month/droplet |
+| Cost model | Opaque, per-execution pricing | Linear $6/month/droplet |
 | Breach containment | Compromise exposes all tenants | Compromise limited to one tenant |
 | Customization | None (shared instance) | Per-tenant n8n settings |
 
@@ -451,7 +451,7 @@ The RLS policy must use COALESCE to default to an impossible value (empty string
 
 | Component | Specification | Rationale |
 |-----------|---------------|-----------|
-| **Droplet Size** | s-1vcpu-1gb ($4/month) | Minimum viable for n8n + Sidecar |
+| **Droplet Size** | s-1vcpu-1gb ($6/month) | Minimum viable for n8n + Sidecar |
 | **OS** | Ubuntu 22.04 LTS | Long-term support, Docker-native |
 | **Region** | Per-tenant selection | GDPR compliance, latency optimization |
 | **Image** | Custom snapshot with Docker pre-installed | Faster provisioning (<30s boot) |
@@ -464,10 +464,10 @@ The RLS policy must use COALESCE to default to an impossible value (empty string
 
 | Component | Cost |
 |-----------|------|
-| Droplet (s-1vcpu-1gb) | $4.00 |
+| Droplet (s-1vcpu-1gb) | $6.00 |
 | Bandwidth (avg 5GB) | $0.50 |
 | Snapshots (daily, 7 retained) | $0.60 |
-| **Infrastructure Subtotal** | **$5.10/tenant** |
+| **Infrastructure Subtotal** | **$7.10/tenant** |
 
 **Shared Costs (at 15k scale):**
 
@@ -932,10 +932,10 @@ Every 60 seconds, each Sidecar reports:
 | 5 | Update state to HIBERNATING |
 
 **Cost Impact:**
-- Running droplet: $4.00/month
+- Running droplet: $6.00/month
 - Powered-off droplet: ~$0.50/month (storage only)
-- Savings per hibernated tenant: $3.50/month (87.5%)
-- At 30% hibernation rate (4,500 of 15,000): $15,750/month savings
+- Savings per hibernated tenant: $5.50/month (91.67%)
+- At 30% hibernation rate (4,500 of 15,000): $24,750/month savings
 
 ### 55.3 Instant Wake Protocol
 
@@ -967,7 +967,7 @@ For tenants requiring <5 second response times:
 **Strategy 1: Never Hibernate (Enterprise)**
 - Enterprise tenants NEVER hibernate
 - Always warm, 0-second wake time
-- Full $4/month cost
+- Full $6/month cost
 
 **Strategy 2: Predictive Pre-Warming (High-Priority)**
 - Analyze scheduled campaigns and login patterns
@@ -1067,7 +1067,7 @@ For tenants requiring <5 second response times:
 | Relevance AI | BYO (Key) | Paste API key | User pays direct |
 | Google CSE | Managed (Wholesale) | Automatic | $0.005/search |
 | Apify | Managed (Wholesale) | Automatic | $0.02/scrape |
-| DigitalOcean | Managed (Wholesale) | Automatic | $4.50/month flat |
+| DigitalOcean | Managed (Wholesale) | Automatic | $6.50/month flat |
 | Residential Proxies | Managed (Wholesale) | Automatic | $0.001/request |
 | Email Verification | Managed (Wholesale) | Automatic | $0.003/email |
 | DNS (Entri) | Managed (Proxy) | Click "Setup DNS" | Included |
@@ -1165,16 +1165,16 @@ Every tenant has a prepaid balance for Managed (Wholesale) services.
 **Costs:**
 | Component | Amount |
 |-----------|--------|
-| Droplet | $4.00 |
+| Droplet | $6.00 |
 | Bandwidth | $0.80 |
 | Snapshots | $0.62 |
 | Apify wholesale | $11.55 |
 | CSE wholesale | $3.60 |
 | Proxy wholesale | $1.47 |
 | Overhead | $0.05 |
-| **Total Costs** | **$22.09** |
+| **Total Costs** | **$24.09** |
 
-**Margin:** $98.91 (81.7%)
+**Margin:** $96.91 (80.09%)
 
 ### 59.2 Rate Limit Registry
 
@@ -1710,7 +1710,7 @@ During migration, writes go to BOTH legacy table AND new partition:
 | Fleet Control | API polling | BullMQ + Sidecar |
 | Credentials | Dashboard injection | Sidecar-local |
 | Webhook Discovery | Polling | Atomic Handshake |
-| Cost Model | Opaque | $4/droplet + metered |
+| Cost Model | Opaque | $6/droplet + metered |
 | Onboarding | 10+ dashboards | Genesis Gateway |
 | Data Residency | Single region | Per-tenant selection |
 
