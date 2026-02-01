@@ -9,6 +9,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getTypedSupabaseAdmin } from '@/lib/supabase';
+import { Database } from '@/lib/database.types';
+
+// ============================================
+// TYPES
+// ============================================
+
+type CampaignUpdate = Database['public']['Tables']['campaigns']['Update'];
 
 // ============================================
 // HELPERS
@@ -46,7 +53,7 @@ export async function PATCH(
   const { name, description } = body;
   
   // Only allow updating name and description via this endpoint
-  const updates: any = {};
+  const updates: CampaignUpdate = {};
   if (name !== undefined) updates.name = name;
   if (description !== undefined) updates.description = description;
 
