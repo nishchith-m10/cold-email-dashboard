@@ -31,7 +31,7 @@ import {
   BarChart3
 } from 'lucide-react';
 
-export default function AnalyticsPageClient() {
+export function AnalyticsPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   

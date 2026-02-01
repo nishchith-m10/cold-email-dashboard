@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useWorkspace } from '@/lib/workspace-context';
 
-export default function JoinTeamPageClient() {
+export function JoinTeamPageClient() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const { refreshWorkspaces, switchWorkspace } = useWorkspace();
