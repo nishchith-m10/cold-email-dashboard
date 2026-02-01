@@ -33,7 +33,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       valid: result.valid,
       error: result.error,
-      details: result.details,
     });
   } catch (error) {
     console.error('Validate credential error:', error);

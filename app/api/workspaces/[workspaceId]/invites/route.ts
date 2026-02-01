@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { workspaceId: string } }
+  { params }: { params: Promise<{ workspaceId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -24,7 +24,7 @@ export async function GET(
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 });
     }
 
-    const { workspaceId } = params;
+    const { workspaceId } = await params;
 
     // Check if user can manage this workspace
     const canManage = await canManageWorkspace(userId, workspaceId);
@@ -62,7 +62,7 @@ export async function GET(
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { workspaceId: string } }
+  { params }: { params: Promise<{ workspaceId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -75,7 +75,7 @@ export async function POST(
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 });
     }
 
-    const { workspaceId } = params;
+    const { workspaceId } = await params;
 
     // Check if user can manage this workspace
     const canManage = await canManageWorkspace(userId, workspaceId);
@@ -154,7 +154,7 @@ export async function POST(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { workspaceId: string } }
+  { params }: { params: Promise<{ workspaceId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -167,7 +167,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 });
     }
 
-    const { workspaceId } = params;
+    const { workspaceId } = await params;
 
     // Check if user can manage this workspace
     const canManage = await canManageWorkspace(userId, workspaceId);

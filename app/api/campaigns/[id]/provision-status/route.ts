@@ -19,11 +19,11 @@ const API_HEADERS = {
 };
 
 interface RouteParams {
-  params: Promise<{ campaignId: string }>;
+  params: Promise<{ id: string }>;
 }
 
 export async function GET(req: NextRequest, { params }: RouteParams) {
-  const { campaignId } = await params;
+  const { id: campaignId } = await params;
 
   // Require authentication
   const { userId } = await auth();

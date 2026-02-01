@@ -16,9 +16,9 @@ function jsonResponse(data: any, status = 200): NextResponse {
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { workspaceId: string } }
+  { params }: { params: Promise<{ workspaceId: string }> }
 ) {
-  const { workspaceId } = params;
+  const { workspaceId } = await params;
 
   // 1. Check database configuration
   if (!supabaseAdmin) {

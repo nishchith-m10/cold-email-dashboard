@@ -86,12 +86,28 @@ export async function GET(req: NextRequest) {
   }
 
   // Type for the query result with relationships
-  type WorkspaceWithMembers = Database['public']['Tables']['workspaces']['Row'] & {
-    user_workspaces: Database['public']['Tables']['user_workspaces']['Row'][]
+  type WorkspaceWithMembers = {
+    id: string;
+    name: string;
+    slug: string;
+    plan: string;
+    settings: Record<string, unknown>;
+    created_at: string;
+    updated_at: string;
+    status: string | null;
+    frozen_at: string | null;
+    freeze_reason: string | null;
+    user_workspaces: {
+      id: string;
+      user_id: string;
+      workspace_id: string;
+      role: string;
+      created_at: string;
+    }[]
   };
 
   // Aggregate member counts and find owner
-  const summary = ((workspaces || []) as WorkspaceWithMembers[]).map((ws) => {
+  const summary = ((workspaces || []) as unknown as WorkspaceWithMembers[]).map((ws) => {
     const members = ws.user_workspaces || [];
     const owner = members.find((m) => m.role === 'owner');
 
