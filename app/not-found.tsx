@@ -1,13 +1,8 @@
+'use client';
+
 import Link from 'next/link';
-import NextDynamic from 'next/dynamic';
+import { NotFoundClient } from '@/components/pages/not-found-client';
 import { Suspense } from 'react';
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
-const NotFoundClient = NextDynamic(() => import('@/components/pages/not-found-client'), {
-  ssr: false,
-});
 
 export default function NotFound() {
   return (
