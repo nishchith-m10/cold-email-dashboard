@@ -45,6 +45,7 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   const query = workspace?.slug ? `?workspace=${workspace.slug}` : '';
+  const isOnboarding = pathname === '/onboarding';
 
   // Don't show on auth pages or join page
   if (pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up') || pathname === '/join') {
@@ -71,8 +72,8 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
         {/* LEFT: Logo + Branding + Workspace */}
         <div className="flex items-center gap-3">
           <Link href={`/${query}`} className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg overflow-hidden">
-              <Image src="/logo.png" alt="Logo" width={32} height={32} className="w-full h-full object-cover" />
+            <div className="w-6 h-6 rounded-lg overflow-hidden">
+              <Image src="/logo.png" alt="Logo" width={24} height={24} className="w-full h-full object-cover" />
             </div>
             <span 
               className="text-sm font-semibold hidden lg:block"
@@ -99,15 +100,17 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
 
         {/* RIGHT: Actions */}
         <div className="flex items-center gap-2">
-          {/* Search */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onCommandOpen}
-            title="Search (Cmd+K)"
-          >
-            <Search className="h-5 w-5 text-text-secondary hover:text-text-primary transition-colors" />
-          </Button>
+          {/* Search - Hidden on onboarding */}
+          {!isOnboarding && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onCommandOpen}
+              title="Search (Cmd+K)"
+            >
+              <Search className="h-5 w-5 text-text-secondary hover:text-text-primary transition-colors" />
+            </Button>
+          )}
 
           {/* Share - Using UserPlus like original */}
           <Button
@@ -119,8 +122,9 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
             <UserPlus className="h-5 w-5 text-text-secondary hover:text-accent-primary transition-colors" />
           </Button>
 
-          {/* Notifications */}
-          <div className="relative">
+          {/* Notifications - Hidden on onboarding */}
+          {!isOnboarding && (
+            <div className="relative">
             <Button
               variant="ghost"
               size="icon"
@@ -211,7 +215,8 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
                 </>
               )}
             </AnimatePresence>
-          </div>
+            </div>
+          )}
 
           {/* User Menu */}
           <div className="relative">

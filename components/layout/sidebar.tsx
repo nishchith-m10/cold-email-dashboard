@@ -23,6 +23,7 @@ import {
   ChevronsRight,
   Sidebar as SidebarIcon,
   Check,
+  Rocket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Analytics', href: '/analytics', icon: BarChart3 },
   { label: 'Contacts', href: '/contacts', icon: Users },
   { label: 'Sequences', href: '/sequences', icon: Mail },
+  { label: 'Onboarding', href: '/onboarding', icon: Rocket },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 

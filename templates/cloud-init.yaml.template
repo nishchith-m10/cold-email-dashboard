@@ -1,0 +1,297 @@
+#!/bin/bash
+set -e
+
+# ============================================================================
+# GENESIS PHASE 50: CLOUD-INIT ATOMIC IGNITION PROTOCOL
+# ============================================================================
+# This script executes on first boot, transforming a bare Ubuntu VM into a
+# fully operational tenant environment in under 60 seconds.
+#
+# Variables (templated by Dashboard):
+#   {{WORKSPACE_ID}}              - Workspace UUID
+#   {{WORKSPACE_SLUG}}            - Human-readable slug
+#   {{POSTGRES_PASSWORD}}         - Generated secure password
+#   {{N8N_ENCRYPTION_KEY}}        - n8n internal encryption key
+#   {{TIMEZONE}}                  - Tenant timezone
+#   {{DASHBOARD_URL}}             - Control Plane URL
+#   {{PROVISIONING_TOKEN}}        - One-time handshake token
+#   {{CUSTOM_TRACKING_DOMAIN}}    - Optional custom domain
+# ============================================================================
+
+echo "╔════════════════════════════════════════════════════════════════════════════╗"
+echo "║                     GENESIS DROPLET IGNITION                               ║"
+echo "║                    Workspace: {{WORKSPACE_SLUG}}                           ║"
+echo "╚════════════════════════════════════════════════════════════════════════════╝"
+
+# ============================================================================
+# PHASE 1: SURVIVAL MODE (1GB RAM HARDENING)
+# ============================================================================
+
+echo ""
+echo "🛡️  PHASE 1: Survival Mode Configuration"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# 1.1 Create 4GB Swap (Prevents OOM crashes)
+if [ ! -f /swapfile ]; then
+    echo "   → Creating 4GB swap file..."
+    fallocate -l 4G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile > /dev/null 2>&1
+    swapon /swapfile
+    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+    echo "   ✓ Swap activated (4GB)"
+else
+    echo "   ✓ Swap already exists"
+fi
+
+# 1.2 Install Docker (if not in snapshot)
+if ! command -v docker &> /dev/null; then
+    echo "   → Installing Docker..."
+    apt-get update -y > /dev/null 2>&1
+    apt-get install -y docker.io docker-compose-v2 curl ufw > /dev/null 2>&1
+    systemctl enable docker
+    systemctl start docker
+    echo "   ✓ Docker installed"
+else
+    echo "   ✓ Docker already installed"
+fi
+
+# 1.3 Configure Docker Log Limits (Prevents disk exhaustion)
+echo "   → Configuring Docker log limits..."
+mkdir -p /etc/docker
+cat > /etc/docker/daemon.json <<'DOCKER_CONFIG_EOF'
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}
+DOCKER_CONFIG_EOF
+systemctl restart docker
+echo "   ✓ Docker log limits set (30MB max)"
+
+# 1.4 Configure Firewall (UFW)
+echo "   → Setting up firewall..."
+ufw --force reset > /dev/null 2>&1
+ufw default deny incoming > /dev/null 2>&1
+ufw default allow outgoing > /dev/null 2>&1
+ufw allow 22/tcp > /dev/null 2>&1   # SSH
+ufw allow 80/tcp > /dev/null 2>&1   # HTTP (Caddy)
+ufw allow 443/tcp > /dev/null 2>&1  # HTTPS (Caddy)
+echo "y" | ufw enable > /dev/null 2>&1
+echo "   ✓ Firewall configured (ports 22, 80, 443)"
+
+echo "   ✅ Survival mode configured"
+
+# ============================================================================
+# PHASE 2: APPLICATION DEPLOYMENT
+# ============================================================================
+
+echo ""
+echo "🚀 PHASE 2: Application Deployment"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# 2.1 Create application directory
+mkdir -p /opt/genesis
+cd /opt/genesis
+echo "   ✓ Application directory: /opt/genesis"
+
+# 2.2 Detect public IP (for sslip.io bootstrap)
+echo "   → Detecting public IP..."
+export DROPLET_IP=$(curl -s --max-time 10 ifconfig.me)
+if [ -z "$DROPLET_IP" ]; then
+    echo "   ⚠️  Failed to detect IP, retrying..."
+    export DROPLET_IP=$(curl -s --max-time 10 icanhazip.com)
+fi
+echo "   ✓ Public IP: $DROPLET_IP"
+echo "   ✓ Bootstrap URL: https://$DROPLET_IP.sslip.io"
+
+# 2.3 Write environment file
+echo "   → Writing environment configuration..."
+cat > .env <<'ENV_EOF'
+# Tenant Identity
+WORKSPACE_ID={{WORKSPACE_ID}}
+WORKSPACE_SLUG={{WORKSPACE_SLUG}}
+
+# Domain Configuration (Dual-Mode: Bootstrap + Production)
+N8N_DOMAIN=${DROPLET_IP}.sslip.io
+CUSTOM_DOMAIN={{CUSTOM_TRACKING_DOMAIN}}
+DROPLET_IP=${DROPLET_IP}
+
+# Database Credentials
+POSTGRES_USER=n8n
+POSTGRES_PASSWORD={{POSTGRES_PASSWORD}}
+POSTGRES_DB=n8n
+
+# n8n Configuration
+N8N_ENCRYPTION_KEY={{N8N_ENCRYPTION_KEY}}
+TIMEZONE={{TIMEZONE}}
+
+# Dashboard Connection
+DASHBOARD_URL={{DASHBOARD_URL}}
+PROVISIONING_TOKEN={{PROVISIONING_TOKEN}}
+ENV_EOF
+echo "   ✓ Environment file created"
+
+# 2.4 Write docker-compose.yml
+echo "   → Writing Docker Compose configuration..."
+cat > docker-compose.yml <<'COMPOSE_EOF'
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - n8n
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_DOMAIN}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://${N8N_DOMAIN}/
+      - GENERIC_TIMEZONE=${TIMEZONE}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - N8N_METRICS_CONTROLS_ENABLED=false
+      - NODE_OPTIONS=--max-old-space-size=512
+    links:
+      - postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - db_storage:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  sidecar:
+    image: genesis/sidecar:v1.0
+    restart: always
+    environment:
+      - WORKSPACE_ID=${WORKSPACE_ID}
+      - DASHBOARD_URL=${DASHBOARD_URL}
+      - PROVISIONING_TOKEN=${PROVISIONING_TOKEN}
+      - N8N_URL=http://n8n:5678
+    depends_on:
+      - n8n
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  caddy_data:
+  caddy_config:
+  n8n_data:
+  db_storage:
+COMPOSE_EOF
+echo "   ✓ Docker Compose configuration created"
+
+# 2.5 Write Caddyfile (Dual-Mode: Bootstrap + Production)
+echo "   → Writing Caddy configuration..."
+cat > Caddyfile <<CADDY_EOF
+# Bootstrap Mode: sslip.io (immediate SSL, no DNS setup required)
+${DROPLET_IP}.sslip.io {
+    reverse_proxy n8n:5678 {
+        flush_interval -1
+    }
+}
+
+# Production Mode: Custom domain (will be added dynamically by Sidecar)
+# PLACEHOLDER: Custom domain will be added when CNAME is detected
+CADDY_EOF
+echo "   ✓ Caddyfile created (bootstrap mode)"
+
+# 2.6 Launch the stack
+echo ""
+echo "   → Launching Docker stack..."
+docker compose up -d
+
+# 2.7 Wait for n8n to be ready
+echo "   → Waiting for n8n to start..."
+for i in {1..30}; do
+    if curl -s http://localhost:5678/healthz > /dev/null 2>&1; then
+        echo "   ✓ n8n is ready"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo "   ⚠️  n8n health check timeout (will retry via sidecar)"
+    fi
+    sleep 2
+done
+
+echo "   ✅ Application deployed"
+
+# ============================================================================
+# PHASE 3: SIDECAR HANDSHAKE
+# ============================================================================
+
+echo ""
+echo "🤝 PHASE 3: Sidecar Handshake"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "   → Sidecar container will handle:"
+echo "      • Atomic handshake with Dashboard"
+echo "      • Credential injection"
+echo "      • Workflow deployment"
+echo "      • Heartbeat monitoring"
+echo ""
+echo "   ⏳ Waiting for Sidecar to complete handshake..."
+echo "      (Check fleet_status for HANDSHAKE_PENDING → ACTIVE_HEALTHY)"
+
+# ============================================================================
+# VERIFICATION & COMPLETION
+# ============================================================================
+
+echo ""
+echo "╔════════════════════════════════════════════════════════════════════════════╗"
+echo "║                     CLOUD-INIT COMPLETE                                    ║"
+echo "╚════════════════════════════════════════════════════════════════════════════╝"
+echo ""
+echo "📊 System Status:"
+echo "   • Swap:      $(free -h | grep Swap | awk '{print $2}')"
+echo "   • Docker:    $(docker --version | cut -d' ' -f3)"
+echo "   • IP:        $DROPLET_IP"
+echo "   • Bootstrap: https://$DROPLET_IP.sslip.io"
+echo ""
+echo "🔄 Next Steps:"
+echo "   1. Sidecar will POST handshake to {{DASHBOARD_URL}}"
+echo "   2. Dashboard will inject credentials"
+echo "   3. Workflows will be deployed"
+echo "   4. Status will transition to ACTIVE_HEALTHY"
+echo ""
+echo "⏱️  Total Provisioning Time: ~60 seconds"
+echo ""
+
+# Write completion marker
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /opt/genesis/.cloud-init-complete
+
+exit 0

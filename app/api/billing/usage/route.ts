@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
+import { DEFAULT_WORKSPACE_ID, getTypedSupabaseAdmin } from '@/lib/supabase';
 import { API_HEADERS } from '@/lib/utils';
 import { auth } from '@clerk/nextjs/server';
 import { getWorkspaceAccess, isSuperAdmin } from '@/lib/workspace-access';
@@ -32,14 +32,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  if (!supabaseAdmin) {
-    return NextResponse.json({
-      period: { month: '', start_date: '', end_date: '' },
-      usage: { emails_sent: 0, replies: 0, opt_outs: 0, llm_cost_usd: 0, api_calls: 0 },
-      limits: { emails_limit: null, cost_limit: null },
-      plan: { name: 'free', features: [] },
-    }, { headers: API_HEADERS });
-  }
+  const supabase = getTypedSupabaseAdmin();
 
   const { searchParams } = new URL(req.url);
   const workspaceId = searchParams.get('workspace_id') || DEFAULT_WORKSPACE_ID;
@@ -74,16 +67,17 @@ export async function GET(req: NextRequest) {
 
   try {
     // Fetch workspace plan info
-    const { data: workspace } = await supabaseAdmin
+    const { data: workspace } = await supabase
       .from('workspaces')
       .select('plan, settings')
       .eq('id', workspaceId)
       .single();
 
-    const plan = workspace?.plan || 'free';
+    type WorkspaceRow = { plan: string; settings: any };
+    const plan = (workspace as WorkspaceRow | null)?.plan || 'free';
 
     // Fetch email events count for the month
-    const { count: emailsSent } = await supabaseAdmin
+    const { count: emailsSent } = await supabase
       .from('email_events')
       .select('*', { count: 'exact', head: true })
       .eq('workspace_id', workspaceId)
@@ -91,7 +85,7 @@ export async function GET(req: NextRequest) {
       .gte('created_at', `${startDate}T00:00:00Z`)
       .lte('created_at', `${endDateStr}T23:59:59Z`);
 
-    const { count: replies } = await supabaseAdmin
+    const { count: replies } = await supabase
       .from('email_events')
       .select('*', { count: 'exact', head: true })
       .eq('workspace_id', workspaceId)
@@ -99,7 +93,7 @@ export async function GET(req: NextRequest) {
       .gte('created_at', `${startDate}T00:00:00Z`)
       .lte('created_at', `${endDateStr}T23:59:59Z`);
 
-    const { count: optOuts } = await supabaseAdmin
+    const { count: optOuts } = await supabase
       .from('email_events')
       .select('*', { count: 'exact', head: true })
       .eq('workspace_id', workspaceId)
@@ -108,14 +102,15 @@ export async function GET(req: NextRequest) {
       .lte('created_at', `${endDateStr}T23:59:59Z`);
 
     // Fetch LLM usage/costs for the month
-    const { data: llmData } = await supabaseAdmin
+    const { data: llmData } = await supabase
       .from('llm_usage')
       .select('cost_usd')
       .eq('workspace_id', workspaceId)
       .gte('created_at', `${startDate}T00:00:00Z`)
       .lte('created_at', `${endDateStr}T23:59:59Z`);
 
-    const llmCostUsd = llmData?.reduce((sum, row) => sum + (Number(row.cost_usd) || 0), 0) || 0;
+    type LlmCostRow = { cost_usd: number | null };
+    const llmCostUsd = (llmData as LlmCostRow[] | null)?.reduce((sum, row) => sum + (Number(row.cost_usd) || 0), 0) || 0;
     const apiCalls = llmData?.length || 0;
 
     // Plan limits (can be extended with a pricing table later)
@@ -133,14 +128,14 @@ export async function GET(req: NextRequest) {
 
     // Fetch previous month's cost (non-blocking)
     Promise.all([
-      supabaseAdmin
+      supabase
         .from('llm_usage')
         .select('cost_usd')
         .eq('workspace_id', workspaceId)
         .gte('created_at', `${prevStartDate}T00:00:00Z`)
         .lte('created_at', `${prevEndDateStr}T23:59:59Z`)
         .then(({ data: prevLlmData }) => {
-          const previousMonthCost = prevLlmData?.reduce((sum, row) => sum + (Number(row.cost_usd) || 0), 0) || 0;
+          const previousMonthCost = (prevLlmData as LlmCostRow[] | null)?.reduce((sum, row) => sum + (Number(row.cost_usd) || 0), 0) || 0;
           
           // Check for budget reset
           checkBudgetReset(workspaceId, llmCostUsd, previousMonthCost, currentMonth).catch((err) => {

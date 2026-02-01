@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getTypedSupabaseAdmin } from '@/lib/supabase';
 import { getWorkspaceAccess } from '@/lib/workspace-access';
 
 export const dynamic = 'force-dynamic';
@@ -34,15 +34,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     );
   }
 
-  if (!supabaseAdmin) {
-    return NextResponse.json(
-      { error: 'Database not configured' },
-      { status: 503, headers: API_HEADERS }
-    );
-  }
+  const supabase = getTypedSupabaseAdmin();
 
   // Get campaign to check workspace access
-  const { data: campaign, error: campaignError } = await supabaseAdmin
+  const { data: campaign, error: campaignError } = await supabase
     .from('campaigns')
     .select('workspace_id, provision_id')
     .eq('id', campaignId)
@@ -55,8 +50,11 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     );
   }
 
+  type CampaignRow = { workspace_id: string; provision_id: string | null };
+  const campaignData = campaign as CampaignRow;
+
   // Check workspace read access
-  const access = await getWorkspaceAccess(userId, campaign.workspace_id);
+  const access = await getWorkspaceAccess(userId, campaignData.workspace_id);
   if (!access?.canRead) {
     return NextResponse.json(
       { error: 'Access denied' },
@@ -65,7 +63,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   }
 
   // Get provisioning status
-  const { data: steps, error: statusError } = await supabaseAdmin
+  const { data: steps, error: statusError } = await supabase
     .from('provisioning_status')
     .select('step, status, error, created_at')
     .eq('campaign_id', campaignId)
@@ -80,13 +78,15 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   }
 
   // Determine if provisioning is complete
-  const allDone = steps?.every(s => s.status === 'done') ?? false;
-  const hasError = steps?.some(s => s.status === 'error') ?? false;
+  type ProvisionStep = { step: string; status: string; error: string | null; created_at: string };
+  const stepsData = steps as ProvisionStep[] | null;
+  const allDone = stepsData?.every(s => s.status === 'done') ?? false;
+  const hasError = stepsData?.some(s => s.status === 'error') ?? false;
 
   return NextResponse.json({
     campaignId,
-    provisionId: campaign.provision_id,
-    steps: steps || [],
+    provisionId: campaignData.provision_id,
+    steps: stepsData || [],
     isComplete: allDone,
     hasError,
   }, { headers: API_HEADERS });

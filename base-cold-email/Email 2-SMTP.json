@@ -1,0 +1,1451 @@
+{
+  "name": "Email 2",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2d1b89f0-661b-4b21-9bb2-cb8419b22035",
+              "name": "replied",
+              "value": "={{ Object.keys($json).length > 0 ? \"Yes\" : \"No\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        320
+      ],
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "177601be-b2c3-45cc-8e15-cd064fbaf578",
+              "leftValue": "={{ $json.replied }}",
+              "rightValue": "No",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "={{ true }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1296,
+        144
+      ],
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        1104,
+        144
+      ],
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 1,
+        "filters": {
+          "sender": "={{ $json.email_address }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        592,
+        496
+      ],
+      "name": "Replied?2",
+      "webhookId": "6cdae860-913e-4fa7-97af-e49f0cdcd11d",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "LeadsDBD-b2b",
+          "mode": "list",
+          "cachedResultName": "LeadsDBD-b2b"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "analyze": false,
+            "email_1_sent": false,
+            "email_2_sent": false,
+            "email_3_sent": false,
+            "replied": true,
+            "opted_out": false,
+            "report_sent": false,
+            "email_prep": false,
+            "linkedin_url": "={{ $json.linkedin_url }}",
+            "id": "={{ $json.id }}"
+          },
+          "matchingColumns": [
+            "linkedin_url"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "first_name",
+              "displayName": "first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "last_name",
+              "displayName": "last_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_adress",
+              "displayName": "email_adress",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "linkedin_url",
+              "displayName": "linkedin_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "organizationindustry",
+              "displayName": "organizationindustry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "position",
+              "displayName": "position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "seniority",
+              "displayName": "seniority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "functional",
+              "displayName": "functional",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationname",
+              "displayName": "organizationname",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationwebsite",
+              "displayName": "organizationwebsite",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationlinkedinurl",
+              "displayName": "organizationlinkedinurl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationfoundedyear",
+              "displayName": "organizationfoundedyear",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationsize",
+              "displayName": "organizationsize",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationspecialities",
+              "displayName": "organizationspecialities",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationcity",
+              "displayName": "organizationcity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationstate",
+              "displayName": "organizationstate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationcountry",
+              "displayName": "organizationcountry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "analyze",
+              "displayName": "analyze",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "research_report",
+              "displayName": "research_report",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_1_body",
+              "displayName": "email_1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_1_subject",
+              "displayName": "email_1_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_2_body",
+              "displayName": "email_2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_3_body",
+              "displayName": "email_3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_3_subject",
+              "displayName": "email_3_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "sender_email",
+              "displayName": "sender_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_1_sent",
+              "displayName": "email_1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_2_sent",
+              "displayName": "email_2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_3_sent",
+              "displayName": "email_3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "replied",
+              "displayName": "replied",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "token",
+              "displayName": "token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "opted_out",
+              "displayName": "opted_out",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "report_sent",
+              "displayName": "report_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_prep",
+              "displayName": "email_prep",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2240,
+        128
+      ],
+      "name": "Update Replied Status"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "LeadsDBD-b2b",
+          "mode": "list",
+          "cachedResultName": "LeadsDBD-b2b"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "analyze": false,
+            "email_1_sent": false,
+            "email_2_sent": true,
+            "email_3_sent": false,
+            "replied": false,
+            "opted_out": false,
+            "report_sent": false,
+            "email_prep": false,
+            "message_id": "={{ $('Send email').item.json.messageId }}",
+            "id": "={{ $('Select Leads for Email 2').item.json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "full_name",
+              "displayName": "full_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "first_name",
+              "displayName": "first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "last_name",
+              "displayName": "last_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_adress",
+              "displayName": "email_adress",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "linkedin_url",
+              "displayName": "linkedin_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "organizationindustry",
+              "displayName": "organizationindustry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "position",
+              "displayName": "position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "state",
+              "displayName": "state",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "seniority",
+              "displayName": "seniority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "functional",
+              "displayName": "functional",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationname",
+              "displayName": "organizationname",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationwebsite",
+              "displayName": "organizationwebsite",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationlinkedinurl",
+              "displayName": "organizationlinkedinurl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationfoundedyear",
+              "displayName": "organizationfoundedyear",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationsize",
+              "displayName": "organizationsize",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationspecialities",
+              "displayName": "organizationspecialities",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationcity",
+              "displayName": "organizationcity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationstate",
+              "displayName": "organizationstate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "organizationcountry",
+              "displayName": "organizationcountry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "analyze",
+              "displayName": "analyze",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "research_report",
+              "displayName": "research_report",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_1_body",
+              "displayName": "email_1_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_1_subject",
+              "displayName": "email_1_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_2_body",
+              "displayName": "email_2_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_3_body",
+              "displayName": "email_3_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_3_subject",
+              "displayName": "email_3_subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "sender_email",
+              "displayName": "sender_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_1_sent",
+              "displayName": "email_1_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_2_sent",
+              "displayName": "email_2_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_3_sent",
+              "displayName": "email_3_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "replied",
+              "displayName": "replied",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "token",
+              "displayName": "token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "opted_out",
+              "displayName": "opted_out",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "report_sent",
+              "displayName": "report_sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "email_prep",
+              "displayName": "email_prep",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2192,
+        496
+      ],
+      "name": "Mark Email 2 Sent",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/gmail/v1/users/me/messages/send",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gmailOAuth2",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "raw",
+              "value": "={{ $json.raw }}"
+            },
+            {
+              "name": "=threadId",
+              "value": "={{ $('Limit').item.json['message_id'] }}"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1776,
+        -192
+      ],
+      "name": "HTTP Request4"
+    },
+    {
+      "parameters": {
+        "jsCode": "const UNSUB_BASE = '{{ $env.DASHBOARD_URL }}/webhook/Unsubscribe';\nconst row = items[0]?.json || {};\nconst keys = Object.keys(row);\nconst clean = {};\nfor (const k of keys) clean[k.trim()] = row[k];\n\nconst pick = (...candidates) => {\n  for (const c of candidates) {\n    if (c in clean && clean[c] != null && `${clean[c]}`.trim() !== '') return `${clean[c]}`.trim();\n  }\n  return '';\n};\n\nconst recipientEmail = pick('email_adress', 'email_address', 'Email Address', 'Email address', 'email');\nconst senderEmail    = pick('sender_email', 'From', 'from');\nconst token          = pick('Token', 'token', 'Tkn', 'tkn');\nconst messageId      = pick('provider_message_id', 'message_id', 'Message-ID', 'messageId');\nconst subj1 = pick('email_1_subject', 'Email 1 Subject', 'Subject', 'subject');\nconst subj2 = pick('email_2_subject', 'Email 2 Subject') || (subj1 ? `Re: ${subj1}` : 'Following up');\nconst body2 = pick('email_2_body', 'email_2_Body', 'EmailBody', 'Body') || 'Thank you for your time.';\n\nif (!recipientEmail) throw new Error('Missing \"email_address\" (recipient).');\nif (!senderEmail)    throw new Error('Missing \"sender_email\".');\n\nconst unsubUrl = `${UNSUB_BASE}?tkn=${encodeURIComponent(token || '')}`;\nconst htmlBody = `${body2}<br><br><a href=\"${unsubUrl}\">Click Here to Unsubscribe</a>`;\n\n// Build headers with threading support\nconst headers = [\n  `Subject: ${subj2}`,\n  `From: ${senderEmail}`,\n  `To: ${recipientEmail}`,\n  'MIME-Version: 1.0',\n  'Content-Type: text/html; charset=\"UTF-8\"',\n];\n\n// Add threading headers if we have the original message ID\nif (messageId) {\n  headers.push(`In-Reply-To: ${messageId}`);\n  headers.push(`References: ${messageId}`);\n}\n\nconst emailContent = `${headers.join('\\n')}\\n\\n${htmlBody}`;\nconst raw = Buffer.from(emailContent)\n  .toString('base64')\n  .replace(/\\+/g, '-')\n  .replace(/\\//g, '_')\n  .replace(/=+$/, '');\n\nreturn [{ \n  json: { \n    raw, \n    to: recipientEmail, \n    subject: subj2, \n    email_2_body: body2,\n    original_message_id: messageId || null\n  } \n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        496
+      ],
+      "name": "Code4"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "00 9 * * MON-FRI"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -336,
+        128
+      ],
+      "name": "Schedule Trigger2"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "LeadsDBD-b2b",
+          "mode": "list",
+          "cachedResultName": "LeadsDBD-b2b"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "email_1_sent",
+              "value": "TRUE"
+            },
+            {
+              "column": "email_2_sent",
+              "value": "FALSE"
+            },
+            {
+              "column": "replied",
+              "value": "FALSE"
+            },
+            {
+              "column": "opted_out",
+              "value": "FALSE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -96,
+        128
+      ],
+      "name": "Select Leads for Email 2",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "content": "## Email 2\n",
+        "height": 720,
+        "width": 2880,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -320,
+        -144
+      ],
+      "typeVersion": 1,
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        288,
+        112
+      ],
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1e0e89cf-7b3e-4f1b-81e4-ac9fb50c39ad",
+              "leftValue": "={{ $json.message_id }}",
+              "rightValue": "No Message ID",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "7f45a45d-5ce0-4d96-8d6e-40d420f33b54",
+              "leftValue": "={{ $json.message_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        80,
+        128
+      ],
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        512,
+        112
+      ],
+      "name": "Loop Over Items4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://nicktailor.com:3000/api/events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-webhook-token",
+              "value": "92945e64e422ac9350e7ff85aea5c219177f8f8685a05d44d1dd2c19a83bf307"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contact_email",
+              "value": "={{ $('Select Leads for Email 2').item.json.email_adress }}"
+            },
+            {
+              "name": "campaign ",
+              "value": "LeadsDBD-b2b"
+            },
+            {
+              "name": "step",
+              "value": "2"
+            },
+            {
+              "name": "event_type",
+              "value": "sent"
+            },
+            {
+              "name": "provider_message_id ",
+              "value": "={{ $json.messageId }}"
+            },
+            {
+              "name": "event_ts",
+              "value": "={{ new Date().toISOString() }}"
+            },
+            {
+              "name": "subject",
+              "value": "= {{ $('Select Leads for Email 2').item.json.email_1_subject }}"
+            },
+            {
+              "name": "body",
+              "value": "={{ $('Inject Tracking1').item.json.tracked_body }}"
+            },
+            {
+              "name": "workspace_id",
+              "value": "{{ $env.WORKSPACE_ID }}"
+            },
+            {
+              "name": "idempotency_key",
+              "value": "=email_{{ $execution.id }}_{{ $json.to }}_step2_{{ Date.now() }}"
+            },
+            {
+              "name": "n8n_execution_id",
+              "value": "={{ $execution.id }}"
+            },
+            {
+              "name": "provider_message_id",
+              "value": "={{ $json.messageId }}"
+            },
+            {
+              "name": "provider",
+              "value": "smtp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1984,
+        496
+      ],
+      "name": "Track Email 2 Sent1"
+    },
+    {
+      "parameters": {
+        "url": "=http://127.0.0.1:3847/check-reply?email={{ encodeURIComponent($json['email_adress'].trim()) }}&message_id={{ $json.message_id }}\n",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        320
+      ],
+      "name": "Check Sent via IMAP",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:3847/send",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ to: $json.to, subject: $json.subject, htmlBody: $json.email_2_body, raw: $json.raw }) }}\n",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1776,
+        496
+      ],
+      "name": "Send email"
+    },
+    {
+      "parameters": {
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2400,
+        496
+      ],
+      "name": "Wait4",
+      "webhookId": "5fcbde9f-0750-405b-8ff7-8bce2e4a16ef",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// EMAIL 2 CLICK TRACKING (RAW Format)\n// Wraps links with click tracking URLs\n// NO OPEN TRACKING (removed for accuracy)\n// ============================================\n\nconst DASHBOARD_URL = 'https://cold-email-dashboard.vercel.app';\nconst WORKSPACE_ID = 'default';\n\nconst rawBase64 = $json.raw;\nconst contactEmail = $('Select Leads for Email 2').item.json.email_address || '';\nconst campaign = 'Ohio';\nconst step = 2;\n\n// Decode the base64url raw email\nlet decodedEmail = Buffer.from(\n  rawBase64.replace(/-/g, '+').replace(/_/g, '/'),\n  'base64'\n).toString('utf-8');\n\n// Split headers and body\nconst emailParts = decodedEmail.split('\\n\\n');\nconst headers = emailParts[0];\nlet body = emailParts.slice(1).join('\\n\\n');\n\n// ✅ CLICK TRACKING: Wrap all links with tracking URLs\nfunction wrapLink(originalUrl, linkId) {\n  return `${DASHBOARD_URL}/api/track/click?url=${encodeURIComponent(originalUrl)}&e=${encodeURIComponent(contactEmail)}&c=${encodeURIComponent(campaign)}&s=${step}&l=${encodeURIComponent(linkId || 'cta')}&w=${encodeURIComponent(WORKSPACE_ID)}`;\n}\n\nconst linkRegex = /<a\\s+([^>]*?)href=[\"']([^\"']+)[\"']([^>]*?)>/gi;\nlet linkIndex = 0;\n\nbody = body.replace(linkRegex, (match, before, url, after) => {\n  if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('#')) return match;\n  linkIndex++;\n  return `<a ${before}href=\"${wrapLink(url, 'link_' + linkIndex)}\"${after}>`;\n});\n\n// Reconstruct the email (NO open tracking pixel)\nconst trackedEmailContent = `${headers}\\n\\n${body}`;\n\n// Re-encode to base64url\nconst trackedRaw = Buffer.from(trackedEmailContent)\n  .toString('base64')\n  .replace(/\\+/g, '-')\n  .replace(/\\//g, '_')\n  .replace(/=+$/, '');\n\n// Return updated item with tracked raw and metadata\nreturn [\n  {\n    json: {\n      ...$json,\n      raw: trackedRaw,\n      original_raw: rawBase64,\n      tracked_body: body,\n      links_tracked: linkIndex\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        496
+      ],
+      "name": "Inject Tracking1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://stewpidprice.com:3000/api/mark-email-sent",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1312,
+        -496
+      ],
+      "name": "http API to update superbase email2 sent"
+    }
+  ],
+  "connections": {
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Update Replied Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replied?2": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        []
+      ]
+    },
+    "Code4": {
+      "main": [
+        [
+          {
+            "node": "Inject Tracking1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger2": {
+      "main": [
+        [
+          {
+            "node": "Select Leads for Email 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Leads for Email 2": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items4": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Sent via IMAP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Replied Status": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Track Email 2 Sent1": {
+      "main": [
+        [
+          {
+            "node": "Mark Email 2 Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Email 2 Sent": {
+      "main": [
+        [
+          {
+            "node": "Wait4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Sent via IMAP": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        [
+          {
+            "node": "Track Email 2 Sent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait4": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inject Tracking1": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -37,7 +37,8 @@ function WorkspaceGate({ children }: { children: React.ReactNode }) {
     // Don't redirect if on join page or still loading
     if (pathname === '/join' || isLoading) return;
     
-    // Redirect to join page if user needs onboarding
+    // Redirect to /join if user needs to create/join a workspace first
+    // (Onboarding is now accessible as a panel in the sidebar after workspace creation)
     if (needsOnboarding) {
       router.push('/join');
     }
@@ -52,12 +53,12 @@ function WorkspaceGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // On join page, always show content
+  // On join page, always show content (no redirect)
   if (pathname === '/join') {
     return <>{children}</>;
   }
 
-  // If needs onboarding, show nothing (redirect will happen)
+  // If needs onboarding, show nothing (redirect will happen to /join)
   if (needsOnboarding) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -92,15 +93,19 @@ function WorkspaceGate({ children }: { children: React.ReactNode }) {
 function MainContentWithSidebar({ children, pathname }: { children: React.ReactNode; pathname: string | null }) {
   const { effectiveWidth } = useSidebar();
   
+  // Check if we're on a clean layout page (no sidebars)
+  const isCleanLayout = pathname === '/join';
+  const isOnboarding = pathname === '/onboarding';
+  
   return (
     <main 
       className={cn(
-        pathname === '/join' ? '' : 'max-w-[1600px] mx-auto px-4 md:px-6 pb-8 mt-12',
+        isCleanLayout ? '' : 'max-w-[1600px] mx-auto px-4 md:px-6 pb-8 mt-12',
         'md:pb-8',
         'transition-[margin-left] will-change-[margin-left]' // GPU accelerated
       )} 
       style={{
-        marginLeft: pathname === '/join' ? 0 : `${effectiveWidth}px`,
+        marginLeft: isCleanLayout ? 0 : `${effectiveWidth}px`,
         transitionDuration: '200ms',
         transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)'
       }}
@@ -128,7 +133,7 @@ export function ClientShell({ children }: ClientShellProps) {
         <TimezoneProvider>
           <CurrencyProvider>
             <SidebarProvider>
-              {/* Background pattern - Hidden on /join page */}
+              {/* Background pattern - Hidden on clean layout pages */}
               {pathname !== '/join' && (
                 <div className="fixed inset-0 -z-10">
                   <div className="absolute inset-0 bg-gradient-to-br from-accent-primary/5 via-transparent to-accent-purple/5" />
@@ -136,20 +141,28 @@ export function ClientShell({ children }: ClientShellProps) {
                 </div>
               )}
 
-              {/* Hybrid Navigation */}
-              <TopNavbar onCommandOpen={() => setCommandOpen(true)} onShareOpen={() => setShareOpen(true)} />
-              <Sidebar />
+              {/* Hybrid Navigation - Hidden on clean layout pages */}
+              {pathname !== '/join' && (
+                <>
+                  <TopNavbar onCommandOpen={() => setCommandOpen(true)} onShareOpen={() => setShareOpen(true)} />
+                  <Sidebar />
+                </>
+              )}
 
-              {/* Mobile Header - Only visible below md breakpoint */}
-              <MobileHeader 
-                onMenuOpen={() => setMobileDrawerOpen(true)} 
-              />
+              {/* Mobile Header - Only visible below md breakpoint, hidden on clean layout pages */}
+              {pathname !== '/join' && (
+                <>
+                  <MobileHeader 
+                    onMenuOpen={() => setMobileDrawerOpen(true)} 
+                  />
 
-              {/* Mobile Drawer - Slide-out navigation */}
-              <MobileDrawer 
-                open={mobileDrawerOpen} 
-                onClose={() => setMobileDrawerOpen(false)} 
-              />
+                  {/* Mobile Drawer - Slide-out navigation */}
+                  <MobileDrawer 
+                    open={mobileDrawerOpen} 
+                    onClose={() => setMobileDrawerOpen(false)} 
+                  />
+                </>
+              )}
 
               {/* Main content - Only show dashboard when signed in */}
               <SignedIn>

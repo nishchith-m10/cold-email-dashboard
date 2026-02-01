@@ -1,0 +1,219 @@
+/**
+ * GENESIS PART VI - PHASE 61.B: CSV LEAD IMPORT SYSTEM
+ * CSV Parser
+ * 
+ * Parses CSV files into structured lead data
+ */
+
+import type {
+  CsvRow,
+  CsvParseOptions,
+  ImportValidationError,
+} from './csv-import-types';
+import { MAX_CSV_ROWS } from './csv-import-types';
+
+/**
+ * CSV Parser
+ * Handles CSV file parsing and basic validation
+ */
+export class CsvParser {
+  /**
+   * Parse CSV content into rows
+   */
+  static parse(
+    content: string,
+    options: CsvParseOptions = {}
+  ): { rows: CsvRow[]; errors: ImportValidationError[] } {
+    const {
+      max_rows = MAX_CSV_ROWS,
+      skip_empty_lines = true,
+      trim_values = true,
+    } = options;
+
+    const errors: ImportValidationError[] = [];
+    const rows: CsvRow[] = [];
+
+    // Split into lines
+    const lines = content.split(/\r?\n/);
+
+    if (lines.length === 0 || (lines.length === 1 && lines[0].trim().length === 0)) {
+      errors.push({
+        row_number: 0,
+        error: 'CSV file is empty',
+      });
+      return { rows, errors };
+    }
+
+    // Parse header row
+    const headerLine = lines[0];
+    const headers = this.parseCsvLine(headerLine, trim_values);
+
+    if (headers.length === 0) {
+      errors.push({
+        row_number: 1,
+        error: 'CSV header row is empty',
+      });
+      return { rows, errors };
+    }
+
+    // Validate headers are unique
+    const headerSet = new Set(headers);
+    if (headerSet.size !== headers.length) {
+      errors.push({
+        row_number: 1,
+        error: 'CSV contains duplicate column headers',
+      });
+    }
+
+    // Parse data rows
+    let validRowCount = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      const rowNumber = i + 1;
+
+      // Skip empty lines if configured
+      if (skip_empty_lines && line.trim().length === 0) {
+        continue;
+      }
+
+      // Check max rows limit
+      if (validRowCount >= max_rows) {
+        errors.push({
+          row_number: rowNumber,
+          error: `Maximum row limit (${max_rows}) exceeded. Remaining rows will be ignored.`,
+        });
+        break;
+      }
+
+      // Parse CSV line
+      const values = this.parseCsvLine(line, trim_values);
+
+      // Skip if all values are empty
+      if (skip_empty_lines && values.every(v => v.length === 0)) {
+        continue;
+      }
+
+      // Check column count matches header
+      if (values.length !== headers.length) {
+        errors.push({
+          row_number: rowNumber,
+          error: `Row has ${values.length} columns, but header has ${headers.length} columns`,
+        });
+        continue;
+      }
+
+      // Create row object
+      const row: CsvRow = {};
+      headers.forEach((header, index) => {
+        row[header] = values[index] || undefined;
+      });
+
+      rows.push(row);
+      validRowCount++;
+    }
+
+    return { rows, errors };
+  }
+
+  /**
+   * Parse a single CSV line, handling quoted values
+   */
+  static parseCsvLine(line: string, trim: boolean = true): string[] {
+    const values: string[] = [];
+    let currentValue = '';
+    let insideQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"') {
+        if (insideQuotes && nextChar === '"') {
+          // Escaped quote
+          currentValue += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quote state
+          insideQuotes = !insideQuotes;
+        }
+      } else if (char === ',' && !insideQuotes) {
+        // End of value
+        values.push(trim ? currentValue.trim() : currentValue);
+        currentValue = '';
+      } else {
+        currentValue += char;
+      }
+    }
+
+    // Add last value
+    values.push(trim ? currentValue.trim() : currentValue);
+
+    return values;
+  }
+
+  /**
+   * Detect CSV delimiter (comma or semicolon)
+   */
+  static detectDelimiter(content: string): ',' | ';' {
+    const firstLine = content.split(/\r?\n/)[0] || '';
+    const commaCount = (firstLine.match(/,/g) || []).length;
+    const semicolonCount = (firstLine.match(/;/g) || []).length;
+
+    return semicolonCount > commaCount ? ';' : ',';
+  }
+
+  /**
+   * Validate file size
+   */
+  static validateFileSize(
+    content: string,
+    maxSizeBytes: number
+  ): { valid: boolean; error?: string } {
+    const sizeBytes = new Blob([content]).size;
+
+    if (sizeBytes > maxSizeBytes) {
+      return {
+        valid: false,
+        error: `File size (${this.formatBytes(sizeBytes)}) exceeds maximum allowed size (${this.formatBytes(maxSizeBytes)})`,
+      };
+    }
+
+    return { valid: true };
+  }
+
+  /**
+   * Format bytes to human-readable string
+   */
+  static formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  /**
+   * Extract headers from CSV content
+   */
+  static extractHeaders(content: string): string[] {
+    const firstLine = content.split(/\r?\n/)[0] || '';
+    return this.parseCsvLine(firstLine, true);
+  }
+
+  /**
+   * Count rows in CSV (excluding header)
+   */
+  static countRows(content: string, skipEmptyLines: boolean = true): number {
+    const lines = content.split(/\r?\n/);
+    let count = 0;
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (skipEmptyLines && line.trim().length === 0) {
+        continue;
+      }
+      count++;
+    }
+
+    return count;
+  }
+}
