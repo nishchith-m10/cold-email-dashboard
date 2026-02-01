@@ -8,7 +8,6 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '../database.types';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -371,7 +370,7 @@ export class DigitalOceanClient {
 export async function createDOClientFromAccount(
   accountId: string
 ): Promise<DigitalOceanClient> {
-  const supabase = createClient<Database>(
+  const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
