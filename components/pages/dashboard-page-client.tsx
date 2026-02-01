@@ -22,18 +22,15 @@ import { MetricCard } from '@/components/dashboard/metric-card';
 import { TimeSeriesChart } from '@/components/dashboard/time-series-chart';
 import { CampaignTable } from '@/components/dashboard/campaign-table';
 import { CampaignCardStack } from '@/components/dashboard/campaign-card-stack';
-import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { DateRangePickerMobile } from '@/components/dashboard/date-range-picker-mobile';
-import { CampaignSelector } from '@/components/dashboard/campaign-selector';
 import { AskAI } from '@/components/dashboard/ask-ai';
 import { StepBreakdown } from '@/components/dashboard/step-breakdown';
 import { DailySendsChart } from '@/components/dashboard/daily-sends-chart';
-import { TimezoneSelector } from '@/components/dashboard/timezone-selector';
 import { CampaignManagementTable } from '@/components/dashboard/campaign-management-table';
 import { CampaignManagementCardStack } from '@/components/dashboard/campaign-management-card-stack';
 import { MobileCollapsibleWidget } from '@/components/dashboard/mobile-collapsible-widget';
 import { NewCampaignModal } from '@/components/campaigns/new-campaign-modal';
-import { Button } from '@/components/ui/button';
+import { CompactControls } from '@/components/dashboard/compact-controls';
 import { BarChart3, TrendingUp } from 'lucide-react';
 
 export default function DashboardPageClient() {
@@ -357,65 +354,31 @@ export default function DashboardPageClient() {
           </p>
         </div>
         
-        {/* Filters: Stacked on mobile, inline on desktop */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-1.5">
-          {/* Primary Filters Row */}
-          <div className="flex items-center gap-2">
-            {/* Timezone: Hidden on mobile to save space */}
-            <div className="hidden sm:block">
-              <TimezoneSelector
-                selectedTimezone={timezone}
-                onTimezoneChange={setTimezone}
-              />
-            </div>
-            {/* Desktop: Popover picker */}
-            <div className="hidden md:block">
-              <DateRangePicker
-                startDate={startDate}
-                endDate={endDate}
-                onDateChange={handleDateChange}
-              />
-            </div>
-            {/* Mobile: Bottom sheet picker */}
-            <div className="flex-1 md:hidden">
-              <DateRangePickerMobile
-                startDate={startDate}
-                endDate={endDate}
-                onDateChange={handleDateChange}
-              />
-            </div>
-            <div className="flex-1 sm:flex-initial">
-              <CampaignSelector
-                campaigns={campaigns}
-                selectedCampaign={selectedCampaign}
-                onCampaignChange={handleCampaignChange}
-                loading={campaignsLoading}
-              />
-            </div>
-          </div>
-          
-          <div className="h-5 w-px bg-slate-600 dark:bg-slate-400 mx-2 hidden sm:block" />
+        {/* Compact Icon Controls - Desktop */}
+        <div className="hidden md:flex items-center gap-2">
+          <CompactControls
+            startDate={startDate}
+            endDate={endDate}
+            onDateChange={handleDateChange}
+            campaigns={campaigns}
+            selectedCampaign={selectedCampaign}
+            onCampaignChange={handleCampaignChange}
+            campaignsLoading={campaignsLoading}
+            onNewCampaign={() => setShowNewCampaignModal(true)}
+            timezone={timezone}
+            onTimezoneChange={setTimezone}
+            onSettingsOpen={() => setSettingsPanelOpen(true)}
+            showSettings={true}
+          />
+        </div>
 
-          {/* Actions - Hidden on mobile, shown in FAB instead */}
-          <div className="hidden sm:flex items-center gap-1.5">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSettingsPanelOpen(true)}
-              className="gap-1.5 h-8 px-3 text-xs"
-            >
-              <Settings2 className="h-3.5 w-3.5" />
-              Customize
-            </Button>
-            <button
-              onClick={() => setShowNewCampaignModal(true)}
-              className="flex items-center gap-1.5 px-2.5 h-8 bg-accent-primary text-white rounded-md hover:bg-accent-primary/90 transition-colors font-medium text-xs shadow-sm"
-              data-tour="new-campaign"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              New Campaign
-            </button>
-          </div>
+        {/* Mobile: Bottom sheet picker */}
+        <div className="flex-1 md:hidden">
+          <DateRangePickerMobile
+            startDate={startDate}
+            endDate={endDate}
+            onDateChange={handleDateChange}
+          />
         </div>
       </motion.div>
 

@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DashboardWidget } from '@/hooks/use-dashboard-layout';
 import { cn } from '@/lib/utils';
+import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 
 interface DashboardSettingsPanelProps {
   open: boolean;
@@ -28,13 +30,21 @@ export function DashboardSettingsPanel({
   onToggleWidget,
   onResetLayout,
 }: DashboardSettingsPanelProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleReset = () => {
     if (confirm('Reset dashboard to default layout? This will clear your customizations.')) {
       onResetLayout();
     }
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -43,7 +53,7 @@ export function DashboardSettingsPanel({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[100]"
             onClick={() => onOpenChange(false)}
           />
 
@@ -53,21 +63,21 @@ export function DashboardSettingsPanel({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 400, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[var(--surface)] border-l border-[var(--border)] shadow-2xl z-[60] overflow-hidden flex flex-col"
+            className="fixed right-0 top-0 bottom-0 w-full max-w-sm bg-surface border-l border-border shadow-2xl z-[101] flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface">
               <div className="flex items-center gap-2">
-                <Settings2 className="h-5 w-5 text-[var(--accent-primary)]" />
-                <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                <Settings2 className="h-5 w-5 text-accent-primary" />
+                <h2 className="text-lg font-semibold text-text-primary">
                   Customize Dashboard
                 </h2>
               </div>
               <button
                 onClick={() => onOpenChange(false)}
-                className="p-2 rounded-lg hover:bg-[var(--surface-elevated)] transition-colors"
+                className="p-2 rounded-lg hover:bg-surface-elevated transition-colors"
               >
-                <X className="h-5 w-5 text-[var(--text-secondary)]" />
+                <X className="h-5 w-5 text-text-secondary" />
               </button>
             </div>
 
@@ -75,10 +85,10 @@ export function DashboardSettingsPanel({
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
               {/* Widget Visibility */}
               <div className="space-y-4">
-                <h3 className="text-sm font-medium text-[var(--text-primary)]">
+                <h3 className="text-sm font-medium text-text-primary">
                   Widget Visibility
                 </h3>
-                <p className="text-xs text-[var(--text-secondary)]">
+                <p className="text-xs text-text-secondary">
                   Toggle which widgets appear on your dashboard
                 </p>
 
@@ -89,7 +99,7 @@ export function DashboardSettingsPanel({
                       className={cn(
                         'flex items-center gap-3 p-3 rounded-lg transition-colors',
                         widget.canHide
-                          ? 'hover:bg-[var(--surface-elevated)]'
+                          ? 'hover:bg-surface-elevated'
                           : 'opacity-50 cursor-not-allowed'
                       )}
                     >
@@ -103,11 +113,11 @@ export function DashboardSettingsPanel({
                         disabled={!widget.canHide}
                       />
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-[var(--text-primary)]">
+                        <p className="text-sm font-medium text-text-primary">
                           {widget.label}
                         </p>
                         {!widget.canHide && (
-                          <p className="text-xs text-[var(--text-secondary)]">
+                          <p className="text-xs text-text-secondary">
                             Required widget
                           </p>
                         )}
@@ -118,11 +128,11 @@ export function DashboardSettingsPanel({
               </div>
 
               {/* Instructions */}
-              <div className="p-4 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border)]">
-                <h4 className="text-sm font-medium text-[var(--text-primary)] mb-2">
+              <div className="p-4 rounded-lg bg-surface-elevated border border-border">
+                <h4 className="text-sm font-medium text-text-primary mb-2">
                   💡 Tip
                 </h4>
-                <p className="text-xs text-[var(--text-secondary)]">
+                <p className="text-xs text-text-secondary">
                   Hover over widgets and use the drag handle (⋮⋮) to reorder them. Your
                   layout will be saved automatically.
                 </p>
@@ -130,7 +140,7 @@ export function DashboardSettingsPanel({
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-[var(--border)] bg-[var(--surface-elevated)]">
+            <div className="px-6 py-4 border-t border-border bg-surface-elevated">
               <Button
                 variant="ghost"
                 onClick={handleReset}
@@ -143,6 +153,7 @@ export function DashboardSettingsPanel({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

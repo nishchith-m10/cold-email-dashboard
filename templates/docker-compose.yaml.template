@@ -1,0 +1,253 @@
+# ============================================================================
+# GENESIS PHASE 50: PRODUCTION DOCKER STACK
+# ============================================================================
+# This Docker Compose configuration runs on every tenant droplet.
+# Optimized for 1GB RAM ($6/month DigitalOcean droplet).
+#
+# Container Stack:
+#   • Caddy: Reverse proxy + SSL termination (64MB RAM)
+#   • n8n: Workflow execution engine (512MB RAM)
+#   • PostgreSQL 16: n8n's internal database (256MB RAM)
+#   • Sidecar: Control Plane agent (128MB RAM)
+#
+# Total: ~960MB RAM (leaves 60MB buffer)
+# ============================================================================
+
+services:
+  # ==========================================================================
+  # CADDY: Reverse Proxy & SSL Termination
+  # ==========================================================================
+  # Handles dual-mode DNS:
+  #   1. Bootstrap: IP.sslip.io (immediate SSL, no setup)
+  #   2. Production: track.clientdomain.com (custom domain via Entri)
+  # ==========================================================================
+  
+  caddy:
+    image: caddy:2-alpine
+    container_name: genesis-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - n8n
+    networks:
+      - genesis-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==========================================================================
+  # N8N: Workflow Execution Engine
+  # ==========================================================================
+  # Configured for 1GB RAM droplet:
+  #   • NODE_OPTIONS=--max-old-space-size=512 (limit heap to 512MB)
+  #   • N8N_METRICS_CONTROLS_ENABLED=false (disable memory-hungry metrics)
+  #   • PostgreSQL backend (persistent workflows)
+  # ==========================================================================
+  
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: genesis-n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      # Domain Configuration (Dual-Mode)
+      - N8N_HOST=${N8N_DOMAIN}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://${N8N_DOMAIN}/
+      - GENERIC_TIMEZONE=${TIMEZONE}
+      
+      # Security
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      
+      # Database Connection (PostgreSQL)
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      
+      # 1GB RAM Optimization (CRITICAL)
+      - N8N_METRICS_CONTROLS_ENABLED=false
+      - NODE_OPTIONS=--max-old-space-size=512
+      
+      # Execution Settings
+      - EXECUTIONS_PROCESS=main
+      - EXECUTIONS_MODE=regular
+      
+      # Logging
+      - N8N_LOG_LEVEL=info
+      - N8N_LOG_OUTPUT=console
+    links:
+      - postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - genesis-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==========================================================================
+  # POSTGRESQL: n8n's Internal Database
+  # ==========================================================================
+  # Stores workflows, credentials, executions, and settings.
+  # Configured with health check for dependency management.
+  # ==========================================================================
+  
+  postgres:
+    image: postgres:16-alpine
+    container_name: genesis-postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - db_storage:/var/lib/postgresql/data
+    networks:
+      - genesis-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # PostgreSQL is NOT exposed to the internet (no ports section)
+    # Only accessible within Docker network
+
+  # ==========================================================================
+  # SIDECAR: Control Plane Agent
+  # ==========================================================================
+  # Handles communication between droplet and Dashboard:
+  #   • Atomic handshake (POST provisioning token)
+  #   • Credential injection (receive encrypted bundle)
+  #   • Workflow deployment (receive Golden Template)
+  #   • Heartbeat monitoring (POST every 60s)
+  #   • Blue-Green updates (Docker socket access)
+  #   • Custom domain detection (update Caddyfile)
+  # ==========================================================================
+  
+  sidecar:
+    image: genesis/sidecar:v1.0
+    container_name: genesis-sidecar
+    restart: always
+    environment:
+      # Identity
+      - WORKSPACE_ID=${WORKSPACE_ID}
+      - WORKSPACE_SLUG=${WORKSPACE_SLUG}
+      
+      # Dashboard Connection
+      - DASHBOARD_URL=${DASHBOARD_URL}
+      - PROVISIONING_TOKEN=${PROVISIONING_TOKEN}
+      
+      # Local n8n Connection
+      - N8N_URL=http://n8n:5678
+      
+      # Domain Configuration
+      - SSLIP_DOMAIN=${DROPLET_IP}.sslip.io
+      - CUSTOM_DOMAIN=${CUSTOM_DOMAIN}
+    depends_on:
+      - n8n
+    volumes:
+      # Docker socket access for Blue-Green container swaps
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Caddy config for dynamic domain updates
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    networks:
+      - genesis-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+# All volumes are stored on the droplet's local disk.
+# Daily snapshots handled by DigitalOcean backup system.
+# ============================================================================
+
+volumes:
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+  n8n_data:
+    driver: local
+  db_storage:
+    driver: local
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+# All containers on the same bridge network for inter-container communication.
+# Only Caddy exposes ports to the internet (80, 443).
+# ============================================================================
+
+networks:
+  genesis-network:
+    driver: bridge
+
+# ============================================================================
+# DEPLOYMENT NOTES
+# ============================================================================
+# 
+# Resource Allocation (1GB RAM):
+#   • n8n:       ~400-500MB (during execution)
+#   • postgres:  ~150-200MB
+#   • caddy:     ~20MB
+#   • sidecar:   ~50MB
+#   • OS:        ~200MB
+#   • TOTAL:     ~820-970MB
+#   • BUFFER:    ~30-180MB (uses swap if exceeded)
+#
+# Swap Configuration:
+#   • 4GB swap file created by Cloud-Init
+#   • Prevents OOM killer during AI workflow spikes
+#   • Performance degradation acceptable (better than crash)
+#
+# Log Management:
+#   • max-size: 10m per container
+#   • max-file: 3 (30MB total per container)
+#   • Total log footprint: ~120MB (4 containers)
+#
+# Disk Usage (25GB SSD):
+#   • OS:              ~2GB
+#   • Docker images:   ~800MB
+#   • Swap file:       4GB
+#   • Logs:            ~120MB
+#   • n8n data:        ~500MB
+#   • Database:        ~1GB (grows with executions)
+#   • Available:       ~16.5GB
+#
+# ============================================================================

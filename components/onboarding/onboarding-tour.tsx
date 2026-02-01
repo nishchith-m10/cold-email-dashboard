@@ -40,7 +40,7 @@ export function OnboardingTour() {
 
   // Auto-scroll to target when step changes
   useEffect(() => {
-    if (!isOpen || !step || pathname === '/join' || needsOnboarding) return;
+    if (!isOpen || !step || pathname === '/join' || pathname === '/onboarding' || needsOnboarding) return;
     
     // Don't scroll for center/welcome step explicitly, or maybe scroll to top?
     if (step.position === 'center') {
@@ -57,7 +57,7 @@ export function OnboardingTour() {
   // Calculate position based on target element
   useEffect(() => {
     // Logic handles blocking render below, but effect might run
-    if (!isOpen || !step || pathname === '/join' || needsOnboarding) return;
+    if (!isOpen || !step || pathname === '/join' || pathname === '/onboarding' || needsOnboarding) return;
 
     const findAndPosition = () => {
       // 1. Handle Center Position (Welcome Step)
@@ -192,7 +192,7 @@ export function OnboardingTour() {
     };
   }, [isOpen, step, currentStep, pathname, needsOnboarding]);
 
-  if (!isOpen || !step || !position || pathname === '/join' || needsOnboarding) return null;
+  if (!isOpen || !step || !position || pathname === '/join' || pathname === '/onboarding' || needsOnboarding) return null;
 
   return (
     <AnimatePresence>

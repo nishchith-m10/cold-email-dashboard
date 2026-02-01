@@ -10,8 +10,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { isSuperAdmin } from '@/lib/workspace-access';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getTypedSupabaseAdmin } from '@/lib/supabase';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_READ } from '@/lib/rate-limit';
+import { Database } from '@/lib/database.types';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +50,8 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  if (!supabaseAdmin) {
+  const supabase = getTypedSupabaseAdmin();
+  if (!supabase) {
     return NextResponse.json(
       { error: 'Database not configured' },
       { status: 500, headers: API_HEADERS }
@@ -57,7 +59,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Fetch all workspaces with member counts and status
-  const { data: workspaces, error } = await supabaseAdmin
+  const { data: workspaces, error } = await supabase
     .from('workspaces')
     .select(`
       id,
@@ -83,10 +85,15 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // Type for the query result with relationships
+  type WorkspaceWithMembers = Database['public']['Tables']['workspaces']['Row'] & {
+    user_workspaces: Database['public']['Tables']['user_workspaces']['Row'][]
+  };
+
   // Aggregate member counts and find owner
-  const summary = (workspaces || []).map((ws) => {
+  const summary = ((workspaces || []) as WorkspaceWithMembers[]).map((ws) => {
     const members = ws.user_workspaces || [];
-    const owner = members.find((m: { role: string }) => m.role === 'owner');
+    const owner = members.find((m) => m.role === 'owner');
 
     return {
       id: ws.id,

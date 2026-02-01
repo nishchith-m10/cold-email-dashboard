@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # SIDECAR AGENT
+  # ============================================
+  sidecar:
+    build: .
+    container_name: genesis-sidecar
+    restart: unless-stopped
+    
+    # Environment variables (load from .env)
+    # Includes: Core config + optional SMTP/IMAP config (SMTP_HOST, SMTP_USER, etc.)
+    env_file:
+      - .env
+    
+    # Network
+    ports:
+      - "3100:3100"  # Command API (JWT-protected)
+      - "3847:3847"  # SMTP/IMAP service (localhost-only for n8n workflows)
+    
+    # Docker socket access (for container management)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    
+    # Logging
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Health check (checks both Sidecar and SMTP service status)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3847/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    
+    # Dependency
+    depends_on:
+      - n8n
+
+  # ============================================
+  # N8N (Automation Engine)
+  # ============================================
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    
+    # Environment
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://${N8N_HOST:-localhost}:5678/
+      - GENERIC_TIMEZONE=UTC
+      - N8N_LOG_LEVEL=info
+    
+    # Ports
+    ports:
+      - "5678:5678"
+    
+    # Persistence
+    volumes:
+      - n8n_data:/home/node/.n8n
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Logging
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  n8n_data:
+    name: n8n_data
+
+networks:
+  default:
+    name: genesis_network

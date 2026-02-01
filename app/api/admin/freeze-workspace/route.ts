@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get actor email for audit
+    const { clerkClient } = await import('@clerk/nextjs/server');
     const clerk = await clerkClient();
     const actor = await clerk.users.getUser(userId);
     const actorEmail = actor.emailAddresses?.[0]?.emailAddress || 'unknown';
@@ -198,6 +199,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Get actor email for audit
+    const { clerkClient } = await import('@clerk/nextjs/server');
     const clerk = await clerkClient();
     const actor = await clerk.users.getUser(userId);
     const actorEmail = actor.emailAddresses?.[0]?.emailAddress || 'unknown';

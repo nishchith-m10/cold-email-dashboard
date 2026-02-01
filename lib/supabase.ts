@@ -1,17 +1,21 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Database } from './database.types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
+// Typed Supabase client
+export type TypedSupabaseClient = SupabaseClient<Database>;
+
 // Server-side admin client (uses service role key)
 // Returns null if env vars are not set (e.g., during build)
-function createSupabaseAdmin(): SupabaseClient | null {
+function createSupabaseAdmin(): TypedSupabaseClient | null {
   if (!supabaseUrl || !supabaseServiceKey) {
     console.warn('Supabase credentials not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.');
     return null;
   }
   
-  return createClient(supabaseUrl, supabaseServiceKey, {
+  return createClient<Database>(supabaseUrl, supabaseServiceKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -20,6 +24,17 @@ function createSupabaseAdmin(): SupabaseClient | null {
 }
 
 export const supabaseAdmin = createSupabaseAdmin();
+
+/**
+ * Get typed Supabase admin client
+ * Throws if client is not initialized
+ */
+export function getTypedSupabaseAdmin(): TypedSupabaseClient {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin client not initialized');
+  }
+  return supabaseAdmin;
+}
 
 /**
  * Default workspace ID for single-tenant mode

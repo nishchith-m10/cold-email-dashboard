@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
+import { DEFAULT_WORKSPACE_ID, getTypedSupabaseAdmin } from '@/lib/supabase';
 import { API_HEADERS } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -16,9 +16,7 @@ export const dynamic = 'force-dynamic';
  * Returns array of monthly usage records.
  */
 export async function GET(req: NextRequest) {
-  if (!supabaseAdmin) {
-    return NextResponse.json({ history: [] }, { headers: API_HEADERS });
-  }
+  const supabase = getTypedSupabaseAdmin();
 
   const { searchParams } = new URL(req.url);
   const workspaceId = searchParams.get('workspace_id') || DEFAULT_WORKSPACE_ID;
@@ -39,7 +37,7 @@ export async function GET(req: NextRequest) {
       const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
 
       // Fetch email counts
-      const { count: emailsSent } = await supabaseAdmin
+      const { count: emailsSent } = await supabase
         .from('email_events')
         .select('*', { count: 'exact', head: true })
         .eq('workspace_id', workspaceId)
@@ -47,7 +45,7 @@ export async function GET(req: NextRequest) {
         .gte('created_at', `${startDate}T00:00:00Z`)
         .lte('created_at', `${endDateStr}T23:59:59Z`);
 
-      const { count: replies } = await supabaseAdmin
+      const { count: replies } = await supabase
         .from('email_events')
         .select('*', { count: 'exact', head: true })
         .eq('workspace_id', workspaceId)
@@ -56,14 +54,15 @@ export async function GET(req: NextRequest) {
         .lte('created_at', `${endDateStr}T23:59:59Z`);
 
       // Fetch LLM costs
-      const { data: llmData } = await supabaseAdmin
+      const { data: llmData } = await supabase
         .from('llm_usage')
         .select('cost_usd')
         .eq('workspace_id', workspaceId)
         .gte('created_at', `${startDate}T00:00:00Z`)
         .lte('created_at', `${endDateStr}T23:59:59Z`);
 
-      const llmCostUsd = llmData?.reduce((sum, row) => sum + (Number(row.cost_usd) || 0), 0) || 0;
+      type LlmCostRow = { cost_usd: number | null };
+      const llmCostUsd = (llmData as LlmCostRow[] | null)?.reduce((sum, row) => sum + (Number(row.cost_usd) || 0), 0) || 0;
 
       history.push({
         month: `${year}-${String(month).padStart(2, '0')}`,

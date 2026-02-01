@@ -13,6 +13,7 @@ const config: Config = {
   testMatch: [
     '**/__tests__/unit/**/*.test.{ts,tsx}',
     '**/__tests__/integration/**/*.test.{ts,tsx}',
+    '**/__tests__/genesis/**/*.test.{ts,tsx}',
   ],
   collectCoverageFrom: [
     'lib/**/*.{ts,tsx}',
