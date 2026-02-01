@@ -8,14 +8,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getTypedSupabaseAdmin } from '@/lib/supabase';
-import { Database } from '@/lib/database.types';
+import { supabaseAdmin } from '@/lib/supabase';
 
 // ============================================
 // TYPES
 // ============================================
 
-type CampaignUpdate = Database['public']['Tables']['campaigns']['Update'];
+interface CampaignUpdatePayload {
+  name?: string;
+  description?: string | null;
+  updated_at?: string;
+}
 
 // ============================================
 // HELPERS
@@ -34,7 +37,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: campaignId } = await params;
-  const supabase = getTypedSupabaseAdmin();
+  
+  if (!supabaseAdmin) {
+    return jsonResponse({ success: false, error: 'Database not configured' }, 500);
+  }
 
   // 2. Authenticate user
   const { userId } = await auth();
@@ -53,7 +59,7 @@ export async function PATCH(
   const { name, description } = body;
   
   // Only allow updating name and description via this endpoint
-  const updates: CampaignUpdate = {};
+  const updates: CampaignUpdatePayload = {};
   if (name !== undefined) updates.name = name;
   if (description !== undefined) updates.description = description;
 
@@ -64,7 +70,7 @@ export async function PATCH(
   updates.updated_at = new Date().toISOString();
 
   // 4. Fetch campaign to verify ownership/access
-  const { data: campaign, error: fetchError } = await supabase
+  const { data: campaign, error: fetchError } = await supabaseAdmin
     .from('campaigns')
     .select('workspace_id')
     .eq('id', campaignId)
@@ -78,7 +84,7 @@ export async function PATCH(
   const campaignData = campaign as CampaignRow;
 
   // 5. Verify workspace authorization
-  const { data: membership } = await supabase
+  const { data: membership } = await supabaseAdmin
     .from('user_workspaces')
     .select('role')
     .eq('workspace_id', campaignData.workspace_id)
@@ -94,7 +100,7 @@ export async function PATCH(
   }
 
   // 6. Update campaign
-  const { data: updatedCampaign, error: updateError } = await supabase
+  const { data: updatedCampaign, error: updateError } = await supabaseAdmin
     .from('campaigns')
     .update(updates)
     .eq('id', campaignId)
@@ -121,7 +127,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: campaignId } = await params;
-  const supabase = getTypedSupabaseAdmin();
+  
+  if (!supabaseAdmin) {
+    return jsonResponse({ success: false, error: 'Database not configured' }, 500);
+  }
 
   // 2. Authenticate user
   const { userId } = await auth();
@@ -130,7 +139,7 @@ export async function DELETE(
   }
 
   // 3. Fetch campaign to verify ownership/access
-  const { data: campaign, error: fetchError } = await supabase
+  const { data: campaign, error: fetchError } = await supabaseAdmin
     .from('campaigns')
     .select('workspace_id, name')
     .eq('id', campaignId)
@@ -141,7 +150,7 @@ export async function DELETE(
   }
 
   // 4. Verify workspace authorization (requires manage permission)
-  const { data: membership } = await supabase
+  const { data: membership } = await supabaseAdmin
     .from('user_workspaces')
     .select('role')
     .eq('workspace_id', campaign.workspace_id)
@@ -160,7 +169,7 @@ export async function DELETE(
   }
 
   // 5. Delete the campaign
-  const { error: deleteError } = await supabase
+  const { error: deleteError } = await supabaseAdmin
     .from('campaigns')
     .delete()
     .eq('id', campaignId);

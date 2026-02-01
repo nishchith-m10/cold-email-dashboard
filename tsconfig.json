@@ -41,11 +41,14 @@
   ],
   "exclude": [
     "node_modules",
+    "__tests__",
     "e2e",
     "scripts",
     "sidecar",
     "playwright.config.ts",
     "playwright.config.*.ts",
-    "jest.config.ts"
+    "jest.config.ts",
+    "genesis-phase64",
+    "genesis-phase64b"
   ]
 }
