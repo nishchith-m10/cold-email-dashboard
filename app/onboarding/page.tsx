@@ -5,24 +5,11 @@
  * Replaces the simple join page with comprehensive 11-stage flow.
  */
 
+'use client';
+
 import { Suspense } from 'react';
-import NextDynamic from 'next/dynamic';
+import { GenesisOnboardingClient } from '@/components/genesis/genesis-onboarding-client';
 import { Loader2 } from 'lucide-react';
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
-const GenesisOnboardingClient = NextDynamic(
-  () => import('@/components/genesis/genesis-onboarding-client'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-accent-primary" />
-      </div>
-    ),
-  }
-);
 
 export default function OnboardingPage() {
   return (

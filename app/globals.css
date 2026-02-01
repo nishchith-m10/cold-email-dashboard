@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -452,15 +453,15 @@ html.light [data-radix-popper-content-wrapper] .text-text-primary {
   color: #0F172A !important;
 }
 
-html.light [data-radix-popper-content-wrapper] .hover\\:bg-surface-elevated:hover {
+html.light [data-radix-popper-content-wrapper] [class*="hover:bg-surface-elevated"]:hover {
   background-color: #E2E8F0 !important;
 }
 
-html.light [data-radix-popper-content-wrapper] .hover\\:bg-surface:hover {
+html.light [data-radix-popper-content-wrapper] [class*="hover:bg-surface"]:hover {
   background-color: #FFFFFF !important;
 }
 
-html.light [data-radix-popper-content-wrapper] .hover\\:bg-border:hover {
+html.light [data-radix-popper-content-wrapper] [class*="hover:bg-border"]:hover {
   background-color: #CBD5E1 !important;
 }
 

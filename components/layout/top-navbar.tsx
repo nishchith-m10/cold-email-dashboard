@@ -31,6 +31,7 @@ import { getNotificationIcon, getNotificationColor, formatTimeAgo } from '@/lib/
 
 interface TopNavbarProps {
   onCommandOpen?: () => void;
+  onShareOpen?: () => void;
 }
 
 export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {

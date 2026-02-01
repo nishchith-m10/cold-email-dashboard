@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
+import type { Campaign } from '@/lib/dashboard-types';
 import { 
   Calendar, 
   Clock, 
@@ -27,12 +28,6 @@ import {
 import { DateRangePickerContent } from './date-range-picker-content';
 import { TimezoneSelectorContent } from './timezone-selector-content';
 import { cn } from '@/lib/utils';
-
-interface Campaign {
-  id: string;
-  name: string;
-  [key: string]: any;
-}
 
 interface CompactControlsProps {
   // Date range

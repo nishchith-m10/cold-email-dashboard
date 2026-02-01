@@ -56,7 +56,7 @@ export function Sidebar() {
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const menuCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const isAdmin = userRole === 'owner' || userRole === 'super_admin';
+  const isAdmin = userRole === 'owner' || userRole === 'admin';
   const query = workspace?.slug ? `?workspace=${workspace.slug}` : '';
 
   // Don't show sidebar on auth pages or join page
