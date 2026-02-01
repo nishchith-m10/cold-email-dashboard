@@ -1,6 +1,6 @@
 'use client';
 
-export default function NotFoundClient() {
+export function NotFoundClient() {
   return null;
 }
 

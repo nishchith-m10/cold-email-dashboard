@@ -12,7 +12,7 @@ import { useWorkspace } from '@/lib/workspace-context';
 import { GenesisOnboardingWizard } from '@/components/genesis/genesis-onboarding-wizard';
 import { Loader2 } from 'lucide-react';
 
-export default function GenesisOnboardingClient() {
+export function GenesisOnboardingClient() {
   const router = useRouter();
   const { workspace, isLoading } = useWorkspace();
 

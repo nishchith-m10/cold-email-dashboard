@@ -33,7 +33,7 @@ import { NewCampaignModal } from '@/components/campaigns/new-campaign-modal';
 import { CompactControls } from '@/components/dashboard/compact-controls';
 import { BarChart3, TrendingUp } from 'lucide-react';
 
-export default function DashboardPageClient() {
+export function DashboardPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
