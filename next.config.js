@@ -2,10 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   
-  // Disable ESLint during build (due to circular structure error)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   
   // Type checking enabled with proper types
   typescript: {

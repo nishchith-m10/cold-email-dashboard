@@ -102,7 +102,7 @@ export function TwoFactorModal({ open, onClose }: TwoFactorModalProps) {
       
       if (result.verified) {
         // Fetch backup codes if available
-        const totpResource = await user.getTOTP();
+        const totpResource = await (user as any).getTOTP?.();
         if (totpResource?.backupCodes) {
           setBackupCodes(totpResource.backupCodes);
         }

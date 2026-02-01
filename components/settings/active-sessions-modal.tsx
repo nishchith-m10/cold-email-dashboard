@@ -44,10 +44,10 @@ export function ActiveSessionsModal({ open, onClose }: ActiveSessionsModalProps)
     setError(null);
 
     try {
-      const sessionToRevoke = sessions.find((s: any) => s.id === sessionId);
+      const sessionToRevoke = sessions.find((s) => s.id === sessionId);
       
-      if (sessionToRevoke && typeof sessionToRevoke.revoke === 'function') {
-        await sessionToRevoke.revoke();
+      if (sessionToRevoke && 'revoke' in sessionToRevoke && typeof (sessionToRevoke as any).revoke === 'function') {
+        await (sessionToRevoke as any).revoke();
       }
     } catch (err: any) {
       console.error('Failed to revoke session:', err);
@@ -63,10 +63,10 @@ export function ActiveSessionsModal({ open, onClose }: ActiveSessionsModalProps)
     
     try {
       const otherSessions = sessions.filter(
-        (s: any) => s.id !== currentSession?.id
+        (s) => s.id !== currentSession?.id
       );
       
-      await Promise.all(otherSessions.map((s: any) => s.revoke()));
+      await Promise.all(otherSessions.map((s) => (s as any).revoke()));
     } catch (err: any) {
       console.error('Failed to revoke sessions:', err);
       setError(err.message || 'Failed to revoke sessions. Please try again.');

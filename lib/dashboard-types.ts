@@ -67,7 +67,7 @@ export type N8nStatus = 'active' | 'inactive' | 'unknown' | 'error';
 export type CampaignStatus = 'active' | 'paused' | 'completed';
 
 export interface Campaign {
-  id?: string;
+  id: string; // Required - campaigns from DB always have an id
   workspace_id?: string;
   name: string;
   description?: string;

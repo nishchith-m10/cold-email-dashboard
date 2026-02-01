@@ -50,7 +50,7 @@
     "ioredis": "^5.9.2",
     "llamaindex": "^0.12.1",
     "lucide-react": "^0.555.0",
-    "next": "^14.2.33",
+    "next": "^16.1.6",
     "node-fetch": "^3.3.2",
     "openai": "^6.15.0",
     "postcss": "^8.4.35",
@@ -79,7 +79,7 @@
     "@types/pg": "^8.16.0",
     "@types/react": "^19.2.1",
     "@types/react-dom": "^19.2.1",
-    "eslint": "8.57.0",
+    "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.4",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.2.0",
@@ -87,7 +87,6 @@
     "pg": "^8.17.2",
     "sharp": "^0.34.5",
     "ts-jest": "^29.4.6",
-    "typescript": "5.4.5",
-    "vercel": "^32.3.0"
+    "typescript": "5.4.5"
   }
 }
