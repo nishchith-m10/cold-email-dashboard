@@ -48,9 +48,9 @@ function jsonResponse(data: ToggleResponse, status = 200): NextResponse {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  const campaignId = params.id;
+  const { id: campaignId } = await params;
 
   // 1. Check database configuration
   if (!supabaseAdmin) {

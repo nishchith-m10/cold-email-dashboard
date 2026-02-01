@@ -24,9 +24,9 @@ function jsonResponse(data: any, status = 200): NextResponse {
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const campaignId = params.id;
+  const { id: campaignId } = await params;
   const supabase = getTypedSupabaseAdmin();
 
   // 2. Authenticate user
@@ -46,7 +46,7 @@ export async function PATCH(
   const { name, description } = body;
   
   // Only allow updating name and description via this endpoint
-  const updates: Record<string, any> = {};
+  const updates: any = {};
   if (name !== undefined) updates.name = name;
   if (description !== undefined) updates.description = description;
 
@@ -111,9 +111,9 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const campaignId = params.id;
+  const { id: campaignId } = await params;
   const supabase = getTypedSupabaseAdmin();
 
   // 2. Authenticate user

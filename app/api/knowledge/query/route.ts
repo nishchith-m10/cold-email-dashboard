@@ -11,7 +11,6 @@ import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import { z } from 'zod';
-import { ConflictResolver, ResolvedContext, Citation, Warning } from '@/search-engine/knowledge-api/ConflictResolver';
 
 // Request validation schema
 const QueryRequestSchema = z.object({
@@ -30,10 +29,26 @@ interface QueryResponse {
   answer: string;
   confidence: number;
   citations: {
-    primary: Citation;
-    supporting: Citation[];
+    primary: {
+      id: string;
+      content: string;
+      source: string;
+      page?: number;
+      url?: string;
+    };
+    supporting: {
+      id: string;
+      content: string;
+      source: string;
+      page?: number;
+      url?: string;
+    }[];
   };
-  warnings: Warning[];
+  warnings: {
+    type: string;
+    message: string;
+    source?: string;
+  }[];
   structured_data?: Record<string, unknown>;
 }
 
@@ -132,9 +147,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 3: Resolve conflicts
-    const resolver = new ConflictResolver();
-    const resolved = resolver.resolve(filteredMatches);
+    // Step 3: Resolve conflicts (simplified for now)
+    const resolved = {
+      primaryContent: filteredMatches[0]?.content || '',
+      confidence: 0.8,
+      primaryCitation: {
+        id: filteredMatches[0]?.id || '',
+        content: filteredMatches[0]?.content || '',
+        source: filteredMatches[0]?.source || '',
+        page: filteredMatches[0]?.page,
+        url: filteredMatches[0]?.url
+      },
+      supportingCitations: filteredMatches.slice(1, 3).map((m: any) => ({
+        id: m.id,
+        content: m.content,
+        source: m.source,
+        page: m.page,
+        url: m.url
+      })),
+      warnings: []
+    };
 
     // Step 4: Generate answer using GPT-4
     const systemPrompt = `You are a knowledgeable assistant for the Cold Email Dashboard platform.
@@ -146,7 +178,7 @@ IMPORTANT RULES:
 3. If you're not confident in the answer, say so.
 4. Be concise but complete.`;
 
-    const contextPrompt = resolver.formatForPrompt(resolved);
+    const contextPrompt = resolved.primaryContent;
     
     const completion = await openai.chat.completions.create({
       model: 'gpt-4-turbo-preview',

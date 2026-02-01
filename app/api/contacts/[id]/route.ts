@@ -36,7 +36,7 @@ type EventRow = {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   if (!supabaseAdmin) {
     return NextResponse.json(
@@ -50,7 +50,7 @@ export async function GET(
   if (accessError) return accessError;
 
   const workspaceId = extractWorkspaceId(req, searchParams) || DEFAULT_WORKSPACE_ID;
-  const leadIdParam = params.id;
+  const { id: leadIdParam } = await params;
   if (!leadIdParam) {
     return NextResponse.json({ error: 'Lead ID is required' }, { status: 400 });
   }
