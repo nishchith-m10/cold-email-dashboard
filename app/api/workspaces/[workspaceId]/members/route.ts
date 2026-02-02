@@ -83,7 +83,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       }, { headers: API_HEADERS });
     }
 
-    const clerkUsers = await clerkClient.users.getUserList({
+    const client = await clerkClient();
+    const clerkUsers = await client.users.getUserList({
       userId: userIds,
       limit: userIds.length,
     });
