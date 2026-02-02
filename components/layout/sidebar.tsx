@@ -212,6 +212,7 @@ export function Sidebar() {
         {/* Sidebar Display Mode Selector */}
         <div className="relative" ref={modeMenuRef}>
           <button
+            type="button"
             onClick={() => setShowModeMenu(!showModeMenu)}
             onMouseEnter={() => {
               // Clear any pending close timeout
@@ -290,6 +291,7 @@ export function Sidebar() {
               >
                 <div className="p-1">
                   <button
+                    type="button"
                     onClick={() => handleModeSelect('expanded')}
                     className={cn(
                       'flex items-center justify-between w-full px-3 py-2 rounded-md text-sm transition-colors',
@@ -302,6 +304,7 @@ export function Sidebar() {
                     {mode === 'expanded' && <Check className="h-4 w-4" />}
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleModeSelect('collapsed')}
                     className={cn(
                       'flex items-center justify-between w-full px-3 py-2 rounded-md text-sm transition-colors',
@@ -314,6 +317,7 @@ export function Sidebar() {
                     {mode === 'collapsed' && <Check className="h-4 w-4" />}
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleModeSelect('hover')}
                     className={cn(
                       'flex items-center justify-between w-full px-3 py-2 rounded-md text-sm transition-colors',

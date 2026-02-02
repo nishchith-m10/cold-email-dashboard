@@ -162,7 +162,7 @@ export class DropletFactory {
       });
 
       // STEP 9: Increment account's droplet counter
-      await this.supabase.rpc('increment_droplet_count', {
+      await (this.supabase.schema('genesis') as any).rpc('increment_droplet_count', {
         p_account_id: selectedAccount.accountId
       });
 
@@ -188,12 +188,12 @@ export class DropletFactory {
           await doClient.deleteDroplet(dropletId);
           
           // Decrement account counter
-          await this.supabase.rpc('decrement_droplet_count', {
+          await (this.supabase.schema('genesis') as any).rpc('decrement_droplet_count', {
             p_account_id: selectedAccount.accountId
           });
           
           // Mark as ORPHAN in fleet_status
-          await this.supabase.rpc('transition_droplet_state', {
+          await (this.supabase.schema('genesis') as any).rpc('transition_droplet_state', {
             p_droplet_id: dropletId,
             p_new_state: 'ORPHAN',
             p_reason: error instanceof Error ? error.message : 'Unknown error',
@@ -225,12 +225,12 @@ export class DropletFactory {
    */
   async selectAccount(region: string): Promise<AccountSelection | null> {
     // Set encryption key for token decryption
-    await this.supabase.rpc('set_config', {
+    await (this.supabase as any).rpc('set_config', {
       setting_name: 'app.encryption_key',
       setting_value: process.env.INTERNAL_ENCRYPTION_KEY!
     });
 
-    const { data, error } = await this.supabase.rpc('select_account_for_provisioning', {
+    const { data, error } = await (this.supabase.schema('genesis') as any).rpc('select_account_for_provisioning', {
       p_region: region
     });
 
@@ -458,12 +458,12 @@ echo "[CLOUD-INIT] Cloud-Init complete."
       await doClient.deleteDroplet(dropletId);
 
       // Decrement account counter
-      await this.supabase.rpc('decrement_droplet_count', {
+      await (this.supabase.schema('genesis') as any).rpc('decrement_droplet_count', {
         p_account_id: droplet.account_id
       });
 
       // Update state to TERMINATED
-      await this.supabase.rpc('transition_droplet_state', {
+      await (this.supabase.schema('genesis') as any).rpc('transition_droplet_state', {
         p_droplet_id: dropletId,
         p_new_state: 'TERMINATED',
         p_reason: 'workspace_deletion',
@@ -507,7 +507,7 @@ echo "[CLOUD-INIT] Cloud-Init complete."
     const doClient = await createDOClientFromAccount(droplet.account_id);
     await doClient.powerOffDroplet(dropletId);
 
-    await this.supabase.rpc('transition_droplet_state', {
+    await (this.supabase.schema('genesis') as any).rpc('transition_droplet_state', {
       p_droplet_id: dropletId,
       p_new_state: 'HIBERNATING',
       p_reason: 'no_active_campaigns',
@@ -533,7 +533,7 @@ echo "[CLOUD-INIT] Cloud-Init complete."
     const doClient = await createDOClientFromAccount(droplet.account_id);
     
     // Transition to WAKING first
-    await this.supabase.rpc('transition_droplet_state', {
+    await (this.supabase.schema('genesis') as any).rpc('transition_droplet_state', {
       p_droplet_id: dropletId,
       p_new_state: 'WAKING',
       p_reason: 'campaign_started',
@@ -563,7 +563,7 @@ echo "[CLOUD-INIT] Cloud-Init complete."
 
     const doClient = await createDOClientFromAccount(droplet.account_id);
     
-    await this.supabase.rpc('transition_droplet_state', {
+    await (this.supabase.schema('genesis') as any).rpc('transition_droplet_state', {
       p_droplet_id: dropletId,
       p_new_state: 'REBOOTING',
       p_reason: 'zombie_recovery',
@@ -613,7 +613,7 @@ echo "[CLOUD-INIT] Cloud-Init complete."
    * Detect zombie droplets
    */
   async detectZombieDroplets() {
-    const { data, error } = await this.supabase.rpc('detect_zombie_droplets');
+    const { data, error } = await (this.supabase.schema('genesis') as any).rpc('detect_zombie_droplets');
 
     if (error) {
       throw new Error(`Failed to detect zombie droplets: ${error.message}`);

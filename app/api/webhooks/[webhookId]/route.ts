@@ -64,7 +64,7 @@ export async function GET(
 
   try {
     // Fetch webhook and verify it belongs to the workspace
-    const { data: webhook, error } = await supabaseAdmin
+    const { data: webhook, error } = await (supabaseAdmin as any)
       .from('workspace_webhooks')
       .select('id, workspace_id, url, enabled, event_types, created_at, updated_at')
       .eq('id', webhookId)
@@ -252,7 +252,7 @@ export async function PATCH(
     }
 
     // Verify webhook exists and belongs to workspace before updating
-    const { data: existingWebhook, error: checkError } = await supabaseAdmin
+    const { data: existingWebhook, error: checkError } = await (supabaseAdmin as any)
       .from('workspace_webhooks')
       .select('id, workspace_id')
       .eq('id', webhookId)
@@ -273,7 +273,7 @@ export async function PATCH(
     }
 
     // Update webhook
-    const { data: updatedWebhook, error: updateError } = await supabaseAdmin
+    const { data: updatedWebhook, error: updateError } = await (supabaseAdmin as any)
       .from('workspace_webhooks')
       .update(updatePayload)
       .eq('id', webhookId)
@@ -372,7 +372,7 @@ export async function DELETE(
 
   try {
     // Verify webhook exists and belongs to workspace before deleting
-    const { data: existingWebhook, error: checkError } = await supabaseAdmin
+    const { data: existingWebhook, error: checkError } = await (supabaseAdmin as any)
       .from('workspace_webhooks')
       .select('id, workspace_id')
       .eq('id', webhookId)
@@ -393,7 +393,7 @@ export async function DELETE(
     }
 
     // Delete webhook (CASCADE will handle webhook_deliveries)
-    const { error: deleteError } = await supabaseAdmin
+    const { error: deleteError } = await (supabaseAdmin as any)
       .from('workspace_webhooks')
       .delete()
       .eq('id', webhookId)

@@ -123,6 +123,7 @@ export {
 
 // Helper functions for testing
 import { SecureTokenGenerator as TokenGen, hashToken as hash, calculateProvisioningTokenExpiry as calcExpiry } from './token-manager';
+import { MockHandshakeDB } from './handshake-db-mock';
 
 export function createTestProvisioningToken(
   db: MockHandshakeDB,
@@ -439,7 +440,7 @@ export type {
   N8nStatus,
   HeartbeatPayload,
   HeartbeatRecord,
-  DropletHealth,
+  DropletHealth as Phase54DropletHealth,
   StateTransition,
   StateTransitionRule,
   HealthThresholds,
@@ -487,7 +488,7 @@ export type {
   PowerOperationRequest,
   PowerOperationResult,
   HibernationProcess,
-  MetricSnapshot,
+  MetricSnapshot as Phase55MetricSnapshot,
   WakeTrigger,
   WakeRequest,
   WakeProcess,
@@ -1067,8 +1068,8 @@ export {
 
 export type {
   WorkflowType,
-  N8nWorkflow,
-  N8nNode,
+  N8nWorkflow as Phase61cN8nWorkflow,
+  N8nNode as Phase61cN8nNode,
   CampaignWorkflowSet,
   CampaignWorkflow,
   CampaignCloneRequest,
@@ -1127,9 +1128,9 @@ export type {
   RateLimitScope,
   RateLimitWindow,
   RateLimitType,
-  RateLimitConfig,
+  RateLimitConfig as Phase62bRateLimitConfig,
   RateLimitCheckRequest,
-  RateLimitCheckResult,
+  RateLimitCheckResult as Phase62bRateLimitCheckResult,
   RateLimitCounter,
   RateLimitEnforcementResult,
 } from './phase62b';

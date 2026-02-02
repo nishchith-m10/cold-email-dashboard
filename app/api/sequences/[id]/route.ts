@@ -58,7 +58,7 @@ export async function GET(
     // Query with HEAVY columns (all draft content)
     const leadsTable = await getLeadsTableName(workspaceId);
     const { data: lead, error: leadError } = await supabaseAdmin
-      .from(leadsTable)
+      .from(leadsTable as 'leads_ohio')
       .select(
         `
           id,

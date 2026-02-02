@@ -21,7 +21,8 @@ export async function GET(req: NextRequest) {
   const supabase = supabaseAdmin;
 
   try {
-    const { data, error } = await supabase
+    // NOTE: 'user_settings' table may not exist in all deployments
+    const { data, error } = await (supabase as any)
       .from('user_settings')
       .select('*')
       .eq('user_id', userId)
@@ -54,8 +55,8 @@ export async function PATCH(req: NextRequest) {
   const supabase = supabaseAdmin;
 
   try {
-    // Upsert user settings
-    const { data, error } = await supabase
+    // Upsert user settings - NOTE: 'user_settings' table may not exist in all deployments
+    const { data, error } = await (supabase as any)
       .from('user_settings')
       .upsert(
         {

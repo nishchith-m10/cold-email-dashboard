@@ -55,16 +55,17 @@ export async function syncWorkflowsForWorkspace(workspaceId: string): Promise<Sy
     // Update each campaign
     for (const campaign of campaigns) {
       const n8nStatus = workflowMap.get(campaign.n8n_workflow_id!) as N8nStatus || 'unknown';
+      const currentVersion = campaign.version ?? 0;
       
       const { error } = await supabaseAdmin
         .from('campaigns')
         .update({
           n8n_status: n8nStatus,
           last_sync_at: new Date().toISOString(),
-          version: campaign.version + 1,
+          version: currentVersion + 1,
         })
         .eq('id', campaign.id)
-        .eq('version', campaign.version); // Optimistic locking
+        .eq('version', currentVersion); // Optimistic locking
 
       if (error) {
         result.errors.push(`Failed to update ${campaign.id}: ${error.message}`);

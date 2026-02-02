@@ -154,6 +154,7 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
                       <h3 className="text-sm font-semibold text-text-primary">Notifications</h3>
                       {unreadCount > 0 && (
                         <button
+                          type="button"
                           onClick={markAllAsRead}
                           className="text-xs text-accent-primary hover:text-accent-primary/80 transition-colors"
                         >

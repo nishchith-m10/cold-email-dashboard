@@ -58,7 +58,8 @@ export async function GET(req: NextRequest) {
     .limit(LIMIT)
     .order('name', { ascending: true });
 
-  const contactsQuery = supabaseAdmin
+  // NOTE: 'contacts' table may not exist - using type assertion for optional table
+  const contactsQuery = (supabaseAdmin as any)
     .from('contacts')
     .select('id, email')
     .eq('workspace_id', workspaceId)
@@ -75,7 +76,7 @@ export async function GET(req: NextRequest) {
     })) || [];
 
   const contacts =
-    contactsRes.data?.map((c) => ({
+    contactsRes.data?.map((c: { id: string; email: string }) => ({
       id: c.id,
       email: c.email,
       name: c.email, // display email as the name (only column available)

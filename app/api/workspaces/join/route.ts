@@ -36,12 +36,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Look up the invite code
-    const { data: invite, error: inviteError } = await supabaseAdmin
+    // Look up the invite code - NOTE: relationship join requires proper schema setup
+    const result = await (supabaseAdmin as any)
       .from('workspace_invites')
       .select('*, workspaces(*)')
       .eq('code', inviteCode.toUpperCase().trim())
       .single();
+
+    const invite = result.data as { 
+      id: string;
+      workspace_id: string;
+      role: string;
+      uses_remaining: number | null;
+      expires_at: string | null;
+      workspaces?: { name: string } | null;
+    } | null;
+    const inviteError = result.error;
 
     if (inviteError || !invite) {
       return NextResponse.json(

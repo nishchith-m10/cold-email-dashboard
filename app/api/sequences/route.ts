@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
     // This aligns with Dashboard/Analytics behavior.
     
     // Build base query - SELECT ONLY lightweight columns (no body content)
-    const leadsTable = await getLeadsTableName(workspaceId);
+    const leadsTable = await getLeadsTableName(workspaceId) as 'leads_ohio';
     let baseQuery = supabaseAdmin
       .from(leadsTable)
       .select('id, full_name, email_address, organization_name, email_1_sent, email_2_sent, email_3_sent, created_at', { count: 'exact' })

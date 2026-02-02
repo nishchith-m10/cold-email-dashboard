@@ -291,7 +291,7 @@ export interface SequenceListResponse {
 export interface SequenceDetail {
   id: number;
   full_name: string | null;
-  email_address: string;
+  email_address: string | null;
   organization_name: string | null;
   
   // Draft Content

@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Fetch webhooks for the workspace
-    const { data: webhooks, error } = await supabaseAdmin
+    const { data: webhooks, error } = await (supabaseAdmin as any)
       .from('workspace_webhooks')
       .select('id, workspace_id, url, enabled, event_types, created_at, updated_at')
       .eq('workspace_id', workspaceId)
@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
     const secret = crypto.randomBytes(32).toString('hex');
 
     // Create webhook
-    const { data: webhook, error: createError } = await supabaseAdmin
+    const { data: webhook, error: createError } = await (supabaseAdmin as any)
       .from('workspace_webhooks')
       .insert({
         workspace_id: workspaceId,

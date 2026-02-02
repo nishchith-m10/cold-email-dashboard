@@ -73,8 +73,8 @@ async function trackOpenEvent(
       }
     }
 
-    // Get or create contact
-    const { data: contact } = await supabaseAdmin
+    // Get or create contact - NOTE: 'contacts' table may not exist in all deployments
+    const { data: contact } = await (supabaseAdmin as any)
       .from('contacts')
       .upsert(
         {
@@ -96,6 +96,7 @@ async function trackOpenEvent(
       campaign_name: campaign,
       email_number: step,
       event_type: 'opened',
+      event_ts: new Date().toISOString(),
       metadata: {
         token,
         user_agent: 'email_client',

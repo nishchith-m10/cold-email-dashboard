@@ -6,6 +6,7 @@
 
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
 import type { NotificationType } from '@/lib/notification-utils';
+import type { Json } from '@/lib/database.types';
 
 interface CreateCampaignNotificationParams {
   workspaceId: string;
@@ -111,7 +112,7 @@ export async function createCampaignNotification(
       title,
       message,
       related_campaign: campaignName,
-      payload,
+      payload: payload as Json,
     })
     .select('id')
     .single();

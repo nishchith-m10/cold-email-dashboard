@@ -95,7 +95,7 @@ async function createDeliveryLog(
     return null;
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await (supabaseAdmin as any)
     .from('webhook_deliveries')
     .insert({
       webhook_id: webhookId,
@@ -131,7 +131,7 @@ async function updateDeliveryLog(
     return;
   }
 
-  const { error } = await supabaseAdmin
+  const { error } = await (supabaseAdmin as any)
     .from('webhook_deliveries')
     .update(updates)
     .eq('id', deliveryId);
@@ -164,7 +164,7 @@ export async function deliverWebhook(
   }
 
   // Find all enabled webhooks for this workspace that subscribe to this event type
-  const { data: webhooks, error } = await supabaseAdmin
+  const { data: webhooks, error } = await (supabaseAdmin as any)
     .from('workspace_webhooks')
     .select('id, workspace_id, url, enabled, event_types, secret')
     .eq('workspace_id', workspaceId)
@@ -180,7 +180,7 @@ export async function deliverWebhook(
   }
 
   // Filter webhooks that subscribe to this event type
-  const subscribedWebhooks = webhooks.filter(webhook => {
+  const subscribedWebhooks = webhooks.filter((webhook: any) => {
     const eventTypes = webhook.event_types as string[];
     return Array.isArray(eventTypes) && eventTypes.includes(eventType);
   });

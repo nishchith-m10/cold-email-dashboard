@@ -8,23 +8,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { supabaseAdmin } from '@/lib/supabase';
-
-// ============================================
-// TYPES
-// ============================================
-
-interface CampaignUpdatePayload {
-  name?: string;
-  description?: string | null;
-  updated_at?: string;
-}
+import { getTypedSupabaseAdmin, DEFAULT_WORKSPACE_ID, TypedSupabaseClient } from '@/lib/supabase';
 
 // ============================================
 // HELPERS
 // ============================================
 
-function jsonResponse(data: any, status = 200): NextResponse {
+function jsonResponse(data: Record<string, unknown>, status = 200): NextResponse {
   return NextResponse.json(data, { status });
 }
 
@@ -38,7 +28,11 @@ export async function PATCH(
 ) {
   const { id: campaignId } = await params;
   
-  if (!supabaseAdmin) {
+  // Get typed Supabase client - throws if not configured
+  let db: TypedSupabaseClient;
+  try {
+    db = getTypedSupabaseAdmin();
+  } catch {
     return jsonResponse({ success: false, error: 'Database not configured' }, 500);
   }
 
@@ -49,28 +43,23 @@ export async function PATCH(
   }
 
   // 3. Parse and validate request body
-  let body: any;
+  let body: { name?: string; description?: string | null };
   try {
     body = await req.json();
   } catch {
     return jsonResponse({ success: false, error: 'Invalid JSON body' }, 400);
   }
 
-  const { name, description } = body;
+  const name: string | undefined = body.name;
+  const description: string | null | undefined = body.description;
   
-  // Only allow updating name and description via this endpoint
-  const updates: CampaignUpdatePayload = {};
-  if (name !== undefined) updates.name = name;
-  if (description !== undefined) updates.description = description;
-
-  if (Object.keys(updates).length === 0) {
+  // Check if there are any updates to make
+  if (name === undefined && description === undefined) {
     return jsonResponse({ success: true, message: 'No changes provided' });
   }
 
-  updates.updated_at = new Date().toISOString();
-
   // 4. Fetch campaign to verify ownership/access
-  const { data: campaign, error: fetchError } = await supabaseAdmin
+  const { data: campaign, error: fetchError } = await db
     .from('campaigns')
     .select('workspace_id')
     .eq('id', campaignId)
@@ -80,29 +69,29 @@ export async function PATCH(
     return jsonResponse({ success: false, error: 'Campaign not found' }, 404);
   }
 
-  type CampaignRow = { workspace_id: string };
-  const campaignData = campaign as CampaignRow;
-
   // 5. Verify workspace authorization
-  const { data: membership } = await supabaseAdmin
+  const { data: membership } = await db
     .from('user_workspaces')
     .select('role')
-    .eq('workspace_id', campaignData.workspace_id)
+    .eq('workspace_id', campaign.workspace_id)
     .eq('user_id', userId)
     .single();
 
-  const DEFAULT_WORKSPACE_ID = '00000000-0000-0000-0000-000000000001';
-  if (!membership && campaignData.workspace_id !== DEFAULT_WORKSPACE_ID) {
+  if (!membership && campaign.workspace_id !== DEFAULT_WORKSPACE_ID) {
     return jsonResponse(
       { success: false, error: 'Not authorized to modify this campaign' },
       403
     );
   }
 
-  // 6. Update campaign
-  const { data: updatedCampaign, error: updateError } = await supabaseAdmin
+  // 6. Update campaign with inline object literal (required for Supabase typing)
+  const { data: updatedCampaign, error: updateError } = await db
     .from('campaigns')
-    .update(updates)
+    .update({
+      ...(name !== undefined && { name }),
+      ...(description !== undefined && { description }),
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', campaignId)
     .select()
     .single();
@@ -128,7 +117,11 @@ export async function DELETE(
 ) {
   const { id: campaignId } = await params;
   
-  if (!supabaseAdmin) {
+  // Get typed Supabase client - throws if not configured
+  let db: TypedSupabaseClient;
+  try {
+    db = getTypedSupabaseAdmin();
+  } catch {
     return jsonResponse({ success: false, error: 'Database not configured' }, 500);
   }
 
@@ -139,7 +132,7 @@ export async function DELETE(
   }
 
   // 3. Fetch campaign to verify ownership/access
-  const { data: campaign, error: fetchError } = await supabaseAdmin
+  const { data: campaign, error: fetchError } = await db
     .from('campaigns')
     .select('workspace_id, name')
     .eq('id', campaignId)
@@ -150,14 +143,13 @@ export async function DELETE(
   }
 
   // 4. Verify workspace authorization (requires manage permission)
-  const { data: membership } = await supabaseAdmin
+  const { data: membership } = await db
     .from('user_workspaces')
     .select('role')
     .eq('workspace_id', campaign.workspace_id)
     .eq('user_id', userId)
     .single();
 
-  const DEFAULT_WORKSPACE_ID = '00000000-0000-0000-0000-000000000001';
   const hasAccess = membership || campaign.workspace_id === DEFAULT_WORKSPACE_ID;
   const canManage = membership?.role === 'owner' || membership?.role === 'admin';
 
@@ -169,7 +161,7 @@ export async function DELETE(
   }
 
   // 5. Delete the campaign
-  const { error: deleteError } = await supabaseAdmin
+  const { error: deleteError } = await db
     .from('campaigns')
     .delete()
     .eq('id', campaignId);

@@ -40,9 +40,9 @@ export interface CampaignStat {
 
 export interface EmailEvent {
   contact_email: string;
-  campaign_name: string;
+  campaign_name: string | null;
   event_type: string;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface RAGContext {
@@ -212,12 +212,13 @@ export async function buildRAGContext(
 
   const campaignStatsMap = new Map<string, { sends: number; replies: number; opt_outs: number; bounces: number }>();
   campaignEvents?.forEach(e => {
-    const stats = campaignStatsMap.get(e.campaign_name) || { sends: 0, replies: 0, opt_outs: 0, bounces: 0 };
+    const campaignName = e.campaign_name ?? 'Unknown';
+    const stats = campaignStatsMap.get(campaignName) || { sends: 0, replies: 0, opt_outs: 0, bounces: 0 };
     if (e.event_type === 'sent') stats.sends++;
     if (e.event_type === 'replied') stats.replies++;
     if (e.event_type === 'opt_out') stats.opt_outs++;
     if (e.event_type === 'bounced') stats.bounces++;
-    campaignStatsMap.set(e.campaign_name, stats);
+    campaignStatsMap.set(campaignName, stats);
   });
 
   const campaignCostMap = new Map<string, number>();
@@ -273,7 +274,7 @@ export async function buildRAGContext(
   // Get total leads count
   const leadsTable = await getLeadsTableName(workspaceId);
   const { count: totalLeads } = await supabase
-    .from(leadsTable)
+    .from(leadsTable as 'leads_ohio')
     .select('*', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId);
 

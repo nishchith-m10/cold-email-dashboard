@@ -27,11 +27,14 @@ export async function GET(req: NextRequest) {
     }
 
     // Try to get existing selection from genesis.workspace_apify_config
-    const { data, error } = await supabaseAdmin!
-      .from('genesis.workspace_apify_config' as any)
+    const result = await (supabaseAdmin as any)
+      .from('genesis.workspace_apify_config')
       .select('mode, validated')
       .eq('workspace_id', workspaceId)
       .single();
+
+    const data = result.data as { mode?: string; validated?: boolean } | null;
+    const error = result.error;
 
     if (error) {
       // Table might not exist yet, return default
