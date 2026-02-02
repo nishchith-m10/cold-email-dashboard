@@ -7,8 +7,8 @@ export const dynamic = 'force-dynamic';
 
 type LeadRow = {
   id: number;
-  workspace_id: string;
-  email_address: string;
+  workspace_id: string | null;
+  email_address: string | null;
   full_name: string | null;
   organization_name: string | null;
   linkedin_url: string | null;
@@ -20,7 +20,7 @@ type LeadRow = {
   organization_website: string | null;
   position: string | null;
   industry: string | null;
-  created_at?: string;
+  created_at: string | null;
 };
 
 type EventRow = {
@@ -61,8 +61,9 @@ export async function GET(
 
   try {
     const leadsTable = await getLeadsTableName(workspaceId);
+    // Use type assertion for dynamic table name - we know leads tables have consistent schema
     const { data: lead, error: leadError } = await supabaseAdmin
-      .from(leadsTable)
+      .from(leadsTable as 'leads_ohio')
       .select(
         `
           id,
@@ -91,6 +92,7 @@ export async function GET(
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
+    const emailAddress = lead.email_address || '';
     const { data: events, error: eventsError } = await supabaseAdmin
       .from('email_events')
       .select(
@@ -106,7 +108,7 @@ export async function GET(
         `
       )
       .eq('workspace_id', workspaceId)
-      .or(`contact_email.eq.${lead.email_address},contact_email.eq.${lead.email_address.toLowerCase?.() || lead.email_address}`)
+      .or(`contact_email.eq.${emailAddress},contact_email.eq.${emailAddress.toLowerCase()}`)
       .order('event_ts', { ascending: true })
       .limit(200);
 

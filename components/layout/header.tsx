@@ -495,7 +495,8 @@ export function Header({ onCommandOpen, onShareOpen }: HeaderProps) {
                         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-elevated">
                           <h3 className="text-sm font-semibold text-text-primary">Notifications</h3>
                           {unreadCount > 0 && (
-                            <button 
+                            <button
+                              type="button"
                               onClick={markAllAsRead}
                               className="text-xs text-accent-primary hover:text-accent-primary/80 transition-colors"
                             >
@@ -584,6 +585,7 @@ export function Header({ onCommandOpen, onShareOpen }: HeaderProps) {
             <SignedIn>
               <div className="relative" ref={profileRef}>
                 <button
+                  type="button"
                   onClick={() => {
                     setShowProfile(!showProfile);
                     setShowNotifications(false);
@@ -657,6 +659,7 @@ export function Header({ onCommandOpen, onShareOpen }: HeaderProps) {
                               transition={{ type: "spring", stiffness: 400, damping: 20 }}
                             />
                             <button
+                              type="button"
                               onClick={() => changeTheme('light')}
                               className={cn(
                                 "relative z-10 flex items-center justify-center gap-2 py-1.5 rounded-md text-sm font-medium transition-colors",
@@ -667,6 +670,7 @@ export function Header({ onCommandOpen, onShareOpen }: HeaderProps) {
                               Light
                             </button>
                             <button
+                              type="button"
                               onClick={() => changeTheme('dark')}
                               className={cn(
                                 "relative z-10 flex items-center justify-center gap-2 py-1.5 rounded-md text-sm font-medium transition-colors",
@@ -710,6 +714,7 @@ export function Header({ onCommandOpen, onShareOpen }: HeaderProps) {
                         {/* Clear Cache Button */}
                         <div className="px-2">
                           <button
+                            type="button"
                             onClick={clearCache}
                             disabled={isClearing}
                             className={cn(
@@ -741,6 +746,7 @@ export function Header({ onCommandOpen, onShareOpen }: HeaderProps) {
                         <div className="my-2 border-t border-border" />
 
                         <button
+                          type="button"
                           onClick={() => {
                             setShowProfile(false);
                             openUserProfile();
@@ -751,6 +757,7 @@ export function Header({ onCommandOpen, onShareOpen }: HeaderProps) {
                           Manage Account
                         </button>
                         <button
+                          type="button"
                           onClick={handleSignOut}
                           className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-accent-danger hover:bg-surface-elevated transition-colors"
                         >

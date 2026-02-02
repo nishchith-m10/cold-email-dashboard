@@ -126,7 +126,7 @@ export async function createPartition(
 
   try {
     // Call the database function
-    const { data, error } = await supabaseClient.rpc(
+    const { data, error } = await (supabaseClient.schema('genesis') as any).rpc(
       'fn_ignite_workspace_partition',
       {
         p_workspace_id: workspaceId,
@@ -340,13 +340,13 @@ export async function dropPartition(
   validateWorkspaceId(workspaceId);
 
   try {
-    const { data, error } = await supabaseClient.rpc<PartitionDropResult>(
+    const { data, error } = await (supabaseClient.schema('genesis') as any).rpc(
       'fn_drop_workspace_partition',
       {
         p_workspace_id: workspaceId,
         p_force: force,
       }
-    );
+    ) as { data: PartitionDropResult[] | null; error: any };
 
     if (error) {
       return {

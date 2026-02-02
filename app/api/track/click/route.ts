@@ -58,8 +58,8 @@ async function trackClickEvent(
   if (!supabaseAdmin) return;
 
   try {
-    // Get or create contact
-    const { data: contact } = await supabaseAdmin
+    // Get or create contact - NOTE: 'contacts' table may not exist in all deployments
+    const { data: contact } = await (supabaseAdmin as any)
       .from('contacts')
       .upsert(
         {
@@ -81,6 +81,7 @@ async function trackClickEvent(
       campaign_name: campaign,
       email_number: step,
       event_type: 'clicked',
+      event_ts: new Date().toISOString(),
       metadata: {
         link_id: linkId,
         destination_url: destinationUrl,

@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_STRICT, RATE_LIMIT_READ } from '@/lib/rate-limit';
 import { canWriteToWorkspace } from '@/lib/workspace-access';
+import type { Json } from '@/lib/database.types';
 
 // PILLAR 5: Import sanitization (settings endpoint doesn't return full workspace, but enforce safe pattern)
 import { sanitizeWorkspace } from '@/lib/response-sanitizer';
@@ -119,7 +120,8 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to load settings' }, { status: 500, headers: API_HEADERS });
   }
 
-  const nextSettings = { ...(existing?.settings || {}) };
+  const currentSettings = (existing?.settings || {}) as Record<string, unknown>;
+  const nextSettings: Record<string, unknown> = { ...currentSettings };
   if (timezone !== undefined) nextSettings.timezone = timezone;
   if (autoRefresh !== null) nextSettings.auto_refresh_seconds = autoRefresh;
   if (workspaceName !== undefined) nextSettings.workspace_name = workspaceName;
@@ -128,7 +130,7 @@ export async function PATCH(req: NextRequest) {
 
   const { error: updateErr } = await supabaseAdmin
     .from('workspaces')
-    .update({ settings: nextSettings, updated_at: new Date().toISOString() })
+    .update({ settings: nextSettings as Json, updated_at: new Date().toISOString() })
     .eq('id', workspaceId);
 
   if (updateErr) {

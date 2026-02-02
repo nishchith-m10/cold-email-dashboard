@@ -29,7 +29,7 @@ interface ToggleResponse {
     name: string;
     status: CampaignStatus;
     n8n_status: N8nStatus;
-    version: number;
+    version: number | null;
   };
   error?: string;
 }
@@ -126,8 +126,8 @@ export async function POST(
       campaign: {
         id: campaign.id,
         name: campaign.name,
-        status: campaign.status,
-        n8n_status: campaign.n8n_status,
+        status: campaign.status as CampaignStatus,
+        n8n_status: campaign.n8n_status as N8nStatus,
         version: campaign.version,
       },
     });
@@ -185,7 +185,7 @@ export async function POST(
       updated_at: new Date().toISOString(),
     })
     .eq('id', campaignId)
-    .eq('version', campaign.version) // Optimistic concurrency check
+    .eq('version', campaign.version ?? 1) // Optimistic concurrency check
     .select()
     .single();
 
@@ -238,8 +238,8 @@ export async function POST(
     campaign: {
       id: updatedCampaign.id,
       name: updatedCampaign.name,
-      status: updatedCampaign.status,
-      n8n_status: updatedCampaign.n8n_status,
+      status: updatedCampaign.status as CampaignStatus,
+      n8n_status: updatedCampaign.n8n_status as N8nStatus,
       version: updatedCampaign.version,
     },
   });

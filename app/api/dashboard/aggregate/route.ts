@@ -323,10 +323,10 @@ async function fetchAggregateData(
     .gte('created_at', `${startDate}T00:00:00Z`)
     .lte('created_at', `${endDate}T23:59:59Z`);
 
-  // 5. Daily stats for contacts reached (email 1 sends)
+  // 5. Daily stats for contacts reached (sends)
   let contactsQuery = supabaseAdmin
     .from('daily_stats')
-    .select('campaign_name, email_1_sends')
+    .select('campaign_name, sends')
     .eq('workspace_id', workspaceId)
     .gte('day', startDate)
     .lte('day', endDate);
@@ -350,7 +350,7 @@ async function fetchAggregateData(
   // 8. Leads count (for percentage calculation)
   const leadsTable = await getLeadsTableName(workspaceId);
   const leadsCountQuery = supabaseAdmin
-    .from(leadsTable)
+    .from(leadsTable as 'leads_ohio')
     .select('*', { count: 'exact', head: true })
     .eq('workspace_id', workspaceId);
 
@@ -723,7 +723,7 @@ async function fetchAggregateData(
     for (const row of contactsResult.data || []) {
       const name = row.campaign_name || 'Unknown';
       if (shouldExcludeCampaign(name)) continue;
-      campaignContactsMap.set(name, (campaignContactsMap.get(name) || 0) + (Number(row.email_1_sends) || 0));
+      campaignContactsMap.set(name, (campaignContactsMap.get(name) || 0) + (Number(row.sends) || 0));
     }
   }
 

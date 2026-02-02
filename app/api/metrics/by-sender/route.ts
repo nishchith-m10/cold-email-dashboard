@@ -89,7 +89,7 @@ async function fetchBySenderData(
   if (contactEmails.length > 0) {
     const leadsTable = await getLeadsTableName(workspaceId);
     const { data: leadsData } = await client
-      .from(leadsTable)
+      .from(leadsTable as 'leads_ohio')
       .select('email_address, sender_email')
       .eq('workspace_id', workspaceId)
       .in('email_address', contactEmails);

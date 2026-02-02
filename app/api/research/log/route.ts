@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
+import type { Json } from '@/lib/database.types';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
         contact_email: body.contact_email,
         campaign_name: body.campaign_name || null,
         search_query: body.search_query,
-        raw_results: body.raw_results || {},
+        raw_results: (body.raw_results || null) as unknown as Json,
         summary: body.summary,
         quality_score: qualityScore,
         sources_count: body.sources_count || 0,

@@ -127,7 +127,7 @@ export class EmailProviderService implements IEmailProviderService {
         .from('email_provider_config')
         .update(row)
         .eq('workspace_id', workspaceId)
-        .select()
+        .select('*')
         .single();
       
       if (error || !data) {
@@ -140,7 +140,7 @@ export class EmailProviderService implements IEmailProviderService {
       const { data, error } = await this.db
         .from('email_provider_config')
         .insert(row)
-        .select()
+        .select('*')
         .single();
       
       if (error || !data) {

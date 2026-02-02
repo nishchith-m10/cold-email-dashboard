@@ -157,7 +157,7 @@ async function fetchStepBreakdownData(
   try {
     const leadsTable = await getLeadsTableName(workspaceId);
     const { count, error: countError } = await supabaseAdmin
-      .from(leadsTable)
+      .from(leadsTable as 'leads_ohio')
       .select('*', { count: 'exact', head: true })
       .eq('workspace_id', workspaceId);
     

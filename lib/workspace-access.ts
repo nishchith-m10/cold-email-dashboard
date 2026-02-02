@@ -401,6 +401,10 @@ export async function createWorkspace(
       return { workspace: null, error: wsError.message };
     }
 
+    if (!workspace) {
+      return { workspace: null, error: 'Failed to create workspace' };
+    }
+
     // Add user as owner
     const { error: memberError } = await supabaseAdmin
       .from('user_workspaces')

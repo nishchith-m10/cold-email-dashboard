@@ -121,7 +121,7 @@ export async function POST(
         created_by: userId,
         role,
         uses_remaining: uses,
-        expires_at: expiresAt,
+        expires_at: expiresAt?.toISOString() || null,
       })
       .select()
       .single();

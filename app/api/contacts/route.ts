@@ -7,11 +7,11 @@ export const dynamic = 'force-dynamic';
 
 type LeadRow = {
   id: number;
-  workspace_id: string;
+  workspace_id: string | null;
   full_name: string | null;
   organization_name: string | null;
   linkedin_url: string | null;
-  email_address: string;
+  email_address: string | null;
   email_1_sent: boolean | null;
   email_2_sent: boolean | null;
   email_3_sent: boolean | null;
@@ -20,13 +20,13 @@ type LeadRow = {
   organization_website: string | null;
   position: string | null;
   industry: string | null;
-  created_at?: string;
+  created_at: string | null;
 };
 
 type LeadResponseItem = {
   id: number;
   name: string | null;
-  email: string;
+  email: string | null;
   company: string | null;
   status: 'not_sent' | 'contacted' | 'replied' | 'opt_out' | 'cycle_one';
   last_contacted_at: string | null;
@@ -87,10 +87,10 @@ export async function GET(req: NextRequest) {
     // detail panel to filter which events are displayed.
     // This aligns with Dashboard/Analytics behavior.
     
-    // Build leads query
+    // Build leads query - use type assertion for dynamic table name
     const leadsTable = await getLeadsTableName(workspaceId);
     let query = supabaseAdmin
-      .from(leadsTable)
+      .from(leadsTable as 'leads_ohio')
       .select(
         `
           id,
@@ -143,7 +143,9 @@ export async function GET(req: NextRequest) {
     };
 
     // Batch fetch last_contacted_at for all contacts in ONE query (fixes N+1)
-    const emails = (data || []).map((row: LeadRow) => row.email_address?.toLowerCase?.() || row.email_address);
+    const emails = (data || [])
+      .map((row: LeadRow) => row.email_address?.toLowerCase() || row.email_address)
+      .filter((email): email is string => email !== null);
     const emailToLastTs = new Map<string, string>();
 
     if (supabaseAdmin && emails.length > 0) {
@@ -168,14 +170,14 @@ export async function GET(req: NextRequest) {
     }
 
     const contacts: LeadResponseItem[] = (data || []).map((row: LeadRow) => {
-      const emailKey = row.email_address?.toLowerCase?.() || row.email_address;
+      const emailKey = row.email_address?.toLowerCase() || row.email_address || '';
       return {
         id: row.id,
         name: row.full_name,
         email: row.email_address,
         company: row.organization_name,
         status: deriveStatus(row),
-        last_contacted_at: emailToLastTs.get(emailKey) || null,
+        last_contacted_at: emailKey ? (emailToLastTs.get(emailKey) || null) : null,
         created_at: row.created_at || null,
         linkedin_url: row.linkedin_url,
         organization_website: row.organization_website,
@@ -248,7 +250,7 @@ export async function POST(req: NextRequest) {
       opted_out: body.opted_out ?? false,
     };
 
-    const leadsTablePost = await getLeadsTableName(workspaceId);
+    const leadsTablePost = await getLeadsTableName(workspaceId) as 'leads_ohio';
     let lead: LeadRow | null = null;
     const insertResult = await supabaseAdmin
       .from(leadsTablePost)

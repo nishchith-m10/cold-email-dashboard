@@ -12,12 +12,12 @@ export type { NotificationTemplate } from './notification-templates';
 
 // Channels
 export {
-  INotificationChannel,
   GmailChannel,
   TelegramChannel,
   MockNotificationChannel,
 } from './notification-channels';
 export type {
+  INotificationChannel,
   GmailChannelConfig,
   TelegramChannelConfig,
 } from './notification-channels';

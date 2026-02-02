@@ -71,24 +71,22 @@ export interface QueryOptions {
 
 export interface DailyStatsRow {
   day: string;
-  sends: number;
-  replies: number;
-  opt_outs: number;
-  bounces: number;
-  opens: number;
-  clicks: number;
-  campaign_name?: string;
+  sends: number | null;
+  replies: number | null;
+  opt_outs: number | null;
+  bounces: number | null;
+  campaign_name?: string | null;
 }
 
 export interface LlmUsageRow {
   id: string;
   provider: string;
   model: string;
-  tokens_in: number;
-  tokens_out: number;
-  cost_usd: number;
-  created_at: string;
-  campaign_name?: string;
+  tokens_in: number | null;
+  tokens_out: number | null;
+  cost_usd: number | null;
+  created_at: string | null;
+  campaign_name?: string | null;
 }
 
 // ============================================
@@ -112,7 +110,7 @@ export async function getDailyStats(
   try {
     let query = supabaseAdmin
       .from('daily_stats')
-      .select('day, sends, replies, opt_outs, bounces, opens, clicks, campaign_name')
+      .select('day, sends, replies, opt_outs, bounces, campaign_name')
       .eq('workspace_id', workspaceId)
       .gte('day', dateRange.start)
       .lte('day', dateRange.end)
@@ -145,8 +143,6 @@ export async function getSummaryTotals(
     replies: number;
     opt_outs: number;
     bounces: number;
-    opens: number;
-    clicks: number;
   } | null;
   error: Error | null;
 }> {
@@ -162,10 +158,8 @@ export async function getSummaryTotals(
       replies: acc.replies + (row.replies || 0),
       opt_outs: acc.opt_outs + (row.opt_outs || 0),
       bounces: acc.bounces + (row.bounces || 0),
-      opens: acc.opens + (row.opens || 0),
-      clicks: acc.clicks + (row.clicks || 0),
     }),
-    { sends: 0, replies: 0, opt_outs: 0, bounces: 0, opens: 0, clicks: 0 }
+    { sends: 0, replies: 0, opt_outs: 0, bounces: 0 }
   );
 
   return { data: totals, error: null };

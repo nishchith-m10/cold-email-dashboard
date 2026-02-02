@@ -56,7 +56,7 @@ async function fetchByCampaignData(
     };
   }
 
-  // Build queries - query email_events directly (source of truth) and daily_stats (for email_1_sends)
+  // Build queries - query email_events directly (source of truth) and daily_stats (for sends)
   let eventsQuery = supabaseAdmin
     .from('email_events')
     .select('campaign_name, event_type, contact_email, email_number, step, metadata')
@@ -73,7 +73,7 @@ async function fetchByCampaignData(
 
   let contactsQuery = supabaseAdmin
     .from('daily_stats')
-    .select('campaign_name, email_1_sends')
+    .select('campaign_name, sends')
     .eq('workspace_id', workspaceId)
     .gte('day', startDate)
     .lte('day', endDate);
@@ -174,7 +174,7 @@ async function fetchByCampaignData(
       if (shouldExcludeCampaign(campaignName)) continue;
 
       const existing = contactsMap.get(campaignName) || 0;
-      contactsMap.set(campaignName, existing + (Number(row.email_1_sends) || 0));
+      contactsMap.set(campaignName, existing + (Number(row.sends) || 0));
     }
   }
 

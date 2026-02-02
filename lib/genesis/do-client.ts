@@ -376,13 +376,13 @@ export async function createDOClientFromAccount(
   );
 
   // Set encryption key in session (required for decryption function)
-  await supabase.rpc('set_config', {
+  await (supabase as any).rpc('set_config', {
     setting_name: 'app.encryption_key',
     setting_value: process.env.INTERNAL_ENCRYPTION_KEY!
   });
 
   // Decrypt token
-  const { data: token, error } = await supabase.rpc('decrypt_do_token', {
+  const { data: token, error } = await (supabase.schema('genesis') as any).rpc('decrypt_do_token', {
     p_account_id: accountId
   });
 
