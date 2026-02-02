@@ -43,7 +43,16 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
   
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  const handleSignOut = () => {
+    setShowUserMenu(false);
+    setIsSigningOut(true);
+    setTimeout(() => {
+      signOut({ redirectUrl: '/sign-in' });
+    }, 500);
+  };
 
   const query = workspace?.slug ? `?workspace=${workspace.slug}` : '';
   const isOnboarding = pathname === '/onboarding';
@@ -287,7 +296,8 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
                       </button>
 
                       <button
-                        onClick={() => signOut()}
+                        type="button"
+                        onClick={handleSignOut}
                         className="flex items-center gap-2 px-3 py-2 rounded hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 transition-colors w-full text-left"
                       >
                         <LogOut className="h-4 w-4" />
@@ -301,6 +311,7 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
           </div>
         </div>
       </div>
+      <SignOutTransition isVisible={isSigningOut} />
     </header>
   );
 }
