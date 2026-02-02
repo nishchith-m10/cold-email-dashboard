@@ -14,6 +14,7 @@ import { useUser, useClerk } from '@clerk/nextjs';
 import { useWorkspace } from '@/lib/workspace-context';
 import { useNotifications } from '@/hooks/use-notifications';
 import { WorkspaceSwitcher } from '@/components/dashboard/workspace-switcher';
+import { SignOutTransition } from '@/components/ui/sign-out-transition';
 import { Button } from '@/components/ui/button';
 import { 
   Search, 

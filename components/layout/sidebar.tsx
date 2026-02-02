@@ -3,11 +3,14 @@
 /**
  * Vertical Sidebar Navigation
  * Hybrid approach: Compact vertical sidebar + horizontal top navbar
+ * 
+ * IMPORTANT: Navigation preserves URL search params (start, end, campaign, workspace)
+ * to ensure date range selections persist across page navigation.
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSidebar } from '@/lib/sidebar-context';
 import { useWorkspace } from '@/lib/workspace-context';
@@ -56,8 +59,32 @@ export function Sidebar() {
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const menuCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const isAdmin = userRole === 'owner' || userRole === 'admin';
-  const query = workspace?.slug ? `?workspace=${workspace.slug}` : '';
+  // Include super_admin in admin check for Admin panel access
+  const isAdmin = userRole === 'owner' || userRole === 'admin' || userRole === 'super_admin';
+  
+  // Preserve URL search params (start, end, campaign) when navigating
+  const searchParams = useSearchParams();
+  const query = useMemo(() => {
+    const params = new URLSearchParams();
+    
+    // Always include workspace slug if present
+    if (workspace?.slug) {
+      params.set('workspace', workspace.slug);
+    }
+    
+    // Preserve date range params
+    const start = searchParams.get('start');
+    const end = searchParams.get('end');
+    if (start) params.set('start', start);
+    if (end) params.set('end', end);
+    
+    // Preserve campaign filter
+    const campaign = searchParams.get('campaign');
+    if (campaign) params.set('campaign', campaign);
+    
+    const queryString = params.toString();
+    return queryString ? `?${queryString}` : '';
+  }, [workspace?.slug, searchParams]);
 
   // Don't show sidebar on auth pages or join page
   if (pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up') || pathname === '/join') {
