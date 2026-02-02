@@ -101,13 +101,10 @@ function MainContentWithSidebar({ children, pathname }: { children: React.ReactN
     <main 
       className={cn(
         isCleanLayout ? '' : 'max-w-[1600px] mx-auto px-4 md:px-6 pb-8 mt-12',
-        'md:pb-8',
-        'transition-[margin-left] will-change-[margin-left]' // GPU accelerated
+        'transition-all duration-200 ease-in-out' // Smooth transition for margin-left
       )} 
       style={{
         marginLeft: isCleanLayout ? 0 : `${effectiveWidth}px`,
-        transitionDuration: '200ms',
-        transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)'
       }}
       data-tour="welcome"
     >

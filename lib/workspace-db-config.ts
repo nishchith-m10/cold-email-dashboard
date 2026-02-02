@@ -9,6 +9,8 @@
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from './supabase';
 
 // Default leads table name for backwards compatibility
+// NOTE: Ohio workspace (DEFAULT_WORKSPACE_ID) uses leads_ohio and is kept separate
+// from Genesis architecture as per Genesis Singularity Plan
 const DEFAULT_LEADS_TABLE = 'leads_ohio';
 
 // Cache for leads table names to avoid repeated DB lookups
@@ -30,11 +32,13 @@ export async function getLeadsTableName(workspaceId: string): Promise<string> {
   // Check cache first
   const cached = leadsTableCache.get(workspaceId);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    console.log(`[getLeadsTableName] Cache hit for workspace ${workspaceId}: ${cached.tableName}`);
     return cached.tableName;
   }
 
   // Default workspace always uses default table
   if (workspaceId === DEFAULT_WORKSPACE_ID) {
+    console.log(`[getLeadsTableName] Using default table for workspace ${workspaceId}: ${DEFAULT_LEADS_TABLE}`);
     leadsTableCache.set(workspaceId, { tableName: DEFAULT_LEADS_TABLE, timestamp: Date.now() });
     return DEFAULT_LEADS_TABLE;
   }
@@ -69,6 +73,8 @@ export async function getLeadsTableName(workspaceId: string): Promise<string> {
       ? leadsTable 
       : DEFAULT_LEADS_TABLE;
 
+    console.log(`[getLeadsTableName] Workspace ${workspaceId} resolved to table: ${sanitizedTableName}`);
+    
     // Cache the result
     leadsTableCache.set(workspaceId, { tableName: sanitizedTableName, timestamp: Date.now() });
     
