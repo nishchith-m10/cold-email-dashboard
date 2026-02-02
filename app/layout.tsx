@@ -28,7 +28,7 @@ export default function RootLayout({
           rel="stylesheet" 
         />
       </head>
-      <body className="min-h-screen bg-background antialiased">
+      <body className="min-h-screen bg-background antialiased" suppressHydrationWarning>
         <ClerkThemeProvider>
           <LayoutWrapper>
             {children}
