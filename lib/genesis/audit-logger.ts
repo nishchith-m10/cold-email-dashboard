@@ -86,7 +86,7 @@ export async function logAuditEvent(
   event: AuditEvent
 ): Promise<AuditLogResult> {
   try {
-    const { data, error } = await (supabaseClient.schema('genesis') as any).rpc(
+    const { data, error } = await supabaseClient.schema('genesis').rpc(
       'fn_log_audit_event',
       {
         p_actor_type: event.actorType,
@@ -373,7 +373,7 @@ export async function getAuditLogs(
 ) {
   try {
     let query = (supabaseClient
-      .schema('genesis') as any)
+      .schema('genesis')
       .from('audit_log')
       .select('*')
       .eq('workspace_id', workspaceId)

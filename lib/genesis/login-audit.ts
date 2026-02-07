@@ -572,7 +572,7 @@ export async function detectSuspiciousLoginActivity(
     }
 
     // Get recent login events for this user (last 24 hours)
-    const { data: recentLogins } = await (supabaseAdmin.schema('genesis') as any)
+    const { data: recentLogins } = await supabaseAdmin.schema('genesis')
       .from('audit_log')
       .select('*')
       .eq('actor_id', userId)
@@ -699,7 +699,7 @@ export async function getLoginHistory(
       return [];
     }
 
-    let query = (supabaseAdmin.schema('genesis') as any)
+    let query = supabaseAdmin.schema('genesis')
       .from('audit_log')
       .select('*')
       .eq('actor_id', userId)
@@ -751,7 +751,7 @@ export async function getFailedLoginAttempts(
       return [];
     }
 
-    const { data } = await (supabaseAdmin.schema('genesis') as any)
+    const { data } = await supabaseAdmin.schema('genesis')
       .from('audit_log')
       .select('*')
       .eq('action', 'LOGIN_FAILURE')
@@ -781,7 +781,7 @@ export async function getActiveSessions(userId: string) {
     }
 
     // Get all successful logins without corresponding logouts
-    const { data: logins } = await (supabaseAdmin.schema('genesis') as any)
+    const { data: logins } = await supabaseAdmin.schema('genesis')
       .from('audit_log')
       .select('*')
       .eq('actor_id', userId)
@@ -800,7 +800,7 @@ export async function getActiveSessions(userId: string) {
       const sessionId = login.details?.session_id;
       if (!sessionId) continue;
 
-      const { data: logout } = await (supabaseAdmin.schema('genesis') as any)
+      const { data: logout } = await supabaseAdmin.schema('genesis')
         .from('audit_log')
         .select('*')
         .eq('actor_id', userId)
