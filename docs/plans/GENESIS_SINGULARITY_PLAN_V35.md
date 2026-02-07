@@ -440,7 +440,7 @@
 - ✅ Zero migrations for Phase 67.B (extends audit_log)
 
 **Deployment Pending:**
-- 📝 Phase 68 Migration: `20260207140001_phase68_tenant_lifecycle.sql` (3 new tables: workspace_locks, data_export_jobs, deletion_jobs)
+- ✅ Phase 68 Migration DEPLOYED: `20260207140001_phase68_tenant_lifecycle.sql` (3 tables, 7 RLS policies, 3 functions)
 - 📝 Configure cron job for expired lock cleanup (`genesis.fn_cleanup_expired_locks()`)
 - 📝 Set up background job processor for data exports
 
