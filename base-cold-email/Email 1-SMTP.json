@@ -34,25 +34,6 @@
     },
     {
       "parameters": {
-        "sendTo": "nishchith.archive@gmail.com",
-        "subject": "={{ $json.email_1_subject }}",
-        "message": "={{ $json.tracked_body }}",
-        "options": {
-          "appendAttribution": false
-        }
-      },
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
-      "position": [
-        816,
-        -96
-      ],
-      "name": "Gmail",
-      "webhookId": "7991dbd6-9db7-4a38-ab95-b4c9756b93ee",
-      "disabled": true
-    },
-    {
-      "parameters": {
         "options": {}
       },
       "type": "n8n-nodes-base.splitInBatches",
@@ -156,7 +137,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// EMAIL 1 CLICK TRACKING\nconst DASHBOARD_URL = 'http://stewpidprice.com:3000';\nconst UNSUB_BASE = 'https://n8n-deployment-hlnal.ondigitalocean.app/webhook/Unsubscribe';\nconst WORKSPACE_ID = 'default';\n\nconst emailBody = $json.email_1_body || '';\nconst contactEmail = $json.email_adress || '';\nconst token = $json.Token || '';\nconst campaign = 'Ohio';\nconst step = 1;\n\n// ✅ CLICK TRACKING: Wrap all links\nfunction wrapLink(originalUrl, linkId) {\n  return `${DASHBOARD_URL}/api/track/click?url=${encodeURIComponent(originalUrl)}&e=${encodeURIComponent(contactEmail)}&c=${encodeURIComponent(campaign)}&s=${step}&l=${encodeURIComponent(linkId || 'cta')}&w=${encodeURIComponent(WORKSPACE_ID)}`;\n}\n\nlet trackedBody = emailBody;\nconst linkRegex = /<a\\s+([^>]*?)href=[\"']([^\"']+)[\"']([^>]*?)>/gi;\nlet linkIndex = 0;\n\n// Wrap all links in email body\ntrackedBody = trackedBody.replace(linkRegex, (match, before, url, after) => {\n  if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('#')) return match;\n  linkIndex++;\n  return `<a ${before}href=\"${wrapLink(url, 'link_' + linkIndex)}\"${after}>`;\n});\n\n// Add unsubscribe link with click tracking\nconst unsubUrl = `${UNSUB_BASE}?tkn=${encodeURIComponent(token)}`;\nconst trackedUnsubUrl = wrapLink(unsubUrl, 'unsubscribe');\ntrackedBody += `<br><br><a href=\"${trackedUnsubUrl}\">Click Here to Unsubscribe</a>`;\n\nreturn [{\n  json: {\n    ...$json,\n    tracked_body: trackedBody,\n    links_tracked: linkIndex + 1\n  }\n}];"
+        "jsCode": "// EMAIL 1 CLICK TRACKING\nconst DASHBOARD_URL = 'http://stewpidprice.com:3000';\nconst UNSUB_BASE = 'https://n8n-deployment-hlnal.ondigitalocean.app/webhook/Unsubscribe';\nconst WORKSPACE_ID = 'default';\n\nconst emailBody = $json.email_1_body || '';\nconst contactEmail = $json.email_adress || '';\nconst token = $json.Token || '';\nconst campaign = 'Ohio';\nconst step = 1;\n\n// \u2705 CLICK TRACKING: Wrap all links\nfunction wrapLink(originalUrl, linkId) {\n  return `${DASHBOARD_URL}/api/track/click?url=${encodeURIComponent(originalUrl)}&e=${encodeURIComponent(contactEmail)}&c=${encodeURIComponent(campaign)}&s=${step}&l=${encodeURIComponent(linkId || 'cta')}&w=${encodeURIComponent(WORKSPACE_ID)}`;\n}\n\nlet trackedBody = emailBody;\nconst linkRegex = /<a\\s+([^>]*?)href=[\"']([^\"']+)[\"']([^>]*?)>/gi;\nlet linkIndex = 0;\n\n// Wrap all links in email body\ntrackedBody = trackedBody.replace(linkRegex, (match, before, url, after) => {\n  if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('#')) return match;\n  linkIndex++;\n  return `<a ${before}href=\"${wrapLink(url, 'link_' + linkIndex)}\"${after}>`;\n});\n\n// Add unsubscribe link with click tracking\nconst unsubUrl = `${UNSUB_BASE}?tkn=${encodeURIComponent(token)}`;\nconst trackedUnsubUrl = wrapLink(unsubUrl, 'unsubscribe');\ntrackedBody += `<br><br><a href=\"${trackedUnsubUrl}\">Click Here to Unsubscribe</a>`;\n\nreturn [{\n  json: {\n    ...$json,\n    tracked_body: trackedBody,\n    links_tracked: linkIndex + 1\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
