@@ -13,7 +13,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Prevents concurrent lifecycle operations (deletion, export, migration)
 
 CREATE TABLE IF NOT EXISTS genesis.workspace_locks (
-    workspace_id TEXT PRIMARY KEY REFERENCES workspaces(id) ON DELETE CASCADE,
+    workspace_id UUID PRIMARY KEY REFERENCES workspaces(id) ON DELETE CASCADE,
     lock_type TEXT NOT NULL CHECK (lock_type IN ('deletion', 'export', 'migration', 'restoration')),
     locked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     locked_by TEXT NOT NULL,  -- User ID or 'system'
@@ -37,7 +37,7 @@ COMMENT ON COLUMN genesis.workspace_locks.expires_at IS 'Lock auto-released afte
 
 CREATE TABLE IF NOT EXISTS genesis.data_export_jobs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
     
     -- Job status
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'failed', 'cancelled')),
@@ -91,7 +91,7 @@ COMMENT ON COLUMN genesis.data_export_jobs.download_url IS 'Signed URL for downl
 
 CREATE TABLE IF NOT EXISTS genesis.deletion_jobs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
     
     -- Deletion status
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_grace_period', 'in_progress', 'completed', 'cancelled')),
@@ -225,7 +225,7 @@ CREATE POLICY deletion_jobs_insert ON genesis.deletion_jobs
 
 -- Acquire workspace lock
 CREATE OR REPLACE FUNCTION genesis.fn_acquire_workspace_lock(
-    p_workspace_id TEXT,
+    p_workspace_id UUID,
     p_lock_type TEXT,
     p_locked_by TEXT,
     p_timeout_minutes INTEGER DEFAULT 60
@@ -271,7 +271,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Release workspace lock
 CREATE OR REPLACE FUNCTION genesis.fn_release_workspace_lock(
-    p_workspace_id TEXT,
+    p_workspace_id UUID,
     p_lock_type TEXT
 ) RETURNS BOOLEAN AS $$
 BEGIN
