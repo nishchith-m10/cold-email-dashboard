@@ -129,7 +129,7 @@ export async function exportWorkspaceData(
   workspaceId: string
 ): Promise<WorkspaceDataExport | null> {
   try {
-    const { data, error } = await (supabaseClient.schema('genesis') as any).rpc(
+    const { data, error } = await supabaseClient.schema('genesis').rpc(
       'fn_export_workspace_data',
       {
         p_workspace_id: workspaceId,
@@ -229,7 +229,7 @@ export async function deleteWorkspaceData(
   userId?: string
 ): Promise<DataDeletionResult> {
   try {
-    const { data, error } = await (supabaseClient.schema('genesis') as any).rpc(
+    const { data, error } = await supabaseClient.schema('genesis').rpc(
       'fn_delete_workspace_data',
       {
         p_workspace_id: workspaceId,
@@ -305,7 +305,7 @@ export async function getGDPRComplianceReport(
   workspaceId: string
 ): Promise<GDPRComplianceReport | null> {
   try {
-    const { data, error } = await (supabaseClient.schema('genesis') as any).rpc(
+    const { data, error } = await supabaseClient.schema('genesis').rpc(
       'fn_get_gdpr_compliance_report',
       {
         p_workspace_id: workspaceId,
