@@ -89,10 +89,11 @@ export function CompactControls({
         {datePickerOpen && (
           <>
             <div 
+              key="date-picker-backdrop"
               className="fixed inset-0 z-40" 
               onClick={() => setDatePickerOpen(false)}
             />
-            <div className="absolute top-full right-0 mt-2 z-50">
+            <div key="date-picker-content" className="absolute top-full right-0 mt-2 z-50">
               <DateRangePickerContent
                 startDate={startDate}
                 endDate={endDate}
@@ -121,10 +122,11 @@ export function CompactControls({
         {timezoneOpen && (
           <>
             <div 
+              key="timezone-backdrop"
               className="fixed inset-0 z-40" 
               onClick={() => setTimezoneOpen(false)}
             />
-            <div className="absolute top-full right-0 mt-2 z-50">
+            <div key="timezone-content" className="absolute top-full right-0 mt-2 z-50">
               <TimezoneSelectorContent
                 selectedTimezone={timezone}
                 onTimezoneChange={(tz) => {
@@ -202,8 +204,9 @@ export function CompactControls({
       {/* Settings - Icon Only (optional) */}
       {showSettings && onSettingsOpen && (
         <>
-          <div className="h-5 w-px bg-border mx-1" />
+          <div key="settings-divider" className="h-5 w-px bg-border mx-1" />
           <Button
+            key="settings-button"
             variant="outline"
             size="icon"
             className="h-8 w-8"
