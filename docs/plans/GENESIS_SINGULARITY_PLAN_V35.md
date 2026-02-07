@@ -421,26 +421,28 @@
 
 ### PART VIII: COMPLIANCE & SECURITY
 
-**Status**: Phase 66 & 67 & 67.B ✅ COMPLETE | Phase 68 ⏳ NEXT
+**Status**: ✅ COMPLETE (All 4 phases deployed to main)
 
 | Phase | Title | Status | Focus |
 |-------|-------|--------|-------|
 | **66** | [Data Residency & GDPR Protocol](#phase-66-data-residency--gdpr-protocol) | ✅ COMPLETE | Multi-region storage, partition-droplet co-location |
 | **67** | [Audit Logging & Support Access](#phase-67-audit-logging--support-access) | ✅ COMPLETE | Compliance trail, time-limited debug access |
 | **67.B** | [Comprehensive Login Audit Trail](#phase-67b-comprehensive-login-audit-trail) | ✅ COMPLETE | Login tracking, session history, suspicious activity detection |
-| **68** | [Tenant Lifecycle Management](#phase-68-tenant-lifecycle-management) | ⏳ NEXT | Deletion protocol, data export, offboarding |
+| **68** | [Tenant Lifecycle Management](#phase-68-tenant-lifecycle-management) | ✅ COMPLETE | Deletion protocol, data export, offboarding |
 
 **Completed (2026-02-07):**
 - ✅ Phase 66: GDPR Right to Access, Right to Erasure, Compliance Reporting
 - ✅ Phase 67: Audit logging system, Support access tokens
 - ✅ Phase 67.B: Login audit trail (18 convenience functions, Clerk integration, suspicious activity detection)
-- ✅ 125 tests passing (Phase 66 & 67: 70 tests | Phase 67.B: 55 tests)
+- ✅ Phase 68: Tenant lifecycle (deletion, grace period, restore, data export, GDPR portability)
+- ✅ 140 tests passing (Phase 66 & 67: 70 | Phase 67.B: 55 | Phase 68: 15)
 - ✅ Phase 66 & 67 deployed to Supabase
-- ✅ Zero database migrations for Phase 67.B (extends existing audit_log)
+- ✅ Zero migrations for Phase 67.B (extends audit_log)
 
-**Remaining Work:**
-- ⏳ Phase 68: Tenant lifecycle management (workspace deletion, offboarding)
-- 📝 Type regeneration: Manual via Supabase dashboard (CLI access restricted) - removes `as any` casts in `audit-logger.ts` and `gdpr-service.ts`
+**Deployment Pending:**
+- 📝 Phase 68 Migration: `20260207140001_phase68_tenant_lifecycle.sql` (3 new tables: workspace_locks, data_export_jobs, deletion_jobs)
+- 📝 Configure cron job for expired lock cleanup (`genesis.fn_cleanup_expired_locks()`)
+- 📝 Set up background job processor for data exports
 
 ### PART IX: PLATFORM OPERATIONS (Previously Part VIII)
 
