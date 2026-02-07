@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { NotFoundClient } from '@/components/pages/not-found-client';
 import { Suspense } from 'react';
 
+export const dynamic = 'force-dynamic';
+
 export default function NotFound() {
   return (
     <Suspense fallback={null}>

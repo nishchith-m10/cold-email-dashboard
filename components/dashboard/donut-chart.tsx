@@ -7,7 +7,6 @@ import {
   Cell,
   ResponsiveContainer,
   Tooltip,
-  TooltipProps,
   Legend,
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -38,7 +37,7 @@ function CustomTooltip({
   payload,
   formatter,
   currency
-}: TooltipProps<number, string> & { formatter?: (v: number) => string; currency: Currency }) {
+}: any) {
   if (!active || !payload?.length) return null;
 
   const item = payload[0];

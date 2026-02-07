@@ -145,7 +145,9 @@ export function ClientShell({ children }: ClientShellProps) {
               {pathname !== '/join' && (
                 <>
                   <TopNavbar onCommandOpen={() => setCommandOpen(true)} onShareOpen={() => setShareOpen(true)} />
-                  <Sidebar />
+                  <Suspense fallback={null}>
+                    <Sidebar />
+                  </Suspense>
                 </>
               )}
 

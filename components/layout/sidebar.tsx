@@ -53,14 +53,14 @@ const ADMIN_ITEMS: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { mode, setMode, isHovered, setIsHovered, isExpanded, effectiveWidth } = useSidebar();
-  const { workspace, userRole } = useWorkspace();
+  const { workspace, userRole, isSuperAdmin } = useWorkspace();
   const workspaceId = workspace?.id;
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const menuCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Include super_admin in admin check for Admin panel access
-  const isAdmin = userRole === 'owner' || userRole === 'admin' || userRole === 'super_admin';
+  const isAdmin = userRole === 'owner' || userRole === 'admin' || isSuperAdmin;
   
   // Preserve URL search params (start, end, campaign) when navigating
   const searchParams = useSearchParams();

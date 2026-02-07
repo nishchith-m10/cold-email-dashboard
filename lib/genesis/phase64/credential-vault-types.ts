@@ -208,7 +208,6 @@ export interface BrandInfo {
   industry?: string;
   description?: string;
   logoUrl?: string;
-  tone?: string;
   targetAudience?: string;
   products?: string[];
   autoScraped: boolean;

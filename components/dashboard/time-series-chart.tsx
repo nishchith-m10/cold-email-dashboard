@@ -11,7 +11,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  TooltipProps,
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,7 +35,7 @@ function CustomTooltip({
   payload, 
   label,
   formatter 
-}: TooltipProps<number, string> & { formatter?: (v: number) => string }) {
+}: any) {
   if (!active || !payload?.length) return null;
 
   const value = payload[0].value as number;

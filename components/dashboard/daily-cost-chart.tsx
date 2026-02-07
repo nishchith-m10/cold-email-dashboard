@@ -10,7 +10,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  TooltipProps,
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -32,7 +31,7 @@ function CustomTooltip({
   payload, 
   label,
   currencyFormatter,
-}: TooltipProps<number, string> & { currencyFormatter: (amount: number) => string }) {
+}: any) {
   if (!active || !payload?.length) return null;
 
   const value = payload[0].value as number;
@@ -212,9 +211,10 @@ export function DailyCostChart({
                   fill="url(#costGradient)"
                   animationDuration={1000}
                   animationEasing="ease-out"
-                  dot={({ cx, cy, payload }: { cx: number; cy: number; payload: { value: number } }) => {
+                  dot={(props: any) => {
+                    const { cx, cy, payload } = props;
                     // Show dots for days with actual costs
-                    if (payload.value > 0) {
+                    if (payload?.value > 0) {
                       return (
                         <circle
                           key={`dot-${cx}-${cy}`}
