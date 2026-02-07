@@ -421,25 +421,26 @@
 
 ### PART VIII: COMPLIANCE & SECURITY
 
-**Status**: Phase 66 & 67 ✅ COMPLETE | Phase 67.B & 68 ⏳ PENDING
+**Status**: Phase 66 & 67 & 67.B ✅ COMPLETE | Phase 68 ⏳ NEXT
 
 | Phase | Title | Status | Focus |
 |-------|-------|--------|-------|
 | **66** | [Data Residency & GDPR Protocol](#phase-66-data-residency--gdpr-protocol) | ✅ COMPLETE | Multi-region storage, partition-droplet co-location |
 | **67** | [Audit Logging & Support Access](#phase-67-audit-logging--support-access) | ✅ COMPLETE | Compliance trail, time-limited debug access |
-| **67.B** | [Comprehensive Login Audit Trail](#phase-67b-comprehensive-login-audit-trail) | ⏳ NEXT | Login tracking, session history, action logging |
-| **68** | [Tenant Lifecycle Management](#phase-68-tenant-lifecycle-management) | ⏳ PENDING | Deletion protocol, data export, offboarding |
+| **67.B** | [Comprehensive Login Audit Trail](#phase-67b-comprehensive-login-audit-trail) | ✅ COMPLETE | Login tracking, session history, suspicious activity detection |
+| **68** | [Tenant Lifecycle Management](#phase-68-tenant-lifecycle-management) | ⏳ NEXT | Deletion protocol, data export, offboarding |
 
 **Completed (2026-02-07):**
 - ✅ Phase 66: GDPR Right to Access, Right to Erasure, Compliance Reporting
 - ✅ Phase 67: Audit logging system, Support access tokens
-- ✅ 70 tests passing (85.85% coverage)
-- ✅ SQL migrations ready: `20260207120001_phase67_audit_logging.sql`, `20260207120002_phase66_gdpr_functions.sql`
+- ✅ Phase 67.B: Login audit trail (18 convenience functions, Clerk integration, suspicious activity detection)
+- ✅ 125 tests passing (Phase 66 & 67: 70 tests | Phase 67.B: 55 tests)
+- ✅ Phase 66 & 67 deployed to Supabase
+- ✅ Zero database migrations for Phase 67.B (extends existing audit_log)
 
 **Remaining Work:**
-- ⏳ Phase 67.B: Login audit trail (extends Phase 67)
 - ⏳ Phase 68: Tenant lifecycle management (workspace deletion, offboarding)
-- 📝 Migration deployment: Apply Phase 66 & 67 SQL to Supabase (manual via SQL editor due to migration history conflicts)
+- 📝 Type regeneration: Manual via Supabase dashboard (CLI access restricted) - removes `as any` casts in `audit-logger.ts` and `gdpr-service.ts`
 
 ### PART IX: PLATFORM OPERATIONS (Previously Part VIII)
 
@@ -9597,6 +9598,304 @@ For tenants with >100,000 leads, the export is chunked:
 | <100,000 leads | Single ZIP file |
 | 100,000-500,000 leads | Multiple CSV files in ZIP |
 | >500,000 leads | Streamed export, multi-part download |
+
+---
+
+## 64.3 CRITICAL ADDITIONS (16-NINES QUALITY EXTENSIONS)
+
+> **Implementation Note:** These additions go beyond the original spec to achieve production-grade quality (99.9999999999999999% reliability).
+
+### 64.3.1 Deletion Safeguards
+
+**Pre-Deletion Validation:**
+
+| Check | Description | Failure Action |
+|-------|-------------|----------------|
+| **Active Campaigns** | Block deletion if campaigns in RUNNING or PAUSED state | Return error, list active campaigns |
+| **Positive Balance** | Warn if wallet balance > 0 | Show warning, offer refund process |
+| **In-Progress Export** | Block deletion if data export job is running | Return error, ask user to wait |
+| **Concurrent Requests** | Prevent duplicate deletion requests | Return existing deletion job ID |
+| **Dependency Check** | Count all resources to be deleted | Display full impact report |
+
+**Resource Dependency Map:**
+
+```typescript
+interface DeletionImpactReport {
+  workspaceId: string;
+  workspaceName: string;
+  resources: {
+    droplets: number;            // DigitalOcean droplets
+    partitions: number;          // Database partitions
+    campaigns: number;           // Active + paused campaigns
+    sequences: number;           // Email sequences
+    leads: number;               // Total lead records
+    emailEvents: number;         // Opens, clicks, replies
+    credentials: number;         // Stored API keys
+    webhooks: number;            // Webhook registrations
+    auditLogs: number;           // Audit trail entries
+    supportTokens: number;       // Active support tokens (Phase 67)
+    transactions: number;        // Financial records (retained)
+  };
+  estimatedSize: string;         // e.g., "2.3 GB"
+  walletBalance: number;         // Current balance in cents
+  gracePeriodEnd: string;        // ISO timestamp
+}
+```
+
+**Deletion Confirmation Flow:**
+
+1. User requests deletion → Pre-flight validation runs
+2. If validation fails → Show blocking errors, user must resolve
+3. If validation warns → Show warnings, require explicit confirmation
+4. User must type workspace name to confirm (like GitHub)
+5. Generate deletion confirmation code (6-digit PIN sent via email)
+6. User enters PIN → Deletion job queued
+
+### 64.3.2 Rollback/Restore Mechanism
+
+**Grace Period Restoration:**
+
+During the 7-day grace period, users can cancel deletion:
+
+```typescript
+interface RestorationResult {
+  success: boolean;
+  workspaceId: string;
+  restoredResources: {
+    dropletReactivated: boolean;
+    workflowsReEnabled: number;
+    partitionRestored: boolean;
+  };
+  message: string;
+}
+```
+
+**Restoration Steps:**
+
+| Step | Action | Verification |
+|------|--------|--------------|
+| 1 | Check workspace status is PENDING_DELETION | Fail if already TERMINATED |
+| 2 | Check grace period not expired | Fail if >7 days since deletion initiated |
+| 3 | Wake hibernated droplet | Verify droplet state transitions to ACTIVE |
+| 4 | Re-enable all workflows | Verify n8n workflows activated |
+| 5 | Update workspace status → ACTIVE | Verify RLS policies re-enable access |
+| 6 | Send confirmation email | "Your workspace has been restored" |
+| 7 | Log audit event | WORKSPACE_RESTORED with restoration manifest |
+
+**Edge Cases:**
+
+- Restoration during export job → Cancel export, restore workspace
+- Restoration after partial deletion → Fail with clear error message
+- Multiple restoration requests → Idempotent (return existing restoration)
+
+### 64.3.3 Export Progress Tracking
+
+**Background Job Schema:**
+
+```sql
+CREATE TABLE IF NOT EXISTS genesis.data_export_jobs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workspace_id TEXT NOT NULL REFERENCES workspaces(id),
+    
+    -- Job status
+    status TEXT NOT NULL DEFAULT 'pending',  -- 'pending', 'in_progress', 'completed', 'failed'
+    progress_percentage INTEGER DEFAULT 0 CHECK (progress_percentage >= 0 AND progress_percentage <= 100),
+    current_step TEXT,  -- 'querying_leads', 'packaging_zip', 'uploading', etc.
+    
+    -- Export details
+    total_records INTEGER DEFAULT 0,
+    processed_records INTEGER DEFAULT 0,
+    export_size_bytes BIGINT DEFAULT 0,
+    
+    -- Download
+    download_url TEXT,
+    download_expires_at TIMESTAMPTZ,
+    downloaded_at TIMESTAMPTZ,
+    
+    -- Timing
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    failed_at TIMESTAMPTZ,
+    error_message TEXT,
+    
+    -- Audit
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by TEXT NOT NULL
+);
+
+CREATE INDEX idx_export_jobs_workspace ON genesis.data_export_jobs(workspace_id, created_at DESC);
+CREATE INDEX idx_export_jobs_status ON genesis.data_export_jobs(status) WHERE status IN ('pending', 'in_progress');
+```
+
+**Progress Reporting:**
+
+- Real-time progress via polling API: `GET /api/export-jobs/{jobId}`
+- Export status displayed in UI with progress bar
+- Email notification when export is ready
+- Automatic cleanup: Delete completed jobs after 30 days
+
+### 64.3.4 Cascade Delete Completeness
+
+**All Resources to Delete (Comprehensive):**
+
+| Resource | Table/Location | Deletion Method | Notes |
+|----------|----------------|-----------------|-------|
+| **Droplet** | DigitalOcean API | API DELETE call | Verify droplet destroyed |
+| **Partition** | `genesis.leads_p_{slug}` | DROP TABLE CASCADE | Includes all partition data |
+| **Campaigns** | `public.campaigns` | DELETE WHERE workspace_id | Cascade to sequences |
+| **Sequences** | `public.sequences` | CASCADE from campaigns | Automatic |
+| **Email Events** | `public.email_events` | DELETE WHERE workspace_id | Opens, clicks, replies |
+| **Contacts/Leads** | Partition table | Deleted with partition | Automatic |
+| **Credentials** | `genesis.workspace_credentials` | DELETE + encryption key wipe | Secure deletion |
+| **Webhooks** | `genesis.webhook_registry` | DELETE WHERE workspace_id | Unregister all hooks |
+| **Brand Vault** | `genesis.brand_vault` | DELETE WHERE workspace_id | Company info, templates |
+| **Rate Limits** | Redis | DEL workspace:{id}:* | All rate limit keys |
+| **Wallet** | `genesis.wallets` | Status → CLOSED | Keep transaction history |
+| **Transactions** | `genesis.transactions` | RETAIN (legal requirement) | Anonymize user_id only |
+| **Support Tokens** | `genesis.support_access_tokens` | DELETE WHERE workspace_id | Phase 67 cleanup |
+| **Audit Logs** | `genesis.audit_log` | ANONYMIZE actor_id | GDPR pseudonymization |
+| **Export Jobs** | `genesis.data_export_jobs` | DELETE WHERE workspace_id | Cleanup job history |
+| **Workspace** | `public.workspaces` | status → TERMINATED | Keep record 7 years |
+| **User Mapping** | `public.user_workspaces` | DELETE WHERE workspace_id | Remove associations |
+
+**Deletion Order (Critical for Foreign Key Constraints):**
+
+```
+1. Email Events (no dependencies)
+2. Sequences → Campaigns (foreign key)
+3. Campaigns (workspace FK)
+4. Brand Vault, Webhooks, Support Tokens (workspace FK)
+5. Export Jobs (workspace FK)
+6. Credentials (workspace FK, secure wipe)
+7. Rate Limits (Redis, no FK)
+8. Partition + Partition Registry (atomic)
+9. Droplet (external API)
+10. Audit Logs (anonymize, don't delete)
+11. Wallet (status update only)
+12. Transactions (keep, anonymize)
+13. User Workspace mapping (delete)
+14. Workspace (status update to TERMINATED)
+```
+
+### 64.3.5 Deletion Confirmation Protocol
+
+**GitHub-Style Confirmation:**
+
+To prevent accidental deletion, require:
+
+1. **Type workspace name** - User must type exact workspace name
+2. **Email confirmation code** - 6-digit PIN sent to registered email
+3. **Final checkbox** - "I understand this action is irreversible after 7 days"
+
+**Confirmation Code Generation:**
+
+```typescript
+// Deterministic code based on workspace + timestamp
+const confirmationCode = generateConfirmationCode(workspaceId, deletionTimestamp);
+// Returns: "CONFIRM-{6-digits}" e.g., "CONFIRM-847329"
+```
+
+**Security:**
+
+- Code valid for 15 minutes
+- Maximum 3 attempts before requiring new code
+- Logged in audit trail
+
+### 64.3.6 Export Size Limits & Binary Assets
+
+**Size Management:**
+
+| Limit Type | Threshold | Action |
+|------------|-----------|--------|
+| **Total Export Size** | >10 GB | Split into multiple ZIP files (Part 1, 2, 3...) |
+| **Single Table** | >5 GB | Split CSV into chunks (leads_part1.csv, leads_part2.csv) |
+| **Binary Assets** | Logo URLs | Include URLs in JSON, do NOT download images |
+| **Attachment Files** | N/A | Genesis doesn't store attachments (leads/events only) |
+
+**Export Cancellation:**
+
+- User can cancel in-progress export
+- Job status → CANCELLED
+- Partial files are deleted
+- No email sent
+
+### 64.3.7 Concurrent Operation Protection
+
+**Locking Mechanism:**
+
+```sql
+-- Workspace-level lock for lifecycle operations
+CREATE TABLE IF NOT EXISTS genesis.workspace_locks (
+    workspace_id TEXT PRIMARY KEY REFERENCES workspaces(id),
+    lock_type TEXT NOT NULL,  -- 'deletion', 'export', 'migration', 'restoration'
+    locked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    locked_by TEXT NOT NULL,  -- User ID or 'system'
+    expires_at TIMESTAMPTZ NOT NULL,  -- Auto-release after 1 hour
+    metadata JSONB DEFAULT '{}'
+);
+
+CREATE INDEX idx_workspace_locks_expiry ON genesis.workspace_locks(expires_at) WHERE expires_at > NOW();
+```
+
+**Lock Acquisition:**
+
+- Before deletion: Acquire `deletion` lock (1 hour TTL)
+- Before export: Acquire `export` lock (2 hour TTL)
+- Before restoration: Acquire `restoration` lock (30 min TTL)
+- If lock exists: Return error with lock details
+
+**Auto-Release:**
+
+- Cron job releases expired locks every 5 minutes
+- Prevents deadlocks from failed operations
+
+---
+
+## 64.4 IMPLEMENTATION CHECKLIST (16-NINES QUALITY)
+
+### ✅ Core Deletion Protocol
+- [ ] Grace period state machine (PENDING_DELETION → TERMINATED)
+- [ ] 8-step cascade deletion sequence
+- [ ] Droplet destruction via DigitalOcean API
+- [ ] Partition DROP TABLE CASCADE
+- [ ] Credential secure deletion
+- [ ] Audit log anonymization (GDPR)
+
+### ✅ Safeguards (Critical Additions)
+- [ ] Pre-deletion validation (active campaigns, positive balance)
+- [ ] Deletion confirmation (type name, email PIN, checkbox)
+- [ ] Dependency impact report
+- [ ] Concurrent operation locking
+- [ ] Export size limits and chunking
+
+### ✅ Rollback/Restore
+- [ ] Restore during grace period
+- [ ] Droplet reactivation
+- [ ] Workflow re-enablement
+- [ ] Restoration audit logging
+
+### ✅ Data Export
+- [ ] Background job system
+- [ ] Progress tracking (0-100%)
+- [ ] Multi-format export (CSV, JSON)
+- [ ] Signed download URLs (48h expiry)
+- [ ] Export cancellation
+
+### ✅ Testing
+- [ ] 60+ comprehensive tests
+- [ ] Cascade delete verification
+- [ ] Rollback scenarios
+- [ ] Concurrent deletion prevention
+- [ ] Export size limits
+- [ ] Grace period expiration
+- [ ] Error path coverage
+- [ ] Security verification
+
+### ✅ Database Migrations
+- [ ] `workspace_locks` table
+- [ ] `data_export_jobs` table
+- [ ] Deletion state machine states
+- [ ] All indexes and constraints
 
 ---
 
