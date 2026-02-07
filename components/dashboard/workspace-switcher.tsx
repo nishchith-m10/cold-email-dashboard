@@ -66,12 +66,20 @@ export function WorkspaceSwitcher({
     try {
       setIsSaving(true);
       if (workspace.id) {
-        await renameWorkspace(workspace.id, trimmed);
+        const result = await renameWorkspace(workspace.id, trimmed);
+        if (result.success) {
+          // Successfully saved
+          setIsEditing(false);
+          setIsHovered(false);
+        } else {
+          // Show error and keep editing
+          console.error('Failed to save workspace name:', result.error);
+          // Optionally show toast notification here
+        }
       }
-      setIsEditing(false);
-      setIsHovered(false); // Reset hover state when exiting edit mode
     } catch (err) {
       console.error('Failed to save workspace name:', err);
+      // Keep editing mode on error
     } finally {
       setIsSaving(false);
     }
@@ -108,7 +116,7 @@ export function WorkspaceSwitcher({
       )}>
         <Building2 className="h-4 w-4 text-text-secondary flex-shrink-0" />
         {isEditing ? (
-          <div className="flex items-center gap-1 min-w-[140px]">
+          <div className="flex items-center gap-1 min-w-[100px] max-w-[280px]">
             <Input
               ref={inputRef}
               value={editValue}
@@ -129,7 +137,7 @@ export function WorkspaceSwitcher({
         ) : (
           <div
             className={cn(
-              "group flex items-center gap-1 px-1 py-0.5 rounded cursor-pointer hover:bg-surface-elevated/50 transition-colors min-w-[140px]",
+              "group inline-flex items-center gap-1 px-1 py-0.5 rounded cursor-pointer hover:bg-surface-elevated/50 transition-colors",
               (canManage || isSuperAdmin) && "cursor-pointer"
             )}
             onMouseEnter={() => setIsHovered(true)}
@@ -141,7 +149,7 @@ export function WorkspaceSwitcher({
               }
             }}
           >
-            <span className="truncate flex-1">{workspace.name}</span>
+            <span className="truncate max-w-[280px]">{workspace.name}</span>
             {(canManage || isSuperAdmin) && isHovered && (
               <Pencil className="h-3 w-3 text-text-secondary flex-shrink-0" />
             )}
@@ -160,7 +168,7 @@ export function WorkspaceSwitcher({
     <div className={cn('inline-flex items-center', className)}>
       <Building2 className="h-4 w-4 text-text-secondary flex-shrink-0" />
       {isEditing ? (
-        <div className="flex items-center gap-1 px-2 py-1.5 min-w-[140px]">
+        <div className="flex items-center gap-1 px-2 py-1.5 min-w-[100px] max-w-[280px]">
           <Input
             ref={inputRef}
             value={editValue}
@@ -182,7 +190,7 @@ export function WorkspaceSwitcher({
         <>
           <div
             className={cn(
-              "group flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-surface-elevated/50 transition-colors min-w-[140px]",
+              "group inline-flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-surface-elevated/50 transition-colors",
               (canManage || isSuperAdmin) && "cursor-pointer"
             )}
             onMouseEnter={() => setIsHovered(true)}
@@ -194,7 +202,7 @@ export function WorkspaceSwitcher({
               }
             }}
           >
-            <span className="text-sm font-medium text-text-primary truncate flex-1">{workspace.name}</span>
+            <span className="text-sm font-medium text-text-primary truncate max-w-[280px]">{workspace.name}</span>
             {(canManage || isSuperAdmin) && isHovered && (
               <Pencil className="h-3 w-3 text-text-secondary flex-shrink-0" />
             )}
