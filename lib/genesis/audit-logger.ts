@@ -372,7 +372,7 @@ export async function getAuditLogs(
   }
 ) {
   try {
-    let query = (supabaseClient
+    let query = supabaseClient
       .schema('genesis')
       .from('audit_log')
       .select('*')
