@@ -1494,24 +1494,6 @@
     },
     {
       "parameters": {
-        "operation": "getAll",
-        "limit": 3,
-        "filters": {
-          "sender": "={{ $json['email_address'] }}"
-        }
-      },
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
-      "position": [
-        320,
-        512
-      ],
-      "name": "Replied?2",
-      "webhookId": "6cdae860-913e-4fa7-97af-e49f0cdcd11d",
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
@@ -1552,24 +1534,6 @@
         160
       ],
       "name": "If5"
-    },
-    {
-      "parameters": {
-        "sendTo": "={{ $json['email_address'] }}",
-        "subject": "={{ $json['email_3_subject'] }}",
-        "message": "={{ $json.tracked_body }}",
-        "options": {
-          "appendAttribution": false
-        }
-      },
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.1,
-      "position": [
-        1632,
-        -16
-      ],
-      "name": "Gmail2",
-      "webhookId": "08ecae03-f38c-403c-adf1-0bf01d70946a"
     },
     {
       "parameters": {},
@@ -1765,7 +1729,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// EMAIL 3 CLICK TRACKING (NO OPEN TRACKING)\nconst DASHBOARD_URL = 'http://nicktailor.com:3000';\nconst UNSUB_BASE = 'https://dev.iluvicandy.com/webhook/Unsubscribe';\nconst WORKSPACE_ID = 'default';\n\nconst emailBody = $json['Email #3 Body'] || $json.email_3_body || '';\nconst contactEmail = $json.email_address || '';\nconst token = $json.Token || '';\nconst campaign = 'LeadsDBD-b2b';\nconst step = 3;\n\n// ✅ CLICK TRACKING: Wrap all links\nfunction wrapLink(originalUrl, linkId) {\n  return `${DASHBOARD_URL}/api/track/click?url=${encodeURIComponent(originalUrl)}&e=${encodeURIComponent(contactEmail)}&c=${encodeURIComponent(campaign)}&s=${step}&l=${encodeURIComponent(linkId || 'cta')}&w=${encodeURIComponent(WORKSPACE_ID)}`;\n}\n\nlet trackedBody = emailBody;\nconst linkRegex = /<a\\s+([^>]*?)href=[\"']([^\"']+)[\"']([^>]*?)>/gi;\nlet linkIndex = 0;\n\n// Wrap all links in email body\ntrackedBody = trackedBody.replace(linkRegex, (match, before, url, after) => {\n  if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('#')) return match;\n  linkIndex++;\n  return `<a ${before}href=\"${wrapLink(url, 'link_' + linkIndex)}\"${after}>`;\n});\n\n// Add unsubscribe link with click tracking\nconst unsubUrl = `${UNSUB_BASE}?tkn=${encodeURIComponent(token)}`;\nconst trackedUnsubUrl = wrapLink(unsubUrl, 'unsubscribe');\ntrackedBody += `<br><br><a href=\"${trackedUnsubUrl}\">Click Here to Unsubscribe</a>`;\n\nreturn [{\n  json: {\n    ...$json,\n    tracked_body: trackedBody,\n    links_tracked: linkIndex + 1\n  }\n}];"
+        "jsCode": "// EMAIL 3 CLICK TRACKING (NO OPEN TRACKING)\nconst DASHBOARD_URL = 'http://nicktailor.com:3000';\nconst UNSUB_BASE = 'https://dev.iluvicandy.com/webhook/Unsubscribe';\nconst WORKSPACE_ID = 'default';\n\nconst emailBody = $json['Email #3 Body'] || $json.email_3_body || '';\nconst contactEmail = $json.email_address || '';\nconst token = $json.Token || '';\nconst campaign = 'LeadsDBD-b2b';\nconst step = 3;\n\n// \u2705 CLICK TRACKING: Wrap all links\nfunction wrapLink(originalUrl, linkId) {\n  return `${DASHBOARD_URL}/api/track/click?url=${encodeURIComponent(originalUrl)}&e=${encodeURIComponent(contactEmail)}&c=${encodeURIComponent(campaign)}&s=${step}&l=${encodeURIComponent(linkId || 'cta')}&w=${encodeURIComponent(WORKSPACE_ID)}`;\n}\n\nlet trackedBody = emailBody;\nconst linkRegex = /<a\\s+([^>]*?)href=[\"']([^\"']+)[\"']([^>]*?)>/gi;\nlet linkIndex = 0;\n\n// Wrap all links in email body\ntrackedBody = trackedBody.replace(linkRegex, (match, before, url, after) => {\n  if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('#')) return match;\n  linkIndex++;\n  return `<a ${before}href=\"${wrapLink(url, 'link_' + linkIndex)}\"${after}>`;\n});\n\n// Add unsubscribe link with click tracking\nconst unsubUrl = `${UNSUB_BASE}?tkn=${encodeURIComponent(token)}`;\nconst trackedUnsubUrl = wrapLink(unsubUrl, 'unsubscribe');\ntrackedBody += `<br><br><a href=\"${trackedUnsubUrl}\">Click Here to Unsubscribe</a>`;\n\nreturn [{\n  json: {\n    ...$json,\n    tracked_body: trackedBody,\n    links_tracked: linkIndex + 1\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

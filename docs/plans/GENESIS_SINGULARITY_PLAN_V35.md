@@ -198,12 +198,13 @@
   - ✅ Partial save support - save provider choice before full config
   - ✅ API updated to accept workspace_id from body or query param
   
-- ✅ **SMTP WORKFLOW TEMPLATES COMPLETE** (2026-01-31):
-  - ✅ `Email 1-SMTP.json` - Simple send via Sidecar `/send` endpoint (15 nodes)
-  - ✅ `Email 2-SMTP.json` - Threading with raw RFC 2822 email + `/check-reply` (20 nodes)
-  - ✅ `Email 3-SMTP.json` - Threading with `inReplyTo` parameter + `/check-reply` (19 nodes)
+- ✅ **SMTP WORKFLOW TEMPLATES COMPLETE** (2026-02-07):
+  - ✅ `Email 1-SMTP.json` - Simple send via Sidecar `/send` endpoint (14 nodes)
+  - ✅ `Email 2-SMTP.json` - Threading with raw RFC 2822 email + `/check-reply` (19 nodes)
+  - ✅ `Email 3-SMTP.json` - Threading with `inReplyTo` parameter + `/check-reply` (17 nodes)
   - ✅ Cleaned: Removed IDs, credentials, hardcoded URLs, workspace IDs
   - ✅ Templated: Uses environment variable placeholders
+  - ✅ **Gmail nodes removed**: Pure SMTP implementation (no Gmail dependencies)
   
 - ✅ **SIDECAR DEPLOYMENT LOGIC COMPLETE** (2026-01-31):
   - ✅ `workflow-deployer.ts` - Reads email_provider_config from Supabase
@@ -313,12 +314,12 @@
     - ✅ Updated cost tracking to include dynamic provider field
     - ✅ Validated JSON syntax
     - ✅ Imported into n8n instance (21 nodes total)
-  - ⏳ **PENDING**: Email 2 & Email 3 workflow modifications
+  - ✅ **COMPLETE**: Email 2 & Email 3 workflows cleaned (Gmail nodes removed, pure SMTP)
 - 🎯 **Supported Providers**: Gmail (OAuth), SMTP (custom servers), SendGrid (API)
 - 🔐 **Security**: AES-256-GCM encryption, workspace-scoped RLS, HTTPS-only
 - 📝 **Database**: Multi-provider config table, encrypted credentials, connection health tracking
-- ⚠️ **Pending**: n8n workflow modifications (Email 1, 2, 3) - requires Switch Node + SMTP Node
-- ⏭️ **Ready for Phase 65**: Friction-Reduction Protocols
+- ✅ **Phase 64.B COMPLETE**: All SMTP workflows use Sidecar endpoints exclusively
+- ⏭️ **Ready for Phase 66**: Data Residency & GDPR Protocol
 
 ### PART VIII: COMPLIANCE & SECURITY (Previously Part VII)
 
