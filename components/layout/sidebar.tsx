@@ -145,8 +145,8 @@ export function Sidebar() {
         width: effectiveWidth,
       }}
       transition={{ 
-        duration: 0.2,
-        ease: [0.4, 0, 0.2, 1], // Material Design standard easing
+        duration: 0.3,
+        ease: [0.32, 0.72, 0, 1], // Smoother custom easing
         type: 'tween'
       }}
       onMouseEnter={handleMouseEnter}
@@ -178,7 +178,7 @@ export function Sidebar() {
                     initial={{ opacity: 0, width: 0 }}
                     animate={{ opacity: 1, width: 'auto' }}
                     exit={{ opacity: 0, width: 0 }}
-                    transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                    transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
                   >
                     {item.label}
                   </motion.span>
@@ -216,7 +216,7 @@ export function Sidebar() {
                         initial={{ opacity: 0, width: 0 }}
                         animate={{ opacity: 1, width: 'auto' }}
                         exit={{ opacity: 0, width: 0 }}
-                        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                        transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
                       >
                         {item.label}
                       </motion.span>
@@ -275,7 +275,7 @@ export function Sidebar() {
                   initial={{ opacity: 0, width: 0 }}
                   animate={{ opacity: 1, width: 'auto' }}
                   exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                  transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
                 >
                   Sidebar control
                 </motion.span>
@@ -290,7 +290,7 @@ export function Sidebar() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
                 className={cn(
                   'fixed bg-surface border border-border rounded-lg shadow-2xl overflow-hidden z-[100]',
                   isExpanded ? 'w-[200px]' : 'w-48'

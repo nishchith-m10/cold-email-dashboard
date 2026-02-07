@@ -100,15 +100,18 @@ function MainContentWithSidebar({ children, pathname }: { children: React.ReactN
   return (
     <main 
       className={cn(
-        isCleanLayout ? '' : 'max-w-[1600px] mx-auto px-4 md:px-6 pb-8 mt-12',
-        'transition-all duration-200 ease-in-out' // Smooth transition for margin-left
+        isCleanLayout ? '' : 'pb-8 mt-12',
+        'transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] will-change-[margin-left,width]' // Ultra smooth animation
       )} 
       style={{
         marginLeft: isCleanLayout ? 0 : `${effectiveWidth}px`,
+        width: isCleanLayout ? 'auto' : `calc(100vw - ${effectiveWidth}px)`,
       }}
       data-tour="welcome"
     >
-      {children}
+      <div className={cn(isCleanLayout ? '' : 'max-w-[1600px] mx-auto px-4 md:px-6')}>
+        {children}
+      </div>
     </main>
   );
 }
