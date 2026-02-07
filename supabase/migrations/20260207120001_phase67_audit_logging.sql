@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS genesis.audit_log (
     -- Target Information
     target_type TEXT, -- e.g., 'workspace', 'credential', 'workflow', 'droplet'
     target_id UUID, -- ID of affected resource
-    workspace_id UUID REFERENCES genesis.workspaces(id) ON DELETE CASCADE,
+    workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
     
     -- Context
     ip_address INET,
@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS genesis.support_access_tokens (
     support_agent_email TEXT NOT NULL,
     
     -- Access Details
-    workspace_id UUID NOT NULL REFERENCES genesis.workspaces(id) ON DELETE CASCADE,
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
     access_level TEXT NOT NULL CHECK (access_level IN ('read_only', 'debug', 'write', 'emergency')),
     
     -- Justification
