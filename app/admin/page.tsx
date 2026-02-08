@@ -11,7 +11,9 @@ import { useState } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { SuperAdminPanel } from '@/components/admin/super-admin-panel';
 import { AuditLogViewer } from '@/components/admin/audit-log-viewer';
-import { Shield, AlertTriangle, Building2, ScrollText, ChevronDown } from 'lucide-react';
+import { ScaleHealthTab } from '@/components/admin/scale-health-tab';
+import { AlertHistoryTab } from '@/components/admin/alert-history-tab';
+import { Shield, AlertTriangle, Building2, ScrollText, Activity, Bell, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BottomSheet } from '@/components/mobile';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,11 +23,13 @@ const SUPER_ADMIN_IDS = process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS
   ? process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS.split(',').map(id => id.trim())
   : [];
 
-type AdminTab = 'workspaces' | 'audit';
+type AdminTab = 'workspaces' | 'audit' | 'scale-health' | 'alert-history';
 
 const TABS = [
   { id: 'workspaces' as const, label: 'Workspaces', icon: Building2 },
   { id: 'audit' as const, label: 'Audit Log', icon: ScrollText },
+  { id: 'scale-health' as const, label: 'Scale Health', icon: Activity },
+  { id: 'alert-history' as const, label: 'Alert History', icon: Bell },
 ];
 
 export default function AdminPage() {
@@ -165,6 +169,20 @@ export default function AdminPage() {
           <div className="overflow-x-auto -mx-4 md:mx-0">
             <div className="px-4 md:px-0">
               <AuditLogViewer />
+            </div>
+          </div>
+        )}
+        {activeTab === 'scale-health' && (
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="px-4 md:px-0">
+              <ScaleHealthTab />
+            </div>
+          </div>
+        )}
+        {activeTab === 'alert-history' && (
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="px-4 md:px-0">
+              <AlertHistoryTab />
             </div>
           </div>
         )}
