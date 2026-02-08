@@ -1256,3 +1256,73 @@ export {
   EMAIL_REGEX,
   PROVIDER_NAMES,
 } from './phase64b/email-provider-types';
+
+// ============================================
+// PHASE 44: "GOD MODE" COMMAND & CONTROL
+// ============================================
+
+export {
+  // Services
+  ScaleHealthService,
+  AlertRoutingService,
+  MetricAggregatorService,
+  BulkUpdateService,
+  BulkUpdateError,
+  
+  // Defaults
+  defaultEmailTransport,
+  defaultTelegramTransport,
+  defaultTokenValidator,
+  
+  // Mappers
+  mapScaleAlertRow,
+  mapScaleMetricRow,
+  mapAlertHistoryRow,
+} from './phase44';
+
+export type {
+  // Core types
+  AlertSeverity,
+  AlertStatus,
+  ScaleCheckType,
+  HealthCheckResult,
+  ScaleHealthSummary,
+  ScaleAlert,
+  AcknowledgeAlertRequest,
+  ResolveAlertRequest,
+  ScaleMetricSnapshot,
+  MetricTrend,
+  AlertChannel as Phase44AlertChannel,
+  AlertPreferences,
+  AlertHistoryEntry,
+  AlertDeliveryResult,
+  SidecarMetricReport,
+  TenantMetricSnapshot,
+  PlatformMetrics,
+  BulkUpdateConfig,
+  BulkUpdateStatus,
+  BulkUpdateJob,
+  GodModeTab,
+  FleetOverview,
+  WorkspaceHealthRow,
+  
+  // API response shapes
+  ScaleHealthApiResponse,
+  ScaleAlertsApiResponse,
+  ScaleHistoryApiResponse,
+  RunChecksApiResponse,
+  AlertActionApiResponse,
+  
+  // DB interfaces
+  ScaleHealthDB,
+  AlertRoutingConfig,
+  AlertRoutingDB,
+  EmailTransport,
+  TelegramTransport,
+  MetricAggregatorDB,
+  SidecarTokenValidator,
+  BulkUpdateDB,
+  BulkUpdateEvent,
+  BulkUpdateEventCallback,
+  BulkUpdateErrorCode,
+} from './phase44';
