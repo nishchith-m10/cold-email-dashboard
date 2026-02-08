@@ -441,16 +441,29 @@
 
 **Deployment Pending:**
 - ✅ Phase 68 Migration DEPLOYED: `20260207140001_phase68_tenant_lifecycle.sql` (3 tables, 7 RLS policies, 3 functions)
-- 📝 Configure cron job for expired lock cleanup (`genesis.fn_cleanup_expired_locks()`)
-- 📝 Set up background job processor for data exports
+- ✅ Database Cron CONFIGURED: Lock cleanup runs every 5 minutes (jobid: 1)
+- ✅ Export Processor DEPLOYED: `/api/cron/process-exports` (runs every 2 minutes via Vercel Cron)
+
+**Part 8 Status: 🎉 FULLY OPERATIONAL & PRODUCTION-READY**
+
+**Security Audit Fixes (2026-02-07):**
+- ✅ FIX #1: Workspace authorization on deletion/export routes (5 API routes) - RBAC enforced
+- ✅ FIX #2: SQL injection in partition deletion - regex validation added
+- ✅ FIX #3: Missing npm dependencies - json2csv & archiver installed
+- ✅ FIX #4: Error message leakage - removed from 8 API routes
+- ✅ FIX #5: Race condition in locks - pg_advisory_xact_lock deployed (migration: 20260207150001)
+- ✅ FIX #6: GDPR cascade - added 4 missing tables (sequences, webhooks, brand_vault, workspace_keys)
+- ✅ FIX #7: Cron auth fallback - explicit CRON_SECRET required
+- ✅ FIX #8: Hard deletion cron - `/api/cron/process-deletions` created (hourly)
+- ✅ Security posture: 8 critical/high vulnerabilities eliminated
 
 ### PART IX: PLATFORM OPERATIONS (Previously Part VIII)
 
-| Phase | Title | Focus |
-|-------|-------|-------|
-| **44** | ["God Mode" Command & Control](#phase-44-god-mode-command--control) | Platform operations dashboard, health mesh, scale monitoring & pre-failure alerts |
-| **45** | [Sandbox & Simulation Engine](#phase-45-sandbox--simulation-engine) | Mock environment, testing |
-| **69** | [Credential Rotation & Webhook Security](#phase-69-credential-rotation--webhook-security) | OAuth refresh, HMAC signatures, DLQ |
+| Phase | Title | Status | Focus |
+|-------|-------|--------|-------|
+| **44** | ["God Mode" Command & Control](#phase-44-god-mode-command--control) | ⏳ NEXT | Platform operations dashboard, health mesh, scale monitoring & pre-failure alerts |
+| **45** | [Sandbox & Simulation Engine](#phase-45-sandbox--simulation-engine) | 📋 PLANNED | Real-time n8n node visibility, test campaign execution (Scenario A: no workflow mods) |
+| **69** | [Credential Rotation & Webhook Security](#phase-69-credential-rotation--webhook-security) | 📋 PLANNED | OAuth refresh, HMAC signatures, DLQ |
 
 ### PART X: MIGRATION & DEPLOYMENT (Previously Part IX)
 
@@ -6794,7 +6807,82 @@ The Scale Health Monitoring integrates seamlessly with existing God Mode feature
 
 ---
 
-## 44.3.16 Implementation Checklist
+### 44.3.16 Alert Delivery (Gmail + Telegram)
+
+**Channels:** Gmail and Telegram only (no Slack).
+
+| Channel | Config | Purpose |
+|---------|--------|---------|
+| Gmail | `GOD_MODE_ALERT_EMAIL` (recipient), Gmail OAuth or SMTP | Primary alert delivery |
+| Telegram | `GOD_MODE_TELEGRAM_BOT_TOKEN` + `GOD_MODE_TELEGRAM_CHAT_ID` | Real-time mobile alerts |
+
+**Implementation:**
+- When any scale check moves to YELLOW or RED, call `alert(level, metric, message)`.
+- `alert()` sends to both Gmail and Telegram (when configured).
+- Record in `genesis.alert_history` for audit.
+- **Deduplication:** Do not re-alert same metric+level within 24 hours.
+
+**Alert History Table:**
+```sql
+CREATE TABLE genesis.alert_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  metric TEXT NOT NULL,
+  level TEXT NOT NULL,
+  message TEXT,
+  channels_sent TEXT[],
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+---
+
+### 44.3.17 pg_stat_statements Fallback
+
+**Requirement:** `pg_stat_statements` must be enabled in Supabase for query latency checks.
+
+**Fallback behavior:** If the extension is missing or the latency query returns no rows:
+- Return a row with `status = 'unavailable'`, `p95_latency_ms = NULL`.
+- God Mode UI displays "Latency metrics unavailable" instead of failing.
+- Do not block other scale health checks.
+
+---
+
+### 44.3.18 Staggered Wake Dashboard
+
+**Purpose:** Control hibernation wake order for batches of tenants (Phase 55 integration).
+
+**Data source:** Phase 55 hibernation state; workspaces grouped by wave/schedule.
+
+**UI:** God Mode tab "Staggered Wake":
+- Wave selector (current wave, next wave)
+- List of workspaces in selected wave
+- "Wake now" or "Schedule wake for [date/time]" actions
+- Progress indicator for in-flight wake operations
+
+**Flow:** User selects wave → optionally sets date/time → enqueues BullMQ jobs for those workspaces' Sidecars.
+
+---
+
+## 44.4 God Mode UI Specification
+
+**Route:** `/admin/god-mode` (or `/admin` with "God Mode" tab)
+
+**Access control:** Only users in `SUPER_ADMIN_IDS` may access. Middleware checks Clerk user ID against env var.
+
+**Views:**
+
+| Tab | Purpose |
+|-----|---------|
+| Fleet Overview | Count by status (healthy/degraded/zombie), link to heatmap |
+| Health Heatmap | Grid of workspaces, color-coded by health status |
+| Scale Alerts | Table of metrics, status (GREEN/YELLOW/RED), runway, last alert time |
+| Bulk Update | Start job, select blueprint, set canary %, view progress |
+| Staggered Wake | Wave management (see 44.3.18) |
+| Alert History | Recent alerts with delivery status |
+
+---
+
+## 44.3.19 Implementation Checklist
 
 **Phase 44.3 delivers:**
 
@@ -6804,7 +6892,7 @@ The Scale Health Monitoring integrates seamlessly with existing God Mode feature
 - ✅ `alert_preferences` configuration
 - ✅ `pg_cron` scheduled job (every 6 hours)
 - ✅ Admin dashboard widget (Scale Health tab)
-- ✅ Alert routing (in-app, email, Slack, SMS)
+- ✅ Alert routing (Gmail, Telegram)
 - ✅ Auto-remediation framework (with approval gates)
 - ✅ Historical trend analysis
 - ✅ API endpoints for programmatic access
@@ -6815,84 +6903,662 @@ The Scale Health Monitoring integrates seamlessly with existing God Mode feature
 - Phase 50: Monitors DO account pool capacity
 - Phase 58: Monitors wallet balance thresholds
 
+### ✅ PHASE 44 IMPLEMENTATION STATUS: COMPLETE (2026-02-08)
+
+**Branch:** `phase-44-god-mode`
+
+**Delivered artifacts:**
+- `lib/genesis/phase44/types.ts` — 30+ interfaces, 3 mapper functions
+- `lib/genesis/phase44/scale-health-service.ts` — Core health check runner + alert lifecycle
+- `lib/genesis/phase44/alert-routing.ts` — Multi-channel delivery (Gmail, Telegram) with 24h dedup
+- `lib/genesis/phase44/metric-aggregator.ts` — Cross-tenant metric aggregation with token validation
+- `lib/genesis/phase44/bulk-update.ts` — Fleet-wide update engine (lifecycle management, stubs for BullMQ)
+- `lib/genesis/phase44/index.ts` — Phase barrel export
+- `supabase/migrations/20260208120001_phase44_god_mode_scale_health.sql` — 4 tables, 6 functions, RLS, indexes, pg_cron
+- `app/api/admin/scale-health/route.ts` — GET summary + fleet overview
+- `app/api/admin/scale-health/alerts/route.ts` — GET alerts with status filter
+- `app/api/admin/scale-health/alerts/[id]/acknowledge/route.ts` — POST acknowledge
+- `app/api/admin/scale-health/alerts/[id]/resolve/route.ts` — POST resolve with notes
+- `app/api/admin/scale-health/run-checks/route.ts` — POST manual trigger (also Vercel Cron)
+- `app/api/admin/scale-health/history/route.ts` — GET metrics history with trends
+- `hooks/use-scale-health.ts` — SWR hooks + mutation functions
+- `components/admin/scale-health-tab.tsx` — Metrics table, alert cards, fleet grid
+- `components/admin/alert-history-tab.tsx` — Delivery history timeline
+- `app/admin/page.tsx` — Extended with Scale Health + Alert History tabs
+
+**Test coverage:** 59 tests across 5 suites (types, scale-health-service, alert-routing, metric-aggregator, bulk-update)
+**tsc:** 0 Phase 44 errors
+**Lints:** 0
+
 ---
 
 # 🧪 PHASE 45: SANDBOX & SIMULATION ENGINE
 
-> **Phase Type:** Testing Infrastructure
+> **Phase Type:** Testing Infrastructure  
+> **Architecture:** Scenario A - Real n8n Execution with Monitoring  
+> **User Access:** All workspace members (owner/admin/member/viewer)
 
 ---
 
-## 45.1 MOCK N8N
+## 45.1 ARCHITECTURE DECISION: SCENARIO A (ONLY)
 
+**Scope:** Phase 45 implements Scenario A only. Scenario B (full mock n8n) is out of scope and would introduce significant complexity.
+
+**Key Decision:** Use REAL n8n execution with test data (not mocks) because:
+- More accurate testing (real API behavior)
+- Reveals actual workflow bugs
+- No workflow JSON modifications required
+- Minimal cost per test run ($0.02-0.05)
+- Sidecar Agent handles all monitoring automatically
+
+**What Users Get:**
+- Real-time node-by-node execution visibility
+- Actual API responses (not fake)
+- Performance metrics per node
+- Execution history & replay
+- Test with own email addresses
+
+**No Workflow Modifications Required** - Existing `base-cold-email/*.json` files work as-is.
+
+---
+
+## 45.2 EXECUTION EVENT STRATEGY (POLLING)
+
+**Problem:** The Sidecar runs as a separate process from n8n; it cannot subscribe to n8n's internal events (`node-pre-execute`, `node-post-execute`).
+
+**Solution:** Use **polling** instead of direct event hooks:
+
+1. Dashboard calls Sidecar `POST /trigger-test` with `{ campaignId, testEmail }`
+2. Sidecar triggers n8n workflow via n8n API, gets `executionId`, returns it to Dashboard
+3. Dashboard polls `GET /api/sandbox/execution-status/:executionId` every 1–2 seconds
+4. That endpoint calls Sidecar, which polls n8n `GET /executions/:id` and returns execution + node data
+5. Sidecar maps n8n execution structure into `workflow_execution_events` rows (one per node) and streams to Dashboard via existing ingestion endpoint
+
+**Completion detection:** Do NOT use `_completion` marker node. Instead:
+- Sidecar checks n8n `GET /executions/:id` for `finished === true`
+- When finished, inject synthetic "complete" event into stream and stop polling
+- SSE checks for completion event type; no `node_type === '_completion'` logic
+
+---
+
+### 45.2.1 Database Schema
+
+```sql
+-- Stores execution events from n8n workflows
+CREATE TABLE genesis.workflow_execution_events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    
+    -- Execution context
+    execution_id TEXT NOT NULL,
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
+    workflow_type TEXT, -- 'research' | 'email_1' | 'email_2' | 'email_3' | 'reply_tracker' | etc
+    
+    -- Node details
+    node_id TEXT NOT NULL,
+    node_name TEXT NOT NULL,
+    node_type TEXT NOT NULL, -- 'n8n-nodes-base.openAi', 'n8n-nodes-base.gmail', etc
+    
+    -- Execution results
+    status TEXT NOT NULL CHECK (status IN ('success', 'error', 'skipped', 'waiting')),
+    execution_time_ms INTEGER,
+    
+    -- Data (sanitized, size-limited)
+    input_data JSONB,  -- Truncated to 10KB max
+    output_data JSONB, -- Truncated to 10KB max
+    error_message TEXT,
+    
+    -- Test mode flag
+    test_mode BOOLEAN DEFAULT FALSE,
+    
+    -- Timing
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    CONSTRAINT valid_execution_time CHECK (execution_time_ms >= 0)
+);
+
+-- Indexes for performance
+CREATE INDEX idx_exec_events_execution ON genesis.workflow_execution_events(execution_id, created_at);
+CREATE INDEX idx_exec_events_workspace ON genesis.workflow_execution_events(workspace_id, created_at DESC);
+CREATE INDEX idx_exec_events_campaign ON genesis.workflow_execution_events(campaign_id, created_at DESC) 
+    WHERE campaign_id IS NOT NULL;
+CREATE INDEX idx_exec_events_test_mode ON genesis.workflow_execution_events(workspace_id, test_mode, created_at DESC);
+
+-- RLS: Users can only see events for their workspaces
+ALTER TABLE genesis.workflow_execution_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY execution_events_read ON genesis.workflow_execution_events
+    FOR SELECT
+    USING (
+        workspace_id IN (
+            SELECT workspace_id FROM user_workspaces 
+            WHERE user_id::text = auth.uid()::text
+        )
+    );
+
+COMMENT ON TABLE genesis.workflow_execution_events IS 'Real-time n8n workflow execution events for monitoring and debugging';
+```
+
+### 45.2.2 Sidecar Agent Enhancement
+
+**Note:** The original spec assumed `n8nInstance.events.on('nodeBefore', ...)` etc. Since Sidecar runs outside n8n, use the **polling strategy** (45.2) instead. The Sidecar implements:
+- `POST /trigger-test` – receives test request, triggers n8n via API, returns executionId
+- Polls n8n `GET /executions/:id` and maps node data to `workflow_execution_events`
+- When `finished === true`, injects completion event
+
+**Legacy reference (replaced by polling):**
 ```typescript
-// lib/genesis/mock-n8n.ts
+// DEPRECATED: Sidecar cannot access n8n internal events. Use polling (45.2) instead.
+// sidecar-agent/src/execution-monitor.ts
 
-const MOCK_RESPONSES: Record<string, (input: any) => any> = {
-  'n8n-nodes-base.openAi': () => ({
-    choices: [{ message: { content: 'Mock AI response for testing.' } }],
-    usage: { total_tokens: 100 },
-    model: 'gpt-4-mock',
-  }),
-  'n8n-nodes-base.httpRequest': (input) => ({
-    statusCode: 200,
-    body: { success: true, mock: true },
-  }),
-  'n8n-nodes-base.emailSend': (input) => ({
-    messageId: `mock-${Date.now()}`,
-    accepted: [input.toEmail],
-  }),
-};
+/**
+ * Install n8n execution hooks at instance startup
+ * NO WORKFLOW MODIFICATIONS REQUIRED - this runs at n8n server level
+ * 
+ * NOTE: Replaced by polling strategy (45.2). Sidecar cannot subscribe to n8n events.
+ */
+export async function installExecutionHooks(n8nInstance: any) {
+  const { workspaceId, dashboardUrl } = await getWorkspaceConfig();
 
-export async function executeMockWorkflow(
-  workflowDefinition: any,
-  triggerData: any
-): Promise<{ status: string; nodeResults: any[] }> {
-  const nodeResults = [];
-
-  for (const node of workflowDefinition.nodes) {
-    const mockFn = MOCK_RESPONSES[node.type] || ((i) => ({ ...i, _mock: true }));
-    nodeResults.push({
-      name: node.name,
-      output: mockFn(triggerData),
+  n8nInstance.events.on('workflow.postExecute', async (execution: any) => {
+    // Send complete execution summary to Dashboard
+    await fetch(`${dashboardUrl}/api/n8n/execution-complete`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Workspace-ID': workspaceId,
+        'Authorization': `Bearer ${process.env.SIDECAR_SECRET}`
+      },
+      body: JSON.stringify({
+        executionId: execution.id,
+        workspaceId,
+        status: execution.finished ? 'success' : 'error',
+        startedAt: execution.startedAt,
+        stoppedAt: execution.stoppedAt,
+        totalDuration: execution.stoppedAt - execution.startedAt,
+      })
     });
-  }
+  });
 
-  return { status: 'success', nodeResults };
+  // Hook for EACH node execution
+  n8nInstance.events.on('nodeBefore', async (nodeExecution: any) => {
+    await streamNodeEvent({
+      executionId: nodeExecution.executionId,
+      workspaceId,
+      nodeId: nodeExecution.node.id,
+      nodeName: nodeExecution.node.name,
+      nodeType: nodeExecution.node.type,
+      status: 'running',
+      timestamp: Date.now(),
+    });
+  });
+
+  n8nInstance.events.on('nodeAfter', async (nodeExecution: any) => {
+    await streamNodeEvent({
+      executionId: nodeExecution.executionId,
+      workspaceId,
+      nodeId: nodeExecution.node.id,
+      nodeName: nodeExecution.node.name,
+      nodeType: nodeExecution.node.type,
+      status: nodeExecution.data.error ? 'error' : 'success',
+      executionTime: nodeExecution.executionTime,
+      inputData: sanitizeData(nodeExecution.data.input, 10240), // 10KB max
+      outputData: sanitizeData(nodeExecution.data.output, 10240),
+      errorMessage: nodeExecution.data.error?.message,
+      timestamp: Date.now(),
+    });
+  });
+}
+
+async function streamNodeEvent(event: any) {
+  const dashboardUrl = process.env.DASHBOARD_URL;
+  
+  await fetch(`${dashboardUrl}/api/n8n/execution-event`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Workspace-ID': event.workspaceId,
+      'Authorization': `Bearer ${process.env.SIDECAR_SECRET}`
+    },
+    body: JSON.stringify(event)
+  }).catch(err => {
+    console.error('[Sidecar] Failed to stream event:', err);
+    // Don't fail workflow execution if Dashboard is down
+  });
+}
+
+function sanitizeData(data: any, maxBytes: number): any {
+  const str = JSON.stringify(data);
+  if (str.length > maxBytes) {
+    return { _truncated: true, _size: str.length };
+  }
+  return data;
 }
 ```
 
-## 45.2 RATE LIMITER
+---
+
+## 45.3 DASHBOARD API ENDPOINTS
+
+### 45.3.1 Execution Event Ingestion
 
 ```typescript
-// lib/genesis/rate-limiter.ts
+// app/api/n8n/execution-event/route.ts
 
-const DEFAULT_LIMITS: Record<string, { maxTokens: number; refillRate: number }> = {
-  openai: { maxTokens: 10000, refillRate: 5000 },
-  claude: { maxTokens: 5000, refillRate: 2500 },
-  tavily: { maxTokens: 100, refillRate: 50 },
-};
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase';
+import { verifySidecarAuth } from '@/lib/genesis/sidecar-auth';
 
-export class RateLimiter {
-  async acquire(service: string, tokensNeeded: number = 1): Promise<{ granted: boolean; waitMs: number }> {
-    const { data } = await supabaseAdmin!.rpc('genesis_acquire_tokens', {
-      p_service_name: service,
-      p_tokens_needed: tokensNeeded,
-    });
-
-    return { granted: data?.[0]?.granted ?? true, waitMs: data?.[0]?.wait_time_ms ?? 0 };
-  }
-
-  async withRateLimit<T>(service: string, tokens: number, fn: () => Promise<T>): Promise<T> {
-    const { granted, waitMs } = await this.acquire(service, tokens);
-    if (!granted) {
-      await sleep(waitMs);
-      return this.withRateLimit(service, tokens, fn);
+export async function POST(request: NextRequest) {
+  try {
+    // Verify this request is from a legitimate Sidecar Agent
+    const { valid, workspaceId } = await verifySidecarAuth(request);
+    if (!valid) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    return fn();
+
+    const event = await request.json();
+
+    // Store execution event
+    await supabaseAdmin.schema('genesis')
+      .from('workflow_execution_events')
+      .insert({
+        execution_id: event.executionId,
+        workspace_id: workspaceId,
+        campaign_id: event.campaignId,
+        workflow_type: event.workflowType,
+        node_id: event.nodeId,
+        node_name: event.nodeName,
+        node_type: event.nodeType,
+        status: event.status,
+        execution_time_ms: event.executionTime,
+        input_data: event.inputData,
+        output_data: event.outputData,
+        error_message: event.errorMessage,
+        test_mode: event.testMode || false,
+      });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[Execution Event] Failed to store:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 ```
+
+### 45.3.2 Real-time Streaming (SSE)
+
+```typescript
+// app/api/sandbox/execution-stream/[executionId]/route.ts
+
+import { NextRequest } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { requireWorkspaceAccess } from '@/lib/workspace-access';
+import { supabaseAdmin } from '@/lib/supabase';
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ executionId: string }> }
+) {
+  const { userId } = await auth();
+  if (!userId) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const { executionId } = await params;
+
+  // Get workspace from execution ID (first event)
+  const { data: firstEvent } = await supabaseAdmin.schema('genesis')
+    .from('workflow_execution_events')
+    .select('workspace_id')
+    .eq('execution_id', executionId)
+    .limit(1)
+    .single();
+
+  if (!firstEvent) {
+    return new Response('Execution not found', { status: 404 });
+  }
+
+  // Verify user has access to this workspace
+  try {
+    await requireWorkspaceAccess(firstEvent.workspace_id, 'canRead');
+  } catch {
+    return new Response('Access denied', { status: 403 });
+  }
+
+  // SSE Stream
+  const encoder = new TextEncoder();
+  let lastEventId = 0;
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const interval = setInterval(async () => {
+        // Poll for new events
+        const { data: newEvents } = await supabaseAdmin.schema('genesis')
+          .from('workflow_execution_events')
+          .select('*')
+          .eq('execution_id', executionId)
+          .gt('id', lastEventId)
+          .order('created_at', { ascending: true });
+
+        if (newEvents && newEvents.length > 0) {
+          for (const event of newEvents) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
+            );
+            lastEventId = event.id;
+          }
+        }
+
+        // Check if execution is complete (synthetic event injected by Sidecar when n8n reports finished=true)
+        const { data: execStatus } = await supabaseAdmin.schema('genesis')
+          .from('workflow_execution_events')
+          .select('status')
+          .eq('execution_id', executionId)
+          .eq('node_type', '_execution_complete') // Synthetic marker from Sidecar when n8n finished
+          .maybeSingle();
+
+        if (execStatus) {
+          controller.enqueue(encoder.encode(`data: {"type":"complete"}\n\n`));
+          clearInterval(interval);
+          controller.close();
+        }
+      }, 500); // Poll every 500ms
+
+      request.signal.addEventListener('abort', () => {
+        clearInterval(interval);
+        controller.close();
+      });
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    }
+  });
+}
+```
+
+---
+
+## 45.3 TRIGGER WORKFLOW INTERFACE
+
+**Location:** `lib/genesis/workflow-trigger.ts`
+
+**Signature:**
+```typescript
+triggerWorkflow({ workspaceId, campaignId, testMode?, testData? }): Promise<{ executionId: string; streamUrl: string }>
+```
+
+**Flow:**
+1. Resolve workspace → Sidecar URL (from `genesis.droplet_registry` or partition_registry)
+2. POST to Sidecar `/trigger-test` with `{ campaignId, testEmail, testData }`
+3. Sidecar triggers n8n workflow, gets executionId from n8n API, returns it
+4. Return `{ executionId, streamUrl: /api/sandbox/execution-stream/:executionId }`
+
+---
+
+### 45.3.1 Test Campaign Endpoint
+
+```typescript
+// app/api/sandbox/test-campaign/route.ts
+
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { requireWorkspaceAccess } from '@/lib/workspace-access';
+import { triggerWorkflow } from '@/lib/genesis/workflow-trigger';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { workspaceId, campaignId, testEmail, testLeadData } = await request.json();
+
+    // Verify workspace access
+    await requireWorkspaceAccess(workspaceId, 'canRead');
+
+    // Trigger workflow with test data
+    const result = await triggerWorkflow({
+      workspaceId,
+      campaignId,
+      testMode: true,
+      testData: {
+        email_address: testEmail || 'test@example.com',
+        ...testLeadData,
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      executionId: result.executionId,
+      message: 'Test execution started',
+      streamUrl: `/api/sandbox/execution-stream/${result.executionId}`,
+    });
+  } catch (error) {
+    console.error('[Test Campaign] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+```
+
+---
+
+## 45.4 FRONTEND UI COMPONENTS
+
+### 45.4.1 Sandbox Panel (New Navigation Item)
+
+```typescript
+// components/sandbox/sandbox-panel.tsx
+
+'use client';
+
+import { useState } from 'react';
+import { ExecutionMonitor } from './execution-monitor';
+import { TestRunner } from './test-runner';
+
+export function SandboxPanel({ workspaceId }: { workspaceId: string }) {
+  const [activeExecution, setActiveExecution] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
+        <h3 className="text-lg font-semibold text-blue-900">🧪 Test Mode</h3>
+        <p className="text-sm text-blue-700">
+          Run your campaigns with test data. Emails will be sent to your test address.
+          See real-time execution for every node.
+        </p>
+      </div>
+
+      <TestRunner
+        workspaceId={workspaceId}
+        onExecutionStart={(execId) => setActiveExecution(execId)}
+      />
+
+      {activeExecution && (
+        <ExecutionMonitor executionId={activeExecution} />
+      )}
+    </div>
+  );
+}
+```
+
+### 45.4.2 Real-time Execution Monitor
+
+```typescript
+// components/sandbox/execution-monitor.tsx
+
+'use client';
+
+import { useEffect, useState } from 'react';
+
+interface NodeEvent {
+  nodeName: string;
+  nodeType: string;
+  status: 'success' | 'error' | 'running';
+  executionTime: number;
+  outputData: any;
+  errorMessage?: string;
+}
+
+export function ExecutionMonitor({ executionId }: { executionId: string }) {
+  const [events, setEvents] = useState<NodeEvent[]>([]);
+  const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    // Connect to SSE stream
+    const eventSource = new EventSource(`/api/sandbox/execution-stream/${executionId}`);
+
+    eventSource.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      
+      if (data.type === 'complete') {
+        setIsComplete(true);
+        eventSource.close();
+        return;
+      }
+
+      setEvents(prev => [...prev, {
+        nodeName: data.node_name,
+        nodeType: data.node_type,
+        status: data.status,
+        executionTime: data.execution_time_ms,
+        outputData: data.output_data,
+        errorMessage: data.error_message,
+      }]);
+    };
+
+    return () => eventSource.close();
+  }, [executionId]);
+
+  return (
+    <div className="border rounded-lg p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold">Execution Monitor</h3>
+        {isComplete ? (
+          <span className="text-green-600">✓ Complete</span>
+        ) : (
+          <span className="text-blue-600 animate-pulse">⏱ Running...</span>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {events.map((event, idx) => (
+          <div 
+            key={idx}
+            className={`border-l-4 pl-3 py-2 ${
+              event.status === 'success' ? 'border-green-500 bg-green-50' :
+              event.status === 'error' ? 'border-red-500 bg-red-50' :
+              'border-blue-500 bg-blue-50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-medium">{event.nodeName}</span>
+              <span className="text-sm text-gray-500">{event.executionTime}ms</span>
+            </div>
+            <div className="text-xs text-gray-600">{event.nodeType}</div>
+            
+            {event.outputData && (
+              <details className="mt-2">
+                <summary className="cursor-pointer text-sm text-gray-700">
+                  View Output
+                </summary>
+                <pre className="mt-2 text-xs bg-gray-800 text-gray-100 p-2 rounded overflow-x-auto">
+                  {JSON.stringify(event.outputData, null, 2)}
+                </pre>
+              </details>
+            )}
+
+            {event.errorMessage && (
+              <div className="mt-2 text-sm text-red-600">
+                Error: {event.errorMessage}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## 45.5 TEST DATA SANITIZATION
+
+Before storing `input_data` / `output_data` in `workflow_execution_events`:
+
+**Default redaction fields:** `email_address`, `email`, `phone`, `first_name`, `last_name` (recursive in nested objects)
+
+**Behavior:** If PII detected, store `{ _sanitized: true, _nodeCount: N }` or truncated placeholder (e.g. `"email": "***@***.com"`)
+
+**Config:** Optional `SANDBOX_PII_REDACT_FIELDS` per workspace (comma-separated field names). Default applies if not set.
+
+---
+
+## 45.6 RATE LIMITING
+
+**Limit:** 10 test runs per workspace per hour (configurable via `SANDBOX_TEST_RUNS_PER_HOUR`, default 10)
+
+**Implementation:** Track in `genesis.sandbox_test_runs (workspace_id, run_at)` or reuse Phase 62.B rate-limit infra
+
+**Response:** 429 with `Retry-After` header when limit exceeded
+
+---
+
+## 45.7 COST CONSIDERATIONS
+
+**Per Test Run:**
+- Email send: $0 (using user's own Gmail OAuth)
+- OpenAI calls: ~$0.01-0.03 (actual tokens used)
+- Database queries: Negligible
+- **Total: $0.01-0.05 per test**
+
+**Acceptable because:**
+- Users test before launching to 1000+ leads
+- Test cost << production cost
+- Real execution = more accurate than mocks
+
+---
+
+## 45.8 LATENCY & PERFORMANCE
+
+**Expected Latency:**
+```
+n8n executes node → completes
+    ↓ (100-200ms network)
+Webhook reaches Dashboard
+    ↓ (20-50ms DB write)
+Event stored in Postgres
+    ↓ (300-500ms SSE polling)
+Frontend receives update
+    ↓ (instant render)
+User sees node result
+
+TOTAL: ~500ms per node update
+```
+
+**User Experience:** Feels real-time, smooth animations possible
+
+---
+
+## 45.9 NO WORKFLOW MODIFICATIONS REQUIRED
+
+**No cost cap:** Phase 45 uses Scenario A (real execution) only. No per-workspace test run budget/cost cap.
+
+**Critical Decision:** Existing `base-cold-email/*.json` workflows work as-is because:
+- Execution hooks added at n8n instance level (Sidecar Agent)
+- No conditional logic needed in workflows
+- Users provide test email instead of real customer
+- All workflows execute normally with test data
+
+**Zero JSON Changes Needed** ✅
 
 ---
 
@@ -9909,11 +10575,11 @@ CREATE INDEX idx_workspace_locks_expiry ON genesis.workspace_locks(expires_at) W
 
 ---
 
-## 65.1 CREDENTIAL ROTATION PROTOCOL
+## 69.1 CREDENTIAL ROTATION PROTOCOL
 
 OAuth tokens expire. API keys should be rotated periodically. The Credential Rotation Protocol handles this at scale.
 
-### 65.1.1 Rotation Schedule
+### 69.1.1 Rotation Schedule
 
 | Credential Type | Rotation Trigger | Rotation Method |
 |-----------------|------------------|-----------------|
@@ -9923,7 +10589,7 @@ OAuth tokens expire. API keys should be rotated periodically. The Credential Rot
 | Webhook Secrets | 90 days (policy) | Automatic regeneration |
 | Sidecar Token | 30 days | Automatic regeneration on heartbeat |
 
-### 65.1.2 Batch Rotation Flow
+### 69.1.2 Batch Rotation Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -9976,11 +10642,48 @@ OAuth tokens expire. API keys should be rotated periodically. The Credential Rot
 
 ---
 
-## 65.2 WEBHOOK SIGNATURE VERIFICATION
+### 69.1.3 OAuth Refresh Failure Handling
+
+| Failure | Detection | Action |
+|---------|-----------|--------|
+| Revoked consent | 4xx from Google | Mark credential `invalid`, notify user, show "Reconnect" in Dashboard |
+| Expired refresh token | Refresh token no longer valid | Same as revoked |
+| Rate limit (429) | Retry with backoff | Re-queue retry in 1h, max 3 attempts |
+| Network error | Timeout / 5xx | Retry in 15 min, max 5 attempts |
+| Unknown | Other errors | Mark `needs_review`, alert admin, no auto-retry |
+
+---
+
+### 69.1.4 User Notification Flow
+
+When credential marked `invalid` after rotation failure:
+
+- **Channel:** Email (required) + optional in-app banner
+- **Template:** "Reconnect your Gmail – your connection expired. [Reconnect]"
+- **Link:** `/onboarding?stage=gmail_oauth` or `/settings/integrations`
+- **Frequency:** One email per credential per 24h (no duplicate spam)
+
+---
+
+### 69.1.5 API Key Rotation (User-Initiated)
+
+**Trigger:** User updates key in Dashboard (e.g. Settings → Integrations → OpenAI)
+
+**Flow:**
+1. Dashboard encrypts new key, writes to Vault
+2. Enqueue BullMQ job `UPDATE_CREDENTIAL` for workspace's Sidecar
+3. Sidecar fetches new credentials, updates n8n, reports success
+4. Audit log: `CREDENTIAL_ROTATED` (user-initiated)
+
+**Scope:** OpenAI, Anthropic, etc. OAuth uses automatic schedule (69.1.1).
+
+---
+
+## 69.2 WEBHOOK SIGNATURE VERIFICATION
 
 All webhooks between Dashboard, Sidecar, and n8n include HMAC signatures to prevent replay attacks and tampering.
 
-### 65.2.1 Signature Protocol
+### 69.2.1 Signature Protocol
 
 | Header | Content |
 |--------|---------|
@@ -9988,7 +10691,7 @@ All webhooks between Dashboard, Sidecar, and n8n include HMAC signatures to prev
 | `X-Genesis-Timestamp` | Unix timestamp of request |
 | `X-Genesis-Request-Id` | Unique request ID for idempotency |
 
-### 65.2.2 Signature Generation
+### 69.2.2 Signature Generation
 
 ```
 SIGNATURE = HMAC-SHA256(
@@ -9997,7 +10700,7 @@ SIGNATURE = HMAC-SHA256(
 )
 ```
 
-### 65.2.3 Verification Rules
+### 69.2.3 Verification Rules
 
 | Check | Failure Action |
 |-------|----------------|
@@ -10008,11 +10711,56 @@ SIGNATURE = HMAC-SHA256(
 
 ---
 
-## 65.3 DEAD LETTER QUEUE FOR WEBHOOKS
+### 69.2.4 Webhook Secret Rotation
+
+**Strategy:** Dual-key window
+
+- Store `webhook_secret_active` and `webhook_secret_prev`
+- Validate incoming: try `active` first; if missing/invalid, try `prev`
+- On rotation: generate new, set `prev = active`, `active = new`
+- Sidecar/n8n updates to new `active` within 24h; after 24h, drop `prev`
+- **Cron:** Rotate on schedule (e.g. 90 days); notify Sidecars via BullMQ to fetch new secret
+
+---
+
+### 69.2.5 Request ID Deduplication Storage
+
+**Table:** `genesis.webhook_request_ids (request_id TEXT PRIMARY KEY, seen_at TIMESTAMPTZ)`
+
+**TTL:** Delete rows where `seen_at < NOW() - INTERVAL '10 minutes'` (via pg_cron or daily cleanup)
+
+**Check:** On verify, `INSERT ... ON CONFLICT DO NOTHING`. If 0 rows inserted, reject as duplicate.
+
+---
+
+## 69.3 DEAD LETTER QUEUE FOR WEBHOOKS
 
 Failed webhook deliveries are captured in a Dead Letter Queue for retry and investigation.
 
-### 65.3.1 DLQ Entry Schema
+### 69.3.1 DLQ Table DDL
+
+```sql
+CREATE TABLE genesis.webhook_dlq (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id UUID NOT NULL,
+  webhook_url TEXT NOT NULL,
+  payload JSONB NOT NULL,
+  error_message TEXT,
+  attempt_count INTEGER DEFAULT 0,
+  first_attempt_at TIMESTAMPTZ DEFAULT NOW(),
+  last_attempt_at TIMESTAMPTZ,
+  next_retry_at TIMESTAMPTZ,
+  status TEXT CHECK (status IN ('pending', 'retrying', 'resolved', 'abandoned')) DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_webhook_dlq_next_retry ON genesis.webhook_dlq(next_retry_at) 
+  WHERE status IN ('pending', 'retrying');
+```
+
+---
+
+### 69.3.2 DLQ Entry Schema (Reference)
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -10027,7 +10775,7 @@ Failed webhook deliveries are captured in a Dead Letter Queue for retry and inve
 | `next_retry_at` | TIMESTAMPTZ | Scheduled retry |
 | `status` | ENUM | 'pending', 'retrying', 'resolved', 'abandoned' |
 
-### 65.3.2 Retry Strategy
+### 69.3.3 Retry Strategy
 
 | Attempt | Delay | Action if Failed |
 |---------|-------|------------------|
@@ -10036,6 +10784,16 @@ Failed webhook deliveries are captured in a Dead Letter Queue for retry and inve
 | 3 | 5 seconds | Retry after 30 seconds |
 | 4 | 30 seconds | Retry after 5 minutes |
 | 5 | 5 minutes | Move to DLQ for manual review |
+
+---
+
+### 69.3.4 DLQ Retry Implementation
+
+**Trigger:** Cron every 5 minutes (`/api/cron/process-webhook-dlq`, protected by `CRON_SECRET`)
+
+**Query:** `SELECT * FROM webhook_dlq WHERE status IN ('pending', 'retrying') AND next_retry_at <= NOW() LIMIT 100`
+
+**Action per row:** POST to `webhook_url` with `payload`. On success: `status = 'resolved'`. On failure: increment `attempt_count`, set `next_retry_at` per backoff table, set `status = 'abandoned'` after 5 attempts.
 
 ---
 
