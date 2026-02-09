@@ -1326,3 +1326,72 @@ export type {
   BulkUpdateEventCallback,
   BulkUpdateErrorCode,
 } from './phase44';
+
+// ============================================
+// PHASE 45: SANDBOX & SIMULATION ENGINE
+// ============================================
+
+export {
+  // Services
+  ExecutionEventService,
+  PiiSanitizer,
+  createPiiSanitizer,
+  SandboxRateLimiter,
+  InMemoryRateLimitDB,
+  createSupabaseRateLimitDB,
+  WorkflowTriggerService,
+  HttpSidecarClient,
+  WorkflowTriggerError,
+  MockWorkspaceLookupDB,
+  MockSidecarClient as Phase45MockSidecarClient,
+  
+  // Mock n8n
+  executeMockWorkflow,
+  getMockResponseFn,
+  getSupportedMockNodeTypes,
+  
+  // Mappers + Constants
+  mapExecutionEventRow,
+  mapSandboxTestRunRow,
+  DEFAULT_PII_FIELDS,
+  DEFAULT_PII_CONFIG,
+  SANDBOX_RATE_LIMIT,
+} from './phase45';
+
+export type {
+  // Core types
+  NodeExecutionStatus,
+  WorkflowType as Phase45WorkflowType,
+  ExecutionEventRow,
+  ExecutionEvent,
+  SandboxTestRunRow,
+  SandboxTestRun,
+  TriggerTestRequest,
+  TriggerTestResponse,
+  SidecarTriggerPayload,
+  SidecarTriggerResponse,
+  MockExecutionResult,
+  MockNodeResult,
+  MockWorkflowDefinition,
+  SanitizationResult,
+  PiiSanitizationConfig,
+  SandboxRateLimitResult,
+  SSEMessageType,
+  SSEMessage,
+  IncomingExecutionEvent,
+  ExecutionSummary,
+  
+  // API response shapes
+  ExecutionStreamResponse,
+  TestCampaignApiResponse,
+  ExecutionEventApiResponse,
+  SandboxHistoryApiResponse,
+  ExecutionDetailApiResponse,
+  
+  // DB interfaces
+  ExecutionEventDB,
+  SandboxRateLimitDB,
+  WorkspaceLookupDB,
+  Phase45SidecarClient,
+  WorkflowTriggerErrorCode,
+} from './phase45';
