@@ -165,7 +165,9 @@ export function verifyWebhookSignature(
   // 3. Try active secret first
   const expectedSignatureActive = generateWebhookSignature(secrets.active, timestampNum, payload);
   
-  if (timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignatureActive))) {
+  // Use timing-safe comparison (check length first to avoid RangeError)
+  if (signature.length === expectedSignatureActive.length &&
+      timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignatureActive))) {
     return { valid: true };
   }
 
@@ -173,7 +175,9 @@ export function verifyWebhookSignature(
   if (secrets.previous) {
     const expectedSignaturePrevious = generateWebhookSignature(secrets.previous, timestampNum, payload);
     
-    if (timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignaturePrevious))) {
+    // Use timing-safe comparison (check length first)
+    if (signature.length === expectedSignaturePrevious.length &&
+        timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignaturePrevious))) {
       return { valid: true };
     }
   }
