@@ -9,6 +9,9 @@
 
 import { useState } from 'react';
 import { triggerTestCampaign } from '@/hooks/use-sandbox';
+import { useCampaigns } from '@/hooks/use-campaigns';
+import { useWorkspaceConfig } from '@/hooks/use-workspace-config';
+import { AlertCircle, Clock, Calendar } from 'lucide-react';
 
 interface TestRunnerProps {
   workspaceId: string;
@@ -26,9 +29,65 @@ export function TestRunner({ workspaceId, campaignId, onExecutionStart }: TestRu
     streamUrl: string;
   } | null>(null);
 
+  // Fetch campaigns for the workspace
+  const { campaigns, isLoading: campaignsLoading } = useCampaigns({ workspaceId });
+  
+  // Fetch config for validation
+  const { getValue } = useWorkspaceConfig();
+
+  // Get config values
+  const officeStart = getValue<string>('OFFICE_HOURS_START') || '09:00';
+  const officeEnd = getValue<string>('OFFICE_HOURS_END') || '17:00';
+  const weekendSendsEnabled = getValue<boolean>('ENABLE_WEEKEND_SENDS') || false;
+  const maxEmailsPerDay = getValue<number>('MAX_EMAILS_PER_DAY') || 100;
+
+  // Calculate current status
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const dayOfWeek = now.getDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+  const [startHour, startMinute] = officeStart.split(':').map(Number);
+  const [endHour, endMinute] = officeEnd.split(':').map(Number);
+  const currentTimeMinutes = currentHour * 60 + currentMinute;
+  const startTimeMinutes = startHour * 60 + startMinute;
+  const endTimeMinutes = endHour * 60 + endMinute;
+  const withinOfficeHours =
+    currentTimeMinutes >= startTimeMinutes && currentTimeMinutes <= endTimeMinutes;
+
+  // Build validation warnings (non-blocking for test mode)
+  const warnings: Array<{ icon: React.ReactNode; message: string; type: 'warning' | 'info' }> = [];
+
+  if (isWeekend && !weekendSendsEnabled) {
+    warnings.push({
+      icon: <Calendar className="h-4 w-4" />,
+      message: 'Weekend. Production emails will queue until Monday.',
+      type: 'warning',
+    });
+  }
+
+  if (!withinOfficeHours && !isWeekend) {
+    warnings.push({
+      icon: <Clock className="h-4 w-4" />,
+      message: `Outside office hours (${officeStart}-${officeEnd}). Production emails will queue.`,
+      type: 'warning',
+    });
+  }
+
+  // Mock daily count (TODO: fetch from API)
+  const dailyEmailCount = 47;
+  if (dailyEmailCount >= maxEmailsPerDay) {
+    warnings.push({
+      icon: <AlertCircle className="h-4 w-4" />,
+      message: `Daily email limit reached (${dailyEmailCount}/${maxEmailsPerDay}). Test mode only.`,
+      type: 'warning',
+    });
+  }
+
   const handleRun = async () => {
     if (!selectedCampaignId) {
-      setError('Please enter a campaign ID');
+      setError('Please select a campaign');
       return;
     }
 
@@ -63,22 +122,51 @@ export function TestRunner({ workspaceId, campaignId, onExecutionStart }: TestRu
       <div>
         <h3 className="text-sm font-semibold">Run Test Campaign</h3>
         <p className="text-xs text-muted-foreground mt-1">
-          Trigger a real workflow execution with test data.
+          Real workflow execution with test data. Configuration above applies to production.
         </p>
       </div>
 
       <div className="space-y-3">
         <div>
-          <label className="block text-xs font-medium mb-1">Campaign ID</label>
-          <input
-            type="text"
+          <label className="block text-xs font-medium mb-1">Campaign</label>
+          <select
             value={selectedCampaignId}
             onChange={(e) => setSelectedCampaignId(e.target.value)}
-            placeholder="Enter campaign UUID"
-            className="w-full px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-            disabled={isLoading}
-          />
+            disabled={isLoading || campaignsLoading}
+            className="w-full px-3 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="">Select a campaign</option>
+            {campaigns.map((campaign) => (
+              <option key={campaign.id} value={campaign.id}>
+                {campaign.name}
+              </option>
+            ))}
+          </select>
+          {campaigns.length === 0 && !campaignsLoading && (
+            <p className="text-xs text-muted-foreground mt-1">
+              No campaigns found. Create a campaign first.
+            </p>
+          )}
         </div>
+
+        {/* Config Validation Warnings */}
+        {warnings.length > 0 && (
+          <div className="space-y-2">
+            {warnings.map((warning, idx) => (
+              <div
+                key={idx}
+                className={`flex items-start gap-2 p-3 rounded-lg text-xs ${
+                  warning.type === 'warning'
+                    ? 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                    : 'bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+                }`}
+              >
+                {warning.icon}
+                <p>{warning.message}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div>
           <label className="block text-xs font-medium mb-1">Test Email</label>

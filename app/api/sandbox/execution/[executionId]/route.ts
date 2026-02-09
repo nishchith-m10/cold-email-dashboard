@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { ExecutionEventService } from '@/lib/genesis/phase45/execution-event-service';
+import { isGenesisSchemaAvailable } from '@/lib/genesis/schema-check';
 import type { ExecutionEventRow, SandboxTestRunRow } from '@/lib/genesis/phase45/types';
 
 const API_HEADERS = {
@@ -81,6 +82,13 @@ export async function GET(
       return NextResponse.json(
         { error: 'Service unavailable' },
         { status: 503, headers: API_HEADERS }
+      );
+    }
+
+    if (!(await isGenesisSchemaAvailable())) {
+      return NextResponse.json(
+        { success: true, events: [], summary: null, _notice: 'genesis schema not exposed in PostgREST' },
+        { headers: API_HEADERS }
       );
     }
 
