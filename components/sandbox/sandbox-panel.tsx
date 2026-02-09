@@ -1,7 +1,9 @@
 /**
  * PHASE 45: SANDBOX PANEL
  * 
- * Main sandbox UI component. Contains:
+ * Unified testing environment with integrated campaign configuration.
+ * Contains:
+ * - Campaign configuration (max emails, office hours, reply delay)
  * - Test runner (trigger test campaigns)
  * - Real-time execution monitor
  * - Test run history
@@ -9,10 +11,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ExecutionMonitor } from './execution-monitor';
 import { TestRunner } from './test-runner';
+import { ConfigurationSection } from './configuration-section';
 import { useSandboxHistory } from '@/hooks/use-sandbox';
+import { useWorkspaceConfig } from '@/hooks/use-workspace-config';
 import type { SandboxTestRun } from '@/lib/genesis/phase45/types';
 
 interface SandboxPanelProps {
@@ -21,7 +25,23 @@ interface SandboxPanelProps {
 
 export function SandboxPanel({ workspaceId }: SandboxPanelProps) {
   const [activeExecution, setActiveExecution] = useState<string | null>(null);
+  const [configCollapsed, setConfigCollapsed] = useState(false);
   const { runs, isLoading: historyLoading, refresh } = useSandboxHistory(workspaceId);
+  const { configs, getValue } = useWorkspaceConfig();
+
+  // Auto-collapse config after first save (stored in localStorage)
+  useEffect(() => {
+    const hasConfigured = localStorage.getItem(`sandbox-config-set-${workspaceId}`);
+    if (hasConfigured === 'true') {
+      setConfigCollapsed(true);
+    }
+  }, [workspaceId]);
+
+  const handleConfigSave = () => {
+    // Mark as configured
+    localStorage.setItem(`sandbox-config-set-${workspaceId}`, 'true');
+    setConfigCollapsed(true);
+  };
 
   const handleExecutionStart = (executionId: string) => {
     setActiveExecution(executionId);
@@ -34,21 +54,18 @@ export function SandboxPanel({ workspaceId }: SandboxPanelProps) {
 
   return (
     <div className="space-y-6">
-      {/* Info banner */}
-      <div className="bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 p-4 rounded-r-md">
-        <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-          Test Mode
-        </h3>
-        <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-          Run your campaigns with test data. Emails will be sent to your test address.
-          See real-time execution for every node.
-        </p>
-      </div>
-
       {/* Test runner */}
       <TestRunner
         workspaceId={workspaceId}
         onExecutionStart={handleExecutionStart}
+      />
+
+      {/* Configuration Section (Collapsible) */}
+      <ConfigurationSection
+        workspaceId={workspaceId}
+        isCollapsed={configCollapsed}
+        onToggle={() => setConfigCollapsed(!configCollapsed)}
+        onSave={handleConfigSave}
       />
 
       {/* Active execution monitor */}

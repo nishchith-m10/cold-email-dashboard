@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { mapSandboxTestRunRow } from '@/lib/genesis/phase45/types';
+import { isGenesisSchemaAvailable } from '@/lib/genesis/schema-check';
 
 const API_HEADERS = {
   'Content-Type': 'application/json',
@@ -37,6 +38,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'workspaceId query parameter is required' },
         { status: 400, headers: API_HEADERS }
+      );
+    }
+
+    // Check if genesis schema is accessible via PostgREST
+    if (!(await isGenesisSchemaAvailable())) {
+      return NextResponse.json(
+        { success: true, runs: [], total: 0, _notice: 'genesis schema not exposed in PostgREST' },
+        { headers: API_HEADERS }
       );
     }
 

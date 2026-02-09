@@ -15,6 +15,7 @@ import {
 } from '@/lib/genesis/phase45/workflow-trigger';
 import type { ExecutionEventDB } from '@/lib/genesis/phase45/execution-event-service';
 import { ExecutionEventService } from '@/lib/genesis/phase45/execution-event-service';
+import { isGenesisSchemaAvailable } from '@/lib/genesis/schema-check';
 
 const API_HEADERS = {
   'Content-Type': 'application/json',
@@ -85,6 +86,13 @@ export async function POST(request: NextRequest) {
     if (!supabaseAdmin) {
       return NextResponse.json(
         { error: 'Service unavailable' },
+        { status: 503, headers: API_HEADERS }
+      );
+    }
+
+    if (!(await isGenesisSchemaAvailable())) {
+      return NextResponse.json(
+        { error: 'Sandbox not available: genesis schema not exposed in PostgREST. Add "genesis" to Supabase Dashboard > Settings > API > Exposed schemas.' },
         { status: 503, headers: API_HEADERS }
       );
     }
