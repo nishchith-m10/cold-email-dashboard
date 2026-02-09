@@ -179,7 +179,7 @@ export function CompactControls({
               </DropdownMenuItem>
               
               {/* Individual Campaigns */}
-              {campaigns.length > 0 && <DropdownMenuSeparator />}
+              {campaigns.length > 0 && <DropdownMenuSeparator key="campaign-separator" />}
               {campaigns.map((campaign) => (
                 <DropdownMenuItem
                   key={campaign.id}

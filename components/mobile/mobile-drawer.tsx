@@ -218,6 +218,15 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                   <WorkspaceSwitcher className="w-full" />
                 </div>
 
+                {/* Sandbox Link */}
+                <div className="p-4 border-b border-border">
+                  <NavLink 
+                    href="/sandbox" 
+                    label="Sandbox" 
+                    onClose={onClose} 
+                  />
+                </div>
+
                 {/* Admin Panel Link - Only for super admins */}
                 {isSuperAdmin && (
                   <div className="p-4 border-b border-border">

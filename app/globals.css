@@ -312,14 +312,8 @@
     animation: shimmer 2s infinite linear;
   }
   
-  /* Dot pattern background */
+  /* Dot pattern background — disabled for clean look */
   .dot-pattern {
-    background-image: radial-gradient(circle, #27272a 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
-  
-  /* Hide dot pattern in light mode */
-  html.light .dot-pattern {
     background-image: none;
   }
   
