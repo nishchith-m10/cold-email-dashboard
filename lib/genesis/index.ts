@@ -1456,3 +1456,83 @@ export {
   MockMigrationDB,
   generateTestLeads,
 } from './phase46';
+
+// ============================================
+// PHASE 47: HYPER-SCALE STRESS TEST & RED-TEAMING
+// ============================================
+
+export {
+  // Types
+  type LoadTestScenarioType,
+  type LoadTestStage,
+  type LoadTestScenario,
+  type LoadTestThresholds,
+  type LoadTestConfig,
+  type LoadTestEndpoint,
+  type LoadTestResult,
+  type LatencyMetrics as Phase47LatencyMetrics,
+  type ThroughputMetrics,
+  type ThresholdViolation,
+  type SecurityTestCategory,
+  type SecuritySeverity,
+  type SecurityTestCase,
+  type SecurityAttack,
+  type SecurityExpectedOutcome,
+  type SecurityTestResult,
+  type SecurityAuditReport,
+  type SecuritySummary,
+  type ChaosExperimentType,
+  type ChaosExperiment,
+  type ChaosConfig as Phase47ChaosConfig,
+  type SteadyStateCheck,
+  type ChaosRollback,
+  type ChaosExperimentResult,
+  type ChaosImpactMetrics,
+  type BenchmarkConfig as Phase47BenchmarkConfig,
+  type BenchmarkResult as Phase47BenchmarkResult,
+  type BenchmarkSuite,
+  type BenchmarkSuiteResult,
+  type BenchmarkComparison,
+  type StressTestPhase,
+  type StressTestPlan,
+  type StressTestReport,
+  type StressTestEnvironment,
+  type SimulatedResponse,
+  type SimulatedQueryResult,
+  type EnvironmentMetrics,
+
+  // Constants
+  LOAD_TEST_DEFAULTS,
+  SECURITY_THRESHOLDS as PHASE47_SECURITY_THRESHOLDS,
+  BENCHMARK_DEFAULTS,
+  CHAOS_DEFAULTS,
+  calculateLatencyMetrics,
+  calculateErrorRate,
+  checkThreshold,
+
+  // Services
+  LoadTestRunner,
+  LoadTestConfigError,
+  createSmokeScenario,
+  createLoadScenario,
+  createStressScenario,
+  createSpikeScenario,
+  getDefaultEndpoints,
+  createDefaultLoadTestConfig,
+  validateLoadTestConfig,
+  SecurityTestRunner,
+  SecurityTestError,
+  getDefaultSecurityTests,
+  ChaosEngine,
+  ChaosEngineError,
+  getDefaultChaosExperiments,
+  BenchmarkRunner,
+  BenchmarkError as Phase47BenchmarkError,
+  createApiBenchmarkSuite,
+  createDatabaseBenchmarkSuite,
+  StressTestOrchestrator,
+  StressTestOrchestratorError,
+
+  // Mock
+  MockTestEnvironment,
+} from './phase47';
