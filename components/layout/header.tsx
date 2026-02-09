@@ -27,7 +27,8 @@ import {
   Trash2,
   Loader2,
   Mail,
-  Shield
+  Shield,
+  SquareTerminal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -398,6 +399,30 @@ export function Header({ onCommandOpen, onShareOpen }: HeaderProps) {
                     <span className="relative z-10 flex items-center gap-1.5">
                       <Settings className="h-4 w-4 hidden xl:block" />
                       Settings
+                    </span>
+                  </motion.button>
+                </Link>
+                <Link href={`/sandbox${query}`}>
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                    className={cn(
+                      'relative px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 flex items-center gap-1.5',
+                      pathname === '/sandbox'
+                        ? 'text-text-primary'
+                        : 'text-text-secondary hover:text-text-primary'
+                    )}
+                  >
+                    {pathname === '/sandbox' && (
+                      <motion.div
+                        layoutId="active-tab-bg"
+                        className="absolute inset-0 bg-surface shadow-sm rounded-md"
+                        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      <SquareTerminal className="h-4 w-4 hidden xl:block" />
+                      Sandbox
                     </span>
                   </motion.button>
                 </Link>
