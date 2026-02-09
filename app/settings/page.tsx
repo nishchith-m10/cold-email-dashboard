@@ -12,20 +12,18 @@ import { useState } from 'react';
 import { WorkspaceMembersTable } from '@/components/settings/workspace-members-table';
 import { GeneralSettingsTab } from '@/components/settings/general-settings-tab';
 import { SecuritySettingsTab } from '@/components/settings/security-settings-tab';
-import { ConfigVaultTab } from '@/components/settings/config-vault-tab';
 import { useWorkspace } from '@/lib/workspace-context';
-import { Users, Settings, Shield, Sliders, ChevronDown } from 'lucide-react';
+import { Users, Settings, Shield, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BottomSheet } from '@/components/mobile';
 import { Skeleton } from '@/components/ui/skeleton';
 
-type SettingsTab = 'general' | 'members' | 'security' | 'configuration';
+type SettingsTab = 'general' | 'members' | 'security';
 
 const TABS = [
   { id: 'general' as const, label: 'General', icon: Settings },
   { id: 'members' as const, label: 'Members', icon: Users },
   { id: 'security' as const, label: 'Security', icon: Shield },
-  { id: 'configuration' as const, label: 'Config', icon: Sliders },
 ];
 
 export default function SettingsPage() {
@@ -165,10 +163,6 @@ export default function SettingsPage() {
 
         {activeTab === 'security' && (
           <SecuritySettingsTab />
-        )}
-
-        {activeTab === 'configuration' && (
-          <ConfigVaultTab />
         )}
       </div>
     </div>
