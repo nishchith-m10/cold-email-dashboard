@@ -8,6 +8,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { isGenesisSchemaAvailable } from '@/lib/genesis/schema-check';
 
 const SSE_HEADERS = {
   'Content-Type': 'text/event-stream',
@@ -27,6 +28,10 @@ export async function GET(
 
   if (!supabaseAdmin) {
     return new Response('Service unavailable', { status: 503 });
+  }
+
+  if (!(await isGenesisSchemaAvailable())) {
+    return new Response('Sandbox not available: genesis schema not exposed in PostgREST', { status: 503 });
   }
 
   const { executionId } = await params;
