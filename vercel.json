@@ -11,6 +11,21 @@
     {
       "path": "/api/cron/process-exports",
       "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/cron/rotate-credentials",
+      "schedule": "0 2 * * *",
+      "comment": "Phase 69: Daily credential rotation at 2 AM UTC"
+    },
+    {
+      "path": "/api/cron/process-webhook-dlq",
+      "schedule": "*/5 * * * *",
+      "comment": "Phase 69: Webhook DLQ retry every 5 minutes"
+    },
+    {
+      "path": "/api/cron/clean-webhook-request-ids",
+      "schedule": "0 * * * *",
+      "comment": "Phase 69: Clean webhook request IDs hourly"
     }
   ]
 }

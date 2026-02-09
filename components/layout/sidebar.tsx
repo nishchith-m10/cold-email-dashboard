@@ -27,6 +27,7 @@ import {
   Sidebar as SidebarIcon,
   Check,
   Rocket,
+  SquareTerminal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Contacts', href: '/contacts', icon: Users },
   { label: 'Sequences', href: '/sequences', icon: Mail },
   { label: 'Onboarding', href: '/onboarding', icon: Rocket },
+  { label: 'Sandbox', href: '/sandbox', icon: SquareTerminal },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 

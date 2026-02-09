@@ -461,8 +461,8 @@
 
 | Phase | Title | Status | Focus |
 |-------|-------|--------|-------|
-| **44** | ["God Mode" Command & Control](#phase-44-god-mode-command--control) | ⏳ NEXT | Platform operations dashboard, health mesh, scale monitoring & pre-failure alerts |
-| **45** | [Sandbox & Simulation Engine](#phase-45-sandbox--simulation-engine) | 📋 PLANNED | Real-time n8n node visibility, test campaign execution (Scenario A: no workflow mods) |
+| **44** | ["God Mode" Command & Control](#phase-44-god-mode-command--control) | ✅ **COMPLETE** | Platform operations dashboard, health mesh, scale monitoring & pre-failure alerts |
+| **45** | [Sandbox & Simulation Engine](#phase-45-sandbox--simulation-engine) | ✅ **COMPLETE** | Real-time n8n node visibility, test campaign execution (Scenario A: no workflow mods) + Config integration |
 | **69** | [Credential Rotation & Webhook Security](#phase-69-credential-rotation--webhook-security) | 📋 PLANNED | OAuth refresh, HMAC signatures, DLQ |
 
 ### PART X: MIGRATION & DEPLOYMENT (Previously Part IX)
@@ -7594,6 +7594,42 @@ TOTAL: ~500ms per node update
 **Test coverage:** 73 tests across 6 suites (types, pii-sanitizer, mock-n8n, sandbox-rate-limiter, workflow-trigger, execution-event-service)
 **tsc:** 0 Phase 45 errors
 **Lints:** 0
+
+---
+
+### 45.3.20 Config Integration Enhancement
+
+**STATUS: ✅ COMPLETE** (2026-02-09, integrated to main)
+
+**Additional Artifacts (3 files + 7 enhancements):**
+- `components/sandbox/configuration-section.tsx` — Real-time sliders for MAX_EMAILS_PER_DAY (10-500) and REPLY_DELAY_MINUTES (5-240), office hours inputs, weekend sends toggle
+- `components/sandbox/config-status-bar.tsx` — Compact always-visible status bar (daily count, office hours, reply delay) with click-to-expand
+- `app/sandbox/page.tsx` — Dedicated sandbox route with SquareTerminal icon
+- `lib/genesis/schema-check.ts` — Graceful PostgREST schema availability check (prevents PGRST106 500 errors)
+- Enhanced `components/sandbox/test-runner.tsx` — Replaced manual UUID input with campaign selector dropdown, added config-aware validation warnings (office hours, daily limits)
+- Enhanced `components/sandbox/execution-monitor.tsx` — Added contextual annotations (email counts after send nodes, reply delay references, office hours for schedule nodes)
+- Enhanced `components/sandbox/sandbox-panel.tsx` — Integrated ConfigurationSection + ConfigStatusBar with localStorage persistence, auto-collapse after first save
+- Enhanced `app/api/sandbox/*` routes — Added schema availability checks, graceful degradation (200 with empty data vs 500 errors)
+- Removed `app/settings/page.tsx` Configuration tab (moved to Sandbox for unified workflow)
+- Navigation updates: Added Sandbox to `sidebar.tsx`, `header.tsx`, `mobile-drawer.tsx`
+
+**UI Polish:**
+- Fixed dark mode time input calendar picker icons (webkit-calendar-picker-indicator invert)
+- Applied precision slider styling: white thumb, grey track (zinc-300/700), blue fill (blue-600)
+- Fixed React key prop warning in `compact-controls.tsx`
+- Removed polka dot background in dark mode for clean aesthetic
+
+**Quality Checklist:**
+- ✅ TypeScript compiles clean (0 errors)
+- ✅ Linter clean (0 warnings)
+- ✅ Dev server startup optimized (2-4s vs 15s)
+- ✅ React warnings resolved
+- ✅ Dark mode styling verified
+- ✅ Config vault successfully migrated from Settings to Sandbox
+- ✅ All navigation links functional
+- ✅ Graceful error handling for missing genesis schema
+- ✅ Git committed with detailed message
+- ✅ Documentation updated
 
 ---
 
