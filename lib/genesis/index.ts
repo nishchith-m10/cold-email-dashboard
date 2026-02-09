@@ -1395,3 +1395,64 @@ export type {
   Phase45SidecarClient,
   WorkflowTriggerErrorCode,
 } from './phase45';
+
+// ============================================
+// PHASE 46: SHADOW MIGRATION & PARITY TESTING
+// ============================================
+
+export {
+  // Types
+  type MigrationStatus,
+  type MigrationState as Phase46MigrationState,
+  type MigrationStateRow,
+  type CreateMigrationInput,
+  type DualWriteConfig,
+  type DualWriteResult,
+  type DualWriteOperation,
+  type DualWriteEvent,
+  type BackfillConfig,
+  type BackfillProgress,
+  type BackfillResult,
+  type BackfillBatchResult,
+  type BackfillError as Phase46BackfillError,
+  type ParityCheckConfig,
+  type ParityCheckResult,
+  type ParityMismatch,
+  type CutoverPhase,
+  type CutoverState,
+  type CutoverStep,
+  type CutoverPreCheck,
+  type CutoverResult,
+  type RollbackResult as Phase46RollbackResult,
+  type MigrationEventType,
+  type MigrationEvent,
+  type MigrationDB,
+
+  // Constants
+  VALID_TRANSITIONS,
+  DEFAULT_COMPARE_FIELDS,
+  PARITY_THRESHOLDS,
+  MIGRATION_DEFAULTS,
+  isValidTransition,
+  migrationStateRowToModel,
+  modelToMigrationStateRow,
+
+  // Services
+  MigrationStateManager,
+  MigrationStateError,
+  DualWriteService,
+  DualWriteServiceError,
+  BackfillEngine,
+  BackfillEngineError,
+  ParityChecker,
+  ParityCheckerError,
+  CutoverManager,
+  CutoverError,
+  MigrationOrchestrator,
+  MigrationOrchestratorError,
+  type MigrationSummary,
+
+  // Mocks
+  MockMigrationDB,
+  generateTestLeads,
+} from './phase46';
