@@ -1,0 +1,328 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for lib/genesis/phase63/checklist-definitions.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">lib/genesis/phase63</a> checklist-definitions.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/15</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/0</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/9</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/11</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
+ * GENESIS PART VI - PHASE 63: ADMIN ONBOARDING QUEUE &amp; TRACKING
+ * Checklist Item Definitions
+ */
+&nbsp;
+import type { ChecklistItemDef } from './checklist-types';
+&nbsp;
+export const <span class="cstat-no" title="statement not covered" >CHECKLIST_ITEMS: ChecklistItemDef[] = [</span>
+  // Infrastructure (4 items)
+  { id: 'infra_droplet_provisioned', category: 'infrastructure', label: 'Droplet provisioned', detection: 'auto', order: 1 },
+  { id: 'infra_sidecar_handshake', category: 'infrastructure', label: 'Sidecar handshake complete', detection: 'auto', order: 2 },
+  { id: 'infra_n8n_accessible', category: 'infrastructure', label: 'n8n accessible via sslip.io URL', detection: 'auto', order: 3 },
+  { id: 'infra_ssl_certificate', category: 'infrastructure', label: 'SSL certificate active', detection: 'auto', order: 4 },
+  // Workflow Import (7 items, per-campaign)
+  { id: 'workflow_email_prep', category: 'workflow_import', label: 'Email Preparation workflow imported', detection: 'auto', order: 1, per_campaign: true },
+  { id: 'workflow_research_report', category: 'workflow_import', label: 'Research Report workflow imported', detection: 'auto', order: 2, per_campaign: true },
+  { id: 'workflow_email_1', category: 'workflow_import', label: 'Email 1 workflow imported', detection: 'auto', order: 3, per_campaign: true },
+  { id: 'workflow_email_2', category: 'workflow_import', label: 'Email 2 workflow imported', detection: 'auto', order: 4, per_campaign: true },
+  { id: 'workflow_email_3', category: 'workflow_import', label: 'Email 3 workflow imported', detection: 'auto', order: 5, per_campaign: true },
+  { id: 'workflow_reply_tracker', category: 'workflow_import', label: 'Reply Tracker workflow imported', detection: 'auto', order: 6, per_campaign: true },
+  { id: 'workflow_opt_out', category: 'workflow_import', label: 'Opt-Out workflow imported', detection: 'auto', order: 7, per_campaign: true },
+  // Credentials (6 items)
+  { id: 'cred_supabase', category: 'credentials', label: 'Supabase credentials created in n8n', detection: 'auto', order: 1 },
+  { id: 'cred_openai', category: 'credentials', label: 'OpenAI API key configured', detection: 'auto', order: 2 },
+  { id: 'cred_claude', category: 'credentials', label: 'Claude API key configured', detection: 'auto', order: 3 },
+  { id: 'cred_gmail', category: 'credentials', label: 'Gmail OAuth connected', detection: 'auto', order: 4 },
+  { id: 'cred_google_cse', category: 'credentials', label: 'Google CSE credentials', detection: 'auto', order: 5 },
+  { id: 'cred_apify', category: 'credentials', label: 'Apify credentials', detection: 'auto', order: 6 },
+  // Prompts (8 items, per-campaign, manual)
+  { id: 'prompt_research_company', category: 'prompts', label: 'Research Report: Company research prompt updated', detection: 'manual', order: 1, per_campaign: true },
+  { id: 'prompt_research_lead', category: 'prompts', label: 'Research Report: Lead research prompt updated', detection: 'manual', order: 2, per_campaign: true },
+  { id: 'prompt_email_prep_subject', category: 'prompts', label: 'Email Prep: Subject line generation prompt updated', detection: 'manual', order: 3, per_campaign: true },
+  { id: 'prompt_email_prep_body', category: 'prompts', label: 'Email Prep: Email body prompt updated', detection: 'manual', order: 4, per_campaign: true },
+  { id: 'prompt_email_prep_cta', category: 'prompts', label: 'Email Prep: CTA prompt updated', detection: 'manual', order: 5, per_campaign: true },
+  { id: 'prompt_email_1', category: 'prompts', label: 'Email 1: Personalization prompt updated', detection: 'manual', order: 6, per_campaign: true },
+  { id: 'prompt_email_2', category: 'prompts', label: 'Email 2: Follow-up prompt updated', detection: 'manual', order: 7, per_campaign: true },
+  { id: 'prompt_email_3', category: 'prompts', label: 'Email 3: Final follow-up prompt updated', detection: 'manual', order: 8, per_campaign: true },
+  // Schedules (5 items, per-campaign)
+  { id: 'schedule_email_prep', category: 'schedules', label: 'Email Prep schedule set', detection: 'auto', order: 1, per_campaign: true },
+  { id: 'schedule_research_report', category: 'schedules', label: 'Research Report schedule set', detection: 'auto', order: 2, per_campaign: true },
+  { id: 'schedule_email_1', category: 'schedules', label: 'Email 1 schedule set', detection: 'auto', order: 3, per_campaign: true },
+  { id: 'schedule_email_2', category: 'schedules', label: 'Email 2 schedule set', detection: 'auto', order: 4, per_campaign: true },
+  { id: 'schedule_email_3', category: 'schedules', label: 'Email 3 schedule set', detection: 'auto', order: 5, per_campaign: true },
+  // Leads (4 items)
+  { id: 'leads_csv_received', category: 'leads', label: 'Lead CSV received from client', detection: 'manual', order: 1 },
+  { id: 'leads_csv_uploaded', category: 'leads', label: 'Lead CSV uploaded to dashboard', detection: 'auto', order: 2 },
+  { id: 'leads_visible_in_db', category: 'leads', label: 'Leads visible in genesis.leads table', detection: 'auto', order: 3 },
+  { id: 'leads_count_matches', category: 'leads', label: 'Lead count matches expected', detection: 'manual', order: 4 },
+  // Testing (7 items, manual)
+  { id: 'test_lead_added', category: 'testing', label: 'Test lead added', detection: 'manual', order: 1 },
+  { id: 'test_research_executed', category: 'testing', label: 'Research Report executed successfully', detection: 'manual', order: 2 },
+  { id: 'test_email_prep_executed', category: 'testing', label: 'Email Prep executed successfully', detection: 'manual', order: 3 },
+  { id: 'test_email_1_sent', category: 'testing', label: 'Email 1 sent to test lead', detection: 'manual', order: 4 },
+  { id: 'test_email_received', category: 'testing', label: 'Email received and looks correct', detection: 'manual', order: 5 },
+  { id: 'test_reply_tracking', category: 'testing', label: 'Reply tracking verified', detection: 'manual', order: 6 },
+  { id: 'test_opt_out_link', category: 'testing', label: 'Opt-out link verified', detection: 'manual', order: 7 },
+  // Activation (3 items)
+  { id: 'activation_workflows_active', category: 'activation', label: 'All workflows activated', detection: 'auto', order: 1 },
+  { id: 'activation_client_notified', category: 'activation', label: 'Client notified in dashboard', detection: 'auto', order: 2 },
+  { id: 'activation_first_run_confirmed', category: 'activation', label: 'First scheduled run confirmed', detection: 'auto', order: 3 },
+];
+&nbsp;
+<span class="cstat-no" title="statement not covered" >export function <span class="fstat-no" title="function not covered" >g</span>etItemsByCategory(</span>category: string): ChecklistItemDef[] {
+<span class="cstat-no" title="statement not covered" >  return CHECKLIST_ITEMS.filter(<span class="fstat-no" title="function not covered" >item </span>=&gt; <span class="cstat-no" title="statement not covered" >item.category === category)</span>;</span>
+}
+&nbsp;
+<span class="cstat-no" title="statement not covered" >export function <span class="fstat-no" title="function not covered" >g</span>etItemsByDetection(</span>method: 'auto' | 'manual'): ChecklistItemDef[] {
+<span class="cstat-no" title="statement not covered" >  return CHECKLIST_ITEMS.filter(<span class="fstat-no" title="function not covered" >item </span>=&gt; <span class="cstat-no" title="statement not covered" >item.detection === method)</span>;</span>
+}
+&nbsp;
+<span class="cstat-no" title="statement not covered" >export function <span class="fstat-no" title="function not covered" >g</span>etPerCampaignItems(</span>): ChecklistItemDef[] {
+<span class="cstat-no" title="statement not covered" >  return CHECKLIST_ITEMS.filter(<span class="fstat-no" title="function not covered" >item </span>=&gt; <span class="cstat-no" title="statement not covered" >item.per_campaign === true)</span>;</span>
+}
+&nbsp;
+<span class="cstat-no" title="statement not covered" >export function <span class="fstat-no" title="function not covered" >g</span>etTotalItemCount(</span>): number {
+<span class="cstat-no" title="statement not covered" >  return CHECKLIST_ITEMS.length;</span>
+}
+&nbsp;
+<span class="cstat-no" title="statement not covered" >export function <span class="fstat-no" title="function not covered" >g</span>etItemById(</span>id: string): ChecklistItemDef | undefined {
+<span class="cstat-no" title="statement not covered" >  return CHECKLIST_ITEMS.find(<span class="fstat-no" title="function not covered" >item </span>=&gt; <span class="cstat-no" title="statement not covered" >item.id === id)</span>;</span>
+}
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-02-10T02:17:04.407Z
+            </div>
+        <script src="../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../sorter.js"></script>
+        <script src="../../../block-navigation.js"></script>
+    </body>
+</html>
+    
