@@ -25,7 +25,7 @@ describe('Phase 70 Snapshot Manager', () => {
     it('should create a snapshot', async () => {
       const snapshot = await manager.createSnapshot('ws-1', 'd-1', 'daily');
       expect(snapshot.id).toBeTruthy();
-      expect(snapshot.workspaceId).toBe('ws-d-1'); // Mock prepends "ws-" to droplet ID
+      expect(snapshot.workspaceId).toBe('ws-1'); // Mock extracts workspaceId from snapshot name
       expect(snapshot.dropletId).toBe('d-1');
       expect(snapshot.type).toBe('daily');
     });

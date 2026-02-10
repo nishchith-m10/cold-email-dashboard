@@ -224,19 +224,41 @@ export class SnapshotManager {
   /**
    * Execute garbage collection.
    */
+  /**
+   * Execute garbage collection for ALL categories:
+   * - 'immediate': delete right now (failed, stuck transfers)
+   * - 'retention_expiry': past retention policy, delete now
+   * - 'grace_period': only delete if past their grace period
+   */
   async executeGarbageCollection(
     region?: DORegion,
     dryRun: boolean = false,
   ): Promise<GarbageCollectionResult> {
     const orphaned = await this.identifyOrphanedSnapshots(region);
-    const immediateDelete = orphaned.filter(o => o.category === 'immediate');
+    const now = new Date();
+
+    // Categorize what to delete
+    const toDelete = orphaned.filter(o => {
+      switch (o.category) {
+        case 'immediate':
+          return true; // Always delete
+        case 'retention_expiry':
+          return true; // Past retention = delete
+        case 'grace_period':
+          // Only delete if grace period has expired
+          if (!o.deleteAfter) return false;
+          return new Date(o.deleteAfter) <= now;
+        default:
+          return false;
+      }
+    });
 
     let snapshotsDeleted = 0;
     let sizeRecoveredGb = 0;
     const errors: Array<{ snapshotId: string; error: string }> = [];
 
     if (!dryRun) {
-      for (const snapshot of immediateDelete) {
+      for (const snapshot of toDelete) {
         const result = await this.env.deleteSnapshot(snapshot.snapshotId);
         if (result.success) {
           snapshotsDeleted++;
@@ -247,9 +269,9 @@ export class SnapshotManager {
         }
       }
     } else {
-      // Dry run: just count
-      snapshotsDeleted = immediateDelete.length;
-      sizeRecoveredGb = immediateDelete.reduce((sum, s) => sum + s.sizeGb, 0);
+      // Dry run: count all eligible
+      snapshotsDeleted = toDelete.length;
+      sizeRecoveredGb = toDelete.reduce((sum, s) => sum + s.sizeGb, 0);
     }
 
     return {

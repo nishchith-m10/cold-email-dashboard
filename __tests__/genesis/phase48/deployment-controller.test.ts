@@ -218,9 +218,16 @@ describe('Phase 48 Deployment Controller', () => {
   // ROLLBACK
   // ============================================
   describe('Rollback', () => {
-    it('should rollback deployment', async () => {
+    it('should rollback deployment from deploying state', async () => {
+      // Must be in a rollback-able state (deploying, canary, promoting)
+      env.setState({ status: 'deploying', standbyVersion: 'v2.0.0' });
       const result = await controller.rollback('test rollback');
       expect(result.success).toBe(true);
+    });
+
+    it('should reject rollback from stable state', async () => {
+      // stable → rolling_back is not a valid transition
+      await expect(controller.rollback('invalid rollback')).rejects.toThrow('Invalid state transition');
     });
 
     it('should abort active canary during rollback', async () => {
@@ -231,6 +238,7 @@ describe('Phase 48 Deployment Controller', () => {
     });
 
     it('should log rollback events', async () => {
+      env.setState({ status: 'deploying', standbyVersion: 'v2.0.0' });
       await controller.rollback('test');
       const events = await env.getEvents();
       expect(events.some(e => e.type === 'rollback_started')).toBe(true);

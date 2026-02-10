@@ -151,6 +151,7 @@ export interface RestorationTask {
   startedAt: string;
   completedAt?: string;
   error?: string;
+  cleanedUp?: boolean; // Whether failed resources were cleaned up
 }
 
 export interface RestorationPlan {
@@ -287,6 +288,7 @@ export interface DisasterRecoveryEnvironment {
     region: DORegion,
     name: string,
   ): Promise<{ dropletId: string; ipAddress: string }>;
+  deleteDroplet(dropletId: string): Promise<{ success: boolean }>;
 
   // Heartbeat monitoring
   getHeartbeatStatus(region: DORegion): Promise<HeartbeatStatus>;
@@ -309,6 +311,7 @@ export const DR_DEFAULTS = {
   HEARTBEAT_MISSING_THRESHOLD: 50, // 50% missing = trigger
   SNAPSHOT_COST_PER_GB_MONTHLY: 0.05,
   GRACE_PERIOD_DAYS: 7,
+  RPO_TARGET_HOURS: 24, // Default RPO target if no snapshot data available
 } as const;
 
 export function calculateSnapshotCost(sizeGb: number): number {
