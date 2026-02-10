@@ -211,12 +211,15 @@ export class RestorationOrchestrator {
     // Phase 3: Verify
     const verifyResult = await this.verifyAll();
 
-    // Calculate RTO/RPO
+    // Phase 4: Cleanup — release failed resources
+    await this.executeCleanup();
+
+    // Calculate RTO (actual time from start to completion)
     const totalDurationMs = Date.now() - startTime;
     const rtoMinutes = Math.ceil(totalDurationMs / (60 * 1000));
 
-    // RPO = time since last snapshot (assume 24h)
-    const rpoMinutes = 24 * 60;
+    // Calculate RPO dynamically — max age of snapshots used
+    const rpoMinutes = this.calculateActualRpo(snapshots, plan.affectedTenants);
 
     return {
       planId: plan.planId,
@@ -275,9 +278,24 @@ export class RestorationOrchestrator {
     }
   }
 
+  /**
+   * Determine restoration priority based on workspace ID conventions.
+   * In production, this would query the billing DB. Here we use ID patterns:
+   * - 'crit-*' or 'enterprise-*' → critical
+   * - 'pay-*' or 'pro-*' → paying
+   * - 'trial-*' → trial
+   * - everything else → free
+   */
   private determinePriority(workspaceId: string): RestorationPriority {
-    // In real implementation, would query DB for subscription tier
-    return 'paying';
+    const id = workspaceId.toLowerCase();
+    if (id.startsWith('crit-') || id.startsWith('enterprise-')) return 'critical';
+    if (id.startsWith('pay-') || id.startsWith('pro-')) return 'paying';
+    if (id.startsWith('trial-')) return 'trial';
+    // Default: check if it contains hints
+    if (id.includes('critical')) return 'critical';
+    if (id.includes('paid') || id.includes('paying') || id.includes('premium')) return 'paying';
+    if (id.includes('trial')) return 'trial';
+    return 'free';
   }
 
   private priorityOrder(priority: RestorationPriority): number {
@@ -300,6 +318,66 @@ export class RestorationOrchestrator {
     if (hasVerification) return 'verification';
     if (allComplete) return 'complete';
     return 'assessment';
+  }
+
+  // ============================================
+  // PHASE 4: CLEANUP
+  // ============================================
+
+  /**
+   * Clean up failed restoration tasks — remove any partially provisioned
+   * droplets that didn't pass verification to avoid orphaned resources.
+   */
+  async executeCleanup(): Promise<{ cleaned: number; errors: number }> {
+    const failedTasks = Array.from(this.tasks.values()).filter(t => t.status === 'failed');
+    let cleaned = 0;
+    let errors = 0;
+
+    for (const task of failedTasks) {
+      if (task.newDropletId) {
+        try {
+          await this.env.deleteDroplet(task.newDropletId);
+          task.cleanedUp = true;
+          cleaned++;
+        } catch {
+          errors++;
+        }
+      }
+    }
+
+    // Update cleanup phase in tasks
+    for (const task of failedTasks) {
+      if (!task.newDropletId) {
+        task.cleanedUp = true; // Nothing to clean
+        cleaned++;
+      }
+    }
+
+    return { cleaned, errors };
+  }
+
+  /**
+   * Calculate the actual RPO in minutes by finding the oldest snapshot
+   * used in the restoration. RPO = max(current_time - snapshot_created_at).
+   */
+  private calculateActualRpo(snapshots: Snapshot[], affectedWorkspaces: string[]): number {
+    const now = Date.now();
+    let maxAgeMs = 0;
+
+    for (const workspaceId of affectedWorkspaces) {
+      const snapshot = snapshots
+        .filter(s => s.workspaceId === workspaceId && s.status === 'completed')
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
+      if (snapshot) {
+        const ageMs = now - new Date(snapshot.createdAt).getTime();
+        if (ageMs > maxAgeMs) maxAgeMs = ageMs;
+      }
+    }
+
+    // If no snapshots found, fallback to DR default (24h)
+    if (maxAgeMs === 0) return DR_DEFAULTS.RPO_TARGET_HOURS * 60;
+    return Math.ceil(maxAgeMs / (60 * 1000));
   }
 
   getTasks(): RestorationTask[] {

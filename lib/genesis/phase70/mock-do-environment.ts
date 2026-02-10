@@ -59,9 +59,14 @@ export class MockDOEnvironment implements DisasterRecoveryEnvironment {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + config.retentionDays);
 
+    // Extract workspaceId from the snapshot name (format: type_date_workspaceId)
+    // This avoids the ws-${dropletId} coupling and respects the caller's workspace mapping
+    const nameParts = name.split('_');
+    const workspaceId = nameParts.length >= 3 ? nameParts.slice(2).join('_') : `ws-${dropletId}`;
+
     const snapshot: Snapshot = {
       id: snapshotId,
-      workspaceId: `ws-${dropletId}`,
+      workspaceId,
       dropletId,
       type,
       region: droplet.region,
@@ -116,6 +121,11 @@ export class MockDOEnvironment implements DisasterRecoveryEnvironment {
     this.droplets.set(dropletId, { status: 'active', region });
 
     return { dropletId, ipAddress };
+  }
+
+  async deleteDroplet(dropletId: string): Promise<{ success: boolean }> {
+    this.callLog.push({ method: 'deleteDroplet', args: [dropletId] });
+    return { success: this.droplets.delete(dropletId) };
   }
 
   // ============================================

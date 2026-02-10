@@ -92,7 +92,7 @@ export class BenchmarkRunner {
       latency: latencyMetrics,
       throughput: Math.round((config.iterations / (totalDurationMs / 1000)) * 100) / 100,
       errors,
-      errorRate: errors / config.iterations,
+      errorRate: Math.min(1.0, config.iterations > 0 ? errors / config.iterations : 0),
       memoryUsage: memBefore !== null && memAfter !== null
         ? {
             heapUsedBefore: memBefore,

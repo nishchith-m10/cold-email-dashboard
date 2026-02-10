@@ -71,6 +71,11 @@ export class FailoverDetector {
       return { triggered: false, status };
     }
 
+    // Guard: avoid NaN/Infinity when no droplets exist in the region
+    if (status.totalDroplets === 0) {
+      return { triggered: false, status, threshold: heartbeatTrigger.threshold };
+    }
+
     const missingPercentage = (status.missingHeartbeats / status.totalDroplets) * 100;
     const triggered = missingPercentage >= heartbeatTrigger.threshold;
 
