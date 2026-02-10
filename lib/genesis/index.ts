@@ -1536,3 +1536,55 @@ export {
   // Mock
   MockTestEnvironment,
 } from './phase47';
+
+// ============================================
+// PHASE 48: PRODUCTION CUTOVER & REVERT PROTOCOL
+// ============================================
+
+export {
+  // Types
+  type DeploymentSlot,
+  type DeploymentStatus,
+  type DeploymentState as Phase48DeploymentState,
+  type DeploymentEvent as Phase48DeploymentEvent,
+  type DeploymentEventType,
+  type ReadinessCheckSeverity,
+  type ReadinessCheckCategory,
+  type ReadinessCheck,
+  type ReadinessCheckResult,
+  type ReadinessReport,
+  type CanaryConfig,
+  type CanaryState,
+  type RevertTriggerType,
+  type RevertTriggerConfig,
+  type RevertTriggerState,
+  type RevertResult as Phase48RevertResult,
+  type CutoverPhaseType as Phase48CutoverPhaseType,
+  type CutoverPlan as Phase48CutoverPlan,
+  type CutoverProgress,
+  type CutoverResult as Phase48CutoverResult,
+  type DeploymentEnvironment,
+
+  // Constants
+  DEFAULT_CANARY_CONFIG,
+  DEFAULT_REVERT_TRIGGERS,
+  DEPLOYMENT_DEFAULTS,
+  VALID_STATUS_TRANSITIONS,
+  isValidStatusTransition,
+  generateEventId,
+  generateDeploymentId,
+
+  // Services
+  LaunchReadinessEngine,
+  LaunchReadinessError,
+  getDefaultReadinessChecks,
+  DeploymentController,
+  DeploymentControllerError,
+  InstantRevertManager,
+  InstantRevertError,
+  CutoverOrchestrator as Phase48CutoverOrchestrator,
+  CutoverOrchestratorError as Phase48CutoverOrchestratorError,
+
+  // Mock
+  MockDeploymentEnvironment,
+} from './phase48';
