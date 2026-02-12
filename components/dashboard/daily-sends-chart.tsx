@@ -103,12 +103,6 @@ export function DailySendsChart({
     [data]
   );
 
-  // Explicit Y-axis ticks so the grid shows 7 horizontal lines (adds 2 more)
-  const yTicks = useMemo(() => {
-    const steps = 6; // number of intervals -> ticks = steps + 1 = 7
-    return Array.from({ length: steps + 1 }, (_, i) => +(i * maxSends / steps));
-  }, [maxSends]);
-
   if (loading) {
     return (
       <Card className={className}>
@@ -143,6 +137,13 @@ export function DailySendsChart({
                   {dateRangeDisplay}
                 </p>
               </div>
+
+              {/* Subtle empty-state caption (non-intrusive) */}
+              {totalSends === 0 && (
+                <p className="text-xs text-text-secondary mt-2" aria-hidden="false">
+                  No sends in selected range
+                </p>
+              )}
             </div>
             
             <div className="flex items-center gap-4 text-sm">
@@ -163,7 +164,7 @@ export function DailySendsChart({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                margin={totalSends === 0 ? { top: 2, right: 10, left: -20, bottom: 0 } : { top: 10, right: 10, left: -20, bottom: 0 }}
                 onClick={(nextState) => {
                   if (nextState && nextState.activeTooltipIndex != null && onDateClick && chartData[nextState.activeTooltipIndex as number]) {
                     onDateClick(chartData[nextState.activeTooltipIndex as number].fullDate);
@@ -189,13 +190,13 @@ export function DailySendsChart({
                   tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
                   tickMargin={8}
                   domain={[0, maxSends]}
-                  ticks={yTicks}
                 />
                 <Tooltip 
                   content={(props: TooltipContentProps<ValueType, NameType>) => <CustomTooltip {...props} />}
                   cursor={{ fill: 'var(--surface-elevated)', opacity: 0.5 }}
                 />
                 <Bar 
+                  // when empty, pull the chart content down slightly so x-axis anchors visually
                   dataKey="count" 
                   radius={[4, 4, 0, 0]}
                   animationDuration={800}
