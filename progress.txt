@@ -1,0 +1,49 @@
+# Ralph Progress Log
+Started: 2026-02-11
+---
+
+## Codebase Patterns
+- Recharts 3.x: Use `TooltipContentProps` (not `TooltipProps`) for custom tooltip `content` render functions
+- Recharts 3.x: `MouseHandlerDataParam` no longer has `activePayload` — use `activeTooltipIndex` + data lookup
+- Recharts 3.x: `DotItemDotProps` has optional `cx/cy` (number | undefined)
+- Recharts 3.x: `Formatter<TValue, TName>` now takes `(value: TValue | undefined, ...)`
+- Project uses `next lint` and TypeScript strict mode
+- Supabase Realtime hooks should use refs for values referenced in subscribe callbacks to avoid re-subscription loops
+- Use `subscribeRef` pattern to break circular deps between `subscribe` and `attemptRetry`
+- event_ts index migration already exists at `20251205_add_event_ts_index.sql`
+---
+
+## 2026-02-11 - US-001, US-002, US-003
+- Fixed all 12 Recharts 3.x type errors across 4 chart components
+- Used proper `TooltipContentProps<ValueType, NameType>` from `recharts/types/component/Tooltip`
+- Used function form for `content` prop: `content={(props: TooltipContentProps<ValueType, NameType>) => ...}`
+- Fixed `activePayload` → `activeTooltipIndex` for chart onClick in daily-sends-chart
+- Fixed dot render prop to handle optional cx/cy via `DotItemDotProps` casting in daily-cost-chart
+- Files changed: daily-sends-chart.tsx, daily-cost-chart.tsx, donut-chart.tsx, time-series-chart.tsx
+- **Learnings:**
+  - Recharts 3.x splits types: `TooltipProps` (component config) vs `TooltipContentProps` (content fn args)
+  - `PropertiesReadFromContext` = `viewBox | active | payload | coordinate | label | accessibilityLayer`
+  - Never simplify complex generics — use `ValueType, NameType` from recharts DefaultTooltipContent
+  - JSX element form of content causes widening; function form preserves generic specificity
+---
+
+## 2026-02-11 - US-004
+- Fixed realtime-health infinite re-subscription loop
+- Root cause: `subscribe` depended on `health.workflowId` and `health.version` state → state update → subscribe recreated → useEffect re-run → teardown/reconnect cycle
+- Fix: Added `healthRef` to read state without closure dependency, `subscribeRef` to break circular dep with `attemptRetry`
+- Files changed: lib/realtime-health.ts
+- **Learnings:**
+  - Use refs for state values read inside Supabase Realtime callbacks
+  - Use `subscribeRef` pattern when subscribe and retry have circular deps
+---
+
+## 2026-02-11 - US-005
+- Increased fetcher REQUEST_TIMEOUT from 15s to 30s
+- Root cause: /api/dashboard/aggregate runs 15 parallel Supabase queries, 15s too short for cold starts
+- Files changed: lib/fetcher.ts
+---
+
+## 2026-02-11 - US-006
+- event_ts index already exists (20251205_add_event_ts_index.sql + schema.sql line 85)
+- No action needed
+---

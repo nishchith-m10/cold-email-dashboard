@@ -11,6 +11,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import type { TooltipContentProps } from 'recharts/types/component/Tooltip';
+import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -31,16 +33,17 @@ function CustomTooltip({
   payload, 
   label,
   currencyFormatter,
-}: any) {
+}: TooltipContentProps<ValueType, NameType> & { currencyFormatter: (amount: number) => string }) {
   if (!active || !payload?.length) return null;
 
   const value = payload[0].value as number;
-  const rawDate = payload[0]?.payload?.rawDay;
+  const rawDate = (payload[0] as Record<string, unknown>)?.payload as Record<string, unknown> | undefined;
+  const rawDay = rawDate?.rawDay as string | undefined;
 
   // Format the date nicely without timezone conversion
   let displayDate = label;
-  if (rawDate) {
-    const [year, month, day] = rawDate.split('-').map(Number);
+  if (rawDay) {
+    const [year, month, day] = rawDay.split('-').map(Number);
     const date = new Date(year, month - 1, day);
     displayDate = date.toLocaleDateString('en-US', { 
       month: 'long', 
@@ -167,7 +170,7 @@ export function DailyCostChart({
         </CardHeader>
         <CardContent className="pb-4">
           <div style={{ width: '100%', height: 200 }}>
-            <ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={formattedData}
                 margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -200,7 +203,7 @@ export function DailyCostChart({
                   width={70}
                 />
                 <Tooltip 
-                  content={<CustomTooltip currencyFormatter={formatCurrency} />}
+                  content={(props: TooltipContentProps<ValueType, NameType>) => <CustomTooltip {...props} currencyFormatter={formatCurrency} />}
                   cursor={{ stroke: 'var(--border)', strokeDasharray: '4 4' }}
                 />
                 <Area
@@ -211,10 +214,11 @@ export function DailyCostChart({
                   fill="url(#costGradient)"
                   animationDuration={1000}
                   animationEasing="ease-out"
-                  dot={(props: any) => {
-                    const { cx, cy, payload } = props;
+                  dot={(props) => {
+                    const { cx, cy, payload } = props as { cx?: number; cy?: number; payload?: { value: number } };
+                    if (cx == null || cy == null) return <circle r={0} />;
                     // Show dots for days with actual costs
-                    if (payload?.value > 0) {
+                    if (payload && payload.value > 0) {
                       return (
                         <circle
                           key={`dot-${cx}-${cy}`}

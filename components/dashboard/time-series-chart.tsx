@@ -12,6 +12,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import type { TooltipContentProps } from 'recharts/types/component/Tooltip';
+import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -34,12 +36,12 @@ function CustomTooltip({
   active, 
   payload, 
   label,
-  formatter 
-}: any) {
+  valueFormatter 
+}: TooltipContentProps<ValueType, NameType> & { valueFormatter?: (v: number) => string }) {
   if (!active || !payload?.length) return null;
 
   const value = payload[0].value as number;
-  const formattedValue = formatter ? formatter(value) : value.toLocaleString();
+  const formattedValue = valueFormatter ? valueFormatter(value) : value.toLocaleString();
 
   return (
     <div className="bg-surface-elevated border border-border rounded-lg px-3 py-2 shadow-xl">
@@ -99,7 +101,7 @@ export function TimeSeriesChart({
         </CardHeader>
         <CardContent className="pb-4">
           <div style={{ width: '100%', height }}>
-            <ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%">
               <ChartComponent
                 data={formattedData}
                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
@@ -131,7 +133,7 @@ export function TimeSeriesChart({
                   tickFormatter={(v) => valueFormatter ? valueFormatter(v) : v.toLocaleString()}
                 />
                 <Tooltip 
-                  content={<CustomTooltip formatter={valueFormatter} />}
+                  content={(props: TooltipContentProps<ValueType, NameType>) => <CustomTooltip {...props} valueFormatter={valueFormatter} />}
                   cursor={{ stroke: 'var(--border)', strokeDasharray: '4 4' }}
                 />
                 {type === 'area' ? (
