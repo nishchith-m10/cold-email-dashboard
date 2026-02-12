@@ -159,11 +159,17 @@ export class CutoverManager {
         // Disable dual-write trigger (no longer needed)
         await this.dualWriteService.disable(workspaceId);
 
-        // Mark the target as active
-        await this.db.updateMigrationState(workspaceId, {
-          status: 'cutover_complete',
+        // Ensure we're in cutover_ready before completing (state machine enforcement)
+        const currentState = await this.stateManager.getStateOrThrow(workspaceId);
+        if (currentState.status === 'verifying') {
+          await this.stateManager.transitionTo(workspaceId, 'cutover_ready', {
+            dual_write_enabled: false,
+          });
+        }
+
+        // Transition through the state machine properly (not direct DB write)
+        await this.stateManager.transitionTo(workspaceId, 'cutover_complete', {
           dual_write_enabled: false,
-          updated_at: new Date().toISOString(),
         });
 
         cutoverState.phase = 'swap_active';
@@ -308,7 +314,7 @@ export class CutoverManager {
 
       return {
         success: true,
-        fromPhase: state.status as CutoverPhase,
+        fromPhase: this.migrationStatusToCutoverPhase(state.status),
         durationMs: Date.now() - startTime,
       };
     } catch (error) {
@@ -316,7 +322,7 @@ export class CutoverManager {
 
       return {
         success: false,
-        fromPhase: state.status as CutoverPhase,
+        fromPhase: this.migrationStatusToCutoverPhase(state.status),
         durationMs: Date.now() - startTime,
         error: errorMessage,
       };
@@ -450,6 +456,24 @@ export class CutoverManager {
         error: null,
       })),
     };
+  }
+
+  /**
+   * Safely map MigrationStatus to CutoverPhase.
+   * MigrationStatus values that don't map to CutoverPhase become 'aborted'.
+   */
+  private migrationStatusToCutoverPhase(status: string): CutoverPhase {
+    const mapping: Record<string, CutoverPhase> = {
+      idle: 'pre_check',
+      dual_write: 'pre_check',
+      backfilling: 'pre_check',
+      verifying: 'pre_check',
+      cutover_ready: 'pre_check',
+      cutover_complete: 'complete',
+      failed: 'aborted',
+      rolled_back: 'aborted',
+    };
+    return mapping[status] || 'aborted';
   }
 
   private async executeStep(

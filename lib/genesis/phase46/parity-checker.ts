@@ -256,6 +256,11 @@ export class ParityChecker {
 
   /**
    * Compare two values for equality, handling edge cases.
+   *
+   * IMPORTANT: Date tolerance is STRICT by default. We only apply
+   * sub-second tolerance for ISO-8601 date strings (containing 'T')
+   * to handle minor timestamp precision differences across systems.
+   * Non-date strings are always compared exactly.
    */
   private valuesEqual(a: unknown, b: unknown): boolean {
     // Both null/undefined
@@ -268,23 +273,53 @@ export class ParityChecker {
       return a.getTime() === b.getTime();
     }
 
-    // String dates — normalize and compare
+    // String comparison
     if (typeof a === 'string' && typeof b === 'string') {
-      const dateA = Date.parse(a);
-      const dateB = Date.parse(b);
-      if (!isNaN(dateA) && !isNaN(dateB)) {
-        // If both are valid dates, compare within 1 second tolerance
-        return Math.abs(dateA - dateB) < 1000;
+      // Only apply date tolerance for ISO-8601 strings (must contain 'T' separator)
+      // This prevents treating arbitrary strings like "active" or "2026-01-01" as dates
+      if (this.isIsoDateString(a) && this.isIsoDateString(b)) {
+        const dateA = Date.parse(a);
+        const dateB = Date.parse(b);
+        if (!isNaN(dateA) && !isNaN(dateB)) {
+          // Sub-second tolerance only (999ms) for precision differences
+          return Math.abs(dateA - dateB) < 1000;
+        }
       }
+      // Exact string comparison for non-date strings
+      return a === b;
     }
 
-    // JSON comparison for objects
+    // JSON comparison for objects (stable key order)
     if (typeof a === 'object' && typeof b === 'object') {
-      return JSON.stringify(a) === JSON.stringify(b);
+      return JSON.stringify(this.sortKeys(a)) === JSON.stringify(this.sortKeys(b));
     }
 
     // Primitive comparison
     return a === b;
+  }
+
+  /**
+   * Check if a string looks like an ISO-8601 datetime (contains 'T' separator).
+   */
+  private isIsoDateString(s: string): boolean {
+    // Must contain 'T' and look like a datetime, not just any parseable date string
+    return /^\d{4}-\d{2}-\d{2}T/.test(s);
+  }
+
+  /**
+   * Sort object keys for stable JSON comparison.
+   */
+  private sortKeys(obj: unknown): unknown {
+    if (obj === null || obj === undefined) return obj;
+    if (Array.isArray(obj)) return obj.map(item => this.sortKeys(item));
+    if (typeof obj === 'object') {
+      const sorted: Record<string, unknown> = {};
+      for (const key of Object.keys(obj as Record<string, unknown>).sort()) {
+        sorted[key] = this.sortKeys((obj as Record<string, unknown>)[key]);
+      }
+      return sorted;
+    }
+    return obj;
   }
 
   /**

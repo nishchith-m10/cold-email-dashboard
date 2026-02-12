@@ -280,7 +280,7 @@ export class ChaosEngine {
 
   private resolveMetric(
     metric: string,
-    metrics: { totalRequests: number; totalErrors: number; latencies: number[] },
+    metrics: { totalRequests: number; totalErrors: number; latencies: number[]; requestsByEndpoint: Record<string, number>; errorsByEndpoint: Record<string, number> },
   ): number {
     switch (metric) {
       case 'error_rate':
@@ -292,12 +292,24 @@ export class ChaosEngine {
       }
       case 'success_count':
         return metrics.totalRequests - metrics.totalErrors;
-      case 'core_api_available':
-        return 1; // simulated — always available in mock
-      case 'queue_errors':
-        return 0; // simulated — no queue errors in mock
-      case 'duplicate_events':
-        return 0; // simulated — no duplicates in mock
+      case 'core_api_available': {
+        // Actually check: if total requests > 0 and error rate < 100%, API is available
+        // If no requests have been made, probe the environment
+        if (metrics.totalRequests === 0) return 1; // no traffic = no failure signal
+        const errorRate = metrics.totalErrors / metrics.totalRequests;
+        return errorRate < 1.0 ? 1 : 0;
+      }
+      case 'queue_errors': {
+        // Derive from event endpoint errors if available
+        const eventErrors = metrics.errorsByEndpoint['/api/events'] || 0;
+        const eventTotal = metrics.requestsByEndpoint['/api/events'] || 0;
+        return eventTotal > 0 ? eventErrors / eventTotal : 0;
+      }
+      case 'duplicate_events': {
+        // Track based on total errors on event endpoint (a proxy for duplicates in mock)
+        // In a real system, this would query a dedup table
+        return metrics.errorsByEndpoint['/api/events'] || 0;
+      }
       default:
         return 0;
     }
@@ -315,15 +327,29 @@ export class ChaosEngine {
     }
   }
 
+  /**
+   * Measure the impact of the chaos experiment by generating diverse traffic.
+   * Covers multiple endpoints to get a realistic impact profile.
+   */
   private async measureImpact(experiment: ChaosExperiment): Promise<ChaosImpactMetrics> {
     this.env.resetMetrics();
 
-    // Generate traffic during chaos
+    // Diverse endpoints to simulate real traffic patterns
+    const endpoints = [
+      { method: 'GET', path: '/api/dashboard?workspaceId=test-ws', wsId: 'test-ws' },
+      { method: 'GET', path: '/api/contacts?workspaceId=test-ws', wsId: 'test-ws' },
+      { method: 'GET', path: '/api/sequences?workspaceId=test-ws', wsId: 'test-ws' },
+      { method: 'POST', path: '/api/events?workspaceId=test-ws', wsId: 'test-ws' },
+      { method: 'GET', path: '/api/health', wsId: undefined },
+    ];
+
+    // Generate traffic during chaos across all endpoints
     const iterations = Math.max(10, Math.floor(experiment.config.durationSeconds / 2));
     for (let i = 0; i < iterations; i++) {
+      const ep = endpoints[i % endpoints.length];
       try {
-        await this.env.simulateRequest('GET', '/api/dashboard?workspaceId=test-ws', {
-          workspaceId: 'test-ws',
+        await this.env.simulateRequest(ep.method, ep.path, {
+          workspaceId: ep.wsId,
         });
       } catch {
         // Expected during chaos

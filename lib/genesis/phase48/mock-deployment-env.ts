@@ -53,12 +53,9 @@ export class MockDeploymentEnvironment implements DeploymentEnvironment {
   async deployToStandby(version: string): Promise<{ success: boolean; error?: string }> {
     this.callLog.push({ method: 'deployToStandby', args: [version] });
 
-    if (this.state.status !== 'stable' && this.state.status !== 'rolled_back' && this.state.status !== 'failed') {
-      return { success: false, error: `Cannot deploy: status is ${this.state.status}` };
-    }
-
+    // State validation is now the controller's responsibility.
+    // The mock only performs the deploy action.
     this.state.standbyVersion = version;
-    this.state.status = 'deploying';
     this.state.lastDeployedAt = new Date().toISOString();
 
     return { success: true };
@@ -85,12 +82,14 @@ export class MockDeploymentEnvironment implements DeploymentEnvironment {
   async setCanaryPercentage(percentage: number): Promise<void> {
     this.callLog.push({ method: 'setCanaryPercentage', args: [percentage] });
     this.state.canaryPercentage = percentage;
-    if (percentage > 0 && this.state.status === 'deploying') {
-      this.state.status = 'canary';
-    }
-    if (percentage === 0 && this.state.status === 'canary') {
-      this.state.status = 'rolling_back';
-    }
+    // Status transitions are now the controller's responsibility,
+    // not the mock's. The mock only stores the canary percentage.
+    // This prevents business logic leaking into the test infrastructure.
+  }
+
+  async updateDeploymentStatus(status: import('./types').DeploymentStatus): Promise<void> {
+    this.callLog.push({ method: 'updateDeploymentStatus', args: [status] });
+    this.state.status = status;
   }
 
   // ============================================
