@@ -1588,3 +1588,63 @@ export {
   // Mock
   MockDeploymentEnvironment,
 } from './phase48';
+
+// ============================================
+// PHASE 70: DISASTER RECOVERY & REGIONAL FAILOVER
+// ============================================
+
+export {
+  // Types
+  type FailureMode,
+  type FailureModeDefinition,
+  type DORegion,
+  type RegionMapping,
+  type SnapshotType,
+  type SnapshotStatus,
+  type SnapshotConfig,
+  type Snapshot as Phase70Snapshot,
+  type SnapshotRecord,
+  type RestorationPhase,
+  type RestorationPriority,
+  type RestorationTask,
+  type RestorationPlan,
+  type RestorationProgress,
+  type RestorationResult as Phase70RestorationResult,
+  type FailoverTriggerType,
+  type FailoverTrigger,
+  type HeartbeatStatus,
+  type FailoverEvent as Phase70FailoverEvent,
+  type GarbageCategory,
+  type GarbageCollectionConfig,
+  type OrphanedSnapshot,
+  type GarbageCollectionResult,
+  type DisasterRecoveryEnvironment,
+
+  // Constants
+  FAILURE_MODE_CATALOG,
+  CROSS_REGION_MAPPINGS,
+  SNAPSHOT_CONFIGS,
+  DEFAULT_FAILOVER_TRIGGERS,
+  GARBAGE_COLLECTION_DEFAULTS,
+  DR_DEFAULTS,
+  getBackupRegion,
+  calculateSnapshotCost,
+  isSnapshotExpired,
+  generateSnapshotName,
+  generateTaskId as Phase70GenerateTaskId,
+  generatePlanId as Phase70GeneratePlanId,
+  generateEventId as Phase70GenerateEventId,
+
+  // Services
+  SnapshotManager,
+  SnapshotManagerError,
+  FailoverDetector,
+  FailoverDetectorError,
+  RestorationOrchestrator as Phase70RestorationOrchestrator,
+  RestorationOrchestratorError as Phase70RestorationOrchestratorError,
+  DisasterRecoveryController,
+  DisasterRecoveryControllerError,
+
+  // Mock
+  MockDOEnvironment,
+} from './phase70';

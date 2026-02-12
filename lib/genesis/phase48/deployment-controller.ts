@@ -15,6 +15,7 @@ import {
   DeploymentEnvironment,
   DEFAULT_CANARY_CONFIG,
   DEPLOYMENT_DEFAULTS,
+  VALID_STATUS_TRANSITIONS,
   isValidStatusTransition,
   generateEventId,
   generateDeploymentId,
@@ -47,6 +48,24 @@ export class DeploymentController {
   ) {}
 
   // ============================================
+  // STATE TRANSITION ENFORCEMENT
+  // ============================================
+
+  /**
+   * Validate and enforce a state transition.
+   * Throws if the transition is not allowed by the state machine.
+   */
+  private validateTransition(currentStatus: DeploymentStatus, targetStatus: DeploymentStatus): void {
+    if (!isValidStatusTransition(currentStatus, targetStatus)) {
+      const allowed = VALID_STATUS_TRANSITIONS[currentStatus] || [];
+      throw new DeploymentControllerError(
+        `Invalid state transition: '${currentStatus}' → '${targetStatus}'. Allowed: [${allowed.join(', ')}]`,
+        'INVALID_TRANSITION',
+      );
+    }
+  }
+
+  // ============================================
   // DEPLOYMENT LIFECYCLE
   // ============================================
 
@@ -56,14 +75,13 @@ export class DeploymentController {
   async deployToStandby(version: string): Promise<{ success: boolean; deploymentId: string; error?: string }> {
     const state = await this.env.getDeploymentState();
 
-    if (state.status !== 'stable' && state.status !== 'rolled_back' && state.status !== 'failed') {
-      throw new DeploymentControllerError(
-        `Cannot deploy: current status is '${state.status}', must be 'stable', 'rolled_back', or 'failed'`,
-        'INVALID_STATE',
-      );
-    }
+    // Enforce state transition: must be able to go to 'deploying'
+    this.validateTransition(state.status, 'deploying');
 
     this.deploymentId = generateDeploymentId();
+
+    // Transition to deploying
+    await this.env.updateDeploymentStatus('deploying');
 
     await this.env.logEvent({
       type: 'deploy_started',
@@ -129,15 +147,14 @@ export class DeploymentController {
    */
   async startCanary(): Promise<CanaryState> {
     const state = await this.env.getDeploymentState();
-    if (state.status !== 'deploying' && state.status !== 'stable') {
-      throw new DeploymentControllerError(
-        `Cannot start canary: status is '${state.status}'`,
-        'INVALID_STATE',
-      );
-    }
+    // Canary requires deploying → canary transition
+    this.validateTransition(state.status, 'canary');
 
     const initial = this.canaryConfig.initialPercentage;
     await this.env.setCanaryPercentage(initial);
+
+    // Update deployment status to canary (controller owns the state machine)
+    await this.env.updateDeploymentStatus('canary');
 
     this.canaryState = {
       active: true,
@@ -254,6 +271,19 @@ export class DeploymentController {
   async promote(): Promise<{ success: boolean; error?: string }> {
     const state = await this.env.getDeploymentState();
 
+    // Enforce: canary → promoting or deploying → stable (for direct promotion)
+    if (state.status === 'canary') {
+      this.validateTransition(state.status, 'promoting');
+    } else if (state.status === 'promoting') {
+      this.validateTransition(state.status, 'stable');
+    }
+
+    // Transition to promoting
+    if (state.status === 'canary') {
+      this.validateTransition(state.status, 'promoting');
+      await this.env.updateDeploymentStatus('promoting');
+    }
+
     await this.env.logEvent({
       type: 'promote_started',
       slot: state.standbySlot,
@@ -269,6 +299,9 @@ export class DeploymentController {
     const result = await this.env.swapSlots();
 
     if (result.success) {
+      // Transition to stable
+      await this.env.updateDeploymentStatus('stable');
+
       await this.env.logEvent({
         type: 'promote_completed',
         slot: state.standbySlot,
@@ -295,10 +328,21 @@ export class DeploymentController {
    * Rollback: revert traffic and mark as rolled back.
    */
   async rollback(reason: string): Promise<{ success: boolean; error?: string }> {
+    const currentState = await this.env.getDeploymentState();
+
+    // Validate rollback is allowed from current state
+    // rolling_back is the intermediate state; rolled_back is the terminal
+    if (currentState.status !== 'rolling_back') {
+      this.validateTransition(currentState.status, 'rolling_back');
+    }
+
+    // Transition to rolling_back
+    await this.env.updateDeploymentStatus('rolling_back');
+
     await this.env.logEvent({
       type: 'rollback_started',
-      slot: 'blue', // Active
-      version: 'current',
+      slot: currentState.activeSlot,
+      version: currentState.activeVersion,
       details: { reason },
     });
 
@@ -310,10 +354,13 @@ export class DeploymentController {
     // Set traffic to 0 on standby
     await this.env.setCanaryPercentage(0);
 
+    // Transition to rolled_back
+    await this.env.updateDeploymentStatus('rolled_back');
+
     await this.env.logEvent({
       type: 'rollback_completed',
-      slot: 'blue',
-      version: 'current',
+      slot: currentState.activeSlot,
+      version: currentState.activeVersion,
       details: { reason },
     });
 

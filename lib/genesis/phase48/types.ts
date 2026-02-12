@@ -229,6 +229,9 @@ export interface DeploymentEnvironment {
   // Traffic routing
   setCanaryPercentage(percentage: number): Promise<void>;
 
+  // Status management (controller owns state machine transitions)
+  updateDeploymentStatus(status: DeploymentStatus): Promise<void>;
+
   // Health checks
   checkHealth(slot: DeploymentSlot): Promise<{ healthy: boolean; details: Record<string, unknown> }>;
 
@@ -274,7 +277,7 @@ export const DEPLOYMENT_DEFAULTS = {
 
 export const VALID_STATUS_TRANSITIONS: Record<DeploymentStatus, DeploymentStatus[]> = {
   stable: ['deploying'],
-  deploying: ['canary', 'stable', 'failed'],
+  deploying: ['canary', 'stable', 'rolling_back', 'failed'],
   canary: ['promoting', 'rolling_back', 'failed'],
   promoting: ['stable', 'rolling_back', 'failed'],
   rolling_back: ['rolled_back', 'failed'],
