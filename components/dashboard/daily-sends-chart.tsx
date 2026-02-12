@@ -103,6 +103,12 @@ export function DailySendsChart({
     [data]
   );
 
+  // Explicit Y-axis ticks so the grid shows 7 horizontal lines (adds 2 more)
+  const yTicks = useMemo(() => {
+    const steps = 6; // number of intervals -> ticks = steps + 1 = 7
+    return Array.from({ length: steps + 1 }, (_, i) => +(i * maxSends / steps));
+  }, [maxSends]);
+
   if (loading) {
     return (
       <Card className={className}>
@@ -183,7 +189,7 @@ export function DailySendsChart({
                   tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
                   tickMargin={8}
                   domain={[0, maxSends]}
-                  tickCount={7}
+                  ticks={yTicks}
                 />
                 <Tooltip 
                   content={(props: TooltipContentProps<ValueType, NameType>) => <CustomTooltip {...props} />}
