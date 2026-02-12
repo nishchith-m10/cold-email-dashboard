@@ -103,6 +103,15 @@ export function DailySendsChart({
     [data]
   );
 
+  // Explicit Y-axis ticks. When empty, use quarter increments only (0, .25, .5, .75, 1)
+  const yTicks = useMemo(() => {
+    if (totalSends === 0) {
+      return [0, maxSends * 0.25, maxSends * 0.5, maxSends * 0.75, maxSends];
+    }
+    const steps = 6; // default density
+    return Array.from({ length: steps + 1 }, (_, i) => +(i * maxSends / steps));
+  }, [maxSends, totalSends]);
+
   if (loading) {
     return (
       <Card className={className}>
@@ -164,7 +173,7 @@ export function DailySendsChart({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
-                margin={totalSends === 0 ? { top: 2, right: 10, left: -20, bottom: 0 } : { top: 10, right: 10, left: -20, bottom: 0 }}
+                margin={totalSends === 0 ? { top: 0, right: 10, left: -20, bottom: 12 } : { top: 10, right: 10, left: -20, bottom: 0 }}
                 onClick={(nextState) => {
                   if (nextState && nextState.activeTooltipIndex != null && onDateClick && chartData[nextState.activeTooltipIndex as number]) {
                     onDateClick(chartData[nextState.activeTooltipIndex as number].fullDate);
@@ -190,6 +199,7 @@ export function DailySendsChart({
                   tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
                   tickMargin={8}
                   domain={[0, maxSends]}
+                  ticks={yTicks}
                 />
                 <Tooltip 
                   content={(props: TooltipContentProps<ValueType, NameType>) => <CustomTooltip {...props} />}
