@@ -103,6 +103,9 @@ export function DailySendsChart({
     [data]
   );
 
+  // Consider chart empty when there are no data points or every day has 0 sends
+  const isEmpty = useMemo(() => data.length === 0 || data.every(d => d.count === 0), [data]);
+
   if (loading) {
     return (
       <Card className={className}>
@@ -152,12 +155,12 @@ export function DailySendsChart({
           </div>
         </CardHeader>
         
-        <CardContent className="pb-4">
+        <CardContent className={cn(isEmpty ? 'pb-2' : 'pb-4')}>
           <div style={{ width: '100%', height: 240, minHeight: 240 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                margin={{ top: 10, right: 10, left: -20, bottom: 12 }}
                 onClick={(nextState) => {
                   if (nextState && nextState.activeTooltipIndex != null && onDateClick && chartData[nextState.activeTooltipIndex as number]) {
                     onDateClick(chartData[nextState.activeTooltipIndex as number].fullDate);
