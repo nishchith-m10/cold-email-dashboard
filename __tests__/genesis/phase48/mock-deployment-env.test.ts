@@ -41,13 +41,15 @@ describe('Phase 48 Mock Deployment Environment', () => {
 
       const state = await env.getDeploymentState();
       expect(state.standbyVersion).toBe('v2.0.0');
-      expect(state.status).toBe('deploying');
+      // Mock no longer sets status — controller owns state machine
+      expect(state.lastDeployedAt).toBeTruthy();
     });
 
-    it('should reject deploy from canary state', async () => {
+    it('should accept deploy from any state (controller validates)', async () => {
+      // State validation is now the controller's responsibility, not the mock's
       env.setState({ status: 'canary' });
       const result = await env.deployToStandby('v2.0.0');
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     });
   });
 
@@ -83,18 +85,22 @@ describe('Phase 48 Mock Deployment Environment', () => {
       expect(state.canaryPercentage).toBe(25);
     });
 
-    it('should transition to canary status when > 0', async () => {
+    it('should NOT implicitly change status (controller owns state machine)', async () => {
       env.setState({ status: 'deploying' });
       await env.setCanaryPercentage(10);
       const state = await env.getDeploymentState();
-      expect(state.status).toBe('canary');
+      // Mock no longer changes status — that's the controller's job
+      expect(state.status).toBe('deploying');
+      expect(state.canaryPercentage).toBe(10);
     });
 
-    it('should transition to rolling_back when set to 0 during canary', async () => {
+    it('should update percentage without changing status', async () => {
       env.setState({ status: 'canary' });
       await env.setCanaryPercentage(0);
       const state = await env.getDeploymentState();
-      expect(state.status).toBe('rolling_back');
+      // Status stays as-is, only percentage changes
+      expect(state.status).toBe('canary');
+      expect(state.canaryPercentage).toBe(0);
     });
   });
 

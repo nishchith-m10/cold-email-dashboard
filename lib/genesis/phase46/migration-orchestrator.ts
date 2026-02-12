@@ -218,11 +218,13 @@ export class MigrationOrchestrator {
    * Run the complete migration pipeline for a workspace.
    * This is a convenience method that runs all steps in sequence.
    *
-   * WARNING: Long-running operation. Use individual methods for production.
+   * Includes a configurable timeout (default: 30 minutes) to prevent
+   * indefinite hanging. Use individual methods for production.
    */
   async runFullMigration(
     workspaceId: string,
     onProgress?: (phase: string, detail: string) => void,
+    options?: { timeoutMs?: number; abortSignal?: { aborted: boolean } },
   ): Promise<{
     success: boolean;
     backfillResult?: BackfillResult;
@@ -230,8 +232,29 @@ export class MigrationOrchestrator {
     cutoverResult?: CutoverResult;
     error?: string;
   }> {
+    const timeoutMs = options?.timeoutMs ?? 1_800_000; // 30 min default
+    const startTime = Date.now();
+
+    const checkTimeout = () => {
+      if (Date.now() - startTime > timeoutMs) {
+        throw new MigrationOrchestratorError(
+          `Full migration timed out after ${Math.round(timeoutMs / 1000)}s`,
+          'MIGRATION_TIMEOUT',
+          workspaceId,
+        );
+      }
+      if (options?.abortSignal?.aborted) {
+        throw new MigrationOrchestratorError(
+          'Full migration aborted by signal',
+          'MIGRATION_ABORTED',
+          workspaceId,
+        );
+      }
+    };
+
     try {
       // Step 1: Enable dual-write
+      checkTimeout();
       onProgress?.('dual_write', 'Enabling dual-write trigger...');
       const dualWriteResult = await this.startDualWrite(workspaceId);
       if (!dualWriteResult.success) {
@@ -239,8 +262,10 @@ export class MigrationOrchestrator {
       }
 
       // Step 2: Run backfill
+      checkTimeout();
       onProgress?.('backfill', 'Starting backfill...');
       const backfillResult = await this.startBackfill(workspaceId, {
+        abortSignal: options?.abortSignal,
         onProgress: (p) => {
           onProgress?.('backfill', `${p.percentComplete}% complete (${p.processedRows}/${p.totalRows})`);
         },
@@ -250,6 +275,7 @@ export class MigrationOrchestrator {
       }
 
       // Step 3: Parity check
+      checkTimeout();
       onProgress?.('parity', 'Running parity check...');
       const parityResult = await this.runParityCheck(workspaceId, true);
 
@@ -263,9 +289,11 @@ export class MigrationOrchestrator {
       }
 
       // Transition to cutover_ready
+      checkTimeout();
       await this.stateManager.transitionTo(workspaceId, 'cutover_ready');
 
       // Step 4: Execute cutover
+      checkTimeout();
       onProgress?.('cutover', 'Executing cutover...');
       const cutoverResult = await this.executeCutover(workspaceId);
 

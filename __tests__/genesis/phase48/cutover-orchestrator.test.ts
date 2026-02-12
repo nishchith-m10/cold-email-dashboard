@@ -169,10 +169,18 @@ describe('Phase 48 Cutover Orchestrator', () => {
   // EMERGENCY STOP
   // ============================================
   describe('Emergency Stop', () => {
-    it('should execute emergency stop', async () => {
+    it('should execute emergency stop from deploying state', async () => {
+      // Must be in a rollback-able state for emergency stop
+      env.setState({ status: 'deploying', standbyVersion: 'v2.0.0' });
       const result = await orchestrator.emergencyStop('manual stop');
       expect(result.success).toBe(true);
       expect(orchestrator.getPhase()).toBe('rolled_back');
+    });
+
+    it('should handle emergency stop from canary state', async () => {
+      env.setState({ status: 'canary', standbyVersion: 'v2.0.0' });
+      const result = await orchestrator.emergencyStop('canary emergency');
+      expect(result.success).toBe(true);
     });
   });
 
