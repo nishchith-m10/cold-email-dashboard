@@ -66,3 +66,7 @@ docs/archive/
 # === Local planning (optional) ===
 plans/
 flowchart LR.md
+
+# coverage artifacts
+.coverage-partx/
+lcov-report/
