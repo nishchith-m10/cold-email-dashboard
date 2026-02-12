@@ -137,7 +137,9 @@ export class InstantRevertManager {
 
     try {
       const state = await this.env.getDeploymentState();
-      const previousVersion = state.standbyVersion || state.activeVersion;
+      // previousVersion = the version being rolled back FROM (the standby that was being promoted)
+      // revertedToVersion = the version we're reverting TO (the current active)
+      const previousVersion = state.standbyVersion || 'unknown';
 
       // 1. Abort canary if active
       const canary = this.controller.getCanaryState();

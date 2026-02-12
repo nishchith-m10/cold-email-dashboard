@@ -65,13 +65,15 @@ export class MockTestEnvironment implements StressTestEnvironment {
     this.metrics.totalRequests++;
     this.metrics.requestsByEndpoint[endpoint] = (this.metrics.requestsByEndpoint[endpoint] || 0) + 1;
 
-    // Check for fault injection
-    const apiFault = this.getActiveFault('api');
-    if (apiFault) {
-      if (apiFault.type === 'latency' && apiFault.delayMs) {
+    // Check for fault injection — evaluate ALL faults once per request
+    // to avoid probabilistic inconsistency from multiple calls
+    const apiFaults = this.getActiveFaults('api');
+    for (const apiFault of apiFaults) {
+      const roll = Math.random(); // Single roll per fault, per request
+      if (apiFault.type === 'latency' && apiFault.delayMs && roll < apiFault.probability) {
         await this.delay(apiFault.delayMs);
       }
-      if (apiFault.type === 'error' && Math.random() < apiFault.probability) {
+      if (apiFault.type === 'error' && roll < apiFault.probability) {
         this.metrics.totalErrors++;
         this.metrics.errorsByEndpoint[endpoint] = (this.metrics.errorsByEndpoint[endpoint] || 0) + 1;
         const latency = Date.now() - startTime;
@@ -333,8 +335,22 @@ export class MockTestEnvironment implements StressTestEnvironment {
     }));
   }
 
+  /**
+   * Get all active faults for a service.
+   * Returns all matching faults — probability is evaluated by the caller
+   * with a single random roll per fault to avoid inconsistency.
+   */
+  private getActiveFaults(service: string): FaultConfig[] {
+    return this.faults.filter(f => f.targetService === service);
+  }
+
+  /** @deprecated Use getActiveFaults — kept for backward compat in DB query path */
   private getActiveFault(service: string): FaultConfig | undefined {
-    return this.faults.find(f => f.targetService === service && Math.random() < f.probability);
+    const faults = this.getActiveFaults(service);
+    for (const f of faults) {
+      if (Math.random() < f.probability) return f;
+    }
+    return undefined;
   }
 
   private extractEndpoint(path: string): string {

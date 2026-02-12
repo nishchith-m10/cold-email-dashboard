@@ -14,6 +14,7 @@ import {
   DeploymentEnvironment,
   DeploymentEvent,
   CanaryState,
+  RevertResult,
   DEFAULT_CANARY_CONFIG,
   DEFAULT_REVERT_TRIGGERS,
 } from './types';
@@ -68,7 +69,7 @@ export class CutoverOrchestrator {
 
         if (report.status === 'NO-GO' && !plan.dryRun) {
           this.phase = 'failed';
-          return this.buildResult(previousVersion, null, startTime, {
+          return await this.buildResult(previousVersion, null, startTime, {
             readinessReport: report,
             error: `Readiness check failed: ${report.blockers.join(', ')}`,
           });
@@ -78,7 +79,7 @@ export class CutoverOrchestrator {
       if (plan.dryRun) {
         this.phase = 'complete';
         const report = await this.readiness.generateReport();
-        return this.buildResult(previousVersion, null, startTime, { readinessReport: report });
+        return await this.buildResult(previousVersion, null, startTime, { readinessReport: report });
       }
 
       // Phase 2: Deploy to Standby
@@ -86,7 +87,7 @@ export class CutoverOrchestrator {
       const deployResult = await this.controller.deployToStandby(plan.version);
       if (!deployResult.success) {
         this.phase = 'failed';
-        return this.buildResult(previousVersion, plan.version, startTime, {
+        return await this.buildResult(previousVersion, plan.version, startTime, {
           error: `Deploy failed: ${deployResult.error || 'unknown'}`,
         });
       }
@@ -97,7 +98,7 @@ export class CutoverOrchestrator {
       if (!healthResult.healthy) {
         this.phase = 'failed';
         await this.controller.rollback('Standby health check failed');
-        return this.buildResult(previousVersion, plan.version, startTime, {
+        return await this.buildResult(previousVersion, plan.version, startTime, {
           error: 'Standby health check failed after deployment',
         });
       }
@@ -109,7 +110,7 @@ export class CutoverOrchestrator {
         const promoteResult = await this.controller.promote();
         if (!promoteResult.success) {
           this.phase = 'failed';
-          return this.buildResult(previousVersion, plan.version, startTime, {
+          return await this.buildResult(previousVersion, plan.version, startTime, {
             error: `Promotion failed: ${promoteResult.error || 'unknown'}`,
           });
         }
@@ -123,7 +124,7 @@ export class CutoverOrchestrator {
         const canaryResult = await this.runCanaryLoop(plan);
         if (!canaryResult.success) {
           this.phase = 'rolled_back';
-          return this.buildResult(previousVersion, plan.version, startTime, {
+          return await this.buildResult(previousVersion, plan.version, startTime, {
             error: canaryResult.error,
           });
         }
@@ -133,7 +134,7 @@ export class CutoverOrchestrator {
         const promoteResult = await this.controller.promote();
         if (!promoteResult.success) {
           this.phase = 'failed';
-          return this.buildResult(previousVersion, plan.version, startTime, {
+          return await this.buildResult(previousVersion, plan.version, startTime, {
             error: `Promotion failed after canary: ${promoteResult.error || 'unknown'}`,
           });
         }
@@ -146,14 +147,14 @@ export class CutoverOrchestrator {
         this.phase = 'rolling_back';
         await this.revert.executeRevert('Post-promotion health check failed');
         this.phase = 'rolled_back';
-        return this.buildResult(previousVersion, plan.version, startTime, {
+        return await this.buildResult(previousVersion, plan.version, startTime, {
           error: 'Post-promotion verification failed, reverted',
         });
       }
 
       // Success
       this.phase = 'complete';
-      return this.buildResult(previousVersion, plan.version, startTime);
+      return await this.buildResult(previousVersion, plan.version, startTime);
 
     } catch (error) {
       this.phase = 'failed';
@@ -246,15 +247,21 @@ export class CutoverOrchestrator {
       }
     }
 
-    // Check final state
+    // Check final state — do NOT silently succeed if canary never reached readiness
     if (this.controller.isCanaryReadyForPromotion()) {
       return { success: true };
     }
 
-    return { success: true }; // Reached max steps, consider complete
+    // Canary exhausted max steps without reaching promotion readiness — this is a FAILURE
+    const finalCanary = this.controller.getCanaryState();
+    await this.controller.abortCanary('Canary did not reach promotion readiness within max steps');
+    return {
+      success: false,
+      error: `Canary failed: reached max steps but only at ${finalCanary.percentage}% with ${finalCanary.consecutiveHealthChecks}/${config.requiredHealthChecks} consecutive health checks`,
+    };
   }
 
-  private buildResult(
+  private async buildResult(
     previousVersion: string,
     newVersion: string | null,
     startTime: number,
@@ -262,7 +269,11 @@ export class CutoverOrchestrator {
       readinessReport?: any;
       error?: string;
     },
-  ): CutoverResult {
+  ): Promise<CutoverResult> {
+    // Fetch actual events from the environment (not the empty local array)
+    const deploymentId = this.controller.getDeploymentId();
+    const envEvents = await this.env.getEvents(deploymentId || undefined);
+
     return {
       success: this.phase === 'complete',
       phase: this.phase,
@@ -271,12 +282,9 @@ export class CutoverOrchestrator {
       totalDurationMs: Date.now() - startTime,
       previousVersion,
       newVersion,
-      events: this.events,
+      events: envEvents,
       readinessReport: extra?.readinessReport,
       error: extra?.error,
     };
   }
 }
-
-// Re-export RevertResult for the emergencyStop return type
-import type { RevertResult } from './types';

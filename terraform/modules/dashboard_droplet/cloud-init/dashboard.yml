@@ -1,0 +1,142 @@
+#cloud-config
+# Genesis Dashboard Droplet Initialization
+# This runs on first boot to set up the environment
+
+# Update package lists and install dependencies
+package_update: true
+package_upgrade: true
+
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - git
+  - ufw
+  - fail2ban
+
+# Docker installation
+runcmd:
+  # Install Docker
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+  
+  # Install Node.js 20 LTS
+  - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  - apt-get install -y nodejs
+  
+  # Configure firewall (UFW)
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp   # SSH
+  - ufw allow 80/tcp   # HTTP
+  - ufw allow 443/tcp  # HTTPS
+  - ufw allow 3000/tcp # Next.js (internal)
+  - ufw --force enable
+  
+  # Configure fail2ban for SSH protection
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+  
+  # Create application directory
+  - mkdir -p /opt/genesis-dashboard
+  - chown -R root:root /opt/genesis-dashboard
+  
+  # Create systemd service for Next.js (to be configured later)
+  - |
+    cat > /etc/systemd/system/genesis-dashboard.service <<EOF
+    [Unit]
+    Description=Genesis Dashboard (Next.js)
+    After=network.target
+    
+    [Service]
+    Type=simple
+    User=root
+    WorkingDirectory=/opt/genesis-dashboard
+    ExecStart=/usr/bin/npm start
+    Restart=on-failure
+    Environment=NODE_ENV=production
+    Environment=PORT=3000
+    
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+  
+  # Enable service (will fail until app is deployed, that's OK)
+  - systemctl daemon-reload
+  - systemctl enable genesis-dashboard || true
+  
+  # Set timezone to UTC
+  - timedatectl set-timezone UTC
+  
+  # Disable root password authentication (SSH key only)
+  - sed -i 's/^PermitRootLogin yes/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+  - sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+  - systemctl restart sshd
+  
+  # Log completion
+  - echo "Genesis Dashboard droplet initialization complete" > /var/log/cloud-init-complete.log
+
+# Create deployment helper script
+write_files:
+  - path: /usr/local/bin/deploy-genesis
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Genesis Dashboard Deployment Helper
+      # Usage: deploy-genesis <git-repo-url> <branch>
+      
+      set -e
+      
+      REPO_URL="${1:-}"
+      BRANCH="${2:-main}"
+      APP_DIR="/opt/genesis-dashboard"
+      
+      if [ -z "$REPO_URL" ]; then
+        echo "Usage: deploy-genesis <git-repo-url> [branch]"
+        exit 1
+      fi
+      
+      echo "🚀 Deploying Genesis Dashboard..."
+      
+      # Clone or pull latest code
+      if [ -d "$APP_DIR/.git" ]; then
+        echo "📦 Pulling latest changes..."
+        cd "$APP_DIR"
+        git fetch origin
+        git checkout "$BRANCH"
+        git pull origin "$BRANCH"
+      else
+        echo "📦 Cloning repository..."
+        rm -rf "$APP_DIR"
+        git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
+        cd "$APP_DIR"
+      fi
+      
+      # Install dependencies
+      echo "📚 Installing dependencies..."
+      npm ci --production
+      
+      # Build Next.js app
+      echo "🔨 Building application..."
+      npm run build
+      
+      # Restart service
+      echo "🔄 Restarting service..."
+      systemctl restart genesis-dashboard
+      
+      echo "✅ Deployment complete!"
+      echo "🌐 Dashboard should be running on http://$(curl -s ifconfig.me):3000"
+
+# Set hostname
+hostname: genesis-dashboard
+fqdn: genesis-dashboard.local
+
+# Automatically reboot after initialization (optional)
+# power_state:
+#   mode: reboot
+#   timeout: 300
+#   condition: True

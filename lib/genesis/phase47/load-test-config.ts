@@ -256,6 +256,7 @@ export class LoadTestRunner {
 
   /**
    * Run a single load test scenario against the simulated environment.
+   * Uses concurrent batches to simulate parallel virtual users (VUs).
    */
   async runScenario(
     scenario: LoadTestScenario,
@@ -266,35 +267,55 @@ export class LoadTestRunner {
     const latencies: number[] = [];
     let successCount = 0;
     let failCount = 0;
+    let peakRps = 0;
 
-    // Simulate running through stages
+    // Simulate running through stages with concurrent VUs
     for (const stage of scenario.stages) {
+      const concurrency = Math.max(1, stage.targetVUs);
       const iterations = Math.max(1, Math.floor(stage.targetVUs * stage.durationSeconds / 10));
+      const totalBatches = Math.ceil(iterations / concurrency);
 
-      for (let i = 0; i < iterations; i++) {
-        const endpoint = this.selectEndpoint(config.endpoints);
-        const wsId = config.workspaceIds[Math.floor(Math.random() * config.workspaceIds.length)];
+      for (let batch = 0; batch < totalBatches; batch++) {
+        const batchStartTime = Date.now();
+        const batchSize = Math.min(concurrency, iterations - batch * concurrency);
+        const promises: Promise<void>[] = [];
 
-        const response = await this.env.simulateRequest(
-          endpoint.method,
-          `${endpoint.path}?workspaceId=${wsId}`,
-          {
-            headers: endpoint.headers,
-            workspaceId: wsId,
-          },
-        );
+        for (let i = 0; i < batchSize; i++) {
+          promises.push(
+            (async () => {
+              const endpoint = this.selectEndpoint(config.endpoints);
+              const wsId = config.workspaceIds[Math.floor(Math.random() * config.workspaceIds.length)];
 
-        latencies.push(response.latencyMs);
-        if (endpoint.expectedStatus.includes(response.status)) {
-          successCount++;
-        } else {
-          failCount++;
+              const response = await this.env.simulateRequest(
+                endpoint.method,
+                `${endpoint.path}?workspaceId=${wsId}`,
+                {
+                  headers: endpoint.headers,
+                  workspaceId: wsId,
+                },
+              );
+
+              latencies.push(response.latencyMs);
+              if (endpoint.expectedStatus.includes(response.status)) {
+                successCount++;
+              } else {
+                failCount++;
+              }
+            })(),
+          );
         }
+
+        await Promise.all(promises);
+
+        // Track peak RPS per batch
+        const batchDurationMs = Math.max(1, Date.now() - batchStartTime);
+        const batchRps = (batchSize / batchDurationMs) * 1000;
+        if (batchRps > peakRps) peakRps = batchRps;
       }
     }
 
     const totalRequests = successCount + failCount;
-    const durationMs = Date.now() - startTime;
+    const durationMs = Math.max(1, Date.now() - startTime);
     const errorRate = calculateErrorRate(totalRequests, failCount);
     const latencyMetrics = calculateLatencyMetrics(latencies);
 
@@ -323,7 +344,7 @@ export class LoadTestRunner {
       throughput: {
         requestsPerSecond: Math.round(rps * 100) / 100,
         bytesPerSecond: 0,
-        peakRps: Math.round(rps * 1.2 * 100) / 100,
+        peakRps: Math.round(peakRps * 100) / 100,
       },
       thresholdsPassed: violations.length === 0,
       violations,

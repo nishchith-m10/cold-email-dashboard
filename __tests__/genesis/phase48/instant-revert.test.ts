@@ -117,6 +117,8 @@ describe('Phase 48 Instant Revert', () => {
     });
 
     it('should auto-revert when trigger fires', async () => {
+      // Must be in a rollback-able state for auto-revert to work
+      env.setState({ status: 'deploying', standbyVersion: 'v2.0.0' });
       env.setMetrics({ errorRate: 0.2 });
       const result = await revert.monitorAndAutoRevert();
       expect(result).not.toBeNull();
@@ -125,6 +127,7 @@ describe('Phase 48 Instant Revert', () => {
     });
 
     it('should respect cooldown period', async () => {
+      env.setState({ status: 'deploying', standbyVersion: 'v2.0.0' });
       env.setMetrics({ errorRate: 0.2 });
       const first = await revert.monitorAndAutoRevert();
       expect(first).not.toBeNull();
@@ -135,6 +138,7 @@ describe('Phase 48 Instant Revert', () => {
     });
 
     it('should reset cooldowns', async () => {
+      env.setState({ status: 'deploying', standbyVersion: 'v2.0.0' });
       env.setMetrics({ errorRate: 0.2 });
       // Use trigger with 0 cooldown for this test
       revert.addTrigger({
@@ -147,6 +151,8 @@ describe('Phase 48 Instant Revert', () => {
 
       await revert.monitorAndAutoRevert();
       revert.resetCooldowns();
+      // Reset state since rollback moved it
+      env.setState({ status: 'deploying', standbyVersion: 'v2.0.0' });
 
       const result = await revert.monitorAndAutoRevert();
       expect(result).not.toBeNull();
@@ -157,7 +163,9 @@ describe('Phase 48 Instant Revert', () => {
   // REVERT EXECUTION
   // ============================================
   describe('Revert Execution', () => {
-    it('should execute instant revert', async () => {
+    it('should execute instant revert from deploying state', async () => {
+      // Must be in a rollback-able state
+      env.setState({ status: 'deploying', standbyVersion: 'v2.0.0', activeVersion: 'v1.0.0' });
       const result = await revert.executeRevert('manual revert');
       expect(result.success).toBe(true);
       expect(result.reason).toBe('manual revert');
@@ -171,7 +179,7 @@ describe('Phase 48 Instant Revert', () => {
       await controller.startCanary();
       expect(controller.getCanaryState().active).toBe(true);
 
-      // Revert
+      // Revert — now in canary state (rollback-able)
       const result = await revert.executeRevert('abort canary');
       expect(result.success).toBe(true);
       expect(result.actions.some(a => a.includes('canary'))).toBe(true);
@@ -179,6 +187,7 @@ describe('Phase 48 Instant Revert', () => {
     });
 
     it('should log revert event', async () => {
+      env.setState({ status: 'deploying', standbyVersion: 'v2.0.0' });
       await revert.executeRevert('test');
       const events = await env.getEvents();
       expect(events.some(e => e.type === 'revert_triggered')).toBe(true);
@@ -186,14 +195,17 @@ describe('Phase 48 Instant Revert', () => {
 
     it('should increment revert count', async () => {
       expect(revert.getRevertCount()).toBe(0);
+      env.setState({ status: 'deploying', standbyVersion: 'v2.0.0' });
       await revert.executeRevert('first');
       expect(revert.getRevertCount()).toBe(1);
+      // Reset state for second revert (rollback sets it to rolling_back/rolled_back)
+      env.setState({ status: 'deploying', standbyVersion: 'v2.0.0' });
       await revert.executeRevert('second');
       expect(revert.getRevertCount()).toBe(2);
     });
 
     it('should record version info', async () => {
-      env.setState({ activeVersion: 'v1.0.0', standbyVersion: 'v2.0.0' });
+      env.setState({ status: 'deploying', activeVersion: 'v1.0.0', standbyVersion: 'v2.0.0' });
       const result = await revert.executeRevert('version check');
       expect(result.revertedToVersion).toBe('v1.0.0');
     });
