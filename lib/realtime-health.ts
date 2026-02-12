@@ -43,6 +43,13 @@ export function useRealtimeHealth(workspaceId: string): UseRealtimeHealthReturn 
   
   const channelRef = useRef<RealtimeChannel | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  
+  // Refs to break the subscribe -> state update -> subscribe recreation loop.
+  // The realtime callback reads healthRef instead of closing over state values,
+  // and attemptRetry calls subscribeRef.current instead of depending on subscribe directly.
+  const healthRef = useRef(health);
+  healthRef.current = health;
+  const subscribeRef = useRef<() => void>(() => {});
 
   // Check if heartbeat is stale
   const isHeartbeatStale = useCallback((lastHeartbeat: string): boolean => {
@@ -51,7 +58,7 @@ export function useRealtimeHealth(workspaceId: string): UseRealtimeHealthReturn 
     return (now.getTime() - heartbeatDate.getTime()) > HEARTBEAT_STALE_THRESHOLD_MS;
   }, []);
 
-  // Retry with exponential backoff
+  // Retry with exponential backoff — stable identity, no deps on subscribe
   const attemptRetry = useCallback(() => {
     setHealth(prev => {
       const newRetryCount = prev.retryCount + 1;
@@ -66,15 +73,14 @@ export function useRealtimeHealth(workspaceId: string): UseRealtimeHealthReturn 
       console.log(`[RealtimeHealth] Retrying in ${delay}ms (attempt ${newRetryCount})`);
       
       retryTimeoutRef.current = setTimeout(() => {
-        subscribe();
+        subscribeRef.current();
       }, delay);
 
       return { ...prev, retryCount: newRetryCount };
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Subscribe to Realtime channel
+  // Subscribe to Realtime channel — stable identity, depends only on workspaceId
   const subscribe = useCallback(() => {
     if (!supabaseBrowser) {
       setError(new Error('Supabase client not initialized'));
@@ -104,8 +110,11 @@ export function useRealtimeHealth(workspaceId: string): UseRealtimeHealthReturn 
           if (payload.new) {
             const record = payload.new as SyncStatusRecord;
             
+            // Read current health via ref to avoid stale closure
+            const currentHealth = healthRef.current;
+            
             // Ignore stale events (version check)
-            if (health.workflowId === record.workflow_id && record.version <= (health.version || 0)) {
+            if (currentHealth.workflowId === record.workflow_id && record.version <= (currentHealth.version || 0)) {
               console.log('[RealtimeHealth] Ignoring stale event');
               return;
             }
@@ -138,7 +147,10 @@ export function useRealtimeHealth(workspaceId: string): UseRealtimeHealthReturn 
       });
 
     channelRef.current = channel;
-  }, [workspaceId, health.workflowId, health.version, isHeartbeatStale, attemptRetry]);
+  }, [workspaceId, isHeartbeatStale, attemptRetry]);
+
+  // Keep subscribeRef in sync so attemptRetry always calls the latest subscribe
+  subscribeRef.current = subscribe;
 
   // Initial subscription
   useEffect(() => {

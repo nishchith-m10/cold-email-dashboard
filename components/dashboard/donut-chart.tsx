@@ -9,6 +9,8 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import type { TooltipContentProps } from 'recharts/types/component/Tooltip';
+import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -35,15 +37,15 @@ const DEFAULT_COLORS = [
 function CustomTooltip({ 
   active, 
   payload,
-  formatter,
+  valueFormatter,
   currency
-}: any) {
+}: TooltipContentProps<ValueType, NameType> & { valueFormatter?: (v: number) => string; currency: Currency }) {
   if (!active || !payload?.length) return null;
 
   const item = payload[0];
   const value = item.value as number;
-  const formattedValue = formatter 
-    ? formatter(value) 
+  const formattedValue = valueFormatter 
+    ? valueFormatter(value) 
     : formatCurrencyUtil(value, currency);
 
   return (
@@ -51,7 +53,7 @@ function CustomTooltip({
       <div className="flex items-center gap-2">
         <div 
           className="w-3 h-3 rounded-full" 
-          style={{ backgroundColor: item.payload.fill }}
+          style={{ backgroundColor: String((item.payload as Record<string, unknown>)?.fill ?? '') }}
         />
         <span className="text-sm text-text-primary font-medium">{item.name}</span>
       </div>
@@ -108,6 +110,7 @@ export function DonutChart({
   }));
 
   const total = data.reduce((sum, item) => sum + item.value, 0);
+  const hasData = data.length > 0 && total > 0;
 
   return (
     <motion.div
@@ -121,45 +124,53 @@ export function DonutChart({
           <CardTitle className="text-base">{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="relative h-64">
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={2}
-                  dataKey="value"
-                  animationBegin={0}
-                  animationDuration={800}
-                  animationEasing="ease-out"
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.fill}
-                      stroke="var(--surface)"
-                      strokeWidth={2}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip formatter={formatter} currency={currency} />} />
-                <Legend content={<CustomLegend />} />
-              </PieChart>
-            </ResponsiveContainer>
-            
-            {/* Center label with tooltip for precise value */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-center -mt-8" title={formatCurrencyUtil(total, currency, { maximumFractionDigits: 4 })}>
-                <p className="text-2xl font-bold text-text-primary cursor-default">
-                  {formatCurrency(total)}
-                </p>
-                <p className="text-xs text-text-secondary">Total</p>
+          {!hasData ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center text-text-secondary">
+                <p className="text-sm">No data available</p>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="relative h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={2}
+                    dataKey="value"
+                    animationBegin={0}
+                    animationDuration={800}
+                    animationEasing="ease-out"
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.fill}
+                        stroke="var(--surface)"
+                        strokeWidth={2}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={(props: TooltipContentProps<ValueType, NameType>) => <CustomTooltip {...props} valueFormatter={formatter} currency={currency} />} />
+                  <Legend content={<CustomLegend />} />
+                </PieChart>
+              </ResponsiveContainer>
+              
+              {/* Center label with tooltip for precise value */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="text-center -mt-8" title={formatCurrencyUtil(total, currency, { maximumFractionDigits: 4 })}>
+                  <p className="text-2xl font-bold text-text-primary cursor-default">
+                    {formatCurrency(total)}
+                  </p>
+                  <p className="text-xs text-text-secondary">Total</p>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

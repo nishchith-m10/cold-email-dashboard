@@ -11,8 +11,8 @@
 // In-flight request tracker for deduplication
 const inFlightRequests = new Map<string, Promise<unknown>>();
 
-// Request timeout (15 seconds)
-const REQUEST_TIMEOUT = 15000;
+// Request timeout (30 seconds — dashboard aggregate runs 15 parallel DB queries)
+const REQUEST_TIMEOUT = 30000;
 
 // Error types for better error handling
 export class FetchError extends Error {

@@ -13,6 +13,8 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import type { TooltipContentProps } from 'recharts/types/component/Tooltip';
+import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -32,17 +34,16 @@ interface DailySendsChartProps {
 function CustomTooltip({ 
   active, 
   payload, 
-  label,
-}: any) {
+}: TooltipContentProps<ValueType, NameType>) {
   if (!active || !payload?.length) return null;
 
   const count = payload[0].value as number;
-  const date = payload[0].payload.fullDate;
+  const date = String((payload[0].payload as Record<string, unknown>)?.fullDate ?? '');
 
   return (
     <div className="bg-surface-elevated border border-border rounded-lg px-3 py-2 shadow-xl">
       <p className="text-xs text-text-secondary mb-1">
-        {format(new Date(date), 'EEEE, MMMM d, yyyy')}
+        {date ? format(new Date(date), 'EEEE, MMMM d, yyyy') : ''}
       </p>
       <p className="text-sm font-semibold text-text-primary">
         {count.toLocaleString()} {count === 1 ? 'send' : 'sends'}
@@ -151,15 +152,15 @@ export function DailySendsChart({
           </div>
         </CardHeader>
         
-        <CardContent className="pb-4 flex-1 flex flex-col">
-          <div className="flex-1 min-h-[200px]">
-            <ResponsiveContainer>
+        <CardContent className="pb-4">
+          <div style={{ width: '100%', height: 240, minHeight: 240 }}>
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                onClick={(e: any) => {
-                  if (e && e.activePayload && e.activePayload[0] && onDateClick) {
-                    onDateClick(e.activePayload[0].payload.fullDate);
+                onClick={(nextState) => {
+                  if (nextState && nextState.activeTooltipIndex != null && onDateClick && chartData[nextState.activeTooltipIndex as number]) {
+                    onDateClick(chartData[nextState.activeTooltipIndex as number].fullDate);
                   }
                 }}
               >
@@ -184,7 +185,7 @@ export function DailySendsChart({
                   domain={[0, maxSends]}
                 />
                 <Tooltip 
-                  content={<CustomTooltip />}
+                  content={(props: TooltipContentProps<ValueType, NameType>) => <CustomTooltip {...props} />}
                   cursor={{ fill: 'var(--surface-elevated)', opacity: 0.5 }}
                 />
                 <Bar 
