@@ -160,7 +160,7 @@ export function DailySendsChart({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 12 }}
+                margin={isEmpty ? { top: 2, right: 10, left: -20, bottom: 40 } : { top: 10, right: 10, left: -20, bottom: 12 }}
                 onClick={(nextState) => {
                   if (nextState && nextState.activeTooltipIndex != null && onDateClick && chartData[nextState.activeTooltipIndex as number]) {
                     onDateClick(chartData[nextState.activeTooltipIndex as number].fullDate);
@@ -186,6 +186,7 @@ export function DailySendsChart({
                   tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
                   tickMargin={8}
                   domain={[0, maxSends]}
+                  {...(isEmpty ? { tickCount: 2 } : {})}
                 />
                 <Tooltip 
                   content={(props: TooltipContentProps<ValueType, NameType>) => <CustomTooltip {...props} />}
