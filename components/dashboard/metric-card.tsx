@@ -105,7 +105,7 @@ export function MetricCard({
   if (loading) {
     return (
       <Card className={cn('relative overflow-hidden', className)}>
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           <div className="space-y-3 flex-1">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-8 w-32" />
@@ -131,7 +131,7 @@ export function MetricCard({
         {/* Gradient glow on hover */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-700/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300" />
         
-        <div className="relative flex items-start justify-between">
+        <div className="relative flex items-center justify-between">
           <div className="space-y-1 sm:space-y-2">
             <p className="text-xs sm:text-sm font-medium text-text-secondary">{title}</p>
             
