@@ -3,12 +3,12 @@
  * Onboarding State Machine Tests
  */
 
-import { OnboardingStateMachine } from '../lib/onboarding-state-machine';
+import { OnboardingStateMachine } from '@/lib/genesis/phase61b/onboarding-state-machine';
 import {
   OnboardingStage,
   ONBOARDING_STAGES,
   WorkspaceOnboardingState,
-} from '../lib/types';
+} from '@/lib/genesis/phase61b/types';
 
 describe('OnboardingStateMachine', () => {
   describe('isValidTransition', () => {

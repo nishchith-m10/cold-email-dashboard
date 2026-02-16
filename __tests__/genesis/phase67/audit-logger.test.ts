@@ -49,8 +49,8 @@ describe('Audit Logger - Event Logging', () => {
   it('should log audit event successfully', async () => {
     const mockAuditId = 'audit-123';
 
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: mockAuditId,
         error: null,
       }),
@@ -75,8 +75,8 @@ describe('Audit Logger - Event Logging', () => {
   });
 
   it('should handle logging failure gracefully', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Database error' },
       }),
@@ -97,8 +97,8 @@ describe('Audit Logger - Event Logging', () => {
   });
 
   it('should log event with minimal required fields', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: 'audit-minimal',
         error: null,
       }),
@@ -118,8 +118,8 @@ describe('Audit Logger - Event Logging', () => {
   });
 
   it('should log event with all optional fields', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: 'audit-full',
         error: null,
       }),
@@ -150,8 +150,8 @@ describe('Audit Logger - Event Logging', () => {
   });
 
   it('should handle large details object', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: 'audit-large-details',
         error: null,
       }),
@@ -329,11 +329,11 @@ describe('Audit Logger - Query Functionality', () => {
       },
     ];
 
-    (mockClient.schema as jest.Mock).mockReturnValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      order: jest.fn().mockResolvedValue({
+      order: (jest.fn() as any).mockResolvedValue({
         data: mockLogs,
         error: null,
       }),
@@ -352,12 +352,12 @@ describe('Audit Logger - Query Functionality', () => {
       action: 'TEST_EVENT',
     }));
 
-    const limitMock = jest.fn().mockResolvedValue({
+    const limitMock = (jest.fn() as any).mockResolvedValue({
       data: mockLogs.slice(0, 5),
       error: null,
     });
 
-    (mockClient.schema as jest.Mock).mockReturnValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
@@ -385,11 +385,11 @@ describe('Audit Logger - Query Functionality', () => {
     
     // Mock the async resolution
     Object.defineProperty(orderMock, 'then', {
-      value: jest.fn((resolve) => resolve({ data: mockLogs, error: null })),
+      value: jest.fn((resolve: any) => resolve({ data: mockLogs, error: null })),
       writable: true,
     });
 
-    (mockClient.schema as jest.Mock).mockReturnValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       eq: eqMock,
@@ -411,7 +411,7 @@ describe('Audit Logger - Query Functionality', () => {
     const gteMock = jest.fn().mockReturnThis();
     const lteMock = jest.fn().mockReturnThis();
 
-    (mockClient.schema as jest.Mock).mockReturnValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
@@ -422,7 +422,7 @@ describe('Audit Logger - Query Functionality', () => {
 
     // Mock final resolution
     Object.defineProperty(lteMock, 'then', {
-      value: jest.fn((resolve) => resolve({ data: [], error: null })),
+      value: jest.fn((resolve: any) => resolve({ data: [], error: null })),
       writable: true,
     });
 
@@ -433,11 +433,11 @@ describe('Audit Logger - Query Functionality', () => {
   });
 
   it('should handle database errors gracefully', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      order: jest.fn().mockResolvedValue({
+      order: (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Connection timeout' },
       }),
@@ -449,11 +449,11 @@ describe('Audit Logger - Query Functionality', () => {
   });
 
   it('should handle empty result set', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      order: jest.fn().mockResolvedValue({
+      order: (jest.fn() as any).mockResolvedValue({
         data: [],
         error: null,
       }),
@@ -557,8 +557,8 @@ describe('Audit Logger - Security & Edge Cases', () => {
   });
 
   it('should handle null/undefined optional fields', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: 'audit-null-fields',
         error: null,
       }),
@@ -581,7 +581,7 @@ describe('Audit Logger - Security & Edge Cases', () => {
   });
 
   it('should handle exception during logging', async () => {
-    (mockClient.schema as jest.Mock).mockImplementation(() => {
+    (mockClient.schema as jest.Mock<any>).mockImplementation(() => {
       throw new Error('Network failure');
     });
 
@@ -599,8 +599,8 @@ describe('Audit Logger - Security & Edge Cases', () => {
   });
 
   it('should handle special characters in details', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: 'audit-special-chars',
         error: null,
       }),

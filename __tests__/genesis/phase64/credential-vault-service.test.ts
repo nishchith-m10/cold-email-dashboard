@@ -359,7 +359,7 @@ describe('CredentialVaultService', () => {
       const encryptedKey = encryption.encrypt('api-key', 'ws-123');
 
       // For getAllCredentials, we need to mock the result without .single()
-      const getAllMock = jest.fn().mockResolvedValue({
+      const getAllMock = (jest.fn() as any).mockResolvedValue({
         data: [
           {
             id: 'cred-1',
@@ -397,7 +397,7 @@ describe('CredentialVaultService', () => {
     });
 
     it('should return empty array if no credentials', async () => {
-      const getAllMock = jest.fn().mockResolvedValue({
+      const getAllMock = (jest.fn() as any).mockResolvedValue({
         data: [],
         error: null,
       });
@@ -415,7 +415,7 @@ describe('CredentialVaultService', () => {
     it('should return true if valid credential exists', async () => {
       const encrypted = encryption.encrypt('token', 'ws-123');
 
-      const singleMock = jest.fn().mockResolvedValue({
+      const singleMock = (jest.fn() as any).mockResolvedValue({
         data: {
           id: 'cred-1',
           workspace_id: 'ws-123',
@@ -447,7 +447,7 @@ describe('CredentialVaultService', () => {
     it('should return false if credential is invalid', async () => {
       const encrypted = encryption.encrypt('token', 'ws-123');
 
-      const singleMock = jest.fn().mockResolvedValue({
+      const singleMock = (jest.fn() as any).mockResolvedValue({
         data: {
           id: 'cred-1',
           workspace_id: 'ws-123',
@@ -477,7 +477,7 @@ describe('CredentialVaultService', () => {
     });
 
     it('should return false if credential not found', async () => {
-      const singleMock = jest.fn().mockResolvedValue({
+      const singleMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Not found' },
       });
@@ -527,7 +527,7 @@ describe('CredentialVaultService', () => {
     });
 
     it('should handle database errors', async () => {
-      const updateMock = jest.fn().mockResolvedValue({
+      const updateMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Update failed' },
       });
@@ -542,7 +542,7 @@ describe('CredentialVaultService', () => {
 
   describe('refreshOAuthTokens', () => {
     it('should update OAuth tokens', async () => {
-      const updateEqMock = jest.fn().mockResolvedValue({
+      const updateEqMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: null,
       });
@@ -582,7 +582,7 @@ describe('CredentialVaultService', () => {
 
   describe('deleteCredential', () => {
     it('should delete a credential', async () => {
-      const deleteEqMock = jest.fn().mockResolvedValue({
+      const deleteEqMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: null,
       });
@@ -596,7 +596,7 @@ describe('CredentialVaultService', () => {
     });
 
     it('should handle deletion errors', async () => {
-      const deleteMock = jest.fn().mockResolvedValue({
+      const deleteMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Deletion failed' },
       });

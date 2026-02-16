@@ -141,12 +141,12 @@ export async function exportWorkspaceData(
       return null;
     }
 
-    if (!data || data.length === 0) {
+    if (!data || (data as any[]).length === 0) {
       console.error('[GDPR Service] No export data returned');
       return null;
     }
 
-    const result = data[0];
+    const result = (data as any[])[0];
 
     return {
       exportId: result.export_id,
@@ -247,7 +247,7 @@ export async function deleteWorkspaceData(
       };
     }
 
-    if (!data || data.length === 0) {
+    if (!data || (data as any[]).length === 0) {
       return {
         success: false,
         operation: 'failed',
@@ -256,7 +256,7 @@ export async function deleteWorkspaceData(
       };
     }
 
-    const result = data[0];
+    const result = (data as any[])[0];
 
     return {
       success: result.success,
@@ -317,12 +317,12 @@ export async function getGDPRComplianceReport(
       return null;
     }
 
-    if (!data || data.length === 0) {
+    if (!data || (data as any[]).length === 0) {
       console.error('[GDPR Service] No compliance report returned');
       return null;
     }
 
-    const result = data[0];
+    const result = (data as any[])[0];
 
     return {
       workspaceId: result.workspace_id,

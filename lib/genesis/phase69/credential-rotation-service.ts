@@ -8,7 +8,7 @@
  * @see docs/plans/GENESIS_SINGULARITY_PLAN_V35.md - Phase 69.1
  */
 
-import { createClient } from '@/lib/supabase';
+import { getTypedSupabaseAdmin } from '@/lib/supabase';
 import { getQueueManager } from '@/lib/genesis/queue-manager';
 import type { CredentialRotationJobPayload } from '@/lib/genesis/bullmq-types';
 import type {
@@ -49,7 +49,7 @@ import { mapCredentialFromDb as mapFromDb } from './types';
  */
 export async function getExpiringCredentials(daysThreshold: number = 14): Promise<Credential[]> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     // Calculate threshold date
     const thresholdDate = new Date(Date.now() + daysThreshold * 24 * 60 * 60 * 1000);
@@ -69,7 +69,7 @@ export async function getExpiringCredentials(daysThreshold: number = 14): Promis
       return [];
     }
 
-    return data.map((record: CredentialRecord) => mapFromDb(record));
+    return (data as CredentialRecord[]).map((record: CredentialRecord) => mapFromDb(record));
   } catch (error) {
     console.error('[CredentialRotation] Unexpected error fetching credentials:', error);
     return [];
@@ -283,7 +283,7 @@ export async function processCredentialRotation(
  */
 async function getCredentialById(credentialId: string): Promise<Credential | null> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const { data, error } = await supabase
       .schema('genesis')
@@ -313,7 +313,7 @@ async function updateCredentialAfterRotation(
   status: CredentialRotationStatus
 ): Promise<void> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const nextRotationAt = calculateRotationDate(newExpiresAt);
 
@@ -345,7 +345,7 @@ async function updateCredentialAfterFailure(
   newStatus: CredentialRotationStatus
 ): Promise<void> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     // Fetch current failure count
     const { data } = await supabase
@@ -387,7 +387,7 @@ async function logRotationAudit(
   executionTimeMs?: number
 ): Promise<void> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     await supabase
       .schema('genesis')

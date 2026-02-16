@@ -148,7 +148,7 @@ export function GmailOAuthStage({ workspaceId, onComplete }: StageComponentProps
       {isConnected ? (
         <button
           onClick={handleContinue}
-          className="w-full flex items-center justify-center gap-2 h-12 bg-gradient-to-r from-accent-primary to-accent-purple text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:opacity-90 transition-opacity"
+          className="w-full flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all"
         >
           Continue
           <ChevronRight className="h-5 w-5" />

@@ -7,7 +7,7 @@
  * @see docs/plans/GENESIS_SINGULARITY_PLAN_V35.md - Phase 69.2.4
  */
 
-import { createClient } from '@/lib/supabase';
+import { getTypedSupabaseAdmin } from '@/lib/supabase';
 import { randomBytes } from 'crypto';
 import type {
   WebhookSecret,
@@ -71,7 +71,7 @@ export function generateWebhookSecret(): string {
  */
 export async function getWebhookSecret(workspaceId: string): Promise<WebhookSecret | null> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const { data, error } = await supabase
       .schema('genesis')
@@ -115,7 +115,7 @@ export async function initializeWebhookSecret(
   initiatedBy?: string
 ): Promise<WebhookSecret | null> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const newSecret = generateWebhookSecret();
     const nextRotationAt = new Date(Date.now() + DEFAULT_ROTATION_INTERVAL_DAYS * 24 * 60 * 60 * 1000);
@@ -181,7 +181,7 @@ export async function rotateWebhookSecret(
   request: WebhookSecretRotationRequest
 ): Promise<WebhookSecret | null> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     // Fetch current secret
     const current = await getWebhookSecret(request.workspaceId);
@@ -252,7 +252,7 @@ export async function rotateWebhookSecret(
  */
 export async function cleanupExpiredPreviousSecrets(): Promise<number> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const now = new Date().toISOString();
 
@@ -304,7 +304,7 @@ export async function cleanupExpiredPreviousSecrets(): Promise<number> {
  */
 export async function getSecretsNeedingRotation(): Promise<string[]> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const { data, error } = await supabase
       .schema('genesis')

@@ -75,7 +75,7 @@ export function CompactControls({
   return (
     <div className="flex items-center gap-1.5">
       {/* Calendar Date Range - Icon Only */}
-      <div className="relative">
+      <div key="date-range" className="relative">
         <Button
           variant="outline"
           size="icon"
@@ -108,7 +108,7 @@ export function CompactControls({
       </div>
 
       {/* Timezone - Icon Only */}
-      <div className="relative">
+      <div key="timezone" className="relative">
         <Button
           variant="outline"
           size="icon"
@@ -139,10 +139,10 @@ export function CompactControls({
         )}
       </div>
 
-      <div className="h-5 w-px bg-border mx-1" />
+      <div key="divider-1" className="h-5 w-px bg-border mx-1" />
 
       {/* Campaign Selector + New Campaign - Combined Icon Only */}
-      <DropdownMenu>
+      <DropdownMenu key="campaign-menu">
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"

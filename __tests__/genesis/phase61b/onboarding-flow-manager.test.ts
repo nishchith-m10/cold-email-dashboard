@@ -3,8 +3,8 @@
  * Onboarding Flow Manager Tests
  */
 
-import { OnboardingFlowManager } from '../lib/onboarding-flow-manager';
-import { OnboardingData } from '../lib/onboarding-types';
+import { OnboardingFlowManager } from '@/lib/genesis/phase61b/onboarding-flow-manager';
+import { OnboardingData } from '@/lib/genesis/phase61b/onboarding-types';
 
 describe('OnboardingFlowManager', () => {
   const mockWorkspaceId = 'workspace-123';

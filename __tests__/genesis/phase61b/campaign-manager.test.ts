@@ -3,8 +3,8 @@
  * Campaign Manager Tests
  */
 
-import { CampaignManager } from '../lib/campaign-manager';
-import type { CreateCampaignRequest, Campaign, CampaignTier } from '../lib/campaign-types';
+import { CampaignManager } from '@/lib/genesis/phase61b/campaign-manager';
+import type { CreateCampaignRequest, Campaign, CampaignTier } from '@/lib/genesis/phase61b/campaign-types';
 
 describe('CampaignManager', () => {
   describe('createCampaign', () => {

@@ -53,7 +53,17 @@ interface UseCampaignsOptions {
 const fetcher = async (url: string): Promise<{ campaigns: CampaignWithN8n[] }> => {
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error('Failed to fetch campaigns');
+    // Try to extract error details from response
+    let errorMessage = `Failed to fetch campaigns (${res.status} ${res.statusText})`;
+    try {
+      const errorData = await res.json();
+      if (errorData.error) {
+        errorMessage = `${errorMessage}: ${errorData.error}`;
+      }
+    } catch {
+      // Response wasn't JSON, use status text
+    }
+    throw new Error(errorMessage);
   }
   return res.json();
 };

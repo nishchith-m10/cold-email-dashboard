@@ -3,8 +3,8 @@
  * Credential Generator Tests
  */
 
-import { CredentialGenerator } from '../lib/credential-generator';
-import { DEFAULT_N8N_PASSWORD_OPTIONS } from '../lib/n8n-types';
+import { CredentialGenerator } from '@/lib/genesis/phase61b/credential-generator';
+import { DEFAULT_N8N_PASSWORD_OPTIONS } from '@/lib/genesis/phase61b/n8n-types';
 
 describe('CredentialGenerator', () => {
   describe('generatePassword', () => {

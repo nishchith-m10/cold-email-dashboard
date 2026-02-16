@@ -134,7 +134,7 @@ describe('Phase 59: Rate Limit Manager', () => {
 
   describe('executeWithRateLimit', () => {
     test('should execute operation if allowed', async () => {
-      const operation = jest.fn().mockResolvedValue('success');
+      const operation = (jest.fn() as any).mockResolvedValue('success');
 
       const result = await manager.executeWithRateLimit(
         {
@@ -156,7 +156,7 @@ describe('Phase 59: Rate Limit Manager', () => {
       });
       store.setState('ws_1', RateLimitService.OPENAI, state);
 
-      const operation = jest.fn().mockResolvedValue('success');
+      const operation = (jest.fn() as any).mockResolvedValue('success');
 
       await expect(
         manager.executeWithRateLimit(

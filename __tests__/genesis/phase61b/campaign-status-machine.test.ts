@@ -3,8 +3,8 @@
  * Campaign Status Machine Tests
  */
 
-import { CampaignStatusMachine } from '../lib/campaign-status-machine';
-import type { CampaignStatus } from '../lib/campaign-types';
+import { CampaignStatusMachine } from '@/lib/genesis/phase61b/campaign-status-machine';
+import type { CampaignStatus } from '@/lib/genesis/phase61b/campaign-types';
 
 describe('CampaignStatusMachine', () => {
   describe('isValidTransition', () => {

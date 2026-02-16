@@ -30,6 +30,15 @@ export class MockMigrationDB implements MigrationDB {
   public triggerCreationDelay = 0;
   public callLog: Array<{ method: string; args: any[] }> = [];
 
+  /**
+   * Constructor accepts optional Supabase credentials for API compatibility.
+   * When used as SupabaseMigrationDB, callers pass (url, key).
+   * In mock mode, these are safely ignored.
+   */
+  constructor(_supabaseUrl?: string, _supabaseKey?: string) {
+    // No-op: mock implementation uses in-memory stores
+  }
+
   // ============================================
   // MIGRATION STATE CRUD
   // ============================================

@@ -3,7 +3,7 @@
  * Configuration Generator Tests
  */
 
-import { N8nConfigGenerator } from '../lib/n8n-config-generator';
+import { N8nConfigGenerator } from '@/lib/genesis/phase61b/n8n-config-generator';
 
 describe('N8nConfigGenerator', () => {
   const mockN8nHost = '1-2-3-4.sslip.io';

@@ -120,7 +120,7 @@ export function IgnitionStage({ workspaceId, onComplete }: StageComponentProps) 
         <>
           {/* Ready to Launch */}
           <div className="text-center py-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-accent-primary to-accent-purple mb-4 shadow-lg shadow-accent-primary/25">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-accent-primary mb-4 shadow-lg shadow-accent-primary/25">
               <Rocket className="h-10 w-10 text-white" />
             </div>
             
@@ -164,7 +164,7 @@ export function IgnitionStage({ workspaceId, onComplete }: StageComponentProps) 
           {/* Launch Button */}
           <button
             onClick={handleStartIgnition}
-            className="w-full flex items-center justify-center gap-2 h-14 bg-gradient-to-r from-accent-primary to-accent-purple text-white rounded-lg font-bold text-lg shadow-xl shadow-accent-primary/30 hover:opacity-90 transition-opacity"
+            className="w-full flex items-center justify-center gap-2 h-14 bg-accent-primary text-white rounded-lg font-bold text-lg shadow-xl shadow-accent-primary/30 hover:bg-accent-primary/90 transition-all"
           >
             <Rocket className="h-6 w-6" />
             Start Engine

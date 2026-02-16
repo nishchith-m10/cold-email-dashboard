@@ -9,7 +9,7 @@ import {
   RISK_SCORES,
   DEFAULT_RISK_THRESHOLDS,
   RiskLevel,
-} from '../lib/risk-types';
+} from '@/lib/genesis/phase61b/risk-types';
 
 describe('Risk Types', () => {
   describe('RISK_SCORES constants', () => {

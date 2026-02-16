@@ -254,7 +254,7 @@ export class N8nManager {
           return end - start;
         });
 
-      const avgDuration = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+      const avgDuration = durations.length > 0 ? durations.reduce((a: number, b: number) => a + b, 0) / durations.length : 0;
 
       return {
         executions_total: total,

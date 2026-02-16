@@ -115,7 +115,7 @@ describe('Phase 48 Cutover Orchestrator', () => {
       const result = await orchestrator.dryRun(plan);
 
       expect(result.readinessReport).toBeDefined();
-      expect(result.readinessReport.totalChecks).toBeGreaterThan(0);
+      expect(result.readinessReport!.totalChecks).toBeGreaterThan(0);
     });
   });
 

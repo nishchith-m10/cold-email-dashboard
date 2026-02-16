@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { getLoginHistory } from '@/lib/genesis/login-audit';
+import { getLoginHistory, type LoginAuditEvent } from '@/lib/genesis/login-audit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate')
       ? new Date(searchParams.get('endDate')!)
       : undefined;
-    const eventType = searchParams.get('eventType') || undefined;
+    const eventType = (searchParams.get('eventType') || undefined) as LoginAuditEvent['eventType'] | undefined;
 
     // Get login history
     const history = await getLoginHistory(user.id, {

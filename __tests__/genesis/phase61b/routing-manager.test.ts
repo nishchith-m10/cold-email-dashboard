@@ -3,12 +3,12 @@
  * Routing Manager Tests
  */
 
-import { RoutingManager } from '../lib/routing-manager';
+import { RoutingManager } from '@/lib/genesis/phase61b/routing-manager';
 import {
   WorkspaceOnboardingState,
   OnboardingStage,
   ApplicationLayer,
-} from '../lib/types';
+} from '@/lib/genesis/phase61b/types';
 
 describe('RoutingManager', () => {
   const createState = (

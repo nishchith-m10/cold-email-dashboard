@@ -51,7 +51,7 @@ describe('OnboardingProgressService', () => {
     });
 
     it('should handle initialization errors', async () => {
-      const insertMock = jest.fn().mockResolvedValue({
+      const insertMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Insert failed' },
       });
@@ -110,7 +110,7 @@ describe('OnboardingProgressService', () => {
         }
       });
 
-      const insertMock = jest.fn().mockResolvedValue({
+      const insertMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: null,
       });
@@ -123,7 +123,7 @@ describe('OnboardingProgressService', () => {
     });
 
     it('should handle database errors', async () => {
-      const singleMock = jest.fn().mockResolvedValue({
+      const singleMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Database error', code: 'OTHER' },
       });
@@ -138,7 +138,7 @@ describe('OnboardingProgressService', () => {
 
   describe('completeStage', () => {
     it('should complete stage and advance to next', async () => {
-      const getSingleMock = jest.fn().mockResolvedValue({
+      const getSingleMock = (jest.fn() as any).mockResolvedValue({
         data: {
           workspace_id: 'ws-123',
           current_stage: 'region_selection',
@@ -149,7 +149,7 @@ describe('OnboardingProgressService', () => {
         error: null,
       });
       
-      const updateEqMock = jest.fn().mockResolvedValue({
+      const updateEqMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: null,
       });
@@ -176,7 +176,7 @@ describe('OnboardingProgressService', () => {
     });
 
     it('should mark onboarding complete at last stage', async () => {
-      const getSingleMock = jest.fn().mockResolvedValue({
+      const getSingleMock = (jest.fn() as any).mockResolvedValue({
         data: {
           workspace_id: 'ws-123',
           current_stage: 'ignition',
@@ -187,7 +187,7 @@ describe('OnboardingProgressService', () => {
         error: null,
       });
       
-      const updateEqMock = jest.fn().mockResolvedValue({
+      const updateEqMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: null,
       });
@@ -211,7 +211,7 @@ describe('OnboardingProgressService', () => {
     });
 
     it('should handle duplicate completion', async () => {
-      const getSingleMock = jest.fn().mockResolvedValue({
+      const getSingleMock = (jest.fn() as any).mockResolvedValue({
         data: {
           workspace_id: 'ws-123',
           current_stage: 'brand_info',
@@ -222,7 +222,7 @@ describe('OnboardingProgressService', () => {
         error: null,
       });
       
-      const updateEqMock = jest.fn().mockResolvedValue({
+      const updateEqMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: null,
       });
@@ -278,7 +278,7 @@ describe('OnboardingProgressService', () => {
 
   describe('isOnboardingComplete', () => {
     it('should return true if all required stages complete', async () => {
-      const singleMock = jest.fn().mockResolvedValue({
+      const singleMock = (jest.fn() as any).mockResolvedValue({
         data: {
           workspace_id: 'ws-123',
           current_stage: 'ignition',
@@ -298,7 +298,7 @@ describe('OnboardingProgressService', () => {
     });
 
     it('should return false if stages missing', async () => {
-      const singleMock = jest.fn().mockResolvedValue({
+      const singleMock = (jest.fn() as any).mockResolvedValue({
         data: {
           workspace_id: 'ws-123',
           current_stage: 'openai_key',
@@ -320,7 +320,7 @@ describe('OnboardingProgressService', () => {
       // Get all required stages
       const requiredStages = ONBOARDING_STAGES.filter(s => STAGE_INFO[s].required);
 
-      const singleMock = jest.fn().mockResolvedValue({
+      const singleMock = (jest.fn() as any).mockResolvedValue({
         data: {
           workspace_id: 'ws-123',
           current_stage: 'ignition',
@@ -340,7 +340,7 @@ describe('OnboardingProgressService', () => {
 
   describe('getCompletionPercentage', () => {
     it('should calculate 0% at start', async () => {
-      const singleMock = jest.fn().mockResolvedValue({
+      const singleMock = (jest.fn() as any).mockResolvedValue({
         data: {
           workspace_id: 'ws-123',
           current_stage: 'region_selection',
@@ -365,7 +365,7 @@ describe('OnboardingProgressService', () => {
       const requiredCount = ONBOARDING_STAGES.filter(s => STAGE_INFO[s].required).length;
       const halfCompleted = ONBOARDING_STAGES.slice(0, Math.floor(requiredCount / 2));
 
-      const singleMock = jest.fn().mockResolvedValue({
+      const singleMock = (jest.fn() as any).mockResolvedValue({
         data: {
           workspace_id: 'ws-123',
           current_stage: halfCompleted[halfCompleted.length - 1],
@@ -386,7 +386,7 @@ describe('OnboardingProgressService', () => {
     it('should calculate 100% when complete', async () => {
       const requiredStages = ONBOARDING_STAGES.filter(s => STAGE_INFO[s].required);
 
-      const singleMock = jest.fn().mockResolvedValue({
+      const singleMock = (jest.fn() as any).mockResolvedValue({
         data: {
           workspace_id: 'ws-123',
           current_stage: 'ignition',
@@ -405,7 +405,7 @@ describe('OnboardingProgressService', () => {
     });
 
     it('should return 0 if progress not found', async () => {
-      const singleMock = jest.fn().mockResolvedValue({
+      const singleMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Not found' },
       });
@@ -441,7 +441,7 @@ describe('OnboardingProgressService', () => {
     });
 
     it('should handle reset errors', async () => {
-      const updateMock = jest.fn().mockResolvedValue({
+      const updateMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Update failed' },
       });

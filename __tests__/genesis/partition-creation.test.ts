@@ -261,7 +261,7 @@ describe('Partition Creation', () => {
       expect(result.success).toBe(true);
       expect(result.partitionName).toBeTruthy();
       // Should truncate to valid length (max 63 chars for Postgres identifier)
-      expect(result.partitionName.length).toBeLessThanOrEqual(63);
+      expect(result.partitionName!.length).toBeLessThanOrEqual(63);
     });
 
     it('should use UUID when slug is not provided', async () => {

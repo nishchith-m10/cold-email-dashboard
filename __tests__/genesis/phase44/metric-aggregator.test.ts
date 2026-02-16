@@ -76,7 +76,7 @@ describe('Phase 44 - MetricAggregatorService', () => {
   describe('processReport', () => {
     it('accepts a valid report', async () => {
       const db = createMockDB();
-      const validator: SidecarTokenValidator = { validate: jest.fn().mockResolvedValue(true) };
+      const validator: SidecarTokenValidator = { validate: (jest.fn() as any).mockResolvedValue(true) };
       const service = new MetricAggregatorService(db, validator);
 
       const result = await service.processReport(createValidReport());
@@ -86,7 +86,7 @@ describe('Phase 44 - MetricAggregatorService', () => {
 
     it('rejects invalid sidecar token', async () => {
       const db = createMockDB();
-      const validator: SidecarTokenValidator = { validate: jest.fn().mockResolvedValue(false) };
+      const validator: SidecarTokenValidator = { validate: (jest.fn() as any).mockResolvedValue(false) };
       const service = new MetricAggregatorService(db, validator);
 
       const result = await service.processReport(createValidReport());

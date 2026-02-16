@@ -218,7 +218,7 @@ describe('Phase 67 - Support Access Token Functions', () => {
       .eq('id', tokenId)
       .single();
 
-    expect(tokenData.revoked_at).toBeTruthy();
+    expect(tokenData!.revoked_at).toBeTruthy();
   });
 
   it('should return false when revoking non-existent token', async () => {

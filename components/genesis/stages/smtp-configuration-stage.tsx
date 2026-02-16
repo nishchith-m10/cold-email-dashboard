@@ -391,7 +391,7 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
         <button
           onClick={handleSave}
           disabled={isSaving || isTesting}
-          className="flex-1 flex items-center justify-center gap-2 h-12 bg-gradient-to-r from-accent-primary to-accent-purple text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="flex-1 flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all disabled:opacity-50"
         >
           {isSaving ? (
             <>

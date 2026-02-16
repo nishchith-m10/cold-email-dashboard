@@ -9,7 +9,7 @@ import {
   AIKeysStageValidator,
   RegionStageValidator,
   IgniteStageValidator,
-} from '../lib/stage-validators';
+} from '@/lib/genesis/phase61b/stage-validators';
 
 describe('Stage Validators', () => {
   describe('BrandStageValidator', () => {

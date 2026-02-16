@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { Calendar } from 'lucide-react';
+import { Calendar, Cpu } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { toISODate, daysAgo, formatNumber } from '@/lib/utils';
 import { getModelDisplayName } from '@/lib/constants';
@@ -25,7 +25,6 @@ import { DailyCostChart } from '@/components/dashboard/daily-cost-chart';
 import { SenderBreakdown } from '@/components/dashboard/sender-breakdown';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
-  Cpu, 
   ToggleLeft,
   ToggleRight,
   BarChart3

@@ -194,6 +194,8 @@ describe('Phase 69: OAuth Refresh Handler', () => {
   });
 
   describe('Edge cases', () => {
+    const testSecret = 'test-webhook-secret-key';
+
     it('should handle empty payload gracefully', () => {
       const timestamp = Date.now();
       const emptyPayload = {};

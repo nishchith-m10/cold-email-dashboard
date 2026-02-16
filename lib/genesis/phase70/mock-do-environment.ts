@@ -3,6 +3,11 @@
  *
  * In-memory mock for DisasterRecoveryEnvironment interface,
  * simulating droplets, snapshots, regions, and failover scenarios.
+ * 
+ * NOW WITH DATABASE PERSISTENCE:
+ * - All snapshots saved to genesis.disaster_recovery_snapshots
+ * - Heartbeats saved to genesis.regional_health_status
+ * - Supports dry-run mode flag
  */
 
 import {
@@ -16,15 +21,25 @@ import {
   generateEventId,
   type DORegion,
 } from './types';
+import {
+  saveSnapshot,
+  saveRegionalHealth,
+  type SnapshotRecord,
+} from './db-service';
 
 export class MockDOEnvironment implements DisasterRecoveryEnvironment {
   private droplets: Map<string, { status: string; region: DORegion }> = new Map();
   private snapshots: Map<string, Snapshot> = new Map();
   private events: FailoverEvent[] = [];
   private heartbeatOverrides: Map<DORegion, Partial<HeartbeatStatus>> = new Map();
+  private isDryRun: boolean;
 
   // Track calls for test assertions
   callLog: Array<{ method: string; args: any[] }> = [];
+
+  constructor(isDryRun: boolean = true) {
+    this.isDryRun = isDryRun;
+  }
 
   // ============================================
   // DROPLET OPERATIONS
@@ -76,7 +91,17 @@ export class MockDOEnvironment implements DisasterRecoveryEnvironment {
       expiresAt: expiresAt.toISOString(),
     };
 
+    // Store in-memory for backward compatibility
     this.snapshots.set(snapshotId, snapshot);
+
+    // PHASE 70 ENHANCEMENT: Persist to database
+    try {
+      await saveSnapshot(snapshot, this.isDryRun);
+    } catch (error) {
+      console.warn('[MockDOEnvironment] Failed to persist snapshot to DB:', error);
+      // Continue execution - don't fail the mock operation if DB is unavailable
+    }
+
     return snapshot;
   }
 
@@ -141,7 +166,7 @@ export class MockDOEnvironment implements DisasterRecoveryEnvironment {
     const missingHeartbeats = override?.missingHeartbeats ?? 0;
     const healthyDroplets = totalDroplets - missingHeartbeats;
 
-    return {
+    const heartbeatStatus: HeartbeatStatus = {
       region,
       totalDroplets,
       healthyDroplets,
@@ -150,6 +175,16 @@ export class MockDOEnvironment implements DisasterRecoveryEnvironment {
       timestamp: new Date().toISOString(),
       ...override,
     };
+
+    // PHASE 70 ENHANCEMENT: Persist to database
+    try {
+      await saveRegionalHealth(region, heartbeatStatus);
+    } catch (error) {
+      console.warn('[MockDOEnvironment] Failed to persist heartbeat to DB:', error);
+      // Continue execution - don't fail the mock operation if DB is unavailable
+    }
+
+    return heartbeatStatus;
   }
 
   // ============================================
@@ -212,5 +247,14 @@ export class MockDOEnvironment implements DisasterRecoveryEnvironment {
 
   getAllDroplets(): Map<string, { status: string; region: DORegion }> {
     return new Map(this.droplets);
+  }
+
+  // PHASE 70 ENHANCEMENT: Expose dry-run mode
+  getIsDryRun(): boolean {
+    return this.isDryRun;
+  }
+
+  setIsDryRun(isDryRun: boolean): void {
+    this.isDryRun = isDryRun;
   }
 }

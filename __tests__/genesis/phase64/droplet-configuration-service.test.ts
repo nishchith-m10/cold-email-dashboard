@@ -200,7 +200,7 @@ describe('DropletConfigurationService', () => {
     });
 
     it('should handle database errors', async () => {
-      const upsertMock = jest.fn().mockResolvedValue({
+      const upsertMock = (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Database error' },
       });

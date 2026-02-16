@@ -3,8 +3,8 @@
  * Setup State Manager Tests
  */
 
-import { SetupStateManager } from '../lib/setup-state-manager';
-import { WorkspaceOnboardingState } from '../lib/types';
+import { SetupStateManager } from '@/lib/genesis/phase61b/setup-state-manager';
+import { WorkspaceOnboardingState } from '@/lib/genesis/phase61b/types';
 
 describe('SetupStateManager', () => {
   const createState = (

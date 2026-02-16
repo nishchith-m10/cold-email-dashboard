@@ -3,13 +3,13 @@
  * Notification Dispatcher Tests
  */
 
-import { NotificationDispatcher } from '../lib/notification-dispatcher';
-import { MockNotificationChannel } from '../lib/notification-channels';
+import { NotificationDispatcher } from '@/lib/genesis/phase61b/notification-dispatcher';
+import { MockNotificationChannel } from '@/lib/genesis/phase61b/notification-channels';
 import type {
   ClientFirstLoginPayload,
   DropletReadyPayload,
   SetupNotReviewedPayload,
-} from '../lib/notification-types';
+} from '@/lib/genesis/phase61b/notification-types';
 
 describe('NotificationDispatcher', () => {
   const mockTimestamp = new Date('2026-01-27T12:00:00Z');

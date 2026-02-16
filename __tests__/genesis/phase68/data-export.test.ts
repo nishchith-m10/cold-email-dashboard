@@ -43,11 +43,11 @@ jest.mock('@/lib/supabase', () => ({
 
 // Mock tenant lifecycle (for locking)
 jest.mock('@/lib/genesis/tenant-lifecycle', () => ({
-  acquireWorkspaceLock: jest.fn().mockResolvedValue({
+  acquireWorkspaceLock: (jest.fn() as any).mockResolvedValue({
     success: true,
     expiresAt: '2026-02-08T10:00:00Z',
   }),
-  releaseWorkspaceLock: jest.fn().mockResolvedValue({
+  releaseWorkspaceLock: (jest.fn() as any).mockResolvedValue({
     success: true,
   }),
 }));
@@ -66,13 +66,13 @@ describe('Phase 68: Data Export Service', () => {
   describe('Export Initiation', () => {
     it('should initiate export successfully', async () => {
       // Mock existing export check
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
                 in: jest.fn().mockReturnValue({
-                  maybeSingle: jest.fn().mockResolvedValue({
+                  maybeSingle: (jest.fn() as any).mockResolvedValue({
                     data: null, // No active export
                     error: null,
                   }),
@@ -81,7 +81,7 @@ describe('Phase 68: Data Export Service', () => {
             }),
             insert: jest.fn().mockReturnValue({
               select: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: { id: 'export_job_123' },
                   error: null,
                 }),
@@ -92,7 +92,7 @@ describe('Phase 68: Data Export Service', () => {
       });
 
       // Mock resource counts
-      jest.spyOn(supabaseAdmin, 'from').mockImplementation((table: string) => {
+      jest.spyOn(supabaseAdmin!, 'from').mockImplementation((table: string) => {
         const counts: Record<string, number> = {
           leads: 5000,
           email_events: 10000,
@@ -100,7 +100,7 @@ describe('Phase 68: Data Export Service', () => {
 
         return {
           select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({
+            eq: (jest.fn() as any).mockResolvedValue({
               count: counts[table] || 0,
             }),
             head: true,
@@ -124,13 +124,13 @@ describe('Phase 68: Data Export Service', () => {
 
     it('should fail if export already in progress', async () => {
       // Mock active export
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
                 in: jest.fn().mockReturnValue({
-                  maybeSingle: jest.fn().mockResolvedValue({
+                  maybeSingle: (jest.fn() as any).mockResolvedValue({
                     data: {
                       id: 'export_job_456',
                       status: 'in_progress',
@@ -154,13 +154,13 @@ describe('Phase 68: Data Export Service', () => {
 
     it('should fail if lock acquisition fails', async () => {
       // Mock no active export
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
                 in: jest.fn().mockReturnValue({
-                  maybeSingle: jest.fn().mockResolvedValue({
+                  maybeSingle: (jest.fn() as any).mockResolvedValue({
                     data: null,
                     error: null,
                   }),
@@ -187,12 +187,12 @@ describe('Phase 68: Data Export Service', () => {
   describe('Export Progress', () => {
     it('should retrieve export progress', async () => {
       // Mock job fetch
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: {
                     id: 'export_job_123',
                     workspace_id: 'ws_test',
@@ -212,10 +212,10 @@ describe('Phase 68: Data Export Service', () => {
       });
 
       // Mock user membership
-      jest.spyOn(supabaseAdmin, 'from').mockReturnValue({
+      jest.spyOn(supabaseAdmin!, 'from').mockReturnValue({
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            maybeSingle: jest.fn().mockResolvedValue({
+            maybeSingle: (jest.fn() as any).mockResolvedValue({
               data: { role: 'owner' },
               error: null,
             }),
@@ -233,12 +233,12 @@ describe('Phase 68: Data Export Service', () => {
 
     it('should return null if user unauthorized', async () => {
       // Mock job fetch
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: {
                     id: 'export_job_123',
                     workspace_id: 'ws_test',
@@ -252,10 +252,10 @@ describe('Phase 68: Data Export Service', () => {
       });
 
       // Mock no membership
-      jest.spyOn(supabaseAdmin, 'from').mockReturnValue({
+      jest.spyOn(supabaseAdmin!, 'from').mockReturnValue({
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            maybeSingle: jest.fn().mockResolvedValue({
+            maybeSingle: (jest.fn() as any).mockResolvedValue({
               data: null, // No membership
               error: null,
             }),
@@ -272,12 +272,12 @@ describe('Phase 68: Data Export Service', () => {
   describe('Export Cancellation', () => {
     it('should cancel export successfully', async () => {
       // Mock job fetch
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: {
                     workspace_id: 'ws_test',
                     status: 'in_progress',
@@ -287,7 +287,7 @@ describe('Phase 68: Data Export Service', () => {
               }),
             }),
             update: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({
+              eq: (jest.fn() as any).mockResolvedValue({
                 error: null,
               }),
             }),
@@ -296,10 +296,10 @@ describe('Phase 68: Data Export Service', () => {
       });
 
       // Mock user membership
-      jest.spyOn(supabaseAdmin, 'from').mockReturnValue({
+      jest.spyOn(supabaseAdmin!, 'from').mockReturnValue({
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            maybeSingle: jest.fn().mockResolvedValue({
+            maybeSingle: (jest.fn() as any).mockResolvedValue({
               data: { role: 'owner' },
               error: null,
             }),
@@ -315,12 +315,12 @@ describe('Phase 68: Data Export Service', () => {
 
     it('should fail if export not found', async () => {
       // Mock no job
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: null,
                   error: { message: 'Not found' },
                 }),
@@ -338,12 +338,12 @@ describe('Phase 68: Data Export Service', () => {
 
     it('should fail if export already completed', async () => {
       // Mock completed job
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: {
                     workspace_id: 'ws_test',
                     status: 'completed',
@@ -357,10 +357,10 @@ describe('Phase 68: Data Export Service', () => {
       });
 
       // Mock user membership
-      jest.spyOn(supabaseAdmin, 'from').mockReturnValue({
+      jest.spyOn(supabaseAdmin!, 'from').mockReturnValue({
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            maybeSingle: jest.fn().mockResolvedValue({
+            maybeSingle: (jest.fn() as any).mockResolvedValue({
               data: { role: 'owner' },
               error: null,
             }),
@@ -378,12 +378,12 @@ describe('Phase 68: Data Export Service', () => {
   describe('Export Processing', () => {
     it('should process export job successfully', async () => {
       // Mock job fetch
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: {
                     id: 'export_job_123',
                     workspace_id: 'ws_test',
@@ -395,7 +395,7 @@ describe('Phase 68: Data Export Service', () => {
               }),
             }),
             update: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({
+              eq: (jest.fn() as any).mockResolvedValue({
                 error: null,
               }),
             }),
@@ -404,12 +404,12 @@ describe('Phase 68: Data Export Service', () => {
       });
 
       // Mock workspace fetch
-      jest.spyOn(supabaseAdmin, 'from').mockImplementation((table: string) => {
+      jest.spyOn(supabaseAdmin!, 'from').mockImplementation((table: string) => {
         if (table === 'workspaces') {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: {
                     id: 'ws_test',
                     name: 'Test Workspace',
@@ -425,7 +425,7 @@ describe('Phase 68: Data Export Service', () => {
         // Mock data fetches
         return {
           select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({
+            eq: (jest.fn() as any).mockResolvedValue({
               data: [
                 { id: 'lead_1', name: 'Lead 1' },
                 { id: 'lead_2', name: 'Lead 2' },
@@ -445,12 +445,12 @@ describe('Phase 68: Data Export Service', () => {
 
     it('should fail if job not found', async () => {
       // Mock no job
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: null,
                   error: { message: 'Not found' },
                 }),
@@ -470,10 +470,10 @@ describe('Phase 68: Data Export Service', () => {
   describe('Export History', () => {
     it('should retrieve export history', async () => {
       // Mock user membership
-      jest.spyOn(supabaseAdmin, 'from').mockReturnValue({
+      jest.spyOn(supabaseAdmin!, 'from').mockReturnValue({
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            maybeSingle: jest.fn().mockResolvedValue({
+            maybeSingle: (jest.fn() as any).mockResolvedValue({
               data: { role: 'owner' },
               error: null,
             }),
@@ -482,13 +482,13 @@ describe('Phase 68: Data Export Service', () => {
       } as any);
 
       // Mock export jobs
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
                 order: jest.fn().mockReturnValue({
-                  limit: jest.fn().mockResolvedValue({
+                  limit: (jest.fn() as any).mockResolvedValue({
                     data: [
                       {
                         id: 'export_1',
@@ -529,10 +529,10 @@ describe('Phase 68: Data Export Service', () => {
 
     it('should return empty array if user unauthorized', async () => {
       // Mock no membership
-      jest.spyOn(supabaseAdmin, 'from').mockReturnValue({
+      jest.spyOn(supabaseAdmin!, 'from').mockReturnValue({
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            maybeSingle: jest.fn().mockResolvedValue({
+            maybeSingle: (jest.fn() as any).mockResolvedValue({
               data: null,
               error: null,
             }),
@@ -549,12 +549,12 @@ describe('Phase 68: Data Export Service', () => {
   describe('Expired Export Cleanup', () => {
     it('should cleanup expired exports', async () => {
       // Mock cleanup
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             delete: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                lt: jest.fn().mockResolvedValue({
+                lt: (jest.fn() as any).mockResolvedValue({
                   count: 5,
                   error: null,
                 }),
@@ -573,12 +573,12 @@ describe('Phase 68: Data Export Service', () => {
 
     it('should handle cleanup errors gracefully', async () => {
       // Mock error
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             delete: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                lt: jest.fn().mockResolvedValue({
+                lt: (jest.fn() as any).mockResolvedValue({
                   count: 0,
                   error: { message: 'Database error' },
                 }),
