@@ -26,6 +26,31 @@
       "path": "/api/cron/clean-webhook-request-ids",
       "schedule": "0 * * * *",
       "comment": "Phase 69: Clean webhook request IDs hourly"
+    },
+    {
+      "path": "/api/cron/api-health-critical?secret=${CRON_SECRET}",
+      "schedule": "*/5 * * * *",
+      "comment": "Phase 71: Critical API health checks every 5 minutes"
+    },
+    {
+      "path": "/api/cron/api-health-secondary?secret=${CRON_SECRET}",
+      "schedule": "0 * * * *",
+      "comment": "Phase 71: Secondary API health checks hourly"
+    },
+    {
+      "path": "/api/cron/disaster-recovery-snapshots?secret=${CRON_SECRET}",
+      "schedule": "0 2 * * *",
+      "comment": "Phase 70: Daily disaster recovery snapshots at 2 AM UTC"
+    },
+    {
+      "path": "/api/cron/disaster-recovery-garbage?secret=${CRON_SECRET}",
+      "schedule": "0 * * * *",
+      "comment": "Phase 70: Hourly garbage collection for expired snapshots"
+    },
+    {
+      "path": "/api/cron/disaster-recovery-health?secret=${CRON_SECRET}",
+      "schedule": "*/5 * * * *",
+      "comment": "Phase 70: Regional health checks every 5 minutes"
     }
   ]
 }

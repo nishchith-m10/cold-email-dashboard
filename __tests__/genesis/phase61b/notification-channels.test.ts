@@ -7,11 +7,11 @@ import {
   GmailChannel,
   TelegramChannel,
   MockNotificationChannel,
-} from '../lib/notification-channels';
+} from '@/lib/genesis/phase61b/notification-channels';
 import type {
   ClientFirstLoginPayload,
   DropletReadyPayload,
-} from '../lib/notification-types';
+} from '@/lib/genesis/phase61b/notification-types';
 
 describe('Notification Channels', () => {
   const mockTimestamp = new Date('2026-01-27T12:00:00Z');

@@ -34,11 +34,35 @@ export function SenderBreakdown({
   if (senders.length === 0) {
     return (
       <div className={cn('bg-surface rounded-xl border border-border p-6', className)}>
-        <h3 className="text-lg font-semibold text-text-primary mb-4">Per-Sender Breakdown</h3>
-        <p className="text-text-secondary text-sm">No sender data available yet.</p>
-        <p className="text-text-muted text-xs mt-2">
-          Add <code className="bg-surface-elevated px-1 rounded">sender_email</code> to your event metadata to track per-sender metrics.
-        </p>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-text-primary">Per-Sender Breakdown</h3>
+          <span className="text-xs text-text-muted bg-surface-elevated px-2 py-1 rounded">
+            0 senders
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left py-2 px-2 text-text-secondary font-medium">Sender</th>
+                <th className="text-right py-2 px-2 text-text-secondary font-medium">Sends</th>
+                <th className="text-right py-2 px-2 text-text-secondary font-medium">Replies</th>
+                <th className="text-right py-2 px-2 text-text-secondary font-medium">Reply %</th>
+                <th className="text-right py-2 px-2 text-text-secondary font-medium">Opens</th>
+                <th className="text-right py-2 px-2 text-text-secondary font-medium">Clicks</th>
+                <th className="text-right py-2 px-2 text-text-secondary font-medium">Opt-outs</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colSpan={7} className="py-8 text-center text-text-secondary text-sm">
+                  No sender data available yet
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   }

@@ -391,7 +391,7 @@ describe('Phase 58 Hardening: Concurrency & Race Conditions', () => {
       expect(logs.length).toBe(6);
 
       // All logs should be for the correct workspace
-      logs.forEach((log) => {
+      logs.forEach((log: any) => {
         expect(log.workspaceId).toBe('ws_1');
       });
     });

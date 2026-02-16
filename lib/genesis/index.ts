@@ -1566,7 +1566,7 @@ export {
   type DeploymentEnvironment,
 
   // Constants
-  DEFAULT_CANARY_CONFIG,
+  DEFAULT_CANARY_CONFIG as Phase48DefaultCanaryConfig,
   DEFAULT_REVERT_TRIGGERS,
   DEPLOYMENT_DEFAULTS,
   VALID_STATUS_TRANSITIONS,
@@ -1645,6 +1645,10 @@ export {
   DisasterRecoveryController,
   DisasterRecoveryControllerError,
 
-  // Mock
+  // DigitalOcean API Client (production)
+  DOClient,
+  createDOClient,
+
+  // Mock (testing only)
   MockDOEnvironment,
 } from './phase70';

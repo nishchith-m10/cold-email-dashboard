@@ -7,7 +7,7 @@
  * @see docs/plans/GENESIS_SINGULARITY_PLAN_V35.md - Phase 69.2.5
  */
 
-import { createClient } from '@/lib/supabase';
+import { getTypedSupabaseAdmin } from '@/lib/supabase';
 import type { RequestIdCheckResult } from './types';
 
 // ============================================
@@ -45,7 +45,7 @@ export async function checkRequestIdDuplicate(
   endpoint: string
 ): Promise<RequestIdCheckResult> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     // Attempt to insert the request ID
     // If it already exists, INSERT will fail due to PRIMARY KEY constraint
@@ -101,7 +101,7 @@ export async function checkRequestIdDuplicate(
  */
 export async function requestIdExists(requestId: string): Promise<boolean> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const { data, error } = await supabase
       .schema('genesis')
@@ -142,7 +142,7 @@ export async function requestIdExists(requestId: string): Promise<boolean> {
  */
 export async function cleanOldRequestIds(ttlMinutes: number = 10): Promise<number> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     // Calculate cutoff timestamp
     const cutoffDate = new Date(Date.now() - ttlMinutes * 60 * 1000);
@@ -180,7 +180,7 @@ export async function getRequestIdStats(): Promise<{
   sourceBreakdown: Record<string, number>;
 }> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     // Get total count
     const { count: totalCount } = await supabase
@@ -246,7 +246,7 @@ export async function getRequestIdStats(): Promise<{
  */
 export async function clearAllRequestIds(): Promise<number> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const { error, count } = await supabase
       .schema('genesis')

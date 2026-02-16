@@ -83,7 +83,7 @@ describe('Security - SQL Injection Protection', () => {
     ];
 
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Invalid workspace ID format' },
       }),
@@ -103,7 +103,7 @@ describe('Security - SQL Injection Protection', () => {
     ];
 
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [
           {
             success: false,
@@ -134,7 +134,7 @@ describe('Security - SQL Injection Protection', () => {
     ];
 
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: 'audit-safe',
         error: null,
       }),
@@ -170,7 +170,7 @@ describe('Edge Cases - Large Datasets', () => {
     }));
 
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [
           {
             export_id: 'export-large',
@@ -207,7 +207,7 @@ describe('Edge Cases - Large Datasets', () => {
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue({
+      limit: (jest.fn() as any).mockResolvedValue({
         data: largeLogs.slice(0, 1000),
         error: null,
       }),
@@ -230,7 +230,7 @@ describe('Edge Cases - Concurrent Operations', () => {
 
   it('should handle concurrent audit log writes', async () => {
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: 'audit-concurrent',
         error: null,
       }),
@@ -256,7 +256,7 @@ describe('Edge Cases - Concurrent Operations', () => {
 
   it('should handle concurrent export requests', async () => {
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [
           {
             export_id: 'export-concurrent',
@@ -295,7 +295,7 @@ describe('Edge Cases - Null & Empty Data', () => {
 
   it('should handle workspace with no infrastructure', async () => {
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [
           {
             export_id: 'export-no-infra',
@@ -325,7 +325,7 @@ describe('Edge Cases - Null & Empty Data', () => {
 
   it('should handle audit events with empty details', async () => {
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: 'audit-empty-details',
         error: null,
       }),
@@ -344,7 +344,7 @@ describe('Edge Cases - Null & Empty Data', () => {
 
   it('should handle audit events without details field', async () => {
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: 'audit-no-details',
         error: null,
       }),
@@ -397,7 +397,7 @@ describe('Error Propagation - Network & Database', () => {
 
   it('should handle foreign key constraint violations', async () => {
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: null,
         error: {
           message: 'Foreign key constraint violation',
@@ -472,7 +472,7 @@ describe('Data Validation - GDPR Export Structure', () => {
     };
 
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [mockExportData],
         error: null,
       }),
@@ -496,7 +496,7 @@ describe('Data Validation - GDPR Export Structure', () => {
     const mockClient = createMockSupabaseClient();
 
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [
           {
             export_id: 'export-minimal',
@@ -537,7 +537,7 @@ describe('Audit Logger - Actor Type Validation', () => {
 
   it('should accept all valid actor types', async () => {
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: 'audit-123',
         error: null,
       }),
@@ -565,7 +565,7 @@ describe('Audit Logger - Actor Type Validation', () => {
 
   it('should accept all valid action categories', async () => {
     (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: 'audit-123',
         error: null,
       }),
@@ -606,7 +606,7 @@ describe('Workspace Isolation - Cross-Workspace Access Prevention', () => {
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      order: jest.fn().mockResolvedValue({
+      order: (jest.fn() as any).mockResolvedValue({
         data: [
           {
             id: 'audit-1',
@@ -635,7 +635,7 @@ describe('Performance - Query Optimization', () => {
   });
 
   it('should apply pagination correctly', async () => {
-    const rangeMock = jest.fn().mockResolvedValue({
+    const rangeMock = (jest.fn() as any).mockResolvedValue({
       data: [{ id: 'audit-1' }],
       error: null,
     });

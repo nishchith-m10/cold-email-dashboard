@@ -9,9 +9,9 @@
  */
 
 import * as crypto from 'crypto';
-import { JWTVerifier, generateTestJWT, SidecarJWTPayload } from '../sidecar/jwt-verifier';
-import { N8nManager } from '../sidecar/n8n-manager';
-import { DockerManager } from '../sidecar/docker-manager';
+import { JWTVerifier, generateTestJWT, SidecarJWTPayload } from '../../sidecar/jwt-verifier';
+import { N8nManager } from '../../sidecar/n8n-manager';
+import { DockerManager } from '../../sidecar/docker-manager';
 import { SidecarCommandBuilder, CommandQueue } from '@/lib/genesis/sidecar-commands';
 import { SidecarClient } from '@/lib/genesis/sidecar-client';
 
@@ -275,8 +275,8 @@ describe('Sidecar Command Builder', () => {
 
     expect(request.action).toBe('DEPLOY_WORKFLOW');
     expect(request.payload).toBeDefined();
-    expect(request.payload?.workflow_json).toEqual(workflowJson);
-    expect(request.payload?.credential_map).toEqual(credentialMap);
+    expect((request.payload as any)?.workflow_json).toEqual(workflowJson);
+    expect((request.payload as any)?.credential_map).toEqual(credentialMap);
   });
 
   test('should build activate workflow command', () => {
@@ -289,7 +289,7 @@ describe('Sidecar Command Builder', () => {
     );
 
     expect(request.action).toBe('ACTIVATE_WORKFLOW');
-    expect(request.payload?.workflow_id).toBe(workflowId);
+    expect((request.payload as any)?.workflow_id).toBe(workflowId);
   });
 
   test('should build inject credential command', () => {
@@ -302,8 +302,8 @@ describe('Sidecar Command Builder', () => {
     );
 
     expect(request.action).toBe('INJECT_CREDENTIAL');
-    expect(request.payload?.credential_type).toBe('gmailOAuth2');
-    expect(request.payload?.credential_name).toBe('Gmail Account');
+    expect((request.payload as any)?.credential_type).toBe('gmailOAuth2');
+    expect((request.payload as any)?.credential_name).toBe('Gmail Account');
   });
 
   test('should build restart n8n command', () => {

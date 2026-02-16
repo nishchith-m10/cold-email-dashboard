@@ -3,7 +3,7 @@
  * Notification Templates Tests
  */
 
-import { GmailTemplates, TelegramTemplates } from '../lib/notification-templates';
+import { GmailTemplates, TelegramTemplates } from '@/lib/genesis/phase61b/notification-templates';
 import type {
   ClientFirstLoginPayload,
   DropletReadyPayload,
@@ -11,7 +11,7 @@ import type {
   NewCampaignPayload,
   IgnitionFailedPayload,
   SetupNotReviewedPayload,
-} from '../lib/notification-types';
+} from '@/lib/genesis/phase61b/notification-types';
 
 describe('Notification Templates', () => {
   const mockTimestamp = new Date('2026-01-27T12:00:00Z');

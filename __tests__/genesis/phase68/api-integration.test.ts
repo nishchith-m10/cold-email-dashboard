@@ -51,10 +51,10 @@ describe('Phase 68: API Integration', () => {
   describe('DELETE /api/workspace/delete/validate', () => {
     it('should validate deletion successfully', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock validation
-      (validateDeletion as jest.Mock).mockResolvedValue({
+      (validateDeletion as unknown as jest.Mock).mockResolvedValue({
         canDelete: true,
         blockingIssues: [],
         warnings: ['Positive wallet balance: $50.00'],
@@ -86,7 +86,7 @@ describe('Phase 68: API Integration', () => {
 
     it('should return 401 if unauthorized', async () => {
       // Mock no auth
-      (auth as jest.Mock).mockResolvedValue({ userId: null });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: null });
 
       const request = new NextRequest('http://localhost/api/workspace/delete/validate', {
         method: 'POST',
@@ -102,7 +102,7 @@ describe('Phase 68: API Integration', () => {
 
     it('should return 400 if workspaceId missing', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       const request = new NextRequest('http://localhost/api/workspace/delete/validate', {
         method: 'POST',
@@ -120,7 +120,7 @@ describe('Phase 68: API Integration', () => {
   describe('POST /api/workspace/delete/initiate', () => {
     it('should initiate deletion successfully', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock initiation
       (initiateDeletion as jest.Mock).mockResolvedValue({
@@ -150,7 +150,7 @@ describe('Phase 68: API Integration', () => {
 
     it('should return 400 if validation fails', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock failed initiation
       (initiateDeletion as jest.Mock).mockResolvedValue({
@@ -175,7 +175,7 @@ describe('Phase 68: API Integration', () => {
   describe('POST /api/workspace/delete/confirm', () => {
     it('should confirm deletion successfully', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock confirmation
       (confirmDeletion as jest.Mock).mockResolvedValue({
@@ -201,7 +201,7 @@ describe('Phase 68: API Integration', () => {
 
     it('should return 400 if code invalid', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock invalid code
       (confirmDeletion as jest.Mock).mockResolvedValue({
@@ -227,7 +227,7 @@ describe('Phase 68: API Integration', () => {
 
     it('should return 400 if missing fields', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       const request = new NextRequest('http://localhost/api/workspace/delete/confirm', {
         method: 'POST',
@@ -245,10 +245,10 @@ describe('Phase 68: API Integration', () => {
   describe('POST /api/workspace/delete/restore', () => {
     it('should restore workspace successfully', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock restoration
-      (restoreWorkspace as jest.Mock).mockResolvedValue({
+      (restoreWorkspace as unknown as jest.Mock).mockResolvedValue({
         success: true,
         workspaceId: 'ws_test',
         restoredResources: {
@@ -278,10 +278,10 @@ describe('Phase 68: API Integration', () => {
 
     it('should return 400 if grace period expired', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock failed restoration
-      (restoreWorkspace as jest.Mock).mockResolvedValue({
+      (restoreWorkspace as unknown as jest.Mock).mockResolvedValue({
         success: false,
         workspaceId: 'ws_test',
         restoredResources: {
@@ -309,7 +309,7 @@ describe('Phase 68: API Integration', () => {
   describe('POST /api/workspace/export/initiate', () => {
     it('should initiate export successfully', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock export initiation
       (initiateDataExport as jest.Mock).mockResolvedValue({
@@ -334,7 +334,7 @@ describe('Phase 68: API Integration', () => {
 
     it('should return 400 if export already in progress', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock active export
       (initiateDataExport as jest.Mock).mockResolvedValue({
@@ -359,7 +359,7 @@ describe('Phase 68: API Integration', () => {
   describe('GET /api/workspace/export/progress/[jobId]', () => {
     it('should get export progress successfully', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock progress
       (getExportProgress as jest.Mock).mockResolvedValue({
@@ -388,7 +388,7 @@ describe('Phase 68: API Integration', () => {
 
     it('should return 404 if job not found', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock not found
       (getExportProgress as jest.Mock).mockResolvedValue(null);
@@ -410,7 +410,7 @@ describe('Phase 68: API Integration', () => {
   describe('DELETE /api/workspace/export/cancel/[jobId]', () => {
     it('should cancel export successfully', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock cancellation
       (cancelDataExport as jest.Mock).mockResolvedValue({
@@ -433,7 +433,7 @@ describe('Phase 68: API Integration', () => {
 
     it('should return 400 if cannot cancel', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock failed cancellation
       (cancelDataExport as jest.Mock).mockResolvedValue({
@@ -458,7 +458,7 @@ describe('Phase 68: API Integration', () => {
   describe('GET /api/workspace/export/history/[workspaceId]', () => {
     it('should get export history successfully', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock history
       (getExportHistory as jest.Mock).mockResolvedValue([
@@ -500,7 +500,7 @@ describe('Phase 68: API Integration', () => {
 
     it('should respect limit query parameter', async () => {
       // Mock auth
-      (auth as jest.Mock).mockResolvedValue({ userId: 'user_123' });
+      (auth as unknown as jest.Mock).mockResolvedValue({ userId: 'user_123' });
 
       // Mock history with limit
       (getExportHistory as jest.Mock).mockResolvedValue([

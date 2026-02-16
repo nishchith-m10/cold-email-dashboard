@@ -73,11 +73,11 @@ function createMockDB(historyData: any[] = []): AlertRoutingDB {
 }
 
 function createMockEmailTransport(result: { success: boolean; messageId?: string; error?: string } = { success: true, messageId: 'email-1' }): EmailTransport {
-  return { send: jest.fn().mockResolvedValue(result) };
+  return { send: (jest.fn() as any).mockResolvedValue(result) };
 }
 
 function createMockTelegramTransport(result: { success: boolean; messageId?: string; error?: string } = { success: true, messageId: 'tg-1' }): TelegramTransport {
-  return { send: jest.fn().mockResolvedValue(result) };
+  return { send: (jest.fn() as any).mockResolvedValue(result) };
 }
 
 // ============================================

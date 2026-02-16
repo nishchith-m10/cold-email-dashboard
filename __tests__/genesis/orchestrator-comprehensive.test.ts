@@ -120,7 +120,7 @@ describe('Successful Ignition Flow', () => {
     
     const stepStartEvents = events.filter(e => e.type === 'step_started');
     expect(stepStartEvents).toHaveLength(6);
-    expect(stepStartEvents.map(e => e.step)).toEqual([
+    expect(stepStartEvents.map(e => (e as any).step)).toEqual([
       'partition_creating',
       'droplet_provisioning',
       'handshake_pending',

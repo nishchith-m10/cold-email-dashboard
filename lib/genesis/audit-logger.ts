@@ -28,7 +28,8 @@ export type ActionCategory =
   | 'security'
   | 'support'
   | 'billing'
-  | 'data';
+  | 'data'
+  | 'lifecycle';
 
 /**
  * Audit event data structure

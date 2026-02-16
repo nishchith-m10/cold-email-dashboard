@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '100', 10);
 
     // 4. Fetch DLQ entries
-    let entries;
+    let entries: Awaited<ReturnType<typeof getDLQEntriesForWorkspace>> | never[] = [];
     if (workspaceId) {
       entries = await getDLQEntriesForWorkspace(workspaceId, status, limit);
     } else {

@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { CHART_COLORS } from '@/lib/constants';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
 import { formatCurrency as formatCurrencyUtil, Currency } from '@/lib/currency-context';
+import { PieChart as PieChartIcon, TrendingUp } from 'lucide-react';
 
 interface DonutChartProps {
   title: string;
@@ -126,8 +127,18 @@ export function DonutChart({
         <CardContent>
           {!hasData ? (
             <div className="flex items-center justify-center h-64">
-              <div className="text-center text-text-secondary">
-                <p className="text-sm">No data available</p>
+              <div className="flex flex-col items-center gap-3 text-center max-w-xs mx-auto">
+                <div className="w-12 h-12 rounded-full bg-surface-elevated flex items-center justify-center">
+                  <PieChartIcon className="h-6 w-6 text-text-secondary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-text-primary mb-1">No {title.toLowerCase()} yet</p>
+                  <p className="text-xs text-text-secondary">
+                    {title.includes('Provider') 
+                      ? 'LLM API usage will appear here once your campaigns start running'
+                      : 'Model usage breakdown will be displayed as your campaigns generate data'}
+                  </p>
+                </div>
               </div>
             </div>
           ) : (

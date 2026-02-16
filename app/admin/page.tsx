@@ -13,7 +13,11 @@ import { SuperAdminPanel } from '@/components/admin/super-admin-panel';
 import { AuditLogViewer } from '@/components/admin/audit-log-viewer';
 import { ScaleHealthTab } from '@/components/admin/scale-health-tab';
 import { AlertHistoryTab } from '@/components/admin/alert-history-tab';
-import { Shield, AlertTriangle, Building2, ScrollText, Activity, Bell, ChevronDown } from 'lucide-react';
+import { APIHealthTab } from '@/components/admin/api-health-tab';
+import { MigrationControlTab } from '@/components/admin/migration-control-tab';
+import { DisasterRecoveryTab } from '@/components/admin/disaster-recovery-tab';
+import { FleetUpdatesTab } from '@/components/admin/fleet-updates-tab';
+import { Shield, AlertTriangle, Building2, ScrollText, Activity, Bell, ChevronDown, Stethoscope, Database, Globe, Rocket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BottomSheet } from '@/components/mobile';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,13 +27,17 @@ const SUPER_ADMIN_IDS = process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS
   ? process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS.split(',').map(id => id.trim())
   : [];
 
-type AdminTab = 'workspaces' | 'audit' | 'scale-health' | 'alert-history';
+type AdminTab = 'workspaces' | 'audit' | 'scale-health' | 'alert-history' | 'api-health' | 'migration' | 'disaster-recovery' | 'fleet-updates';
 
 const TABS = [
   { id: 'workspaces' as const, label: 'Workspaces', icon: Building2 },
   { id: 'audit' as const, label: 'Audit Log', icon: ScrollText },
   { id: 'scale-health' as const, label: 'Scale Health', icon: Activity },
   { id: 'alert-history' as const, label: 'Alert History', icon: Bell },
+  { id: 'api-health' as const, label: 'API Health', icon: Stethoscope },
+  { id: 'migration' as const, label: 'Migration', icon: Database },
+  { id: 'disaster-recovery' as const, label: 'Disaster Recovery', icon: Globe },
+  { id: 'fleet-updates' as const, label: 'Fleet Updates', icon: Rocket },
 ];
 
 export default function AdminPage() {
@@ -183,6 +191,34 @@ export default function AdminPage() {
           <div className="overflow-x-auto -mx-4 md:mx-0">
             <div className="px-4 md:px-0">
               <AlertHistoryTab />
+            </div>
+          </div>
+        )}
+        {activeTab === 'api-health' && (
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="px-4 md:px-0">
+              <APIHealthTab />
+            </div>
+          </div>
+        )}
+        {activeTab === 'migration' && (
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="px-4 md:px-0">
+              <MigrationControlTab />
+            </div>
+          </div>
+        )}
+        {activeTab === 'disaster-recovery' && (
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="px-4 md:px-0">
+              <DisasterRecoveryTab />
+            </div>
+          </div>
+        )}
+        {activeTab === 'fleet-updates' && (
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="px-4 md:px-0">
+              <FleetUpdatesTab />
             </div>
           </div>
         )}

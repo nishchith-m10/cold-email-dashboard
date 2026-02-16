@@ -79,8 +79,8 @@ describe('GDPR Service - Data Export (Right to Access)', () => {
       },
     };
 
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [mockExportData],
         error: null,
       }),
@@ -119,8 +119,8 @@ describe('GDPR Service - Data Export (Right to Access)', () => {
       },
     };
 
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [mockExportData],
         error: null,
       }),
@@ -135,8 +135,8 @@ describe('GDPR Service - Data Export (Right to Access)', () => {
   });
 
   it('should return null on database error', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Database connection failed' },
       }),
@@ -148,8 +148,8 @@ describe('GDPR Service - Data Export (Right to Access)', () => {
   });
 
   it('should return null on non-existent workspace', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [],
         error: null,
       }),
@@ -190,8 +190,8 @@ describe('GDPR Service - Data Export (Right to Access)', () => {
       },
     };
 
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [mockExportData],
         error: null,
       }),
@@ -217,8 +217,8 @@ describe('GDPR Service - Data Deletion (Right to Erasure)', () => {
     const workspaceId = '123e4567-e89b-12d3-a456-426614174000';
     const confirmationCode = 'DELETE-123e4567';
 
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [
           {
             success: true,
@@ -254,8 +254,8 @@ describe('GDPR Service - Data Deletion (Right to Erasure)', () => {
     const workspaceId = '123e4567-e89b-12d3-a456-426614174000';
     const wrongCode = 'DELETE-wrong';
 
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [
           {
             success: false,
@@ -281,8 +281,8 @@ describe('GDPR Service - Data Deletion (Right to Erasure)', () => {
   });
 
   it('should handle non-existent workspace deletion', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [
           {
             success: false,
@@ -329,8 +329,8 @@ describe('GDPR Service - Data Deletion (Right to Erasure)', () => {
   });
 
   it('should handle database error during deletion', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Foreign key constraint violation' },
       }),
@@ -349,7 +349,7 @@ describe('GDPR Service - Data Deletion (Right to Erasure)', () => {
   });
 
   it('should handle exception during deletion', async () => {
-    (mockClient.schema as jest.Mock).mockImplementation(() => {
+    (mockClient.schema as jest.Mock<any>).mockImplementation(() => {
       throw new Error('Network timeout');
     });
 
@@ -365,8 +365,8 @@ describe('GDPR Service - Data Deletion (Right to Erasure)', () => {
   });
 
   it('should handle empty response from deletion function', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [], // Empty array
         error: null,
       }),
@@ -437,8 +437,8 @@ describe('GDPR Service - Compliance Reporting', () => {
       },
     };
 
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [mockReport],
         error: null,
       }),
@@ -486,8 +486,8 @@ describe('GDPR Service - Compliance Reporting', () => {
       },
     };
 
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [mockReport],
         error: null,
       }),
@@ -501,8 +501,8 @@ describe('GDPR Service - Compliance Reporting', () => {
   });
 
   it('should return null on database error', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: null,
         error: { message: 'Database error' },
       }),
@@ -514,7 +514,7 @@ describe('GDPR Service - Compliance Reporting', () => {
   });
 
   it('should handle exception during compliance report fetch', async () => {
-    (mockClient.schema as jest.Mock).mockImplementation(() => {
+    (mockClient.schema as jest.Mock<any>).mockImplementation(() => {
       throw new Error('Connection lost');
     });
 
@@ -524,8 +524,8 @@ describe('GDPR Service - Compliance Reporting', () => {
   });
 
   it('should return null when no compliance report data returned', async () => {
-    (mockClient.schema as jest.Mock).mockReturnValue({
-      rpc: jest.fn().mockResolvedValue({
+    (mockClient.schema as jest.Mock<any>).mockReturnValue({
+      rpc: (jest.fn() as any).mockResolvedValue({
         data: [], // Empty array
         error: null,
       }),

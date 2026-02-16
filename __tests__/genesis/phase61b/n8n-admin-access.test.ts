@@ -3,7 +3,7 @@
  * Admin Access Manager Tests
  */
 
-import { N8nAdminAccessManager } from '../lib/n8n-admin-access';
+import { N8nAdminAccessManager } from '@/lib/genesis/phase61b/n8n-admin-access';
 
 describe('N8nAdminAccessManager', () => {
   const mockWorkspaceId = 'ws-123';

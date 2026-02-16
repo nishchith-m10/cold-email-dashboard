@@ -495,6 +495,7 @@ export interface PreFlightCheckRequest {
   workspaceId: string;
   serviceId: string;
   estimatedCostCents: number;
+  reason?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -508,6 +509,7 @@ export interface PreFlightCheckResult {
   projectedBalanceCents: number;
   reason?: string;
   gracePeriodEndsAt?: Date;
+  workspaceId?: string;
 }
 
 // ============================================
@@ -905,11 +907,19 @@ export type PaymentMethodMetadata =
 export interface CreditCardMetadata {
   type: PaymentMethodType.CREDIT_CARD;
   last4: string;
-  brand: string;                        // 'visa', 'mastercard', 'amex'
+  brand?: string;                       // 'visa', 'mastercard', 'amex'
   expiryMonth: number;
   expiryYear: number;
-  fingerprint: string;
+  fingerprint?: string;
   stripePaymentMethodId: string;
+  // Simulation/test fields
+  simulateTimeout?: boolean;
+  simulateDecline?: boolean;
+  failFirstAttempt?: boolean;
+  alwaysFail?: boolean;
+  slowVerification?: boolean;
+  simulateVerificationTimeout?: boolean;
+  simulateProviderDown?: boolean;
 }
 
 export interface BankAccountMetadata {

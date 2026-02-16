@@ -247,7 +247,7 @@ export function EmailProviderSelectionStage({ workspaceId, onComplete }: StageCo
         className={cn(
           'w-full flex items-center justify-center gap-2 h-12 rounded-lg font-semibold transition-all',
           selectedProvider
-            ? 'bg-gradient-to-r from-accent-primary to-accent-purple text-white shadow-lg shadow-accent-primary/25 hover:opacity-90'
+            ? 'bg-accent-primary text-white shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90'
             : 'bg-surface-elevated text-text-secondary cursor-not-allowed'
         )}
       >

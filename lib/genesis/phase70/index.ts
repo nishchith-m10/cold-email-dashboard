@@ -71,7 +71,33 @@ export {
   DisasterRecoveryControllerError,
 } from './disaster-recovery-controller';
 
-// Mock Environment
+// Database Service
+export type {
+  RegionalHealthRecord,
+  SnapshotFilters,
+} from './db-service';
+
+export {
+  saveSnapshot,
+  listSnapshots,
+  updateSnapshotStatus,
+  markExpiredSnapshots,
+  saveRegionalHealth,
+  getRegionalHealth,
+  getRegionHealth,
+  getBackupCoverage,
+  getSnapshotStatsByRegion,
+  getSnapshot,
+  logFailoverEvent,
+} from './db-service';
+
+// DigitalOcean API Client (production)
+export {
+  DOClient,
+  createDOClient,
+} from './do-client';
+
+// Mock Environment (testing only - DO NOT use in production code)
 export {
   MockDOEnvironment,
 } from './mock-do-environment';

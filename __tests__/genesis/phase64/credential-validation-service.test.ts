@@ -213,7 +213,7 @@ describe('CredentialValidationService', () => {
         json: async () => ({ validated: true }),
       });
 
-      const result = await service.validateCredential('relevance_api_key', 'rel-test-key');
+      const result = await service.validateCredential('relevance_api_key' as any, 'rel-test-key');
 
       expect(result.valid).toBe(true);
     });
@@ -224,7 +224,7 @@ describe('CredentialValidationService', () => {
         json: async () => ({}),
       });
 
-      const result = await service.validateCredential('relevance_api_key', 'rel-invalid');
+      const result = await service.validateCredential('relevance_api_key' as any, 'rel-invalid');
 
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Invalid API key');
@@ -391,7 +391,7 @@ describe('CredentialValidationService', () => {
       const results = await service.validateMultiple([
         { type: 'openai_api_key', value: 'sk-1' },
         { type: 'anthropic_api_key', value: 'sk-2' },
-        { type: 'relevance_api_key', value: 'rel-3' },
+        { type: 'relevance_api_key' as any, value: 'rel-3' },
       ]);
 
       const duration = Date.now() - startTime;

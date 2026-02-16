@@ -13,7 +13,7 @@
  */
 
 import { supabaseAdmin } from '@/lib/supabase';
-import { logAuditEvent, type AuditEvent } from './audit-logger';
+import { logAuditEvent, type AuditEvent, type AuditLogResult } from './audit-logger';
 import type { WebhookEvent } from '@clerk/nextjs/server';
 
 // ============================================
@@ -130,7 +130,7 @@ export async function getGeoLocationFromIP(
  */
 export async function logLoginAuditEvent(
   event: LoginAuditEvent
-): Promise<{ success: boolean; auditId: string | null; error?: string }> {
+): Promise<AuditLogResult> {
   try {
     // Enrich with geolocation if IP provided
     let geo: GeoLocationData | null = null;
@@ -517,7 +517,7 @@ export async function processClerkAuditEvent(
         userAgent,
         metadata: {
           event: 'session_ended',
-          ended_at: event.data.ended_at,
+          ended_at: (event.data as any).ended_at,
         },
       });
 
@@ -533,7 +533,7 @@ export async function processClerkAuditEvent(
         userAgent,
         metadata: {
           event: 'session_revoked',
-          revoked_at: event.data.revoked_at,
+          revoked_at: (event.data as any).revoked_at,
         },
       });
 

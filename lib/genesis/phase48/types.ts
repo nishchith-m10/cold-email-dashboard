@@ -178,6 +178,7 @@ export type CutoverPhaseType =
   | 'canary_monitoring'
   | 'promoting'
   | 'verification'
+  | 'rolling_back'
   | 'complete'
   | 'rolled_back'
   | 'failed';

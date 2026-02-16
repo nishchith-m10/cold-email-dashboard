@@ -10,9 +10,9 @@ import {
   TierAppropriatenessProvider,
   CredentialValidationProvider,
   RegionMismatchProvider,
-} from '../lib/signal-providers';
+} from '@/lib/genesis/phase61b/signal-providers';
 
-import { RISK_SCORES } from '../lib/risk-types';
+import { RISK_SCORES } from '@/lib/genesis/phase61b/risk-types';
 
 describe('Signal Providers', () => {
   describe('EmailDomainProvider', () => {

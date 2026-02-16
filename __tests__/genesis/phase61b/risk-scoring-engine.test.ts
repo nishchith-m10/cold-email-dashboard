@@ -3,9 +3,9 @@
  * Risk Scoring Engine Tests
  */
 
-import { RiskScoringEngine } from '../lib/risk-scoring-engine';
-import { RiskAssessmentContext } from '../lib/risk-types';
-import { SignupFrequencyProvider } from '../lib/signal-providers';
+import { RiskScoringEngine } from '@/lib/genesis/phase61b/risk-scoring-engine';
+import { RiskAssessmentContext } from '@/lib/genesis/phase61b/risk-types';
+import { SignupFrequencyProvider } from '@/lib/genesis/phase61b/signal-providers';
 
 describe('RiskScoringEngine', () => {
   beforeEach(() => {

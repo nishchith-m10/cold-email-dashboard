@@ -254,7 +254,9 @@ export function Sidebar() {
             onMouseLeave={(e) => {
               // Only close if not moving to the dropdown
               const relatedTarget = e.relatedTarget as HTMLElement;
-              if (!relatedTarget || !relatedTarget.closest('[data-mode-menu]')) {
+              if (!relatedTarget || 
+                  typeof relatedTarget.closest !== 'function' || 
+                  !relatedTarget.closest('[data-mode-menu]')) {
                 // Longer timeout to allow mouse to reach dropdown
                 menuCloseTimeoutRef.current = setTimeout(() => {
                   setShowModeMenu(false);

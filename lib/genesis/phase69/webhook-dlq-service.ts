@@ -7,7 +7,7 @@
  * @see docs/plans/GENESIS_SINGULARITY_PLAN_V35.md - Phase 69.3
  */
 
-import { createClient } from '@/lib/supabase';
+import { getTypedSupabaseAdmin } from '@/lib/supabase';
 import type {
   WebhookDLQEntry,
   WebhookDLQRecord,
@@ -71,7 +71,7 @@ const MAX_ATTEMPTS = 5;
  */
 export async function addToDLQ(failure: WebhookDeliveryFailure): Promise<string | null> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const nextRetryAt = new Date(Date.now() + (RETRY_DELAYS_MS[0] || 1000));
 
@@ -126,7 +126,7 @@ export async function addToDLQ(failure: WebhookDeliveryFailure): Promise<string 
  */
 export async function getDLQEntriesForRetry(limit: number = 100): Promise<WebhookDLQEntry[]> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const { data, error } = await supabase
       .schema('genesis')
@@ -143,7 +143,7 @@ export async function getDLQEntriesForRetry(limit: number = 100): Promise<Webhoo
       return [];
     }
 
-    return data.map((record: WebhookDLQRecord) => mapFromDb(record));
+    return (data as WebhookDLQRecord[]).map((record: WebhookDLQRecord) => mapFromDb(record));
   } catch (error) {
     console.error('[WebhookDLQ] Unexpected error fetching entries:', error);
     return [];
@@ -158,7 +158,7 @@ export async function getDLQEntriesForRetry(limit: number = 100): Promise<Webhoo
  */
 export async function getDLQEntry(entryId: string): Promise<WebhookDLQEntry | null> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const { data, error } = await supabase
       .schema('genesis')
@@ -196,7 +196,7 @@ export async function getDLQEntriesForWorkspace(
   limit: number = 100
 ): Promise<WebhookDLQEntry[]> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     let query = supabase
       .schema('genesis')
@@ -217,7 +217,7 @@ export async function getDLQEntriesForWorkspace(
       return [];
     }
 
-    return data.map((record: WebhookDLQRecord) => mapFromDb(record));
+    return (data as WebhookDLQRecord[]).map((record: WebhookDLQRecord) => mapFromDb(record));
   } catch (error) {
     console.error('[WebhookDLQ] Unexpected error fetching workspace entries:', error);
     return [];
@@ -236,7 +236,7 @@ export async function getDLQEntriesForWorkspace(
  */
 async function updateDLQAfterRetry(entryId: string, result: DLQRetryResult): Promise<void> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const now = new Date().toISOString();
     const newAttemptCount = result.attemptCount + 1;
@@ -432,7 +432,7 @@ export async function processDLQBatch(limit: number = 100): Promise<DLQRetryBatc
  */
 export async function getDLQStats(): Promise<Record<DLQStatus, number> & { total: number }> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const { data, error } = await supabase
       .schema('genesis')
@@ -470,7 +470,7 @@ export async function getDLQStats(): Promise<Record<DLQStatus, number> & { total
  */
 export async function cleanOldDLQEntries(ageInDays: number = 30): Promise<number> {
   try {
-    const supabase = createClient();
+    const supabase = getTypedSupabaseAdmin();
 
     const cutoffDate = new Date(Date.now() - ageInDays * 24 * 60 * 60 * 1000);
 

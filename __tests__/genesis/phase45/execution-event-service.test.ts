@@ -12,15 +12,15 @@ import type { ExecutionEventRow, SandboxTestRunRow } from '@/lib/genesis/phase45
 
 function createMockDB(overrides: Partial<ExecutionEventDB> = {}): ExecutionEventDB {
   return {
-    insertEvent: jest.fn().mockResolvedValue({ error: null }),
-    getEventsByExecution: jest.fn().mockResolvedValue({ data: [], error: null }),
-    isExecutionComplete: jest.fn().mockResolvedValue(false),
-    getExecutionWorkspace: jest.fn().mockResolvedValue(null),
-    getAllEvents: jest.fn().mockResolvedValue({ data: [], error: null }),
-    createTestRun: jest.fn().mockResolvedValue({ data: null, error: null }),
-    updateTestRun: jest.fn().mockResolvedValue({ error: null }),
-    listTestRuns: jest.fn().mockResolvedValue({ data: [], error: null }),
-    countRunsInWindow: jest.fn().mockResolvedValue(0),
+    insertEvent: (jest.fn() as any).mockResolvedValue({ error: null }),
+    getEventsByExecution: (jest.fn() as any).mockResolvedValue({ data: [], error: null }),
+    isExecutionComplete: (jest.fn() as any).mockResolvedValue(false),
+    getExecutionWorkspace: (jest.fn() as any).mockResolvedValue(null),
+    getAllEvents: (jest.fn() as any).mockResolvedValue({ data: [], error: null }),
+    createTestRun: (jest.fn() as any).mockResolvedValue({ data: null, error: null }),
+    updateTestRun: (jest.fn() as any).mockResolvedValue({ error: null }),
+    listTestRuns: (jest.fn() as any).mockResolvedValue({ data: [], error: null }),
+    countRunsInWindow: (jest.fn() as any).mockResolvedValue(0),
     ...overrides,
   };
 }
@@ -90,7 +90,7 @@ describe('ExecutionEventService', () => {
 
     it('returns error if insert fails', async () => {
       const db = createMockDB({
-        insertEvent: jest.fn().mockResolvedValue({ error: { message: 'DB down' } }),
+        insertEvent: (jest.fn() as any).mockResolvedValue({ error: { message: 'DB down' } }),
       });
       const service = new ExecutionEventService(db);
 
@@ -128,7 +128,7 @@ describe('ExecutionEventService', () => {
   describe('getNewEvents', () => {
     it('returns mapped events', async () => {
       const db = createMockDB({
-        getEventsByExecution: jest.fn().mockResolvedValue({
+        getEventsByExecution: (jest.fn() as any).mockResolvedValue({
           data: [makeEventRow(), makeEventRow({ id: '00000000-0000-0000-0000-000000000002', node_name: 'Gmail' })],
           error: null,
         }),
@@ -143,7 +143,7 @@ describe('ExecutionEventService', () => {
 
     it('returns empty array on error', async () => {
       const db = createMockDB({
-        getEventsByExecution: jest.fn().mockResolvedValue({ data: null, error: 'fail' }),
+        getEventsByExecution: (jest.fn() as any).mockResolvedValue({ data: null, error: 'fail' }),
       });
       const service = new ExecutionEventService(db);
 
@@ -155,7 +155,7 @@ describe('ExecutionEventService', () => {
   describe('getExecutionDetail', () => {
     it('builds summary from events', async () => {
       const db = createMockDB({
-        getAllEvents: jest.fn().mockResolvedValue({
+        getAllEvents: (jest.fn() as any).mockResolvedValue({
           data: [
             makeEventRow({ status: 'success', execution_time_ms: 100 }),
             makeEventRow({ id: '2', node_name: 'Gmail', status: 'success', execution_time_ms: 200 }),
@@ -178,7 +178,7 @@ describe('ExecutionEventService', () => {
 
     it('marks running if no completion event', async () => {
       const db = createMockDB({
-        getAllEvents: jest.fn().mockResolvedValue({
+        getAllEvents: (jest.fn() as any).mockResolvedValue({
           data: [makeEventRow()],
           error: null,
         }),
@@ -192,7 +192,7 @@ describe('ExecutionEventService', () => {
 
     it('marks failed if errors exist', async () => {
       const db = createMockDB({
-        getAllEvents: jest.fn().mockResolvedValue({
+        getAllEvents: (jest.fn() as any).mockResolvedValue({
           data: [
             makeEventRow({ status: 'error', error_message: 'fail' }),
             makeEventRow({ id: '2', node_type: '_execution_complete', status: 'success' }),
@@ -220,7 +220,7 @@ describe('ExecutionEventService', () => {
   describe('test run management', () => {
     it('creates a test run', async () => {
       const db = createMockDB({
-        createTestRun: jest.fn().mockResolvedValue({
+        createTestRun: (jest.fn() as any).mockResolvedValue({
           data: makeTestRunRow(),
           error: null,
         }),
@@ -283,7 +283,7 @@ describe('ExecutionEventService', () => {
 
     it('lists test runs', async () => {
       const db = createMockDB({
-        listTestRuns: jest.fn().mockResolvedValue({
+        listTestRuns: (jest.fn() as any).mockResolvedValue({
           data: [makeTestRunRow(), makeTestRunRow({ id: '2', test_email: 'other@test.com' })],
           error: null,
         }),
@@ -297,7 +297,7 @@ describe('ExecutionEventService', () => {
 
     it('returns empty array on list error', async () => {
       const db = createMockDB({
-        listTestRuns: jest.fn().mockResolvedValue({ data: null, error: 'fail' }),
+        listTestRuns: (jest.fn() as any).mockResolvedValue({ data: null, error: 'fail' }),
       });
       const service = new ExecutionEventService(db);
 

@@ -111,16 +111,17 @@ export async function acquireWorkspaceLock(
       return { success: false, error: error.message };
     }
 
-    if (!data.success) {
+    const lockResult = data as { success: boolean; lock_type?: string; expires_at?: string };
+    if (!lockResult.success) {
       return {
         success: false,
-        error: `Workspace locked by ${data.lock_type} operation (expires: ${data.expires_at})`,
+        error: `Workspace locked by ${lockResult.lock_type} operation (expires: ${lockResult.expires_at})`,
       };
     }
 
     return {
       success: true,
-      expiresAt: data.expires_at,
+      expiresAt: lockResult.expires_at,
     };
   } catch (err) {
     console.error('[Lifecycle] Exception acquiring lock:', err);
@@ -1100,13 +1101,6 @@ export async function executeHardDeletion(
 
     return {
       success: false,
-      workspaceId,
-      restoredResources: {
-        dropletReactivated: false,
-        workflowsReEnabled: 0,
-        partitionRestored: false,
-      },
-      message: 'Hard deletion failed',
       error: err instanceof Error ? err.message : 'Unknown error',
     };
   }

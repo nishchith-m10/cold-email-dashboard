@@ -54,7 +54,7 @@ jest.mock('@/lib/supabase', () => ({
 
 // Mock audit logger
 jest.mock('@/lib/genesis/audit-logger', () => ({
-  logAuditEvent: jest.fn().mockResolvedValue({
+  logAuditEvent: (jest.fn() as any).mockResolvedValue({
     success: true,
     auditId: 'mock-audit-id',
   }),
@@ -168,10 +168,10 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
   describe('Deletion Impact Analysis', () => {
     it('should generate deletion impact report', async () => {
       // Mock workspace query
-      (supabaseAdmin.from as jest.Mock).mockReturnValue({
+      (supabaseAdmin!.from as jest.Mock).mockReturnValue({
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockResolvedValue({
+            single: (jest.fn() as any).mockResolvedValue({
               data: { name: 'Test Workspace' },
               error: null,
             }),
@@ -180,7 +180,7 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
       });
 
       // Mock resource counts
-      jest.spyOn(supabaseAdmin, 'from').mockImplementation((table: string) => {
+      jest.spyOn(supabaseAdmin!, 'from').mockImplementation((table: string) => {
         const mockCounts: Record<string, any> = {
           campaigns: { count: 5 },
           sequences: { count: 10 },
@@ -209,10 +209,10 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
     });
 
     it('should return null if workspace not found', async () => {
-      (supabaseAdmin.from as jest.Mock).mockReturnValue({
+      (supabaseAdmin!.from as jest.Mock).mockReturnValue({
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockResolvedValue({
+            single: (jest.fn() as any).mockResolvedValue({
               data: null,
               error: { message: 'Not found' },
             }),
@@ -229,12 +229,12 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
   describe('Pre-Deletion Validation', () => {
     it('should block deletion if active campaigns exist', async () => {
       // Mock impact report
-      jest.spyOn(supabaseAdmin, 'from').mockImplementation((table: string) => {
+      jest.spyOn(supabaseAdmin!, 'from').mockImplementation((table: string) => {
         if (table === 'workspaces') {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: { name: 'Test Workspace' },
                   error: null,
                 }),
@@ -247,7 +247,7 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockResolvedValue({
+                in: (jest.fn() as any).mockResolvedValue({
                   data: [
                     { id: 'camp_1', name: 'Active Campaign', status: 'running' },
                   ],
@@ -260,7 +260,7 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
 
         return {
           select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+            eq: (jest.fn() as any).mockResolvedValue({ data: [], error: null }),
           }),
         } as any;
       });
@@ -275,12 +275,12 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
 
     it('should warn if positive wallet balance exists', async () => {
       // Mock validation with positive balance
-      jest.spyOn(supabaseAdmin, 'from').mockImplementation((table: string) => {
+      jest.spyOn(supabaseAdmin!, 'from').mockImplementation((table: string) => {
         if (table === 'campaigns') {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockResolvedValue({
+                in: (jest.fn() as any).mockResolvedValue({
                   data: [],
                   error: null,
                 }),
@@ -291,12 +291,12 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
 
         return {
           select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+            eq: (jest.fn() as any).mockResolvedValue({ data: null, error: null }),
           }),
         } as any;
       });
 
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation((schema: string) => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation((schema: string) => {
         if (schema === 'genesis') {
           return {
             from: jest.fn().mockImplementation((table: string) => {
@@ -304,7 +304,7 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
                 return {
                   select: jest.fn().mockReturnValue({
                     eq: jest.fn().mockReturnValue({
-                      single: jest.fn().mockResolvedValue({
+                      single: (jest.fn() as any).mockResolvedValue({
                         data: { balance_cents: 5000 },
                         error: null,
                       }),
@@ -315,7 +315,7 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
 
               return {
                 select: jest.fn().mockReturnValue({
-                  eq: jest.fn().mockResolvedValue({
+                  eq: (jest.fn() as any).mockResolvedValue({
                     data: [],
                     error: null,
                   }),
@@ -338,15 +338,15 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
 
     it('should allow deletion if no blocking issues', async () => {
       // Mock clean validation
-      jest.spyOn(supabaseAdmin, 'from').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'from').mockImplementation(() => {
         return {
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              in: jest.fn().mockResolvedValue({
+              in: (jest.fn() as any).mockResolvedValue({
                 data: [],
                 error: null,
               }),
-              single: jest.fn().mockResolvedValue({
+              single: (jest.fn() as any).mockResolvedValue({
                 data: { name: 'Test Workspace' },
                 error: null,
               }),
@@ -413,18 +413,18 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
       };
 
       // Mock lock acquisition
-      (supabaseAdmin.rpc as jest.Mock).mockResolvedValue({
+      (supabaseAdmin!.rpc as jest.Mock).mockResolvedValue({
         data: { success: true, expires_at: '2026-02-08T10:00:00Z' },
         error: null,
       });
 
       // Mock job creation
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             insert: jest.fn().mockReturnValue({
               select: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: { id: 'del_job_123' },
                   error: null,
                 }),
@@ -435,10 +435,10 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
       });
 
       // Mock workspace update
-      jest.spyOn(supabaseAdmin, 'from').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'from').mockImplementation(() => {
         return {
           update: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({
+            eq: (jest.fn() as any).mockResolvedValue({
               data: {},
               error: null,
             }),
@@ -460,12 +460,12 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
 
     it('should fail if validation fails', async () => {
       // Mock failed validation
-      jest.spyOn(supabaseAdmin, 'from').mockImplementation((table: string) => {
+      jest.spyOn(supabaseAdmin!, 'from').mockImplementation((table: string) => {
         if (table === 'campaigns') {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockResolvedValue({
+                in: (jest.fn() as any).mockResolvedValue({
                   data: [{ id: 'camp_1', name: 'Active', status: 'running' }],
                   error: null,
                 }),
@@ -476,7 +476,7 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
 
         return {
           select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({
+            eq: (jest.fn() as any).mockResolvedValue({
               data: { name: 'Test' },
               error: null,
             }),
@@ -501,12 +501,12 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
       const code = generateConfirmationCode('ws_test', timestamp);
 
       // Mock job fetch
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: {
                     id: 'del_job_123',
                     workspace_id: 'ws_test',
@@ -526,7 +526,7 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
               }),
             }),
             update: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({
+              eq: (jest.fn() as any).mockResolvedValue({
                 error: null,
               }),
             }),
@@ -549,12 +549,12 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
       const validCode = generateConfirmationCode('ws_test', timestamp);
 
       // Mock job fetch
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: {
                     id: 'del_job_123',
                     workspace_id: 'ws_test',
@@ -571,7 +571,7 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
               }),
             }),
             update: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({
+              eq: (jest.fn() as any).mockResolvedValue({
                 error: null,
               }),
             }),
@@ -595,12 +595,12 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
       const code = generateConfirmationCode('ws_test', timestamp);
 
       // Mock job fetch
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
+                single: (jest.fn() as any).mockResolvedValue({
                   data: {
                     id: 'del_job_123',
                     workspace_id: 'ws_test',
@@ -635,12 +635,12 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
   describe('Workspace Restoration', () => {
     it('should restore workspace during grace period', async () => {
       // Mock deletion job fetch
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                maybeSingle: jest.fn().mockResolvedValue({
+                maybeSingle: (jest.fn() as any).mockResolvedValue({
                   data: {
                     id: 'del_job_123',
                     workspace_id: 'ws_test',
@@ -655,7 +655,7 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
               }),
             }),
             update: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({
+              eq: (jest.fn() as any).mockResolvedValue({
                 error: null,
               }),
             }),
@@ -664,16 +664,16 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
       });
 
       // Mock lock acquisition
-      (supabaseAdmin.rpc as jest.Mock).mockResolvedValue({
+      (supabaseAdmin!.rpc as jest.Mock).mockResolvedValue({
         data: { success: true, expires_at: '2026-02-08T10:00:00Z' },
         error: null,
       });
 
       // Mock workspace update
-      jest.spyOn(supabaseAdmin, 'from').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'from').mockImplementation(() => {
         return {
           update: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({
+            eq: (jest.fn() as any).mockResolvedValue({
               error: null,
             }),
           }),
@@ -692,12 +692,12 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
 
     it('should fail if grace period expired', async () => {
       // Mock expired deletion job
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                maybeSingle: jest.fn().mockResolvedValue({
+                maybeSingle: (jest.fn() as any).mockResolvedValue({
                   data: null, // No active grace period job
                   error: null,
                 }),
@@ -719,12 +719,12 @@ describe('Phase 68: Tenant Lifecycle Management', () => {
 
     it('should fail if restoration not allowed', async () => {
       // Mock deletion job with can_restore = false
-      jest.spyOn(supabaseAdmin, 'schema').mockImplementation(() => {
+      jest.spyOn(supabaseAdmin!, 'schema').mockImplementation(() => {
         return {
           from: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                maybeSingle: jest.fn().mockResolvedValue({
+                maybeSingle: (jest.fn() as any).mockResolvedValue({
                   data: {
                     id: 'del_job_123',
                     workspace_id: 'ws_test',

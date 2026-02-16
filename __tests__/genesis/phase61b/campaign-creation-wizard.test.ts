@@ -3,14 +3,14 @@
  * Campaign Creation Wizard Tests
  */
 
-import { CampaignCreationWizard } from '../lib/campaign-creation-wizard';
+import { CampaignCreationWizard } from '@/lib/genesis/phase61b/campaign-creation-wizard';
 import type {
   CampaignCreationState,
   CampaignNameStepData,
   LeadsStepData,
   PersonalizationStepData,
   ReviewStepData,
-} from '../lib/campaign-creation-types';
+} from '@/lib/genesis/phase61b/campaign-creation-types';
 
 describe('CampaignCreationWizard', () => {
   describe('initializeWizard', () => {

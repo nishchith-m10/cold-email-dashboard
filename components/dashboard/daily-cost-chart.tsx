@@ -78,19 +78,31 @@ export function DailyCostChart({
   const timezone = timezoneProp || contextTimezone;
   // Format data with timezone-aware labels and fill gaps
   const formattedData = useMemo(() => {
-    if (!data.length) return [];
-
-    // Create a map of existing data (data.day is already in YYYY-MM-DD format from API)
-    const dataMap = new Map(data.map(d => [d.day, d.value]));
-    
     // Generate all dates in range using local date parsing to avoid timezone shifts
     const parseDate = (dateStr: string) => {
       const [y, m, d] = dateStr.split('-').map(Number);
       return new Date(y, m - 1, d); // months are 0-indexed
     };
+
+    // Create a map of existing data (data.day is already in YYYY-MM-DD format from API)
+    const dataMap = new Map(data.map(d => [d.day, d.value]));
     
-    const start = startDate ? parseDate(startDate) : parseDate(data[0].day);
-    const end = endDate ? parseDate(endDate) : parseDate(data[data.length - 1].day);
+    // Determine date range - use provided dates or data dates or default to last 30 days
+    let start: Date;
+    let end: Date;
+    
+    if (startDate && endDate) {
+      start = parseDate(startDate);
+      end = parseDate(endDate);
+    } else if (data.length > 0) {
+      start = startDate ? parseDate(startDate) : parseDate(data[0].day);
+      end = endDate ? parseDate(endDate) : parseDate(data[data.length - 1].day);
+    } else {
+      // No data - create a default 30-day range ending today
+      end = new Date();
+      start = new Date();
+      start.setDate(start.getDate() - 29); // 30 days total including today
+    }
     
     const allDates: { day: string; value: number; rawDay: string; displayDay: string }[] = [];
     const current = new Date(start);
@@ -215,13 +227,12 @@ export function DailyCostChart({
                   animationDuration={1000}
                   animationEasing="ease-out"
                   dot={(props) => {
-                    const { cx, cy, payload } = props as { cx?: number; cy?: number; payload?: { value: number } };
-                    if (cx == null || cy == null) return <circle r={0} />;
-                    // Show dots for days with actual costs
-                    if (payload && payload.value > 0) {
+                    const { cx, cy, payload } = props;
+                    if (cx == null || cy == null || !payload) return null;
+                    // Show dots only for days with actual costs
+                    if (payload.value > 0) {
                       return (
                         <circle
-                          key={`dot-${cx}-${cy}`}
                           cx={cx}
                           cy={cy}
                           r={4}
@@ -231,8 +242,7 @@ export function DailyCostChart({
                         />
                       );
                     }
-                    // Return invisible dot instead of null to satisfy TypeScript
-                    return <circle key={`dot-${cx}-${cy}`} cx={cx} cy={cy} r={0} />;
+                    return null;
                   }}
                 />
               </AreaChart>

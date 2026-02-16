@@ -173,7 +173,7 @@ export interface CredentialRotationJobPayload {
   droplet_id: string;
   credential_type: string;
   credential_id: string;
-  reason: 'scheduled' | 'compromise_detected' | 'user_request';
+  reason: 'scheduled' | 'compromise_detected' | 'user_request' | 'expiring' | 'admin_action';
 }
 
 /**
