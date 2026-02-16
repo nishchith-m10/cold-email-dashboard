@@ -10,7 +10,8 @@
     },
     {
       "path": "/api/cron/process-exports",
-      "schedule": "*/2 * * * *"
+      "schedule": "0 4 * * *",
+      "comment": "Daily export processing at 4 AM UTC"
     },
     {
       "path": "/api/cron/rotate-credentials",
@@ -19,23 +20,23 @@
     },
     {
       "path": "/api/cron/process-webhook-dlq",
-      "schedule": "*/5 * * * *",
-      "comment": "Phase 69: Webhook DLQ retry every 5 minutes"
+      "schedule": "0 5 * * *",
+      "comment": "Phase 69: Daily webhook DLQ retry at 5 AM UTC"
     },
     {
       "path": "/api/cron/clean-webhook-request-ids",
-      "schedule": "0 * * * *",
-      "comment": "Phase 69: Clean webhook request IDs hourly"
+      "schedule": "0 3 * * *",
+      "comment": "Phase 69: Clean webhook request IDs daily at 3 AM UTC"
     },
     {
       "path": "/api/cron/api-health-critical?secret=${CRON_SECRET}",
-      "schedule": "*/5 * * * *",
-      "comment": "Phase 71: Critical API health checks every 5 minutes"
+      "schedule": "0 7 * * *",
+      "comment": "Phase 71: Daily critical API health checks at 7 AM UTC"
     },
     {
       "path": "/api/cron/api-health-secondary?secret=${CRON_SECRET}",
-      "schedule": "0 * * * *",
-      "comment": "Phase 71: Secondary API health checks hourly"
+      "schedule": "0 8 * * *",
+      "comment": "Phase 71: Daily secondary API health checks at 8 AM UTC"
     },
     {
       "path": "/api/cron/disaster-recovery-snapshots?secret=${CRON_SECRET}",
@@ -44,13 +45,13 @@
     },
     {
       "path": "/api/cron/disaster-recovery-garbage?secret=${CRON_SECRET}",
-      "schedule": "0 * * * *",
-      "comment": "Phase 70: Hourly garbage collection for expired snapshots"
+      "schedule": "0 9 * * *",
+      "comment": "Phase 70: Daily garbage collection for expired snapshots at 9 AM UTC"
     },
     {
       "path": "/api/cron/disaster-recovery-health?secret=${CRON_SECRET}",
-      "schedule": "*/5 * * * *",
-      "comment": "Phase 70: Regional health checks every 5 minutes"
+      "schedule": "0 10 * * *",
+      "comment": "Phase 70: Daily regional health checks at 10 AM UTC"
     }
   ]
 }
