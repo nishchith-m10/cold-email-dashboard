@@ -448,7 +448,7 @@ describe('Phase 43: Drift Healing', () => {
       expect(results).toHaveLength(1);
       expect(results[0].success).toBe(false);
       expect(results[0].action).toBe('skipped');
-      expect(results[0].error).toContain('max attempts');
+      expect(results[0].error).toContain('Max healing attempts');
     });
 
     it('should continue healing if one drift fails', async () => {

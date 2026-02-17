@@ -379,8 +379,8 @@ describe('OnboardingProgressService', () => {
 
       const percentage = await service.getCompletionPercentage('ws-123');
 
-      expect(percentage).toBeGreaterThanOrEqual(40);
-      expect(percentage).toBeLessThanOrEqual(60);
+      expect(percentage).toBeGreaterThanOrEqual(30);
+      expect(percentage).toBeLessThanOrEqual(40);
     });
 
     it('should calculate 100% when complete', async () => {
@@ -455,8 +455,8 @@ describe('OnboardingProgressService', () => {
   });
 
   describe('Stage Definitions', () => {
-    it('should have 11 stages total', () => {
-      expect(ONBOARDING_STAGES).toHaveLength(11);
+    it('should have 13 stages total', () => {
+      expect(ONBOARDING_STAGES).toHaveLength(13);
     });
 
     it('should have info for all stages', () => {
