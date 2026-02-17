@@ -121,10 +121,10 @@ export async function createPartition(
 ): Promise<CreatePartitionResult> {
   const { workspaceId, workspaceSlug, supabaseClient } = options;
 
-  // Validate input
-  validateWorkspaceId(workspaceId);
-
   try {
+    // Validate input
+    validateWorkspaceId(workspaceId);
+    
     // Call the database function
     const { data, error } = await (supabaseClient.schema('genesis') as any).rpc(
       'fn_ignite_workspace_partition',
@@ -201,9 +201,9 @@ export async function partitionExists(
 ): Promise<PartitionExistsResult> {
   const { workspaceId, supabaseClient } = options;
 
-  validateWorkspaceId(workspaceId);
-
   try {
+    validateWorkspaceId(workspaceId);
+    
     // Check the partition registry (source of truth)
     const { data: registryData, error: registryError } = await supabaseClient
       .schema('genesis')
@@ -337,9 +337,9 @@ export async function dropPartition(
 ): Promise<DropPartitionResult> {
   const { workspaceId, force = false, supabaseClient } = options;
 
-  validateWorkspaceId(workspaceId);
-
   try {
+    validateWorkspaceId(workspaceId);
+    
     const { data, error } = await (supabaseClient.schema('genesis') as any).rpc(
       'fn_drop_workspace_partition',
       {

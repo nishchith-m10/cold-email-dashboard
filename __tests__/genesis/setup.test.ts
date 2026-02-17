@@ -12,6 +12,10 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createMockSupabaseClient, resetMockPartitionRegistry, addMockDataToPartition } from './mock-genesis-rpc';
+
+// Export mock helpers for tests to use
+export { resetMockPartitionRegistry, addMockDataToPartition };
 
 /**
  * Test configuration from environment variables
@@ -64,12 +68,20 @@ export function getTestConfig(): TestConfig {
  * Creates a Supabase admin client for testing
  * 
  * Uses service role key to bypass RLS for test setup/cleanup.
+ * When SKIP_GENESIS_SCHEMA_CHECK=true, returns a mock client with
+ * intercepted RPC calls to avoid needing actual database schema.
  * 
- * @returns Supabase client configured for testing
+ * @returns Supabase client configured for testing (real or mocked)
  */
 export function createTestSupabaseClient(): SupabaseClient {
   const config = getTestConfig();
   
+  // If schema check is skipped, return mock client
+  if (process.env.SKIP_GENESIS_SCHEMA_CHECK === 'true') {
+    return createMockSupabaseClient() as SupabaseClient;
+  }
+  
+  // Otherwise return real client for integration tests
   return createClient(config.supabaseUrl, config.supabaseServiceKey, {
     auth: {
       persistSession: false,
@@ -116,6 +128,7 @@ export function generateTestWorkspaceSlug(prefix: string = 'test'): string {
  * Cleans up test partitions created during tests
  * 
  * This function drops partitions created for testing to keep the test database clean.
+ * When using mocks (SKIP_GENESIS_SCHEMA_CHECK=true), this also resets the mock registry.
  * 
  * @param supabaseClient - Supabase admin client
  * @param workspaceIds - Array of workspace IDs whose partitions should be dropped
@@ -124,6 +137,13 @@ export async function cleanupTestPartitions(
   supabaseClient: SupabaseClient,
   workspaceIds: string[]
 ): Promise<void> {
+  // If using mocks, just reset the registry
+  if (process.env.SKIP_GENESIS_SCHEMA_CHECK === 'true') {
+    resetMockPartitionRegistry();
+    return;
+  }
+  
+  // Otherwise, drop real partitions
   for (const workspaceId of workspaceIds) {
     try {
       const { data, error } = await supabaseClient.rpc(
