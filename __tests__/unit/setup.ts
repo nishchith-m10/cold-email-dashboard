@@ -43,24 +43,38 @@ global.fetch = jest.fn(() =>
 // Minimal Request/Response polyfills for Next.js compatibility in Jest/jsdom
 // These allow next/server to load without conflicting with NextRequest
 if (typeof global.Request === 'undefined') {
-  // @ts-ignore - Minimal Request polyfill
+  // @ts-ignore - Minimal Request polyfill with read-only properties (getters)
   global.Request = class Request {
-    method = 'GET';
-    headers = new Map();
-    body = null;
-    url = '';
+    private _url: string = '';
+    private _method: string = 'GET';
+    private _headers: Map<string, string> = new Map();
+    private _body: any = null;
     
     constructor(input: string | Request, init?: RequestInit) {
       if (typeof input === 'string') {
-        this.url = input;
+        this._url = input;
       } else {
-        this.url = input.url;
+        this._url = input.url;
+        this._method = input.method;
+        this._body = input.body;
       }
       if (init) {
-        if (init.method) this.method = init.method;
-        if (init.body) this.body = init.body;
+        if (init.method) this._method = init.method;
+        if (init.body) this._body = init.body;
+        if (init.headers) {
+          if (init.headers instanceof Map) {
+            this._headers = init.headers;
+          } else if (typeof init.headers === 'object') {
+            this._headers = new Map(Object.entries(init.headers));
+          }
+        }
       }
     }
+    
+    get url() { return this._url; }
+    get method() { return this._method; }
+    get headers() { return this._headers; }
+    get body() { return this._body; }
     
     json() { return Promise.resolve({}); }
     text() { return Promise.resolve(''); }
@@ -70,7 +84,7 @@ if (typeof global.Request === 'undefined') {
     clone() { return this; }
   };
 
-  // @ts-ignore - Minimal Response polyfill
+  // @ts-ignore - Minimal Response polyfill with static json() method
   global.Response = class Response {
     ok = true;
     status = 200;
@@ -87,6 +101,17 @@ if (typeof global.Request === 'undefined') {
         if (init.status) this.status = init.status;
         if (init.statusText) this.statusText = init.statusText;
       }
+    }
+    
+    // Static method for NextResponse.json()
+    static json(data: any, init?: ResponseInit) {
+      return new Response(JSON.stringify(data), {
+        ...init,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(init?.headers || {}),
+        },
+      });
     }
     
     json() { return Promise.resolve({}); }
