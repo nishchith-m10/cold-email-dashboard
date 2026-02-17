@@ -63,6 +63,10 @@ export class MockWalletDB implements WalletDB {
       throw new Error('Wallet not found');
     }
     wallet.balanceCents += deltaCents;
+    // Track lifetime usage when deducting (negative delta)
+    if (deltaCents < 0) {
+      wallet.lifetimeUsageCents = (wallet.lifetimeUsageCents || 0) + Math.abs(deltaCents);
+    }
     wallet.updatedAt = new Date();
     this.wallets.set(workspaceId, wallet);
     return wallet;

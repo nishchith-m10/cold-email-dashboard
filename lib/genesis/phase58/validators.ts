@@ -39,9 +39,14 @@ export function validateAmountCents(amount: any, fieldName = 'Amount'): void {
  * Validate amount is a positive integer (cents)
  */
 export function validatePositiveAmount(amount: any, fieldName = 'Amount'): void {
-  validateAmountCents(amount, fieldName);
-  if (amount === 0) {
-    throw new ValidationError(`${fieldName} must be greater than zero`);
+  if (typeof amount !== 'number') {
+    throw new ValidationError(`${fieldName} must be a number`);
+  }
+  if (!Number.isInteger(amount)) {
+    throw new ValidationError(`${fieldName} must be an integer (cents, not dollars)`);
+  }
+  if (amount <= 0) {
+    throw new ValidationError(`${fieldName} must be positive`);
   }
 }
 

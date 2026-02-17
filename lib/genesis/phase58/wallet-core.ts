@@ -70,16 +70,21 @@ export class WalletManager {
 
     const created = await this.walletDB.createWallet(wallet);
 
-    // Audit log
+    // Audit log (non-blocking)
     if (this.auditDB) {
-      await this.auditDB.createLog({
-        timestamp: new Date(),
-        workspaceId: params.workspaceId,
-        action: AuditAction.STATUS_CHANGE,
-        actor: { type: 'system', source: 'wallet_creation' },
-        before: { balanceCents: 0, reservedCents: 0, status: WalletStatus.ACTIVE, timestamp: new Date() },
-        after: { balanceCents: created.balanceCents, reservedCents: 0, status: WalletStatus.ACTIVE, timestamp: new Date() },
-      });
+      try {
+        await this.auditDB.createLog({
+          timestamp: new Date(),
+          workspaceId: params.workspaceId,
+          action: AuditAction.STATUS_CHANGE,
+          actor: { type: 'system', source: 'wallet_creation' },
+          before: { balanceCents: 0, reservedCents: 0, status: WalletStatus.ACTIVE, timestamp: new Date() },
+          after: { balanceCents: created.balanceCents, reservedCents: 0, status: WalletStatus.ACTIVE, timestamp: new Date() },
+        });
+      } catch (error) {
+        // Log audit failure but don't block wallet creation
+        console.warn('Failed to create audit log for wallet creation:', error);
+      }
     }
 
     return created;
@@ -106,17 +111,21 @@ export class WalletManager {
 
     const updated = await this.walletDB.updateWallet(workspaceId, updates);
 
-    // Audit log
+    // Audit log (non-blocking)
     if (this.auditDB) {
-      await this.auditDB.createLog({
-        timestamp: new Date(),
-        workspaceId,
-        action: AuditAction.CONFIG_CHANGE,
-        actor: { type: 'system', source: 'wallet_update' },
-        before: { balanceCents: before.balanceCents, reservedCents: before.reservedCents, status: before.status, timestamp: new Date() },
-        after: { balanceCents: updated.balanceCents, reservedCents: updated.reservedCents, status: updated.status, timestamp: new Date() },
-        metadata: updates,
-      });
+      try {
+        await this.auditDB.createLog({
+          timestamp: new Date(),
+          workspaceId,
+          action: AuditAction.CONFIG_CHANGE,
+          actor: { type: 'system', source: 'wallet_update' },
+          before: { balanceCents: before.balanceCents, reservedCents: before.reservedCents, status: before.status, timestamp: new Date() },
+          after: { balanceCents: updated.balanceCents, reservedCents: updated.reservedCents, status: updated.status, timestamp: new Date() },
+          metadata: updates,
+        });
+      } catch (error) {
+        console.warn('Failed to create audit log for wallet update:', error);
+      }
     }
 
     return updated;
@@ -151,17 +160,21 @@ export class WalletManager {
       throw new Error(`Failed to retrieve wallet after deposit`);
     }
 
-    // Audit log
+    // Audit log (non-blocking)
     if (this.auditDB) {
-      await this.auditDB.createLog({
-        timestamp: new Date(),
-        workspaceId: params.workspaceId,
-        action: AuditAction.TOPUP,
-        actor: { type: 'system', source: params.source },
-        before: { balanceCents: before.balanceCents, reservedCents: before.reservedCents, status: before.status, timestamp: new Date() },
-        after: { balanceCents: updated.balanceCents, reservedCents: updated.reservedCents, status: updated.status, timestamp: new Date() },
-        metadata: params.metadata,
-      });
+      try {
+        await this.auditDB.createLog({
+          timestamp: new Date(),
+          workspaceId: params.workspaceId,
+          action: AuditAction.TOPUP,
+          actor: { type: 'system', source: params.source },
+          before: { balanceCents: before.balanceCents, reservedCents: before.reservedCents, status: before.status, timestamp: new Date() },
+          after: { balanceCents: updated.balanceCents, reservedCents: updated.reservedCents, status: updated.status, timestamp: new Date() },
+          metadata: params.metadata,
+        });
+      } catch (error) {
+        console.warn('Failed to create audit log for deposit:', error);
+      }
     }
 
     return updated;
@@ -201,17 +214,21 @@ export class WalletManager {
     // Check if alerts should be triggered
     await this.checkAndTriggerAlerts(updated);
 
-    // Audit log
+    // Audit log (non-blocking)
     if (this.auditDB) {
-      await this.auditDB.createLog({
-        timestamp: new Date(),
-        workspaceId: params.workspaceId,
-        action: AuditAction.CHARGE,
-        actor: { type: 'system', source: params.source },
-        before: { balanceCents: before.balanceCents, reservedCents: before.reservedCents, status: before.status, timestamp: new Date() },
-        after: { balanceCents: updated.balanceCents, reservedCents: updated.reservedCents, status: updated.status, timestamp: new Date() },
-        metadata: params.metadata,
-      });
+      try {
+        await this.auditDB.createLog({
+          timestamp: new Date(),
+          workspaceId: params.workspaceId,
+          action: AuditAction.CHARGE,
+          actor: { type: 'system', source: params.source },
+          before: { balanceCents: before.balanceCents, reservedCents: before.reservedCents, status: before.status, timestamp: new Date() },
+          after: { balanceCents: updated.balanceCents, reservedCents: updated.reservedCents, status: updated.status, timestamp: new Date() },
+          metadata: params.metadata,
+        });
+      } catch (error) {
+        console.warn('Failed to create audit log for deduct:', error);
+      }
     }
 
     return updated;
@@ -250,18 +267,22 @@ export class WalletManager {
 
     const updated = await this.walletDB.reserveFunds(params.workspaceId, params.amountCents);
 
-    // Audit log
+    // Audit log (non-blocking)
     if (this.auditDB) {
-      await this.auditDB.createLog({
-        timestamp: new Date(),
-        workspaceId: params.workspaceId,
-        action: AuditAction.RESERVE,
-        actor: { type: 'system', source: 'wallet_manager' },
-        before: { balanceCents: before.balanceCents, reservedCents: before.reservedCents, status: before.status, timestamp: new Date() },
-        after: { balanceCents: updated.balanceCents, reservedCents: updated.reservedCents, status: updated.status, timestamp: new Date() },
-        reason: params.reason,
-        metadata: params.metadata,
-      });
+      try {
+        await this.auditDB.createLog({
+          timestamp: new Date(),
+          workspaceId: params.workspaceId,
+          action: AuditAction.RESERVE,
+          actor: { type: 'system', source: 'wallet_manager' },
+          before: { balanceCents: before.balanceCents, reservedCents: before.reservedCents, status: before.status, timestamp: new Date() },
+          after: { balanceCents: updated.balanceCents, reservedCents: updated.reservedCents, status: updated.status, timestamp: new Date() },
+          reason: params.reason,
+          metadata: params.metadata,
+        });
+      } catch (error) {
+        console.warn('Failed to create audit log for reserve:', error);
+      }
     }
 
     return updated;
@@ -291,18 +312,22 @@ export class WalletManager {
 
     const updated = await this.walletDB.releaseFunds(params.workspaceId, params.amountCents);
 
-    // Audit log
+    // Audit log (non-blocking)
     if (this.auditDB) {
-      await this.auditDB.createLog({
-        timestamp: new Date(),
-        workspaceId: params.workspaceId,
-        action: AuditAction.RELEASE,
-        actor: { type: 'system', source: 'wallet_manager' },
-        before: { balanceCents: before.balanceCents, reservedCents: before.reservedCents, status: before.status, timestamp: new Date() },
-        after: { balanceCents: updated.balanceCents, reservedCents: updated.reservedCents, status: updated.status, timestamp: new Date() },
-        reason: params.reason,
-        metadata: params.metadata,
-      });
+      try {
+        await this.auditDB.createLog({
+          timestamp: new Date(),
+          workspaceId: params.workspaceId,
+          action: AuditAction.RELEASE,
+          actor: { type: 'system', source: 'wallet_manager' },
+          before: { balanceCents: before.balanceCents, reservedCents: before.reservedCents, status: before.status, timestamp: new Date() },
+          after: { balanceCents: updated.balanceCents, reservedCents: updated.reservedCents, status: updated.status, timestamp: new Date() },
+          reason: params.reason,
+          metadata: params.metadata,
+        });
+      } catch (error) {
+        console.warn('Failed to create audit log for release:', error);
+      }
     }
 
     return updated;
