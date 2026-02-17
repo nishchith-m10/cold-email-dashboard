@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
-import { createClient } from '@supabase/supabase-js';
+import { createTestSupabaseClient } from './setup.test';
 import { DropletFactory } from '@/lib/genesis/droplet-factory';
 import { DigitalOceanClient } from '@/lib/genesis/do-client';
 
@@ -18,10 +18,7 @@ import { DigitalOceanClient } from '@/lib/genesis/do-client';
 // TEST CONFIGURATION
 // ============================================================================
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = createTestSupabaseClient();
 
 // Test fixtures
 const TEST_WORKSPACE_ID = '00000000-0000-0000-0000-000000000001';

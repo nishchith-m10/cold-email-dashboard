@@ -157,6 +157,28 @@ const MOCK_RPC_HANDLERS: Record<string, (params: any) => any> = {
  // Other RPC functions with static responses
   fn_list_partitions: () => Array.from(mockPartitionRegistry.values()).filter(p => p.status === 'active'),
   
+  // Encryption functions (Phase 41) - normalized names without schema prefix
+  encrypt_do_token: (params: any) => {
+    // Simple base64 encoding as mock encryption
+    const plaintext = params.p_plaintext_token;
+    if (!plaintext) return null;
+    return Buffer.from(plaintext).toString('base64');
+  },
+  
+  decrypt_do_token: (params: any) => {
+    // Simple base64 decoding as mock decryption
+    const encrypted = params.p_encrypted_token;
+    if (!encrypted) return null;
+    try {
+      return Buffer.from(encrypted, 'base64').toString('utf-8');
+    } catch {
+      return null;
+    }
+  },
+  
+  // Supporting RPC functions
+  set_config: () => ({ success: true }),
+  
   fn_set_workspace_context: (params: any) => [{
     success: true,
     workspace_id: params.p_workspace_id,
@@ -203,8 +225,11 @@ export function createMockSupabaseClient(realClient?: SupabaseClient): any {
   let currentWorkspaceContext: string | null = null;
   
   const mockRpc = jest.fn((functionName: string, params?: any) => {
+    // Normalize function name (remove schema prefix if present)
+    const normalizedName = functionName.replace(/^genesis\./, '');
+    
     // Handle context management functions
-    if (functionName === 'set_workspace_context') {
+    if (normalizedName === 'set_workspace_context' || functionName === 'set_workspace_context') {
       currentWorkspaceContext = params?.p_workspace_id || null;
       return Promise.resolve({
         data: null,
@@ -212,14 +237,22 @@ export function createMockSupabaseClient(realClient?: SupabaseClient): any {
       });
     }
     
-    if (functionName === 'get_workspace_context') {
+    if (normalizedName === 'get_workspace_context' || functionName === 'get_workspace_context') {
       return Promise.resolve({
         data: currentWorkspaceContext || '00000000-0000-0000-0000-000000000000',
         error: null,
       });
     }
     
-    // Use custom handler if available
+    // Check normalized name first
+    if (normalizedName in MOCK_RPC_HANDLERS) {
+      return Promise.resolve({
+        data: MOCK_RPC_HANDLERS[normalizedName](params || {}),
+        error: null,
+      });
+    }
+    
+    // Check original name (with schema prefix)
     if (functionName in MOCK_RPC_HANDLERS) {
       return Promise.resolve({
         data: MOCK_RPC_HANDLERS[functionName](params || {}),
@@ -233,7 +266,6 @@ export function createMockSupabaseClient(realClient?: SupabaseClient): any {
         success: true,
         message: `Mock response for ${functionName}`,
       }],
-      error: null,
     });
   });
   
