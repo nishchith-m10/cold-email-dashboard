@@ -69,6 +69,29 @@ class MockDBWithErrors {
     const self = this;
     
     return {
+      select: () => ({
+        single: async () => {
+          if (self.shouldThrowError && self.errorType === 'insert') {
+            return {
+              data: null,
+              error: { message: 'Insert failed' },
+            };
+          }
+          
+          const key = `${table}:${insertData.workspace_id}`;
+          
+          const data = {
+            id: 'test-id',
+            ...insertData,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          
+          self.data.set(key, data);
+          
+          return { data, error: null };
+        },
+      }),
       single: async () => {
         if (self.shouldThrowError && self.errorType === 'insert') {
           return {
@@ -103,6 +126,36 @@ class MockDBWithErrors {
           workspace = value;
         }
         return {
+          select: () => ({
+            single: async () => {
+              if (self.shouldThrowError && self.errorType === 'update') {
+                return {
+                  data: null,
+                  error: { message: 'Update failed' },
+                };
+              }
+              
+              const key = `${table}:${workspace}`;
+              const existing = self.data.get(key);
+              
+              if (!existing) {
+                return {
+                  data: null,
+                  error: { message: 'Not found' },
+                };
+              }
+              
+              const data = {
+                ...existing,
+                ...updateData,
+                updated_at: new Date().toISOString(),
+              };
+              
+              self.data.set(key, data);
+              
+              return { data, error: null };
+            },
+          }),
           single: async () => {
             if (self.shouldThrowError && self.errorType === 'update') {
               return {

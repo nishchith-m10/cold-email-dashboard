@@ -25,7 +25,7 @@ import {
   executeHardDeletion,
 } from '@/lib/genesis/tenant-lifecycle';
 
-// Mock Supabase
+// Declare mock functions BEFORE jest.mock() calls to avoid initialization errors
 const mockRpc = jest.fn();
 const mockSelect = jest.fn().mockReturnThis();
 const mockEq = jest.fn().mockReturnThis();
@@ -37,6 +37,7 @@ const mockMaybeSingle = jest.fn();
 const mockFrom = jest.fn().mockReturnThis();
 const mockSchema = jest.fn().mockReturnThis();
 
+// Mock Supabase
 jest.mock('@/lib/supabase', () => ({
   supabaseAdmin: {
     schema: mockSchema,
