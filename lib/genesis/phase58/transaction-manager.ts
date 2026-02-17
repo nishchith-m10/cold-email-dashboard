@@ -19,6 +19,12 @@ import {
   AuditLogDB,
   AuditAction,
 } from './types';
+import {
+  validateWorkspaceId,
+  validatePositiveAmount,
+  validateTransactionId,
+  validateRefundAmount,
+} from './validators';
 
 /**
  * Transaction Manager
@@ -42,6 +48,10 @@ export class TransactionManager {
     tags?: string[];
     metadata?: Partial<TransactionMetadata>;
   }): Promise<Transaction> {
+    // Validate inputs
+    validateWorkspaceId(params.workspaceId);
+    validatePositiveAmount(params.amountCents, 'Transaction amount');
+
     // Get current wallet state
     const wallet = await this.walletDB.getWallet(params.workspaceId);
     if (!wallet) {
@@ -231,9 +241,16 @@ export class TransactionManager {
     reason: string;
     amountCents?: number; // Partial refund
   }): Promise<Transaction> {
+    // Validate inputs
+    validateTransactionId(params.transactionId);
+    
     const original = await this.getTransaction(params.transactionId);
     if (!original) {
       throw new Error(`Transaction not found: ${params.transactionId}`);
+    }
+
+    if (params.amountCents !== undefined) {
+      validateRefundAmount(params.amountCents, original.amountCents);
     }
 
     if (original.status === TransactionStatus.REFUNDED) {

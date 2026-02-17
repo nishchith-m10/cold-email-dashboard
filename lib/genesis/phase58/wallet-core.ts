@@ -21,6 +21,11 @@ import {
   MIN_BALANCE_CENTS,
   MAX_RESERVED_PERCENTAGE,
 } from './types';
+import {
+  validateWorkspaceId,
+  validatePositiveAmount,
+  validateAmountCents,
+} from './validators';
 
 /**
  * Wallet Core Manager
@@ -42,6 +47,12 @@ export class WalletManager {
     limits?: Partial<SpendingLimits>;
     alerts?: Partial<AlertConfiguration>;
   }): Promise<Wallet> {
+    // Validate inputs
+    validateWorkspaceId(params.workspaceId);
+    if (params.initialBalanceCents !== undefined) {
+      validateAmountCents(params.initialBalanceCents, 'Initial balance');
+    }
+
     const wallet: Omit<Wallet, 'createdAt' | 'updatedAt'> = {
       workspaceId: params.workspaceId,
       type: params.type || WalletType.PRODUCTION,
@@ -120,9 +131,9 @@ export class WalletManager {
     source: string;
     metadata?: Record<string, unknown>;
   }): Promise<Wallet> {
-    if (params.amountCents <= 0) {
-      throw new Error('Deposit amount must be positive');
-    }
+    // Validate inputs
+    validateWorkspaceId(params.workspaceId);
+    validatePositiveAmount(params.amountCents, 'Deposit amount');
 
     const before = await this.getWallet(params.workspaceId);
     if (!before) {
@@ -215,9 +226,9 @@ export class WalletManager {
     reason: string;
     metadata?: Record<string, unknown>;
   }): Promise<Wallet> {
-    if (params.amountCents <= 0) {
-      throw new Error('Reserve amount must be positive');
-    }
+    // Validate inputs
+    validateWorkspaceId(params.workspaceId);
+    validatePositiveAmount(params.amountCents, 'Reserve amount');
 
     const before = await this.getWallet(params.workspaceId);
     if (!before) {
@@ -265,9 +276,9 @@ export class WalletManager {
     reason: string;
     metadata?: Record<string, unknown>;
   }): Promise<Wallet> {
-    if (params.amountCents <= 0) {
-      throw new Error('Release amount must be positive');
-    }
+    // Validate inputs
+    validateWorkspaceId(params.workspaceId);
+    validatePositiveAmount(params.amountCents, 'Release amount');
 
     const before = await this.getWallet(params.workspaceId);
     if (!before) {
