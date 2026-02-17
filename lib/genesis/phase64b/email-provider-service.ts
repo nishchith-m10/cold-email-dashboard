@@ -263,7 +263,8 @@ export class EmailProviderService implements IEmailProviderService {
     switch (config.provider) {
       case EmailProvider.GMAIL:
         // Gmail selection only - no email or OAuth tokens yet
-        return !config.gmail_email && !config.gmail_refresh_token && !config.gmail_credential_id;
+        // Empty string should NOT skip validation (treat as invalid input, not missing)
+        return (config.gmail_email == null) && !config.gmail_refresh_token && !config.gmail_credential_id;
       
       case EmailProvider.SMTP:
         // SMTP selection only - no server config yet

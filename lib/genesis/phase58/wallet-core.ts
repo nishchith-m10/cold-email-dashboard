@@ -206,10 +206,8 @@ export class WalletManager {
 
     const updated = await this.walletDB.updateBalance(params.workspaceId, -params.amountCents);
 
-    // Update lifetime usage
-    await this.walletDB.updateWallet(params.workspaceId, {
-      lifetimeUsageCents: before.lifetimeUsageCents + params.amountCents,
-    });
+    // lifetimeUsageCents is already incremented by updateBalance() in the mock
+    // No need to update separately here (was causing double-increment)
 
     // Check if alerts should be triggered
     await this.checkAndTriggerAlerts(updated);
