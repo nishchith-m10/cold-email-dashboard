@@ -40,8 +40,63 @@ global.fetch = jest.fn(() =>
   })
 ) as any;
 
-// Note: We don't mock global Request/Response to avoid conflicts with NextRequest
-// Next.js test environments should use their native implementations
+// Minimal Request/Response polyfills for Next.js compatibility in Jest/jsdom
+// These allow next/server to load without conflicting with NextRequest
+if (typeof global.Request === 'undefined') {
+  // @ts-ignore - Minimal Request polyfill
+  global.Request = class Request {
+    method = 'GET';
+    headers = new Map();
+    body = null;
+    url = '';
+    
+    constructor(input: string | Request, init?: RequestInit) {
+      if (typeof input === 'string') {
+        this.url = input;
+      } else {
+        this.url = input.url;
+      }
+      if (init) {
+        if (init.method) this.method = init.method;
+        if (init.body) this.body = init.body;
+      }
+    }
+    
+    json() { return Promise.resolve({}); }
+    text() { return Promise.resolve(''); }
+    formData() { return Promise.resolve(new FormData()); }
+    arrayBuffer() { return Promise.resolve(new ArrayBuffer(0)); }
+    blob() { return Promise.resolve(new Blob()); }
+    clone() { return this; }
+  };
+
+  // @ts-ignore - Minimal Response polyfill
+  global.Response = class Response {
+    ok = true;
+    status = 200;
+    statusText = 'OK';
+    headers = new Map();
+    body = null;
+    type = 'default' as ResponseType;
+    url = '';
+    redirected = false;
+    
+    constructor(body?: BodyInit | null, init?: ResponseInit) {
+      this.body = body || null;
+      if (init) {
+        if (init.status) this.status = init.status;
+        if (init.statusText) this.statusText = init.statusText;
+      }
+    }
+    
+    json() { return Promise.resolve({}); }
+    text() { return Promise.resolve(this.body?.toString() || ''); }
+    formData() { return Promise.resolve(new FormData()); }
+    arrayBuffer() { return Promise.resolve(new ArrayBuffer(0)); }
+    blob() { return Promise.resolve(new Blob()); }
+    clone() { return this; }
+  };
+}
 
 // Mock Framer Motion to avoid animation issues in tests
 jest.mock('framer-motion', () => {
