@@ -12,20 +12,7 @@
  * - Hard deletion execution
  */
 
-import {
-  acquireWorkspaceLock,
-  releaseWorkspaceLock,
-  generateDeletionImpactReport,
-  validateDeletion,
-  generateConfirmationCode,
-  verifyConfirmationCode,
-  initiateDeletion,
-  confirmDeletion,
-  restoreWorkspace,
-  executeHardDeletion,
-} from '@/lib/genesis/tenant-lifecycle';
-
-// Declare mock functions BEFORE jest.mock() calls to avoid initialization errors
+// Declare mock functions BEFORE any imports to avoid initialization errors
 const mockRpc = jest.fn();
 const mockSelect = jest.fn().mockReturnThis();
 const mockEq = jest.fn().mockReturnThis();
@@ -60,6 +47,20 @@ jest.mock('@/lib/genesis/audit-logger', () => ({
     auditId: 'mock-audit-id',
   }),
 }));
+
+// Import functions AFTER mocks are defined
+import {
+  acquireWorkspaceLock,
+  releaseWorkspaceLock,
+  generateDeletionImpactReport,
+  validateDeletion,
+  generateConfirmationCode,
+  verifyConfirmationCode,
+  initiateDeletion,
+  confirmDeletion,
+  restoreWorkspace,
+  executeHardDeletion,
+} from '@/lib/genesis/tenant-lifecycle';
 
 import { supabaseAdmin } from '@/lib/supabase';
 

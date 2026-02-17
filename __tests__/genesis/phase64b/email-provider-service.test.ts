@@ -51,6 +51,30 @@ class MockDB {
     const self = this;
     
     return {
+      select: (columns?: string) => ({
+        single: async () => {
+          const key = `${table}:${insertData.workspace_id}`;
+          
+          // Check for existing
+          if (self.data.has(key)) {
+            return {
+              data: null,
+              error: { message: 'Already exists' },
+            };
+          }
+          
+          const data = {
+            id: 'test-id',
+            ...insertData,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          
+          self.data.set(key, data);
+          
+          return { data, error: null };
+        },
+      }),
       single: async () => {
         const key = `${table}:${insertData.workspace_id}`;
         
@@ -86,6 +110,29 @@ class MockDB {
           workspace = value;
         }
         return {
+          select: (columns?: string) => ({
+            single: async () => {
+              const key = `${table}:${workspace}`;
+              const existing = self.data.get(key);
+              
+              if (!existing) {
+                return {
+                  data: null,
+                  error: { message: 'Not found' },
+                };
+              }
+              
+              const data = {
+                ...existing,
+                ...updateData,
+                updated_at: new Date().toISOString(),
+              };
+              
+              self.data.set(key, data);
+              
+              return { data, error: null };
+            },
+          }),
           single: async () => {
             const key = `${table}:${workspace}`;
             const existing = self.data.get(key);
