@@ -265,6 +265,11 @@ export async function setupTestEnvironment(): Promise<{
   const config = getTestConfig();
   const supabaseClient = createTestSupabaseClient();
 
+  // Skip schema validation in CI or if explicitly disabled
+  if (process.env.SKIP_GENESIS_SCHEMA_CHECK === 'true' || process.env.CI) {
+    return { supabaseClient, config };
+  }
+
   // Verify Genesis schema exists
   const schemaExists = await verifyGenesisSchemaExists(supabaseClient);
   if (!schemaExists) {

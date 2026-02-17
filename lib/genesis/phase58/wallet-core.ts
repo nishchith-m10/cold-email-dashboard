@@ -129,12 +129,16 @@ export class WalletManager {
       throw new Error(`Wallet not found for workspace: ${params.workspaceId}`);
     }
 
-    const updated = await this.walletDB.updateBalance(params.workspaceId, params.amountCents);
-
-    // Update lifetime deposits
+    // Update both balance and lifetime deposits atomically
     await this.walletDB.updateWallet(params.workspaceId, {
+      balanceCents: before.balanceCents + params.amountCents,
       lifetimeDepositsCents: before.lifetimeDepositsCents + params.amountCents,
     });
+
+    const updated = await this.getWallet(params.workspaceId);
+    if (!updated) {
+      throw new Error(`Failed to retrieve wallet after deposit`);
+    }
 
     // Audit log
     if (this.auditDB) {

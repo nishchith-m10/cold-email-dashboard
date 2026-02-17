@@ -8,6 +8,79 @@
  * - SWR mocks
  */
 
+// Load test environment variables
+import dotenv from 'dotenv';
+import path from 'path';
+dotenv.config({ path: path.resolve(process.cwd(), '.env.test') });
+
+// Mock uuid module to avoid ES module issues
+let uuidCounter = 0;
+jest.mock('uuid', () => ({
+  v4: jest.fn(() => {
+    const id = uuidCounter++;
+    return `00000000-0000-0000-0000-${id.toString().padStart(12, '0')}`;
+  }),
+  v5: jest.fn(() => {
+    const id = uuidCounter++;
+    return `10000000-0000-0000-0000-${id.toString().padStart(12, '0')}`;
+  }),
+  validate: (uuid: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid),
+}));
+
+// Mock global fetch for Supabase and API calls
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(''),
+    blob: () => Promise.resolve(new Blob()),
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+    headers: new Map(),
+  })
+) as any;
+
+// Mock global Request for Next.js server components
+global.Request = class Request {
+  url: string;
+  headers = new Map();
+  method = 'GET';
+  body = null;
+  constructor(url: string, init?: RequestInit) {
+    this.url = url;
+    if (init?.method) this.method = init.method;
+  }
+  json() { return Promise.resolve({}); }
+  text() { return Promise.resolve(''); }
+  formData() { return Promise.resolve(new FormData()); }
+  arrayBuffer() { return Promise.resolve(new ArrayBuffer(0)); }
+  blob() { return Promise.resolve(new Blob()); }
+  clone() { return this; }
+} as any;
+
+// Mock global Response for Next.js server components
+global.Response = class Response {
+  body: any;
+  headers = new Map();
+  ok = true;
+  status = 200;
+  statusText = 'OK';
+  type = 'basic' as ResponseType;
+  url = '';
+  redirected = false;
+  constructor(body?: any, init?: ResponseInit) {
+    this.body = body;
+    if (init?.status) this.status = init.status;
+    if (init?.statusText) this.statusText = init.statusText;
+  }
+  json() { return Promise.resolve(this.body || {}); }
+  text() { return Promise.resolve(this.body || ''); }
+  formData() { return Promise.resolve(new FormData()); }
+  arrayBuffer() { return Promise.resolve(new ArrayBuffer(0)); }
+  blob() { return Promise.resolve(new Blob()); }
+  clone() { return this; }
+} as any;
+
 // Mock Framer Motion to avoid animation issues in tests
 jest.mock('framer-motion', () => {
   const React = require('react');
