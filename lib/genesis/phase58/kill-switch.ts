@@ -49,6 +49,7 @@ export class KillSwitchManager {
     if (this.hasValidOverrideToken(killSwitchConfig)) {
       return {
         approved: true,
+        workspaceId: request.workspaceId,
         currentBalanceCents: wallet.balanceCents,
         estimatedCostCents: request.estimatedCostCents,
         projectedBalanceCents: wallet.balanceCents - request.estimatedCostCents,
@@ -73,6 +74,7 @@ export class KillSwitchManager {
       // Kill-switch disabled for this service
       return {
         approved: true,
+        workspaceId: request.workspaceId,
         currentBalanceCents: wallet.balanceCents,
         estimatedCostCents: request.estimatedCostCents,
         projectedBalanceCents: wallet.balanceCents - request.estimatedCostCents,
@@ -95,6 +97,7 @@ export class KillSwitchManager {
         // Still in grace period
         return {
         approved: true,
+        workspaceId: request.workspaceId,
         currentBalanceCents: wallet.balanceCents,
         estimatedCostCents: request.estimatedCostCents,
         projectedBalanceCents: projectedBalance,
@@ -115,6 +118,7 @@ export class KillSwitchManager {
     // Sufficient balance
     return {
       approved: true,
+      workspaceId: request.workspaceId,
       currentBalanceCents: wallet.balanceCents,
       estimatedCostCents: request.estimatedCostCents,
       projectedBalanceCents: projectedBalance,
