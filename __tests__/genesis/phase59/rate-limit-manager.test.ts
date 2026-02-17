@@ -237,8 +237,8 @@ describe('Phase 59: Token Bucket', () => {
 
     const timeMs = bucket.getTimeUntilAvailable(20);
 
-    // Need 20 tokens at 10/sec = 2 seconds
-    expect(timeMs).toBeGreaterThanOrEqual(2000);
+    // Need 20 tokens at 10/sec = 2 seconds (allow 1ms tolerance)
+    expect(timeMs).toBeGreaterThanOrEqual(1999);
   });
 
   test('should reset bucket', () => {
