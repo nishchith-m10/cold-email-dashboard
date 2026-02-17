@@ -40,46 +40,8 @@ global.fetch = jest.fn(() =>
   })
 ) as any;
 
-// Mock global Request for Next.js server components
-global.Request = class Request {
-  url: string;
-  headers = new Map();
-  method = 'GET';
-  body = null;
-  constructor(url: string, init?: RequestInit) {
-    this.url = url;
-    if (init?.method) this.method = init.method;
-  }
-  json() { return Promise.resolve({}); }
-  text() { return Promise.resolve(''); }
-  formData() { return Promise.resolve(new FormData()); }
-  arrayBuffer() { return Promise.resolve(new ArrayBuffer(0)); }
-  blob() { return Promise.resolve(new Blob()); }
-  clone() { return this; }
-} as any;
-
-// Mock global Response for Next.js server components
-global.Response = class Response {
-  body: any;
-  headers = new Map();
-  ok = true;
-  status = 200;
-  statusText = 'OK';
-  type = 'basic' as ResponseType;
-  url = '';
-  redirected = false;
-  constructor(body?: any, init?: ResponseInit) {
-    this.body = body;
-    if (init?.status) this.status = init.status;
-    if (init?.statusText) this.statusText = init.statusText;
-  }
-  json() { return Promise.resolve(this.body || {}); }
-  text() { return Promise.resolve(this.body || ''); }
-  formData() { return Promise.resolve(new FormData()); }
-  arrayBuffer() { return Promise.resolve(new ArrayBuffer(0)); }
-  blob() { return Promise.resolve(new Blob()); }
-  clone() { return this; }
-} as any;
+// Note: We don't mock global Request/Response to avoid conflicts with NextRequest
+// Next.js test environments should use their native implementations
 
 // Mock Framer Motion to avoid animation issues in tests
 jest.mock('framer-motion', () => {
