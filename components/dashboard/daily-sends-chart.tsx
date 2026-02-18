@@ -154,63 +154,57 @@ export function DailySendsChart({
         
         <CardContent className="pb-2 flex-1 flex flex-col">
           <div className="flex-1 min-h-[320px] w-full">
-            {totalSends === 0 ? (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-sm text-text-secondary">No sends in selected range</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chartData}
-                  margin={{ top: 20, right: 10, left: -20, bottom: 10 }}
-                  onClick={(nextState) => {
-                    if (nextState && nextState.activeTooltipIndex != null && onDateClick && chartData[nextState.activeTooltipIndex as number]) {
-                      onDateClick(chartData[nextState.activeTooltipIndex as number].fullDate);
-                    }
-                  }}
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                onClick={(nextState) => {
+                  if (nextState && nextState.activeTooltipIndex != null && onDateClick && chartData[nextState.activeTooltipIndex as number]) {
+                    onDateClick(chartData[nextState.activeTooltipIndex as number].fullDate);
+                  }
+                }}
+              >
+                <CartesianGrid 
+                  strokeDasharray="3 3" 
+                  stroke="var(--border)" 
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey={chartData.length > 14 ? 'shortDate' : 'displayDate'}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
+                  tickMargin={8}
+                  interval={chartData.length > 30 ? 'preserveStartEnd' : 0}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
+                  tickMargin={8}
+                  domain={[0, maxSends]}
+                />
+                <Tooltip 
+                  content={(props: TooltipContentProps<ValueType, NameType>) => <CustomTooltip {...props} />}
+                  cursor={{ fill: 'var(--surface-elevated)', opacity: 0.5 }}
+                />
+                <Bar 
+                  dataKey="count" 
+                  radius={[4, 4, 0, 0]}
+                  animationDuration={800}
+                  animationEasing="ease-out"
                 >
-                  <CartesianGrid 
-                    strokeDasharray="3 3" 
-                    stroke="var(--border)" 
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey={chartData.length > 14 ? 'shortDate' : 'displayDate'}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
-                    tickMargin={8}
-                    interval={chartData.length > 30 ? 'preserveStartEnd' : 0}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
-                    tickMargin={8}
-                    domain={[0, maxSends]}
-                  />
-                  <Tooltip 
-                    content={(props: TooltipContentProps<ValueType, NameType>) => <CustomTooltip {...props} />}
-                    cursor={{ fill: 'var(--surface-elevated)', opacity: 0.5 }}
-                  />
-                  <Bar 
-                    dataKey="count" 
-                    radius={[4, 4, 0, 0]}
-                    animationDuration={800}
-                    animationEasing="ease-out"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`}
-                        fill={entry.isSelected ? '#22c55e' : '#3b82f6'}
-                        opacity={entry.count === 0 ? 0.3 : 1}
-                        cursor={onDateClick ? 'pointer' : 'default'}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+                  {chartData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`}
+                      fill={entry.isSelected ? '#22c55e' : '#3b82f6'}
+                      opacity={entry.count === 0 ? 0.3 : 1}
+                      cursor={onDateClick ? 'pointer' : 'default'}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
 
           {selectedDate && (
