@@ -24,6 +24,7 @@ import {
   useCreateSnapshot,
   useDeleteSnapshot,
   useTriggerFailover,
+  useRestoreSnapshot,
 } from '@/hooks/use-disaster-recovery';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -38,6 +39,7 @@ import {
   AlertCircle,
   Clock,
   DollarSign,
+  RotateCcw,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -144,6 +146,7 @@ export function DisasterRecoveryTab() {
   const { createSnapshot, isLoading: creating } = useCreateSnapshot();
   const { deleteSnapshot, isLoading: deleting } = useDeleteSnapshot();
   const { triggerFailover, isLoading: failingOver } = useTriggerFailover();
+  const { restoreSnapshot, isLoading: restoring } = useRestoreSnapshot();
   const { toast } = useToast();
 
   // Form state
@@ -218,6 +221,35 @@ export function DisasterRecoveryTab() {
       toast({
         title: 'Delete Failed',
         description: result.error || 'Failed to delete snapshot',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handle snapshot restore
+  const handleRestoreSnapshot = async (snapshotId: string) => {
+    const region = prompt('Enter target region for restore (e.g., nyc3, sfo3):');
+    if (!region || !region.trim()) return;
+
+    if (!confirm(`⚠️ Restore snapshot ${snapshotId} to region ${region}?\n\nThis will spin up infrastructure from the snapshot in the target region.`)) {
+      return;
+    }
+
+    const result = await restoreSnapshot({
+      snapshotId,
+      targetRegion: region.trim(),
+    });
+
+    if (result.success) {
+      toast({
+        title: 'Restore Initiated',
+        description: `Restoring snapshot to ${region}. This may take several minutes.`,
+      });
+      refreshSnapshots();
+    } else {
+      toast({
+        title: 'Restore Failed',
+        description: result.error || 'Failed to restore snapshot',
         variant: 'destructive',
       });
     }
@@ -484,14 +516,32 @@ export function DisasterRecoveryTab() {
                         </Badge>
                       </td>
                       <td className="p-2 text-right">
-                        <Button
-                          onClick={() => handleDeleteSnapshot(snapshot.id)}
-                          variant="ghost"
-                          size="sm"
-                          disabled={deleting}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
+                        <div className="flex items-center gap-1 justify-end">
+                          {snapshot.status === 'completed' && (
+                            <Button
+                              onClick={() => handleRestoreSnapshot(snapshot.id)}
+                              variant="outline"
+                              size="sm"
+                              disabled={restoring}
+                              className="gap-1"
+                            >
+                              {restoring ? (
+                                <RefreshCw className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <RotateCcw className="h-3 w-3" />
+                              )}
+                              <span className="hidden sm:inline">Restore</span>
+                            </Button>
+                          )}
+                          <Button
+                            onClick={() => handleDeleteSnapshot(snapshot.id)}
+                            variant="ghost"
+                            size="sm"
+                            disabled={deleting}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
