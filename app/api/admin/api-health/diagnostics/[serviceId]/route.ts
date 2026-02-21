@@ -91,13 +91,12 @@ async function generateDiagnostic(
     return guide;
   } catch (error) {
     /* eslint-disable-next-line no-console */
-    console.error(
-      `[APIHealth] Diagnostic generation failed for ${serviceId}:`,
-      error
+    console.warn(
+      `[APIHealth] Diagnostic generation failed for ${serviceId} (live check may be unavailable):`,
+      error instanceof Error ? error.message : error
     );
-    throw new Error(
-      `Failed to generate diagnostic guide for service: ${serviceId}`
-    );
+    // Return null instead of throwing — the UI handles null guide gracefully
+    return null;
   }
 }
 
