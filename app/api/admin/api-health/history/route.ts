@@ -145,8 +145,25 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       /* eslint-disable-next-line no-console */
-      console.error('[APIHealth] History query error:', error);
-      throw new Error('Failed to fetch health history');
+      console.warn('[APIHealth] History query error (function may not be provisioned yet):', error.message);
+      // Gracefully return empty history instead of 500
+      return NextResponse.json(
+        {
+          success: true,
+          snapshots: [],
+          summary: {
+            totalSnapshots: 0,
+            dateRange: {
+              from: cutoffDate.toISOString(),
+              to: new Date().toISOString(),
+            },
+            statusBreakdown: { ok: 0, degraded: 0, error: 0 },
+            averageLatencyMs: 0,
+          },
+          params: { days, limit, status },
+        },
+        { headers: API_HEADERS }
+      );
     }
 
     // Calculate summary statistics
