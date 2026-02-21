@@ -1,86 +1,89 @@
 {
   "project": "cold-email-dashboard",
-  "branchName": "ralph/fix-recharts-and-runtime-errors",
-  "description": "Fix all Recharts 3.x type errors and runtime issues (timeout, realtime-health, DB index)",
+  "branchName": "ralph/tier3-wire-unused-hooks",
+  "description": "Tier 3: Wire unused hooks, surface hidden data, and connect orphaned API endpoints to the admin frontend",
   "userStories": [
     {
-      "id": "US-001",
-      "title": "Fix Recharts 3.x TooltipContentProps in all chart components",
-      "description": "All custom tooltip components use TooltipProps which no longer has payload/label/active in Recharts 3.x. Must use TooltipContentProps instead.",
+      "id": "T3-001",
+      "title": "Wire useScaleHistory trend sparklines into Scale Health tab",
+      "description": "The useScaleHistory hook fetches MetricTrend[] with dataPoints (date/value pairs) and changePercent, but the Scale Health tab never imports or renders it. Add a Trend section below the metrics table showing mini sparklines or trend indicators per metric.",
       "acceptanceCriteria": [
-        "daily-sends-chart.tsx: Use TooltipContentProps instead of TooltipProps for CustomTooltip",
-        "daily-cost-chart.tsx: Use TooltipContentProps instead of TooltipProps for CustomTooltip",
-        "donut-chart.tsx: Use TooltipContentProps instead of TooltipProps for CustomTooltip",
-        "time-series-chart.tsx: Use TooltipContentProps instead of TooltipProps for CustomTooltip",
-        "Typecheck passes for all 4 files"
+        "ScaleHealthTab imports and calls useScaleHistory()",
+        "A 'Trends (30d)' section renders below the metrics table",
+        "Each MetricTrend shows metric name, change percentage with up/down arrow, and direction color (green for down on latency, red for up)",
+        "A mini inline SVG sparkline (polyline) renders the dataPoints for each trend",
+        "Graceful fallback if no trend data exists",
+        "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "In Recharts 3.x, TooltipProps omits payload/label/active (PropertiesReadFromContext). TooltipContentProps extends TooltipProps and adds them back."
+      "passes": true,
+      "notes": "MetricTrend = { metric, dataPoints: {date, value}[], changePercent, direction }. Sparklines can be pure SVG, no library needed."
     },
     {
-      "id": "US-002",
-      "title": "Fix Recharts 3.x chart onClick and dot render prop types",
-      "description": "MouseHandlerDataParam no longer has activePayload. DotItemDotProps has optional cx/cy.",
+      "id": "T3-002",
+      "title": "Wire useAPIHealthHistory trend section into API Health tab",
+      "description": "The useAPIHealthHistory hook fetches snapshots with overall_status, error_count, degraded_count, total_latency_ms, slowest_service — but API Health tab never shows historical data. Add a collapsible '7-Day History' section.",
       "acceptanceCriteria": [
-        "daily-sends-chart.tsx: Fix onClick handler to use activeTooltipIndex instead of activePayload",
-        "daily-cost-chart.tsx: Fix dot render prop to handle optional cx/cy from DotItemDotProps",
-        "Typecheck passes for both files"
+        "APIHealthTab imports and calls useAPIHealthHistory(7)",
+        "A collapsible '7-Day History' section renders below the Performance Summary",
+        "Shows a table/list of snapshots: timestamp, overall status badge, error count, degraded count, total latency, slowest service",
+        "Most recent snapshots first",
+        "Graceful fallback: hidden if no snapshots exist",
+        "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "Use chart data array + activeTooltipIndex for click. Use DotItemDotProps type with optional cx/cy handling."
+      "passes": true,
+      "notes": "Snapshot shape: { id, timestamp, overall_status, error_count, degraded_count, total_latency_ms, slowest_service }"
     },
     {
-      "id": "US-003",
-      "title": "Fix donut-chart and time-series-chart formatter type mismatch",
-      "description": "Recharts 3.x Formatter<number, string> now accepts (value: number | undefined). Custom formatters must handle undefined.",
+      "id": "T3-003",
+      "title": "Add Diagnostics button per service in API Health services table",
+      "description": "The /api/admin/api-health/diagnostics/[serviceId] endpoint returns DiagnosticGuide with issue, impact, diagnostic steps, fix path, estimated fix time, and prevention tips — but no frontend ever calls it. Add a 'Diagnose' button that fetches and displays the guide inline.",
       "acceptanceCriteria": [
-        "donut-chart.tsx: Fix formatter prop type to handle undefined value",
-        "time-series-chart.tsx: Fix formatter prop type to handle undefined value",
-        "Typecheck passes for both files"
+        "Each service row in APIHealthServicesTable gets a 'Diagnose' button (only shown when status != 'ok')",
+        "Clicking fetches GET /api/admin/api-health/diagnostics/{serviceId}",
+        "DiagnosticGuide renders inline below the service row: issue, severity, impact, steps list, fix path link, estimated time, prevention tips",
+        "Loading state with spinner while fetching",
+        "Graceful error handling if diagnostics fail",
+        "Both mobile card and desktop table layouts updated",
+        "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "Formatter signature changed to (value: TValue | undefined, name: TName | undefined, ...) in Recharts 3.x"
+      "passes": true,
+      "notes": "DiagnosticGuide = { serviceId, serviceName, issue, severity, impact, diagnosticSteps[], fixPath, estimatedFixTime, preventionTips[] }. DiagnosticStep = { step, action, description, automated }"
     },
     {
-      "id": "US-004",
-      "title": "Fix realtime-health subscription loop",
-      "description": "useRealtimeHealth subscribe callback is unstable due to state deps causing infinite re-subscription.",
+      "id": "T3-004",
+      "title": "Wire useDisasterRecoveryStats into DR tab Backup Coverage section",
+      "description": "The DR tab manually calculates coverage from snapshots array, but useDisasterRecoveryStats fetches authoritative stats from the API. Replace manual calculation with the hook's data.",
       "acceptanceCriteria": [
-        "subscribe callback does not depend on health.workflowId or health.version in useCallback deps",
-        "Use refs instead of state values in subscribe deps to break the loop",
-        "Max retries error no longer fires on page load",
+        "DisasterRecoveryTab imports and calls useDisasterRecoveryStats()",
+        "Backup Coverage card uses stats.coverage instead of manual calculation",
+        "Additional stats shown: total snapshots count, total size (GB), estimated monthly cost",
+        "Manual calculation code removed",
+        "Graceful fallback if stats loading",
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "The subscribe -> state update -> subscribe recreated -> useEffect re-runs cycle must be broken with refs."
+      "passes": true,
+      "notes": "DisasterRecoveryStats = { totalSnapshots, totalWorkspaces, workspacesWithRecentBackups, coverage, totalSizeGb, estimatedMonthlyCost }"
     },
     {
-      "id": "US-005",
-      "title": "Increase fetcher timeout for heavy aggregate queries",
-      "description": "15s client timeout is too short for /api/dashboard/aggregate which runs 15 parallel DB queries.",
+      "id": "T3-005",
+      "title": "Add Restore from Snapshot button in DR snapshot inventory",
+      "description": "The useRestoreSnapshot hook exists with a POST to /api/admin/disaster-recovery/restore, but no UI exposes it. Add a 'Restore' action button per snapshot in the inventory table.",
       "acceptanceCriteria": [
-        "Increase REQUEST_TIMEOUT from 15000 to 30000 in lib/fetcher.ts",
+        "DisasterRecoveryTab imports and uses useRestoreSnapshot()",
+        "Each completed snapshot row has a 'Restore' button next to Delete",
+        "Clicking opens a confirmation dialog asking for target region",
+        "On confirm, calls restoreSnapshot({ snapshotId, targetRegion })",
+        "Success/error toast messages",
+        "Loading state during restore",
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "The aggregate endpoint runs 15 parallel Supabase queries. 15s is not enough on cold starts."
-    },
-    {
-      "id": "US-006",
-      "title": "Add event_ts database index migration",
-      "description": "Missing index on email_events.event_ts causes slow queries in aggregate and daily sends.",
-      "acceptanceCriteria": [
-        "Create supabase/migrations/add_event_ts_index.sql with CREATE INDEX CONCURRENTLY",
-        "Index covers event_ts column on email_events table"
-      ],
-      "priority": 6,
-      "passes": false,
-      "notes": "This was identified as a high-priority fix in copilot-instructions.md"
+      "passes": true,
+      "notes": "useRestoreSnapshot returns { restoreSnapshot, isLoading, error }. Params: { snapshotId, targetRegion }"
     }
   ]
 }
