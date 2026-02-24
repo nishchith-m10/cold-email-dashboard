@@ -1,2 +1,0 @@
-Test Suites: 20 failed, 150 passed, 170 total
-Tests:       139 failed, 3940 passed, 4079 total

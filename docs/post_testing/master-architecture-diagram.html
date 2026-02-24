@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Architecture Diagram - Cold Email Analytics Platform</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                fontSize: '14px'
+            },
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 3px solid #007acc;
+            padding-bottom: 10px;
+        }
+        .description {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .mermaid {
+            text-align: center;
+            background: white;
+            cursor: grab;
+            user-select: none;
+            overflow: hidden;
+        }
+        .mermaid:active {
+            cursor: grabbing;
+        }
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            z-index: 1000;
+        }
+        .controls button {
+            display: block;
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 8px 16px;
+            background: #007acc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .controls button:hover {
+            background: #005a9e;
+        }
+        .controls button:last-child {
+            margin-bottom: 0;
+        }
+        svg {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button onclick="zoomIn()">Zoom In (+)</button>
+        <button onclick="zoomOut()">Zoom Out (−)</button>
+        <button onclick="resetZoom()">Reset Zoom</button>
+        <button onclick="downloadSVG()">Download SVG</button>
+    </div>
+    
+    <div class="container">
+        <h1>THE MASTER ARCHITECTURE DIAGRAM</h1>
+        <p class="description">
+            <strong>Cold Email Analytics Platform — Complete System Architecture</strong><br>
+            Every service, every subsystem, every integration, every queue, every auth layer, every cron job — 
+            arranged in three tiers top to bottom. Use the controls in the top-right to zoom and download.
+        </p>
+        
+        <div class="mermaid">
+graph TB
+
+    %% ══════════════════════════════════════════════════════════
+    %%  TIER 1 — CLIENT LAYER
+    %% ══════════════════════════════════════════════════════════
+
+    subgraph TIER1["🖥️  TIER 1  —  CLIENT LAYER  (Browser)"]
+
+        subgraph T1_AUTH["Auth Pages  (Clerk SSO)"]
+            SIGNIN["Sign-In Page\nClerk-hosted SSO"]
+            SIGNUP["Sign-Up Page\nClerk-hosted SSO"]
+            JOIN["Join Workspace\nInvitation link flow"]
+        end
+
+        subgraph T1_PAGES["Dashboard Pages"]
+            PG_OV["Overview Dashboard\n8 draggable widgets\nMetricCards · Charts · CampaignTable · AskAI"]
+            PG_AN["Analytics Page\nLLM cost breakdown\nProvider donut charts · Daily spend"]
+            PG_CO["Contacts CRM\n976 LOC client component\n@tanstack/react-table · Search · Filter"]
+            PG_SQ["Sequences\nInbox-style master-detail\nEmail step tracking"]
+            PG_OB["Onboarding Wizard\n11-step flow\nBrand → Creds → DNS → Launch"]
+            PG_SB["Sandbox Panel\nTest runner · SSE execution monitor\nConfig editor"]
+            PG_ST["Settings\nGeneral · Security · Config Vault\nMembers · 2FA · Sessions"]
+            PG_AD["Admin Panel\nSuper-admin only\nAPI Health · Audit · DR · Fleet · Scale"]
+        end
+
+        subgraph T1_MOB["Mobile Adaptation"]
+            MOB_NAV["Bottom Tab Bar"]
+            MOB_DRW["Slide-Out Drawer"]
+            MOB_SHT["Bottom Sheet Modals"]
+            MOB_FAB["Floating Action Button"]
+            MOB_COL["Collapsible Widgets"]
+        end
+
+        subgraph T1_RT["Client Runtime Infrastructure"]
+            SWR["SWR Cache Layer\n10 s dedup window\nStale-while-revalidate"]
+            WS_CTX["WorkspaceContext\nTenant isolation · Role gating"]
+            DND["@dnd-kit Engine\nWidget drag-and-drop\n8 px activation distance"]
+            CMD["⌘K Command Palette\ncmdk library · Fuzzy search"]
+            THEME["Theme Engine\nCSS custom properties\nDark / Light / System"]
+            TZ_CTX["TimezoneContext\ndate-fns formatting"]
+            CURR_CTX["CurrencyContext\nIntl.NumberFormat"]
+        end
+
+    end
+
+    %% ══════════════════════════════════════════════════════════
+    %%  TIER 2 — PLATFORM LAYER
+    %% ══════════════════════════════════════════════════════════
+
+    subgraph TIER2["⚙️  TIER 2  —  PLATFORM LAYER  (Vercel · Railway · Cloud)"]
+
+        subgraph T2_API["Next.js 16 App Router  —  139 API Routes  (Vercel Edge + Serverless)"]
+
+            subgraph T2_DASH["Dashboard & Metrics APIs"]
+                A_AGG["/api/dashboard/aggregate\n830 LOC · THE main endpoint\nSummary + TimeSeries + Campaigns\n+ Step Breakdown + LLM Costs in one call"]
+                A_SUM["/api/metrics/summary\nPeriod-over-period comparison\nOpen · Click · Reply · Bounce rates"]
+                A_TS["/api/metrics/timeseries\nDaily data points for charts"]
+                A_BY_C["/api/metrics/by-campaign\nPer-campaign breakdown"]
+                A_COST_B["/api/metrics/cost-breakdown\nLLM cost by provider + model"]
+                A_STEP["/api/metrics/step-breakdown\nEmail 1 / 2 / 3 performance"]
+                A_SRCH["/api/search\n⌘K fuzzy search backend"]
+            end
+
+            subgraph T2_INGEST["Data Ingestion APIs"]
+                A_EV["/api/events\nPOST: log email events\nGET: read events back\nAuth: x-webhook-token"]
+                A_COST_EV["/api/cost-events\nPOST: batch LLM cost records\nAuth: x-webhook-token"]
+                A_LLM["/api/llm-usage\nLegacy cost endpoint"]
+            end
+
+            subgraph T2_CAMP["Campaign & Sequence APIs"]
+                A_CAMP["/api/campaigns\nCRUD · toggle active/paused\nprovision n8n workflows"]
+                A_SEQ["/api/sequences\nList + detail views"]
+                A_PROV["/api/campaigns/provision\nDeploy workflows to tenant droplet"]
+            end
+
+            subgraph T2_WS["Workspace & Team APIs"]
+                A_WS["/api/workspaces\nCRUD · Settings · Config"]
+                A_MEM["/api/workspaces/*/members\nAdd · Remove · Update roles"]
+                A_INV["/api/workspaces/*/invites\nSend · Accept · Revoke"]
+                A_JOIN["/api/workspaces/join\nAccept invitation token"]
+            end
+
+            subgraph T2_OB["Onboarding APIs  (~15 routes)"]
+                A_OB_PROG["/api/onboarding/progress\nStep completion state"]
+                A_OB_BRAND["/api/onboarding/brand\n+ /brand/auto-scrape\nWeb-scrape metadata auto-fill"]
+                A_OB_CREDS["/api/onboarding/credentials\n+ /validate-credential\nAES-256-GCM encrypted storage"]
+                A_OB_DNS["/api/onboarding/dns/*\nGenerate · Verify · Entri automation"]
+                A_OB_TRACK["/api/onboarding/tracking/*\nCustom tracking domain setup"]
+                A_OB_INFRA["/api/onboarding/infrastructure\nTriggers Ignition Orchestrator"]
+            end
+
+            subgraph T2_ADMIN["Admin & Governance APIs  (~15 routes)"]
+                A_ALL_WS["/api/admin/all-workspaces\nCross-tenant overview"]
+                A_FREEZE["/api/admin/freeze-workspace\nFreeze with reason + audit"]
+                A_AUDIT_R["/api/admin/audit-log\nSystem-wide event log"]
+                A_HEALTH_R["/api/admin/api-health\n10 external service checks"]
+                A_DR_R["/api/admin/disaster-recovery\nSnapshot status · failover"]
+                A_FLEET_R["/api/admin/fleet-updates\nRollout control · rollback"]
+                A_SCALE_R["/api/admin/scale-health\nFleet health distribution"]
+                A_CP_H["/api/admin/control-plane-health"]
+                A_REF["/api/admin/refresh-views\nMaterialized view refresh"]
+            end
+
+            subgraph T2_UTIL["Compliance & Utility APIs"]
+                A_GDPR["/api/gdpr/*\nExport · Delete (7-day grace)\nCompliance report"]
+                A_ASK["/api/ask + /api/ask-key\nAI Q&A — OpenAI + Claude\nRAG via LlamaIndex"]
+                A_BILL["/api/billing/*\nUsage meters + invoice history"]
+                A_NOTIF["/api/notifications\nCRUD · Read · Dismiss"]
+                A_TRACK_R["/api/track/open + click\nPixel tracking + redirect logging"]
+                A_SANDBOX_R["/api/sandbox/*\nTest execution + SSE stream"]
+            end
+
+            subgraph T2_WH["Webhook & Integration APIs"]
+                A_WH_CLERK["/api/webhooks/clerk\nuser.created sync\nSvix signature verification"]
+                A_WH_AUDIT["/api/webhooks/clerk/audit\nLogin audit trail · 18 event types"]
+                A_WH_N8N["/api/webhooks/n8n\nWorkflow event callbacks"]
+                A_WH_CRUD["/api/webhooks CRUD\nSvix-managed delivery"]
+            end
+
+            subgraph T2_CRON["Vercel Cron Jobs  —  11 Scheduled Routes"]
+                CR_VIEWS["midnight\nRefresh materialized views"]
+                CR_CREDS["2 AM\nRotate OAuth credentials"]
+                CR_DR["2 AM\nTrigger DR snapshots"]
+                CR_GDPR["4 AM\nProcess GDPR export queue"]
+                CR_DLQ["5 AM\nProcess webhook DLQ"]
+                CR_SYNC["6 AM\nSync campaigns to n8n"]
+                CR_H1["7 AM\nAPI health check — critical"]
+                CR_H2["8 AM\nAPI health check — secondary"]
+                CR_DRGC["9 AM\nDR garbage collect"]
+                CR_DRH["10 AM\nDR health verify"]
+            end
+
+        end
+
+        subgraph T2_GEN["Genesis Engine  —  lib/genesis/  —  120 files  ·  ~40 K LOC"]
+
+            subgraph GEN_CORE["Core Provisioning  (Phases 41–42)"]
+                G_IGN["Ignition Orchestrator\n829 LOC · <60 s full boot\n8 sub-phases · partial-failure rollback"]
+                G_DRP["Droplet Factory\n638 LOC · DigitalOcean API\nPENDING → CONFIGURING → ACTIVE_HEALTHY"]
+                G_HSK["Atomic Handshake Protocol\n431 LOC · mutual auth on boot\nProvisioning token → sidecar JWT"]
+                G_VLT["Credential Vault\n435 LOC · AES-256-GCM\nPer-workspace keys · rotation"]
+                G_TOK["Token Manager\n256-bit entropy · SHA-256 storage\nConstant-time comparison"]
+            end
+
+            subgraph GEN_FLEET["Fleet Management  (Phases 43–44 · 54–56)"]
+                G_Q["Queue Manager\nBullMQ queue registration\nJob factory · retry strategies"]
+                G_GOV["Concurrency Governor\nRedis token-bucket\nThundering-herd prevention"]
+                G_SC["Sidecar Client\nRS256 JWT-signed commands\n15 command types"]
+                G_UUID["UUID Mapper\nn8n credential placeholder resolution\nCross-version compatibility"]
+                G_DLQ["Dead Letter Queue\nDLQ consumer + inspector\nReplay · purge · admin panel"]
+                G_WD["Reconciliation Watchdog\nDesired vs actual fleet state\nAuto-heals divergence"]
+            end
+
+            subgraph GEN_FIN["Financial Controls  (Phases 57–59)"]
+                G_WAL["Multi-Wallet System\nProduction · Sandbox · Reserved\nACID transaction isolation"]
+                G_KIL["Kill-Switch\nBalance-triggered service disable\nPrevents runaway cost spikes"]
+                G_TOP["Auto-Topup Engine\n5 strategies: Fixed · Percentage\nPredictive ML · Scheduled · Usage"]
+                G_LED["Cost Ledger\nBYO vs Managed classification\nRevenue · cost · margin per call"]
+                G_SRVM["Service Matrix\nPer-provider rate table\n(provider, model, op) → cost"]
+            end
+
+            subgraph GEN_OB["Onboarding Gateway  (Phases 60–65)"]
+                G_OBS["Onboarding State Machine\n11-step progression\nStep persistence across sessions"]
+                G_DNS["DNS Automation Engine\nSPF · DKIM · DMARC generation\nEntri automated record setup"]
+                G_EMP["Email Provider Abstraction\nGmail OAuth / SMTP / SendGrid\nUnified send interface"]
+                G_BRD["Brand Auto-Scraper\nWebsite metadata extraction\nAuto-fills onboarding fields"]
+                G_OAP["OAuth Proxy\nGmail OAuth · third-party SSO\nCredential handoff abstraction"]
+            end
+
+            subgraph GEN_COMP["Compliance & Security  (Phases 66–68)"]
+                G_GDPR["GDPR Service\nRight to access · Right to erasure\n7-day grace before hard delete"]
+                G_AUD["Audit Logger\nAppend-only system-wide log\nActor · resource · action · IP"]
+                G_TLC["Tenant Lifecycle\n16 resource cascade deletion\nFreeze → grace → purge → anonymize"]
+                G_LOGIN["Login Audit Trail\n18 helper functions\nSuspicious activity detection"]
+            end
+
+            subgraph GEN_OPS["Platform Operations  (Phases 44–45 · 69–73)"]
+                G_DR["Disaster Recovery\nHourly DO snapshots\nRPO 1 h · RTO 15 min · 4 regions"]
+                G_UPD["Fleet Update Protocol\nRolling · Canary · Blue-Green\nEmergency rollback <30 s"]
+                G_SBX["Sandbox Engine\nPII-sanitized mock execution\nMock n8n · rate limited"]
+                G_MIG["Shadow Migration Engine\nDual-write → Backfill\nParity check → Cutover → Cleanup"]
+                G_CRED_ROT["Credential Rotation Service\nOAuth refresh scheduler\nWebhook secret rotation · HMAC"]
+            end
+
+        end
+
+        subgraph T2_PLAT["Platform Services"]
+
+            subgraph T2_CP["Control Plane  (Railway — 24/7 Node.js)"]
+                CP_E["Entry Point\ncontrol-plane/src/index.ts\n153 LOC"]
+                CP_B["BullMQ Workers\nJob dequeue · Fleet command execution"]
+                CP_W["Watchdog Service\nUnresponsive droplet detection\nAuto-recovery triggers"]
+                CP_H["Heartbeat Processor\nDroplet liveness pings\nHealthy → Degraded → Offline"]
+                CP_S["Scale Alerter\nCPU · Memory · Queue depth\nThreshold-based alerts"]
+            end
+
+            subgraph T2_DB["Persistent Data Stores"]
+                SUPA[("Supabase PostgreSQL\nworkspaces · user_workspaces\nemail_events (7 indexes)\nllm_usage · daily_stats (trigger)\nworkspace_invites · genesis_*\nRLS: workspace_id isolation\n45 migrations · materialized views")]
+                REDIS[("Redis / Upstash\nBullMQ job queues\nRate-limit counters · Session cache\nConcurrency governor tokens\nSWR invalidation bus")]
+            end
+
+        end
+
+        subgraph T2_EXT["External Service Integrations"]
+            E_CLERK["Clerk\nSSO · JWT · OAuth\n4-tier RBAC · Svix webhooks"]
+            E_DO["DigitalOcean\nDroplet API · Snapshots · Firewalls\nnyc3 · sfo3 · ams3 · sgp1"]
+            E_OAPI["OpenAI\nGPT-4 / GPT-4o\nEmail drafting · AI insights"]
+            E_ANTH["Anthropic\nClaude 3.x · Fallback LLM"]
+            E_GOOG["Google APIs\nGmail OAuth · Custom Search · Sheets"]
+            E_APIF["Apify\nLinkedIn scraping · Web automation"]
+            E_SVIX["Svix\nWebhook delivery · Retry + DLQ"]
+            E_SNDG["SendGrid\nSMTP relay · Transactional email"]
+            E_ENTI["Entri\nAutomated DNS record setup"]
+            E_STRP["Stripe\nSubscriptions · Invoicing · Payments"]
+            E_CALY["Calendly\nScheduling link validation"]
+        end
+
+    end
+
+    %% ══════════════════════════════════════════════════════════
+    %%  TIER 3 — SOVEREIGN TENANT FLEET
+    %% ══════════════════════════════════════════════════════════
+
+    subgraph TIER3["🖧  TIER 3  —  SOVEREIGN TENANT FLEET  (up to 15,000 DigitalOcean Droplets  ·  $6 /mo each  ·  fully isolated)"]
+
+        subgraph T3_ARCH["Droplet Stack  —  identical on every active tenant droplet"]
+            D_CDY["Caddy Reverse Proxy\nAuto HTTPS · sslip.io wildcard TLS\nHTTP/2 · Let's Encrypt"]
+            D_SC["Sidecar Agent\nExpress.js · 774 LOC\nZero-trust RS256 JWT auth\n15 command types"]
+            D_N8N["n8n Workflow Engine\nDocker container\n6 core workflow templates\nEmail automation runtime"]
+            D_PG[("Local PostgreSQL 16\nn8n execution history\nWorkflow state · Logs")]
+        end
+
+        subgraph T3_FLEET["Fleet Topology  (example scale-out)"]
+            DR_A["Droplet — Tenant A\n1 vCPU · 1 GB · $6/mo\nnyc3 region"]
+            DR_B["Droplet — Tenant B\n1 vCPU · 1 GB · $6/mo\nsfo3 region"]
+            DR_N["Droplet — Tenant N  (×15,000)\n1–8 vCPU · 1–16 GB\nnyc3 · sfo3 · ams3 · sgp1"]
+        end
+
+        subgraph T3_WF["n8n Workflow Templates  (deployed to every active droplet via UUID Mapper)"]
+            WF_RES["Research Report\nGoogle CSE + Apify\n→ AI-written company summary"]
+            WF_PREP["Email Preparation\nBrand context + research\n→ personalised draft via OpenAI"]
+            WF_E1["Email 1  —  First Touch\nGmail OAuth / SMTP send"]
+            WF_E2["Email 2  —  Follow-Up\n3-day delay · conditional send"]
+            WF_E3["Email 3  —  Final Touch\nBreak-up email"]
+            WF_REPLY["Reply Tracker\nIMAP polling every 15 min\n→ POST /api/events (reply)"]
+            WF_OPT["Opt-Out Handler\nUnsubscribe link click\n→ POST /api/events (opt-out)"]
+        end
+
+        subgraph T3_COST["Fleet Cost Optimisation"]
+            T3_HIB["Hibernated Snapshots\nIdle droplets powered off\nDO snapshot preserved\nWake delay: 30–60 s by plan tier"]
+            T3_HOT["Pre-Warmed Pool\nHot spares for VIP tenants\nZero cold-start penalty"]
+            T3_REG["Regional Distribution\nnyc3 (US-East) · sfo3 (US-West)\nams3 (EU) · sgp1 (APAC)"]
+        end
+
+    end
+
+    %% ══════════════════════════════════════════════════════════
+    %%  CRITICAL DATA FLOWS
+    %% ══════════════════════════════════════════════════════════
+
+    SWR           -->|"HTTPS · workspace_id on every call"| T2_API
+    CLERK_UI      -->|"SSO · OAuth"| E_CLERK
+    E_CLERK       -->|"JWT validated by Next.js middleware\non every API route"| T2_API
+
+    A_AGG         -->|"SELECT daily_stats\nRLS enforced per workspace"| SUPA
+    A_EV          -->|"INSERT email_events\n→ DB trigger → daily_stats"| SUPA
+    A_COST_EV     -->|"INSERT llm_usage batch"| SUPA
+
+    G_IGN         -->|"POST /v2/droplets\nCloud-Init user-data"| E_DO
+    G_DRP         -->|"Create · Resize · Snapshot · Delete"| E_DO
+    G_Q           -->|"Enqueue provisioning\n+ fleet jobs"| REDIS
+    CP_B          -->|"Dequeue · process\nfleet workers"| REDIS
+    G_SC          -->|"RS256 JWT-signed\ncommand dispatch"| D_SC
+
+    D_CDY         -->|"Reverse proxy"| D_SC
+    D_SC          -->|"Start · Stop · Restart\nDeploy workflow"| D_N8N
+    D_N8N         -->|"POST /api/events\n(open · click · reply · bounce)"| A_EV
+    D_N8N         -->|"POST /api/cost-events\n(LLM usage per workflow run)"| A_COST_EV
+    D_SC          -->|"Heartbeat pings\nevery 30 s"| CP_H
+
+    G_WAL         -->|"Balance checks\ntransaction ledger"| SUPA
+    G_KIL         -->|"Service-level disable\nflag per workspace"| SUPA
+    G_AUD         -->|"Append-only audit rows"| SUPA
+
+    WF_RES --> WF_PREP --> WF_E1 --> WF_E2 --> WF_E3
+    WF_REPLY -.->|"Event callback"| A_EV
+    WF_OPT  -.->|"Opt-out callback"| A_EV
+        </div>
+    </div>
+
+    <script>
+        let currentZoom = 1;
+        let panX = 0;
+        let panY = 0;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let dragStartPanX = 0;
+        let dragStartPanY = 0;
+        
+        function zoomIn() {
+            currentZoom += 0.2;
+            applyTransform();
+        }
+        
+        function zoomOut() {
+            currentZoom = Math.max(0.2, currentZoom - 0.2);
+            applyTransform();
+        }
+        
+        function resetZoom() {
+            currentZoom = 1;
+            panX = 0;
+            panY = 0;
+            applyTransform();
+        }
+        
+        function applyTransform() {
+            const svg = document.querySelector('.mermaid svg');
+            if (svg) {
+                svg.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
+                svg.style.transformOrigin = 'top center';
+                svg.style.cursor = isDragging ? 'grabbing' : 'grab';
+            }
+        }
+        
+        function downloadSVG() {
+            const svg = document.querySelector('.mermaid svg');
+            if (!svg) {
+                alert('Diagram not yet rendered. Please wait a moment and try again.');
+                return;
+            }
+            
+            // Clone the SVG and set proper dimensions
+            const svgClone = svg.cloneNode(true);
+            svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            
+            // Create blob and download
+            const svgData = new XMLSerializer().serializeToString(svgClone);
+            const blob = new Blob([svgData], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'master-architecture-diagram.svg';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+        
+        // Drag functionality
+        function setupDragListeners() {
+            const mermaidDiv = document.querySelector('.mermaid');
+            if (!mermaidDiv) return;
+            
+            mermaidDiv.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                dragStartPanX = panX;
+                dragStartPanY = panY;
+                mermaidDiv.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - dragStartX;
+                const deltaY = e.clientY - dragStartY;
+                
+                panX = dragStartPanX + deltaX;
+                panY = dragStartPanY + deltaY;
+                
+                applyTransform();
+            });
+            
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                applyTransform();
+            });
+            
+            // Mouse leave to stop drag
+            mermaidDiv.addEventListener('mouseleave', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    applyTransform();
+                }
+            });
+        }
+        
+        // Apply zoom after diagram renders
+        setTimeout(() => {
+            applyTransform();
+            setupDragListeners();
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -160,6 +160,7 @@ export function CompactControls({
         <DropdownMenuContent align="start" className="w-56">
               {/* New Campaign Option */}
               <DropdownMenuItem
+                key="new-campaign"
                 className="gap-2 text-accent-primary font-medium"
                 onSelect={onNewCampaign}
               >
@@ -167,10 +168,11 @@ export function CompactControls({
                 Create New Campaign
               </DropdownMenuItem>
               
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator key="top-separator" />
               
               {/* All Campaigns */}
               <DropdownMenuItem
+                key="all-campaigns"
                 className="gap-2"
                 onSelect={() => onCampaignChange(undefined)}
               >
@@ -180,9 +182,9 @@ export function CompactControls({
               
               {/* Individual Campaigns */}
               {campaigns.length > 0 && <DropdownMenuSeparator key="campaign-separator" />}
-              {campaigns.map((campaign) => (
+              {campaigns.map((campaign, index) => (
                 <DropdownMenuItem
-                  key={campaign.id}
+                  key={campaign.id ?? `campaign-${index}`}
                   className="gap-2"
                   onSelect={() => onCampaignChange(campaign.id)}
                 >
