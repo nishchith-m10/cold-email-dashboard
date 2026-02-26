@@ -72,11 +72,16 @@ export function TwoFactorModal({ open, onClose }: TwoFactorModalProps) {
 
     try {
       const totp = await user.createTOTP();
-      
+
       if (totp?.uri) {
         setQrCode(totp.uri);
         setTotpSecret(totp.secret || '');
-        setStep('verify');
+        // Capture backup codes if Clerk includes them in the TOTP response
+        if ((totp as any).backupCodes?.length) {
+          setBackupCodes((totp as any).backupCodes);
+        }
+        // Stay on 'setup' so the user can scan the QR code / copy the secret.
+        // The "Continue" button navigates to 'verify'.
       } else {
         setError('Failed to generate TOTP. Please try again.');
       }
@@ -98,18 +103,9 @@ export function TwoFactorModal({ open, onClose }: TwoFactorModalProps) {
     setError(null);
 
     try {
-      const result = await user.verifyTOTP({ code: verificationCode.trim() });
-      
-      if (result.verified) {
-        // Fetch backup codes if available
-        const totpResource = await (user as any).getTOTP?.();
-        if (totpResource?.backupCodes) {
-          setBackupCodes(totpResource.backupCodes);
-        }
-        setStep('success');
-      } else {
-        setError('Invalid verification code. Please try again.');
-      }
+      // Clerk's verifyTOTP throws on failure; a clean return means success.
+      await user.verifyTOTP({ code: verificationCode.trim() });
+      setStep('success');
     } catch (err) {
       console.error('Error verifying TOTP:', err);
       setError(err instanceof Error ? err.message : 'Invalid verification code. Please try again.');
@@ -356,14 +352,14 @@ export function TwoFactorModal({ open, onClose }: TwoFactorModalProps) {
                             <div className="flex justify-center">
                               {qrCode ? (
                                 <div className="p-4 bg-white rounded-lg border-2 border-[var(--border)]">
-                                  {/* QR Code will be rendered here - you may want to use a QR code library */}
-                                  <div className="w-48 h-48 bg-gray-100 rounded flex items-center justify-center">
-                                    <p className="text-xs text-gray-500 text-center px-4">
-                                      QR Code would be displayed here.
-                                      <br />
-                                      In production, use a QR code library like qrcode.react
-                                    </p>
-                                  </div>
+                                  {/* Render the otpauth:// URI as a QR code via a free image API */}
+                                  <img
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=192x192&data=${encodeURIComponent(qrCode)}`}
+                                    alt="Scan this QR code with your authenticator app"
+                                    width={192}
+                                    height={192}
+                                    className="rounded"
+                                  />
                                 </div>
                               ) : (
                                 <div className="w-48 h-48 bg-[var(--surface-elevated)] rounded-lg border border-[var(--border)] flex items-center justify-center">
