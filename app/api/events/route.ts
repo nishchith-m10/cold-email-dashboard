@@ -64,6 +64,7 @@ function getNotificationConfig(
 const eventSchema = z.object({
   contact_email: z.string().email('Invalid email format'),
   campaign: z.string().max(200).optional(),
+  campaign_group_id: z.string().uuid().optional(), // D3-002: optional campaign group UUID
   step: z.number().int().min(1).max(10).optional(),
   event_type: z.enum(['sent', 'delivered', 'bounced', 'replied', 'opt_out', 'opened', 'clicked']),
   provider: z.string().max(50).optional(),
@@ -124,6 +125,7 @@ export async function POST(req: NextRequest) {
   const {
     contact_email,
     campaign,
+    campaign_group_id: campaignGroupId, // D3-002
     step,
     event_type,
     provider,
@@ -207,6 +209,7 @@ export async function POST(req: NextRequest) {
         contact_id: contactId,
         contact_email,
         campaign_name: campaignName,
+        campaign_group_id: campaignGroupId || null, // D3-002
         email_number: emailNumber,
         event_type,
         event_ts: eventTs,
