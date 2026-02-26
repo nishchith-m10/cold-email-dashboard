@@ -152,3 +152,23 @@ Started: 2026-02-11
   - Pre-existing 9 TS errors (test files + step_progress type) — none from Domain 2
   - Sidecar has its own tsconfig; typecheck separately with `cd sidecar && npx tsc --noEmit`
 ---
+
+## Domain 3 — Campaign Isolation & Data Partitioning (branch: ralph/domain3-campaign-isolation-partitioning)
+- All 4 stories implemented, typechecked (0 new errors), committed
+- **D3-001** (07e795d): Per-campaign workflow deployer — `deployForCampaign()` in `lib/genesis/campaign-workflow-deployer.ts`, wired into `POST /api/campaigns/provision`
+- **D3-002** (2bebbc7): `campaign_group_id` UUID column on `email_events` + partial index + event ingestion updated
+- **D3-003** (0ff9a12): 4 composite indexes — (ws,type,ts), (ws,campaign), daily_stats(ws,day), llm_usage(ws,created_at)
+- **D3-004** (f33998e): Campaign dropdown from `campaigns` table (source of truth) with fallback to stats-derived list
+- **Files created:**
+  - `lib/genesis/campaign-workflow-deployer.ts` — D3-001
+  - `supabase/migrations/20260301_domain3_campaign_group_id.sql` — D3-002
+  - `supabase/migrations/20260301_domain3_composite_indexes.sql` — D3-003
+- **Files modified:**
+  - `app/api/campaigns/provision/route.ts` — D3-001 (workflow deploy on provision)
+  - `app/api/events/route.ts` — D3-002 (campaign_group_id in schema + insert)
+  - `app/api/dashboard/aggregate/route.ts` — D3-004 (campaignsListQuery + fallback)
+- **Learnings:**
+  - Partition registry droplet_ip is the deployment target for per-campaign workflow pushes
+  - email_events lacked campaign_group_id — aggregate route's `.eq('campaign_group_id', ...)` would silently return zero results
+  - Campaign dropdown from events shows phantom/renamed campaigns; campaigns table is the source of truth
+---

@@ -1,80 +1,71 @@
 {
   "project": "cold-email-dashboard",
-  "branchName": "ralph/domain2-templates-workflow-deployer",
-  "description": "Domain 2: DEFAULT_TEMPLATES & Workflow Deployer",
+  "branchName": "ralph/domain3-campaign-isolation-partitioning",
+  "description": "Domain 3: Campaign Isolation & Data Partitioning",
   "userStories": [
     {
-      "id": "D2-001",
-      "title": "Gate Sidecar auto-deploy and document orchestrator-first architecture",
-      "description": "Gate DEPLOY_CAMPAIGN_WORKFLOWS behind SIDECAR_AUTO_DEPLOY env var. Add deprecation notice to workflow-deployer.ts.",
+      "id": "D3-001",
+      "title": "Per-campaign workflow deployer function",
+      "description": "Create lib/genesis/campaign-workflow-deployer.ts with deployForCampaign() that loads templates, builds campaign-specific variable map, and deploys 7 workflows named [{workspace}] {template} — {campaign}. Wire into POST /api/campaigns/provision to trigger deployment when workspace has active ignition.",
       "acceptanceCriteria": [
-        "DEPLOY_CAMPAIGN_WORKFLOWS returns error unless SIDECAR_AUTO_DEPLOY=true",
-        "DEPLOY_WORKFLOW command is unaffected",
-        "workflow-deployer.ts header has deprecation notice",
+        "deployForCampaign(workspaceId, campaignId, campaignName, workspaceName, workspaceSlug) exported",
+        "Loads droplet_ip from genesis.partition_registry",
+        "Loads 7 templates via email_provider_config provider selection",
+        "YOUR_CAMPAIGN_NAME set to campaign-specific name",
+        "Workflow names include campaign suffix: [{workspace}] {template} — {campaign}",
+        "Returns array of deployed workflow IDs",
+        "Campaign provision route calls deployer when ignition status is active",
         "Typecheck passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": "Committed as 163f609"
+      "notes": "Committed as 07e795d"
     },
     {
-      "id": "D2-002",
-      "title": "Add required_credentials validation before workflow deployment",
-      "description": "In orchestrator Step 5, validate each template required_credentials before deployment. Build credTypeToN8nId map, check 3 conditions.",
+      "id": "D3-002",
+      "title": "Add campaign_group_id column to email_events",
+      "description": "Migration to add campaign_group_id UUID column to email_events with partial index. Update event ingestion API to accept and store campaign_group_id.",
       "acceptanceCriteria": [
-        "credTypeToN8nId map built from config.credentials + resources.n8n_credential_ids",
-        "Each template required_credentials validated with 3 checks",
-        "Missing credential type throws IgnitionError",
-        "Missing template_placeholder throws IgnitionError",
-        "Missing n8n ID throws IgnitionError",
+        "Migration adds campaign_group_id UUID column (nullable) to email_events",
+        "Partial index on campaign_group_id WHERE NOT NULL",
+        "Event ingestion route accepts campaign_group_id in payload",
+        "Event ingestion stores campaign_group_id when provided",
         "Typecheck passes"
       ],
       "priority": 2,
       "passes": true,
-      "notes": "Committed as 8cf0465"
+      "notes": "Committed as 2bebbc7"
     },
     {
-      "id": "D2-003",
-      "title": "Scan for unresolved placeholders after workflow substitution",
-      "description": "In HttpWorkflowDeployer.deploy(), scan for YOUR_* tokens after substitution. Credential placeholders throw; content placeholders warn.",
+      "id": "D3-003",
+      "title": "Add composite indexes for campaign query performance",
+      "description": "Migration adding composite indexes: (workspace_id, event_type, event_ts), (workspace_id, campaign_name), (workspace_id, day) on daily_stats, (workspace_id, created_at) on llm_usage.",
       "acceptanceCriteria": [
-        "Regex scan for /YOUR_[A-Z_]+/g after substitution",
-        "YOUR_CREDENTIAL_* matches throw Error",
-        "Non-credential YOUR_* matches log console.warn",
-        "Unique deduplication of matches",
+        "idx_email_events_ws_type_ts on (workspace_id, event_type, event_ts)",
+        "idx_email_events_ws_campaign on (workspace_id, campaign_name)",
+        "idx_daily_stats_ws_day on (workspace_id, day)",
+        "idx_llm_usage_ws_created on (workspace_id, created_at)",
+        "All indexes use IF NOT EXISTS",
         "Typecheck passes"
       ],
       "priority": 3,
       "passes": true,
-      "notes": "Committed as 8be3034"
+      "notes": "Committed as 0ff9a12"
     },
     {
-      "id": "D2-004",
-      "title": "Sidecar deployer deploys all 7 workflow templates",
-      "description": "Update getTemplateFiles() to return all 7 templates (3 email + 4 support) instead of only 3.",
+      "id": "D3-004",
+      "title": "Normalize campaign dropdown to use campaigns table",
+      "description": "Update aggregate route campaign list to query from campaigns table (source of truth) instead of deriving from email_events campaign_name. Include campaign status and event count.",
       "acceptanceCriteria": [
-        "getTemplateFiles() returns 7 templates total",
-        "Email templates selected by provider (gmail vs smtp)",
-        "Support templates: Email Preparation, Research Report, Reply Tracker, Opt-Out",
+        "Campaign list fetched from campaigns table filtered by workspace_id",
+        "Each campaign includes name and status",
+        "Fallback to existing behavior if campaigns query fails",
+        "campaignList sorted alphabetically by name",
         "Typecheck passes"
       ],
       "priority": 4,
       "passes": true,
-      "notes": "Committed as eb3f82f"
-    },
-    {
-      "id": "D2-005",
-      "title": "Throw on empty credential placeholder values in sidecar deployer",
-      "description": "In injectCredentialPlaceholders(), empty YOUR_CREDENTIAL_* values throw Error; empty content placeholders are silently skipped.",
-      "acceptanceCriteria": [
-        "Empty YOUR_CREDENTIAL_* value throws Error",
-        "Empty content placeholder values are skipped",
-        "Error message guides user to inject credentials first",
-        "Typecheck passes"
-      ],
-      "priority": 5,
-      "passes": true,
-      "notes": "Committed as 36df5a4"
+      "notes": "Committed as f33998e"
     }
   ]
 }
