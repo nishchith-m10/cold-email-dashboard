@@ -422,13 +422,36 @@ export class MockCredentialVaultDB implements CredentialVaultDB {
 
 /**
  * Create credential vault from environment.
+ *
+ * SECURITY: CREDENTIAL_MASTER_KEY is the AES-256-GCM master key for all workspace
+ * credentials. It MUST be set in production. Without it, encryption is impossible.
+ *
+ * In test/development environments it falls back to a clearly-labelled test key
+ * so that unit tests don't require env setup — but this fallback is BLOCKED in production.
  */
 export function createCredentialVault(db?: CredentialVaultDB): CredentialVault {
-  const masterKey = process.env.CREDENTIAL_MASTER_KEY || 'test-master-key-minimum-32-chars-long';
-  
+  const masterKey = process.env.CREDENTIAL_MASTER_KEY;
+
+  if (!masterKey) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        '[CredentialVault] CREDENTIAL_MASTER_KEY is not set. ' +
+        'This key is required in production — add it to your environment variables. ' +
+        'Backup location: ~/Documents/UpShot-Security/CREDENTIAL_MASTER_KEY.txt'
+      );
+    }
+    // Non-production only: explicit test key (never silently used in prod)
+    console.warn(
+      '[CredentialVault] CREDENTIAL_MASTER_KEY not set — using test key. ' +
+      'This is only acceptable in unit tests and local dev.'
+    );
+  }
+
+  const resolvedKey = masterKey || 'test-master-key-for-dev-only-32chars!!';
+
   if (!db) {
     db = new MockCredentialVaultDB();
   }
-  
-  return new CredentialVault(masterKey, db);
+
+  return new CredentialVault(resolvedKey, db);
 }

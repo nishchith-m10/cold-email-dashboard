@@ -5,6 +5,7 @@ import useSWR, { SWRConfiguration } from 'swr';
 import { getProviderColor, getModelDisplayName } from '@/lib/constants';
 import { fetcher } from '@/lib/fetcher';
 import { useWorkspace } from '@/lib/workspace-context';
+import { useCampaignGroups } from '@/hooks/use-campaign-groups';
 import type {
   DashboardParams,
   DashboardData,
@@ -15,6 +16,7 @@ import type {
   StepBreakdown,
   DailySend,
   Campaign,
+  CampaignGroup,
   CampaignStats,
 } from '@/lib/dashboard-types';
 
@@ -120,12 +122,21 @@ const aggregateConfig: SWRConfiguration = {
  * @returns DashboardData object with all metrics and derived data
  */
 export function useDashboardData(params: DashboardParams): DashboardData {
-  const { startDate, endDate, selectedCampaign, selectedProvider } = params;
+  const { startDate, endDate, selectedCampaign, selectedGroupId, selectedProvider } = params;
+  // selectedGroupId is the primary filter (campaign_group_id UUID)
+  // selectedCampaign is the legacy single-campaign name filter (drilldown only)
+  const groupId = selectedGroupId ?? undefined;
   const campaign = selectedCampaign ?? undefined;
   const provider = selectedProvider ?? undefined;
 
   // Get workspace context - wait for it to be ready before fetching
   const { workspaceId, isLoading: workspaceLoading } = useWorkspace();
+
+  // Fetch campaign groups (workspace-scoped, is_test filtered)
+  const {
+    groups: campaignGroups,
+    isLoading: campaignGroupsLoading,
+  } = useCampaignGroups(workspaceId);
 
   // ============================================
   // SINGLE AGGREGATE FETCH
@@ -133,15 +144,18 @@ export function useDashboardData(params: DashboardParams): DashboardData {
 
   // Build URL params
   const urlParams = useMemo(() => {
-    const params = new URLSearchParams({
+    const p = new URLSearchParams({
       start: startDate,
       end: endDate,
     });
-    if (campaign) params.set('campaign', campaign);
-    if (provider) params.set('provider', provider);
-    if (workspaceId) params.set('workspace_id', workspaceId);
-    return params.toString();
-  }, [startDate, endDate, campaign, provider, workspaceId]);
+    // Group-level filter (primary path — maps to ?campaign_group_id=)
+    if (groupId) p.set('campaign_group_id', groupId);
+    // Legacy per-campaign filter (drilldown only — maps to ?campaign=<name>)
+    if (campaign && !groupId) p.set('campaign', campaign);
+    if (provider) p.set('provider', provider);
+    if (workspaceId) p.set('workspace_id', workspaceId);
+    return p.toString();
+  }, [startDate, endDate, groupId, campaign, provider, workspaceId]);
 
   // Only fetch when workspace context is ready
   const shouldFetch = !workspaceLoading && !!workspaceId;
@@ -217,7 +231,7 @@ export function useDashboardData(params: DashboardParams): DashboardData {
   const uniqueContacts = aggregateData?.stepBreakdown?.uniqueContacts || 0;
   const totalLeads = aggregateData?.stepBreakdown?.totalLeads || 0;
 
-  // Campaigns
+  // Campaigns (flat list from aggregate response)
   const campaigns = aggregateData?.campaigns?.list || [];
   const campaignStats = aggregateData?.campaigns?.stats || [];
 
@@ -337,6 +351,8 @@ export function useDashboardData(params: DashboardParams): DashboardData {
   const stepLoading = steps.length === 0 && isLoading;
   const campaignsLoading = campaigns.length === 0 && isLoading;
   const campaignStatsLoading = campaignStats.length === 0 && isLoading;
+  // Campaign groups — separate request, own loading state
+  // Not tied to aggregate loading since it has its own SWR lifecycle
 
   const hasError = !!aggregateError;
 
@@ -388,7 +404,10 @@ export function useDashboardData(params: DashboardParams): DashboardData {
     totalLeads, // Total leads for % calculation
     stepLoading,
 
-    // Campaigns
+    // Campaign groups (primary selection unit)
+    campaignGroups,
+    campaignGroupsLoading,
+    // Flat campaigns list (for management table)
     campaigns,
     campaignsLoading,
     campaignStats,

@@ -65,7 +65,21 @@ export interface CredentialConfig {
   type: CredentialType;
   name: string;
   data: Record<string, string | number | boolean>;
-  template_placeholder?: string;  // e.g., "TEMPLATE_GMAIL_UUID"
+  /**
+   * The YOUR_CREDENTIAL_*_ID placeholder used in workflow templates for this
+   * credential type. After n8n assigns a real UUID on creation, the orchestrator
+   * replaces this placeholder in the deployed workflow JSON.
+   *
+   * Standard values:
+   *   'YOUR_CREDENTIAL_GMAIL_ID'             — gmailOAuth2
+   *   'YOUR_CREDENTIAL_POSTGRES_ID'          — postgres
+   *   'YOUR_CREDENTIAL_GOOGLE_SHEETS_ID'     — googleSheetsOAuth2Api
+   *   'YOUR_CREDENTIAL_OPENAI_ID'            — openAiApi
+   *   'YOUR_CREDENTIAL_ANTHROPIC_ID'         — anthropicApi
+   *   'YOUR_CREDENTIAL_GOOGLE_CSE_QUERY_ID'  — httpQueryAuth (Google CSE)
+   *   'YOUR_CREDENTIAL_GOOGLE_CSE_HEADER_ID' — httpHeaderAuth (Google CSE)
+   */
+  template_placeholder?: string;
 }
 
 /**
@@ -103,15 +117,39 @@ export interface IgnitionConfig {
   // Credentials to inject
   credentials: CredentialConfig[];
   
-  // Variable overrides
+  // Variable overrides — merged into the template variable map at deploy time.
+  //
+  // REQUIRED keys (ignition will throw if missing):
+  //   YOUR_SENDER_EMAIL       — Gmail/SMTP address for this workspace (e.g. 'hello@acme.com')
+  //
+  // OPTIONAL keys (have sensible defaults but should be supplied for production):
+  //   YOUR_COMPANY_NAME       — Overrides workspace_name in email copy
+  //   YOUR_TEST_EMAIL         — Sandbox test recipient email
+  //   YOUR_UNSUBSCRIBE_REDIRECT_URL — Defaults to https://{dropletIp}.sslip.io/webhook/opt-out
+  //   YOUR_N8N_INSTANCE_URL   — Defaults to https://{dropletIp}.sslip.io
   variables?: Record<string, string>;
   
+  // Campaign group association — used to tag workflows and attribute costs
+  // If not provided, defaults to workspace_id / workspace_name
+  campaign_group_id?: string;
+  campaign_group_name?: string;
+
   // Workflow selection
   workflow_templates?: string[];  // Defaults to all templates
   
   // Options
   skip_activation?: boolean;
   dry_run?: boolean;
+
+  /**
+   * LOCAL MODE — skips DigitalOcean droplet creation and uses a manually-provided
+   * n8n instance instead. Useful for beta testing without spending DO API quota.
+   *
+   * Set `local_mode: true` in config OR set `LOCAL_MODE=true` in .env.local.
+   * Provide `local_n8n_ip` (default: '127.0.0.1') to point at a local Docker n8n.
+   */
+  local_mode?: boolean;
+  local_n8n_ip?: string;  // e.g. '127.0.0.1' for local Docker n8n
 }
 
 // ============================================
@@ -284,6 +322,33 @@ export const DEFAULT_TEMPLATES: TemplateReference[] = [
     display_name: 'Research Report',
     category: 'research',
     required_credentials: ['openai_api', 'postgres'],
+    is_default: true,
+  },
+  {
+    template_id: 'email_preparation',
+    template_name: 'email_preparation',
+    display_name: 'Email Preparation',
+    category: 'preparation',
+    // Reads leads from Supabase (postgres), enriches via Google Sheets
+    required_credentials: ['google_oauth2', 'postgres'],
+    is_default: true,
+  },
+  {
+    template_id: 'reply_tracker',
+    template_name: 'reply_tracker',
+    display_name: 'Reply Tracker',
+    category: 'tracking',
+    // Gmail trigger + Google Sheets + Supabase write-back
+    required_credentials: ['google_oauth2', 'postgres'],
+    is_default: true,
+  },
+  {
+    template_id: 'opt_out',
+    template_name: 'opt_out',
+    display_name: 'Opt-Out Handler',
+    category: 'compliance',
+    // Webhook receives unsubscribes, writes to Google Sheets + Supabase
+    required_credentials: ['google_oauth2', 'postgres'],
     is_default: true,
   },
 ];
