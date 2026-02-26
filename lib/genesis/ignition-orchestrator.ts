@@ -252,9 +252,80 @@ export class IgnitionOrchestrator {
 
   /**
    * Main ignition method - provisions complete Sovereign Stack.
+   *
+   * Idempotency guard (D1-006):
+   *   - If the workspace is already `active`, return early success.
+   *   - If an ignition is in-progress, reject to prevent double-provisioning.
+   *   - If the previous attempt `failed`, clear old state and retry.
    */
   async ignite(config: IgnitionConfig): Promise<IgnitionResult> {
     const startTime = Date.now();
+
+    // ── Idempotency guard ─────────────────────────────────────────────
+    const existing = await this.stateDB.load(config.workspace_id);
+
+    if (existing) {
+      // Already fully provisioned – nothing to do.
+      if (existing.status === 'active') {
+        await this.stateDB.logOperation({
+          workspace_id: config.workspace_id,
+          operation: 'ignite',
+          status: 'skipped',
+          result: { reason: 'already_active' },
+        });
+        return {
+          success: true,
+          workspace_id: config.workspace_id,
+          partition_name: existing.partition_name,
+          droplet_id: existing.droplet_id,
+          droplet_ip: existing.droplet_ip,
+          workflow_ids: existing.workflow_ids,
+          credential_count: existing.credential_ids.length,
+          duration_ms: Date.now() - startTime,
+          steps_completed: existing.total_steps,
+        };
+      }
+
+      // Another ignition (or rollback) is still running – reject.
+      const inProgressStatuses: IgnitionStatus[] = [
+        'pending',
+        'partition_creating',
+        'droplet_provisioning',
+        'handshake_pending',
+        'credentials_injecting',
+        'workflows_deploying',
+        'activating',
+        'rollback_in_progress',
+      ];
+      if (inProgressStatuses.includes(existing.status)) {
+        await this.stateDB.logOperation({
+          workspace_id: config.workspace_id,
+          operation: 'ignite',
+          status: 'rejected',
+          result: { reason: 'in_progress', current_status: existing.status },
+        });
+        return {
+          success: false,
+          workspace_id: config.workspace_id,
+          duration_ms: Date.now() - startTime,
+          steps_completed: existing.current_step,
+          error: `Ignition already in progress (status: ${existing.status})`,
+          error_step: existing.status,
+        };
+      }
+
+      // Previous attempt failed – clean up and allow retry.
+      if (existing.status === 'failed') {
+        await this.stateDB.logOperation({
+          workspace_id: config.workspace_id,
+          operation: 'ignite',
+          status: 'retrying',
+          result: { reason: 'previous_failed', previous_error: existing.error_message },
+        });
+        await this.stateDB.delete(config.workspace_id);
+      }
+    }
+    // ── End idempotency guard ─────────────────────────────────────────
 
     // Initialize state
     const state: IgnitionState = {

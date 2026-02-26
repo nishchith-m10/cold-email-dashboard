@@ -17,7 +17,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "notes": "IgnitionState interface at ignition-types.ts line 162. IgnitionStateDB interface at ignition-orchestrator.ts line 60."
     },
     {
@@ -35,7 +35,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Use (supabaseAdmin as any).schema('genesis') pattern since genesis schema types may not be in Database type."
     },
     {
@@ -51,7 +51,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "fn_ignite_workspace_partition already handles sanitization, advisory locking, and idempotency."
     },
     {
@@ -68,7 +68,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "SidecarCommandBuilder in lib/genesis/sidecar-commands.ts. Sidecar at port 3001. JWT in X-Genesis-JWT header."
     },
     {
@@ -83,7 +83,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Sidecar /health returns { status:'ok', uptime, workspace_id, droplet_id, smtp_enabled }."
     },
     {
