@@ -508,8 +508,19 @@ export class SidecarAgent {
     console.log('\n📧 Phase 64.B: Deploying campaign workflows...');
     console.log(`   Workspace: ${payload.workspace_id}`);
     console.log(`   Campaign: ${payload.campaign_name}`);
-    
-    const result = await this.workflowDeployer.deployWorkflows(payload);
+
+    // Inject the public n8n URL so templates can build opt-out/webhook links.
+    // Callers may already supply it; if not, fall back to N8N_PUBLIC_URL env var
+    // (the externally-reachable URL of the droplet's n8n instance) or N8N_URL.
+    const enrichedPayload: WorkflowDeploymentRequest = {
+      ...payload,
+      n8n_instance_url:
+        payload.n8n_instance_url ??
+        process.env.N8N_PUBLIC_URL ??
+        this.config.n8nUrl,
+    };
+
+    const result = await this.workflowDeployer.deployWorkflows(enrichedPayload);
     
     // If SMTP provider, update SMTP environment
     if (!result.success && result.error?.includes('smtp')) {

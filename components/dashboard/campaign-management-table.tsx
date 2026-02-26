@@ -371,7 +371,7 @@ export function CampaignManagementTable({
                                   : <ChevronRight className="h-4 w-4 text-text-secondary shrink-0" />}
                                 <Layers className="h-4 w-4 text-accent-primary shrink-0" />
                                 <span className="font-medium text-text-primary">{row.groupName}</span>
-                                <Badge variant="outline" className="text-xs font-normal ml-1">
+                                <Badge variant="secondary" className="text-xs font-normal ml-1">
                                   {row.campaigns.length} sequences
                                 </Badge>
                               </div>
@@ -521,7 +521,7 @@ export function CampaignManagementTable({
                           {/* Group column */}
                           <td className="px-6 py-4 text-sm">
                             {campaign.campaign_group_id ? (
-                              <Badge variant="outline" className="text-xs font-normal">
+                              <Badge variant="secondary" className="text-xs font-normal">
                                 {groupMap[campaign.campaign_group_id] ?? '—'}
                               </Badge>
                             ) : (
