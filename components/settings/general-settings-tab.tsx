@@ -17,7 +17,7 @@ import { TimezoneSelector } from '@/components/dashboard/timezone-selector';
 import { Save, Loader2 } from 'lucide-react';
 
 export function GeneralSettingsTab() {
-  const { workspace } = useWorkspace();
+  const { workspace, renameWorkspace } = useWorkspace();
   const { settings, isLoading, updateSettings } = useWorkspaceSettings();
   const canWrite = usePermission('write');
 
@@ -31,7 +31,9 @@ export function GeneralSettingsTab() {
   // Load settings into form
   useEffect(() => {
     if (settings) {
-      setWorkspaceName(settings.workspace_name || workspace?.name || '');
+      // Always derive display name from workspaces.name — never from the
+      // stale workspace_settings.workspace_name override column.
+      setWorkspaceName(workspace?.name || '');
       setTimezone(settings.timezone || 'America/Los_Angeles');
       setDateFormat(settings.date_format || 'US');
       setCurrency(settings.currency || 'USD');
@@ -42,8 +44,18 @@ export function GeneralSettingsTab() {
     setIsSaving(true);
     setSaveMessage(null);
 
+    // Rename the workspace if the name changed
+    if (workspace && workspaceName.trim() && workspaceName.trim() !== workspace.name) {
+      const renameResult = await renameWorkspace(workspace.id, workspaceName.trim());
+      if (!renameResult.success) {
+        setIsSaving(false);
+        setSaveMessage({ type: 'error', text: renameResult.error || 'Failed to rename workspace' });
+        return;
+      }
+    }
+
+    // Save the remaining preferences (timezone, date_format, currency)
     const result = await updateSettings({
-      workspace_name: workspaceName,
       timezone,
       date_format: dateFormat,
       currency,
