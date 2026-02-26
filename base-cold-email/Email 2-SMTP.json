@@ -141,8 +141,8 @@
               "canBeUsedToMatch": false
             },
             {
-              "id": "email_adress",
-              "displayName": "email_adress",
+              "id": "email_address",
+              "displayName": "email_address",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -540,8 +540,8 @@
               "canBeUsedToMatch": false
             },
             {
-              "id": "email_adress",
-              "displayName": "email_adress",
+              "id": "email_address",
+              "displayName": "email_address",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -905,7 +905,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const UNSUB_BASE = '{{ $env.DASHBOARD_URL }}/webhook/Unsubscribe';\nconst row = items[0]?.json || {};\nconst keys = Object.keys(row);\nconst clean = {};\nfor (const k of keys) clean[k.trim()] = row[k];\n\nconst pick = (...candidates) => {\n  for (const c of candidates) {\n    if (c in clean && clean[c] != null && `${clean[c]}`.trim() !== '') return `${clean[c]}`.trim();\n  }\n  return '';\n};\n\nconst recipientEmail = pick('email_adress', 'email_address', 'Email Address', 'Email address', 'email');\nconst senderEmail    = pick('sender_email', 'From', 'from');\nconst token          = pick('Token', 'token', 'Tkn', 'tkn');\nconst messageId      = pick('provider_message_id', 'message_id', 'Message-ID', 'messageId');\nconst subj1 = pick('email_1_subject', 'Email 1 Subject', 'Subject', 'subject');\nconst subj2 = pick('email_2_subject', 'Email 2 Subject') || (subj1 ? `Re: ${subj1}` : 'Following up');\nconst body2 = pick('email_2_body', 'email_2_Body', 'EmailBody', 'Body') || 'Thank you for your time.';\n\nif (!recipientEmail) throw new Error('Missing \"email_address\" (recipient).');\nif (!senderEmail)    throw new Error('Missing \"sender_email\".');\n\nconst unsubUrl = `${UNSUB_BASE}?tkn=${encodeURIComponent(token || '')}`;\nconst htmlBody = `${body2}<br><br><a href=\"${unsubUrl}\">Click Here to Unsubscribe</a>`;\n\n// Build headers with threading support\nconst headers = [\n  `Subject: ${subj2}`,\n  `From: ${senderEmail}`,\n  `To: ${recipientEmail}`,\n  'MIME-Version: 1.0',\n  'Content-Type: text/html; charset=\"UTF-8\"',\n];\n\n// Add threading headers if we have the original message ID\nif (messageId) {\n  headers.push(`In-Reply-To: ${messageId}`);\n  headers.push(`References: ${messageId}`);\n}\n\nconst emailContent = `${headers.join('\\n')}\\n\\n${htmlBody}`;\nconst raw = Buffer.from(emailContent)\n  .toString('base64')\n  .replace(/\\+/g, '-')\n  .replace(/\\//g, '_')\n  .replace(/=+$/, '');\n\nreturn [{ \n  json: { \n    raw, \n    to: recipientEmail, \n    subject: subj2, \n    email_2_body: body2,\n    original_message_id: messageId || null\n  } \n}];"
+        "jsCode": "const UNSUB_BASE = '{{ $env.DASHBOARD_URL }}/webhook/Unsubscribe';\nconst row = items[0]?.json || {};\nconst keys = Object.keys(row);\nconst clean = {};\nfor (const k of keys) clean[k.trim()] = row[k];\n\nconst pick = (...candidates) => {\n  for (const c of candidates) {\n    if (c in clean && clean[c] != null && `${clean[c]}`.trim() !== '') return `${clean[c]}`.trim();\n  }\n  return '';\n};\n\nconst recipientEmail = pick('email_address', 'email_address', 'Email Address', 'Email address', 'email');\nconst senderEmail    = pick('sender_email', 'From', 'from');\nconst token          = pick('Token', 'token', 'Tkn', 'tkn');\nconst messageId      = pick('provider_message_id', 'message_id', 'Message-ID', 'messageId');\nconst subj1 = pick('email_1_subject', 'Email 1 Subject', 'Subject', 'subject');\nconst subj2 = pick('email_2_subject', 'Email 2 Subject') || (subj1 ? `Re: ${subj1}` : 'Following up');\nconst body2 = pick('email_2_body', 'email_2_Body', 'EmailBody', 'Body') || 'Thank you for your time.';\n\nif (!recipientEmail) throw new Error('Missing \"email_address\" (recipient).');\nif (!senderEmail)    throw new Error('Missing \"sender_email\".');\n\nconst unsubUrl = `${UNSUB_BASE}?tkn=${encodeURIComponent(token || '')}`;\nconst htmlBody = `${body2}<br><br><a href=\"${unsubUrl}\">Click Here to Unsubscribe</a>`;\n\n// Build headers with threading support\nconst headers = [\n  `Subject: ${subj2}`,\n  `From: ${senderEmail}`,\n  `To: ${recipientEmail}`,\n  'MIME-Version: 1.0',\n  'Content-Type: text/html; charset=\"UTF-8\"',\n];\n\n// Add threading headers if we have the original message ID\nif (messageId) {\n  headers.push(`In-Reply-To: ${messageId}`);\n  headers.push(`References: ${messageId}`);\n}\n\nconst emailContent = `${headers.join('\\n')}\\n\\n${htmlBody}`;\nconst raw = Buffer.from(emailContent)\n  .toString('base64')\n  .replace(/\\+/g, '-')\n  .replace(/\\//g, '_')\n  .replace(/=+$/, '');\n\nreturn [{ \n  json: { \n    raw, \n    to: recipientEmail, \n    subject: subj2, \n    email_2_body: body2,\n    original_message_id: messageId || null\n  } \n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1080,7 +1080,7 @@
           "parameters": [
             {
               "name": "contact_email",
-              "value": "={{ $('Select Leads for Email 2').item.json.email_adress }}"
+              "value": "={{ $('Select Leads for Email 2').item.json.email_address }}"
             },
             {
               "name": "campaign ",
@@ -1144,7 +1144,7 @@
     },
     {
       "parameters": {
-        "url": "=http://127.0.0.1:3847/check-reply?email={{ encodeURIComponent($json['email_adress'].trim()) }}&message_id={{ $json.message_id }}\n",
+        "url": "=http://127.0.0.1:3847/check-reply?email={{ encodeURIComponent($json['email_address'].trim()) }}&message_id={{ $json.message_id }}\n",
         "options": {
           "response": {
             "response": {
@@ -1201,7 +1201,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================\n// EMAIL 2 CLICK TRACKING (RAW Format)\n// Wraps links with click tracking URLs\n// NO OPEN TRACKING (removed for accuracy)\n// ============================================\n\nconst DASHBOARD_URL = 'https://cold-email-dashboard.vercel.app';\nconst WORKSPACE_ID = 'default';\n\nconst rawBase64 = $json.raw;\nconst contactEmail = $('Select Leads for Email 2').item.json.email_address || '';\nconst campaign = 'Ohio';\nconst step = 2;\n\n// Decode the base64url raw email\nlet decodedEmail = Buffer.from(\n  rawBase64.replace(/-/g, '+').replace(/_/g, '/'),\n  'base64'\n).toString('utf-8');\n\n// Split headers and body\nconst emailParts = decodedEmail.split('\\n\\n');\nconst headers = emailParts[0];\nlet body = emailParts.slice(1).join('\\n\\n');\n\n// \u2705 CLICK TRACKING: Wrap all links with tracking URLs\nfunction wrapLink(originalUrl, linkId) {\n  return `${DASHBOARD_URL}/api/track/click?url=${encodeURIComponent(originalUrl)}&e=${encodeURIComponent(contactEmail)}&c=${encodeURIComponent(campaign)}&s=${step}&l=${encodeURIComponent(linkId || 'cta')}&w=${encodeURIComponent(WORKSPACE_ID)}`;\n}\n\nconst linkRegex = /<a\\s+([^>]*?)href=[\"']([^\"']+)[\"']([^>]*?)>/gi;\nlet linkIndex = 0;\n\nbody = body.replace(linkRegex, (match, before, url, after) => {\n  if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('#')) return match;\n  linkIndex++;\n  return `<a ${before}href=\"${wrapLink(url, 'link_' + linkIndex)}\"${after}>`;\n});\n\n// Reconstruct the email (NO open tracking pixel)\nconst trackedEmailContent = `${headers}\\n\\n${body}`;\n\n// Re-encode to base64url\nconst trackedRaw = Buffer.from(trackedEmailContent)\n  .toString('base64')\n  .replace(/\\+/g, '-')\n  .replace(/\\//g, '_')\n  .replace(/=+$/, '');\n\n// Return updated item with tracked raw and metadata\nreturn [\n  {\n    json: {\n      ...$json,\n      raw: trackedRaw,\n      original_raw: rawBase64,\n      tracked_body: body,\n      links_tracked: linkIndex\n    }\n  }\n];"
+        "jsCode": "// ============================================\n// EMAIL 2 CLICK TRACKING (RAW Format)\n// Wraps links with click tracking URLs\n// NO OPEN TRACKING (removed for accuracy)\n// ============================================\n\nconst DASHBOARD_URL = 'YOUR_DASHBOARD_URL';\nconst WORKSPACE_ID = 'default';\n\nconst rawBase64 = $json.raw;\nconst contactEmail = $('Select Leads for Email 2').item.json.email_address || '';\nconst campaign = 'YOUR_CAMPAIGN_NAME';\nconst step = 2;\n\n// Decode the base64url raw email\nlet decodedEmail = Buffer.from(\n  rawBase64.replace(/-/g, '+').replace(/_/g, '/'),\n  'base64'\n).toString('utf-8');\n\n// Split headers and body\nconst emailParts = decodedEmail.split('\\n\\n');\nconst headers = emailParts[0];\nlet body = emailParts.slice(1).join('\\n\\n');\n\n// \u2705 CLICK TRACKING: Wrap all links with tracking URLs\nfunction wrapLink(originalUrl, linkId) {\n  return `${DASHBOARD_URL}/api/track/click?url=${encodeURIComponent(originalUrl)}&e=${encodeURIComponent(contactEmail)}&c=${encodeURIComponent(campaign)}&s=${step}&l=${encodeURIComponent(linkId || 'cta')}&w=${encodeURIComponent(WORKSPACE_ID)}`;\n}\n\nconst linkRegex = /<a\\s+([^>]*?)href=[\"']([^\"']+)[\"']([^>]*?)>/gi;\nlet linkIndex = 0;\n\nbody = body.replace(linkRegex, (match, before, url, after) => {\n  if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('#')) return match;\n  linkIndex++;\n  return `<a ${before}href=\"${wrapLink(url, 'link_' + linkIndex)}\"${after}>`;\n});\n\n// Reconstruct the email (NO open tracking pixel)\nconst trackedEmailContent = `${headers}\\n\\n${body}`;\n\n// Re-encode to base64url\nconst trackedRaw = Buffer.from(trackedEmailContent)\n  .toString('base64')\n  .replace(/\\+/g, '-')\n  .replace(/\\//g, '_')\n  .replace(/=+$/, '');\n\n// Return updated item with tracked raw and metadata\nreturn [\n  {\n    json: {\n      ...$json,\n      raw: trackedRaw,\n      original_raw: rawBase64,\n      tracked_body: body,\n      links_tracked: linkIndex\n    }\n  }\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

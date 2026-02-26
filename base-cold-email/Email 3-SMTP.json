@@ -580,8 +580,8 @@
               "removed": true
             },
             {
-              "id": "email_adress",
-              "displayName": "email_adress",
+              "id": "email_address",
+              "displayName": "email_address",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1569,7 +1569,7 @@
           "conditions": [
             {
               "id": "4c80e4dd-968d-41a9-875d-cb722bc659e8",
-              "leftValue": "={{ $json['email_adress'] }}",
+              "leftValue": "={{ $json['email_address'] }}",
               "rightValue": "",
               "operator": {
                 "type": "string",
@@ -1602,7 +1602,7 @@
     },
     {
       "parameters": {
-        "url": "=http://127.0.0.1:3847/check-reply?email={{ encodeURIComponent($json['email_adress'].trim()) }}&message_id={{ $json.message_id }}",
+        "url": "=http://127.0.0.1:3847/check-reply?email={{ encodeURIComponent($json['email_address'].trim()) }}&message_id={{ $json.message_id }}",
         "options": {
           "response": {
             "response": {
@@ -1626,7 +1626,7 @@
         "url": "http://127.0.0.1:3847/send",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ to: $json.email_adress, subject: $json.email_3_subject, htmlBody: $json.tracked_body, from: $json.sender_email, inReplyTo: $json.message_id }) }}\n",
+        "jsonBody": "={{ JSON.stringify({ to: $json.email_address, subject: $json.email_3_subject, htmlBody: $json.tracked_body, from: $json.sender_email, inReplyTo: $json.message_id }) }}\n",
         "options": {
           "response": {
             "response": {
@@ -1665,7 +1665,7 @@
           "parameters": [
             {
               "name": "contact_email",
-              "value": "={{ $('Select Leads for Email 3').item.json.email_adress }}"
+              "value": "={{ $('Select Leads for Email 3').item.json.email_address }}"
             },
             {
               "name": "campaign ",
