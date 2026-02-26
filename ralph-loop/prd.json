@@ -1,11 +1,11 @@
 {
   "project": "cold-email-dashboard",
-  "branchName": "ralph/domain1-ignition-infrastructure",
-  "description": "Domain 1: Ignition Orchestrator — Replace mock implementations with production Supabase-backed infrastructure for workspace provisioning",
+  "branchName": "ralph/domain2-templates-workflow-deployer",
+  "description": "Domain 2: DEFAULT_TEMPLATES & Workflow Deployer — Harden template deployment with credential validation, placeholder scanning, Sidecar alignment, and explicit empty-value handling",
   "userStories": [
     {
-      "id": "D1-001",
-      "title": "Create genesis.ignition_state and genesis.ignition_operations tables",
+      "id": "D2-001",
+      "title": "Gate Sidecar auto-deploy and document orchestrator-first architecture",
       "description": "Create the database migration that defines the ignition_state table (primary state persistence for the ignition orchestrator) and the ignition_operations table (audit trail of individual operations). Both tables live in the genesis schema with RLS policies.",
       "acceptanceCriteria": [
         "Migration file exists at supabase/migrations/20260226_domain1_ignition_state_tables.sql",

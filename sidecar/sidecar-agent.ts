@@ -307,7 +307,20 @@ export class SidecarAgent {
 
         case 'DEPLOY_CAMPAIGN_WORKFLOWS':
           // Phase 64.B: Deploy provider-specific workflows
-          result = await this.handleDeployCampaignWorkflows(command.payload);
+          // D2-001: Gated behind SIDECAR_AUTO_DEPLOY env var.
+          // The orchestrator (ignition-orchestrator.ts) is the primary deployment
+          // path — it deploys all 7 templates via DEPLOY_WORKFLOW commands with
+          // full variable substitution done dashboard-side.  This Sidecar-side
+          // deployer is a FALLBACK path only.  Set SIDECAR_AUTO_DEPLOY=true to
+          // enable it; default is disabled to prevent duplicate deployments.
+          if (process.env.SIDECAR_AUTO_DEPLOY !== 'true') {
+            result = {
+              success: false,
+              error: 'DEPLOY_CAMPAIGN_WORKFLOWS is disabled. Set SIDECAR_AUTO_DEPLOY=true to enable the Sidecar-side deployer. The orchestrator handles deployment by default.',
+            };
+          } else {
+            result = await this.handleDeployCampaignWorkflows(command.payload);
+          }
           break;
 
         case 'UPDATE_WORKFLOW':
