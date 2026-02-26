@@ -90,7 +90,7 @@
           "conditions": [
             {
               "id": "4c80e4dd-968d-41a9-875d-cb722bc659e8",
-              "leftValue": "={{ $json.email_adress }}",
+              "leftValue": "={{ $json.email_address }}",
               "rightValue": "",
               "operator": {
                 "type": "string",
@@ -137,7 +137,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// EMAIL 1 CLICK TRACKING\nconst DASHBOARD_URL = 'YOUR_DASHBOARD_URL';\nconst UNSUB_BASE = 'YOUR_N8N_INSTANCE_URL/webhook/Unsubscribe';\nconst WORKSPACE_ID = 'default';\n\nconst emailBody = $json.email_1_body || '';\nconst contactEmail = $json.email_adress || '';\nconst token = $json.Token || '';\nconst campaign = 'YOUR_CAMPAIGN_NAME';\nconst step = 1;\n\n// \u2705 CLICK TRACKING: Wrap all links\nfunction wrapLink(originalUrl, linkId) {\n  return `${DASHBOARD_URL}/api/track/click?url=${encodeURIComponent(originalUrl)}&e=${encodeURIComponent(contactEmail)}&c=${encodeURIComponent(campaign)}&s=${step}&l=${encodeURIComponent(linkId || 'cta')}&w=${encodeURIComponent(WORKSPACE_ID)}`;\n}\n\nlet trackedBody = emailBody;\nconst linkRegex = /<a\\s+([^>]*?)href=[\"']([^\"']+)[\"']([^>]*?)>/gi;\nlet linkIndex = 0;\n\n// Wrap all links in email body\ntrackedBody = trackedBody.replace(linkRegex, (match, before, url, after) => {\n  if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('#')) return match;\n  linkIndex++;\n  return `<a ${before}href=\"${wrapLink(url, 'link_' + linkIndex)}\"${after}>`;\n});\n\n// Add unsubscribe link with click tracking\nconst unsubUrl = `${UNSUB_BASE}?tkn=${encodeURIComponent(token)}`;\nconst trackedUnsubUrl = wrapLink(unsubUrl, 'unsubscribe');\ntrackedBody += `<br><br><a href=\"${trackedUnsubUrl}\">Click Here to Unsubscribe</a>`;\n\nreturn [{\n  json: {\n    ...$json,\n    tracked_body: trackedBody,\n    links_tracked: linkIndex + 1\n  }\n}];"
+        "jsCode": "// EMAIL 1 CLICK TRACKING\nconst DASHBOARD_URL = 'YOUR_DASHBOARD_URL';\nconst UNSUB_BASE = 'YOUR_N8N_INSTANCE_URL/webhook/Unsubscribe';\nconst WORKSPACE_ID = 'default';\n\nconst emailBody = $json.email_1_body || '';\nconst contactEmail = $json.email_address || '';\nconst token = $json.Token || '';\nconst campaign = 'YOUR_CAMPAIGN_NAME';\nconst step = 1;\n\n// \u2705 CLICK TRACKING: Wrap all links\nfunction wrapLink(originalUrl, linkId) {\n  return `${DASHBOARD_URL}/api/track/click?url=${encodeURIComponent(originalUrl)}&e=${encodeURIComponent(contactEmail)}&c=${encodeURIComponent(campaign)}&s=${step}&l=${encodeURIComponent(linkId || 'cta')}&w=${encodeURIComponent(WORKSPACE_ID)}`;\n}\n\nlet trackedBody = emailBody;\nconst linkRegex = /<a\\s+([^>]*?)href=[\"']([^\"']+)[\"']([^>]*?)>/gi;\nlet linkIndex = 0;\n\n// Wrap all links in email body\ntrackedBody = trackedBody.replace(linkRegex, (match, before, url, after) => {\n  if (url.startsWith('mailto:') || url.startsWith('tel:') || url.startsWith('#')) return match;\n  linkIndex++;\n  return `<a ${before}href=\"${wrapLink(url, 'link_' + linkIndex)}\"${after}>`;\n});\n\n// Add unsubscribe link with click tracking\nconst unsubUrl = `${UNSUB_BASE}?tkn=${encodeURIComponent(token)}`;\nconst trackedUnsubUrl = wrapLink(unsubUrl, 'unsubscribe');\ntrackedBody += `<br><br><a href=\"${trackedUnsubUrl}\">Click Here to Unsubscribe</a>`;\n\nreturn [{\n  json: {\n    ...$json,\n    tracked_body: trackedBody,\n    links_tracked: linkIndex + 1\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -255,8 +255,8 @@
               "removed": true
             },
             {
-              "id": "email_adress",
-              "displayName": "email_adress",
+              "id": "email_address",
+              "displayName": "email_address",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -687,8 +687,8 @@
               "canBeUsedToMatch": false
             },
             {
-              "id": "email_adress",
-              "displayName": "email_adress",
+              "id": "email_address",
+              "displayName": "email_address",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1023,7 +1023,7 @@
         "url": "http://127.0.0.1:3847/send",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"to\": {{ JSON.stringify($json.email_adress.trim()) }},\n  \"subject\": {{ JSON.stringify($json.email_1_subject) }},\n  \"htmlBody\": {{ JSON.stringify($json.email_1_body) }}\n}\n",
+        "jsonBody": "={\n  \"to\": {{ JSON.stringify($json.email_address.trim()) }},\n  \"subject\": {{ JSON.stringify($json.email_1_subject) }},\n  \"htmlBody\": {{ JSON.stringify($json.email_1_body) }}\n}\n",
         "options": {
           "response": {
             "response": {
