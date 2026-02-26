@@ -528,7 +528,7 @@
           "parameters": [
             {
               "name": "Opt Out Event",
-              "value": "={\n  \"contact_email\": {{ $('Opted-Out').item.json.email_address }},\n  \"campaign\": \"Ohio\",\n  \"event_type\": \"opt_out\",\n  \"event_ts\": {{ new Date().toISOString() }},\n  \"idempotency_key\": {{ `optout_${$execution.id}_${$('Opted-Out').item.json.email_address}` }},\n  \"n8n_execution_id\": {{ $execution.id }}\n}"
+              "value": "={\n  \"contact_email\": {{ $('Opted-Out').item.json.email_address }},\n  \"campaign\": \"YOUR_CAMPAIGN_NAME\",\n  \"event_type\": \"opt_out\",\n  \"event_ts\": {{ new Date().toISOString() }},\n  \"idempotency_key\": {{ `optout_${$execution.id}_${$('Opted-Out').item.json.email_address}` }},\n  \"n8n_execution_id\": {{ $execution.id }}\n}"
             }
           ]
         },

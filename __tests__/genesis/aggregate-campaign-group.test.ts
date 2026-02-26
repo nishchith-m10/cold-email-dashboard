@@ -186,7 +186,7 @@ describe('GET /api/dashboard/aggregate — campaign_group_id filter', () => {
     awaitableChain.order.mockReturnThis();
     awaitableChain.limit.mockReturnThis();
     awaitableChain.range.mockReturnThis();
-    awaitableChain.maybeSingle.mockResolvedValue({ data: null, error: null });
+    awaitableChain.maybeSingle.mockResolvedValue({ data: { id: GROUP_ID, name: 'Test Group' }, error: null });
     awaitableChain.single.mockResolvedValue({ data: null, error: null });
 
     const { supabaseAdmin } = require('@/lib/supabase');

@@ -51,6 +51,7 @@ export interface WorkflowDeploymentRequest {
 
   // --- Content variables ---
   leads_table?: string;          // e.g. "leads_ohio"
+  n8n_instance_url?: string;     // public URL of this tenant's n8n (for webhook/unsubscribe links)
   webhook_token?: string;
   company_name?: string;
   sender_name?: string;
@@ -317,6 +318,8 @@ export class WorkflowDeployer {
       YOUR_CREDENTIAL_GOOGLE_CSE_QUERY_ID: request.credential_google_cse_query_id ?? '',
 
       YOUR_LEADS_TABLE:            request.leads_table ?? 'leads_default',
+      YOUR_CAMPAIGN_NAME:          request.campaign_name,
+      YOUR_N8N_INSTANCE_URL:       request.n8n_instance_url ?? '',
       YOUR_WEBHOOK_TOKEN:          request.webhook_token ?? '',
       YOUR_DASHBOARD_URL:          request.dashboard_url,
       YOUR_COMPANY_NAME:           request.company_name ?? '',
