@@ -356,20 +356,70 @@ export class IgnitionOrchestrator {
         }
       );
 
-      // STEP 3: Wait for handshake (Phase 42 - placeholder for now)
+      // STEP 3: Wait for Sidecar health check
       this.checkCancellation(config.workspace_id);
       await this.executeStep(
         state,
         'handshake_pending',
         3,
         async () => {
-          // In Phase 42, we'll implement the actual handshake wait
-          // For now, we assume the Sidecar will be ready after boot
-          if (this.handshakeDelayMs > 0) {
-            await this.sleep(this.handshakeDelayMs);
+          const sidecarUrl = state.droplet_ip
+            ? `http://${state.droplet_ip}:3001`
+            : undefined;
+
+          if (!sidecarUrl) {
+            throw new IgnitionError(
+              'No droplet IP available for health check',
+              'handshake_pending',
+              config.workspace_id
+            );
           }
-          
-          // Mock webhook URL (Phase 42 will provide actual URL)
+
+          const isLocal = config.local_mode || process.env.LOCAL_MODE === 'true';
+          const pollIntervalMs = isLocal ? 1000 : 5000;
+          const maxWaitMs = isLocal ? 30000 : (STEP_TIMEOUTS.handshake_pending || 300000);
+          const started = Date.now();
+          let healthy = false;
+
+          while (Date.now() - started < maxWaitMs) {
+            this.checkCancellation(config.workspace_id);
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 5000);
+              const resp = await fetch(`${sidecarUrl}/health`, {
+                signal: controller.signal,
+              });
+              clearTimeout(timeoutId);
+
+              if (resp.ok) {
+                const body = await resp.json() as { status?: string };
+                if (body.status === 'ok') {
+                  healthy = true;
+                  break;
+                }
+              }
+            } catch {
+              // Sidecar not ready yet — continue polling
+            }
+
+            this.emitEvent({
+              type: 'step_progress',
+              workspace_id: config.workspace_id,
+              step: 'handshake_pending',
+              message: `Waiting for Sidecar... (${Math.round((Date.now() - started) / 1000)}s)`,
+            });
+
+            await this.sleep(pollIntervalMs);
+          }
+
+          if (!healthy) {
+            throw new IgnitionError(
+              `Sidecar did not become healthy within ${Math.round(maxWaitMs / 1000)}s`,
+              'handshake_pending',
+              config.workspace_id
+            );
+          }
+
           state.webhook_url = `https://${state.droplet_ip}.sslip.io/webhook`;
         }
       );
