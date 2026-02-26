@@ -116,3 +116,21 @@ Started: 2026-02-11
   - useRestoreSnapshot params: { snapshotId, targetRegion } — both strings
   - Only show Restore for `snapshot.status === 'completed'` — failed/pending snapshots can't be restored
 ---
+
+## 2026-02-26 - Domain 1: Ignition Infrastructure (D1-001 → D1-008)
+- Branch: `ralph/domain1-ignition-infrastructure`
+- All 8 stories implemented, typechecked (0 errors), committed
+- **D1-001** (82b05be): DB migration — genesis.ignition_state + genesis.ignition_operations tables, RLS, indexes, trigger
+- **D1-002** (cd1ca8b): SupabaseIgnitionStateDB — production IgnitionStateDB impl, genesis schema access
+- **D1-003** (75edd4c): SupabasePartitionManager — delegates to fn_ignite/fn_drop_workspace_partition RPCs
+- **D1-004** (7393cc4): HttpSidecarClient — RS256 JWT-signed commands with exponential-backoff retry
+- **D1-005** (e133919): Health-check handshake — polls /health every 5s, timeout 5min (30s local)
+- **D1-006** (e84539f): Idempotency guard — prevents double-provisioning at ignite() entry
+- **D1-007** (7156105): Real workflow rollback — deactivate+delete via sidecar instead of counter stub
+- **D1-008** (cd6bf6e): Per-credential retry — retryTransient() with 2s/4s backoff, transient vs permanent
+- **Learnings:**
+  - `(getTypedSupabaseAdmin() as any).schema('genesis')` pattern for genesis tables outside Database type
+  - `get_errors` tool is more reliable than `npx tsc --noEmit` terminal for this project
+  - SidecarCommandBuilder handles JWT signing; always use it (don't roll custom JWT)
+  - Rollback needs dropletIp param — state has it but CreatedResources doesn't
+---
