@@ -3,6 +3,8 @@ import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getWorkspaceAccess } from '@/lib/workspace-access';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_STRICT } from '@/lib/rate-limit';
+import { deployForCampaign } from '@/lib/genesis/campaign-workflow-deployer';
+import { HttpWorkflowDeployer } from '@/lib/genesis/ignition-orchestrator';
 
 export const dynamic = 'force-dynamic';
 
@@ -129,12 +131,76 @@ export async function POST(req: NextRequest) {
       // Don't fail - campaign was created, status tracking is secondary
     }
 
+    // Step 3 (D3-001): If the workspace has an active ignition, deploy
+    // campaign-specific workflows in the background. Deployment errors are
+    // logged but do NOT fail the provision response — the campaign row is
+    // already persisted and the UI can show a "deploying" state.
+    let deployResult: { success: boolean; workflow_ids?: string[]; error?: string } | null = null;
+
+    // Look up workspace identity (name + slug) for workflow naming
+    const { data: wsRow } = await supabaseAdmin
+      .from('workspaces')
+      .select('name, slug')
+      .eq('id', workspaceId)
+      .maybeSingle();
+
+    // Check if the workspace has an active ignition (partition_registry.status = 'active')
+    const { data: registryRow } = await supabaseAdmin
+      .schema('genesis')
+      .from('partition_registry')
+      .select('status')
+      .eq('workspace_id', workspaceId)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (registryRow && wsRow) {
+      try {
+        // Build a lightweight SidecarClient from fetch for HttpWorkflowDeployer
+        const sidecarClient = {
+          async sendCommand(dropletIp: string, command: { action: string; payload: unknown }) {
+            const resp = await fetch(`http://${dropletIp}:3001/command`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(command),
+            });
+            return resp.json();
+          },
+        };
+
+        const deployer = new HttpWorkflowDeployer(sidecarClient);
+
+        deployResult = await deployForCampaign(
+          {
+            workspace_id: workspaceId,
+            workspace_name: wsRow.name,
+            workspace_slug: wsRow.slug,
+            campaign_id: campaignId,
+            campaign_name: name.trim(),
+          },
+          { supabaseAdmin, workflowDeployer: deployer }
+        );
+
+        if (deployResult.success && deployResult.workflow_ids && deployResult.workflow_ids.length > 0) {
+          // Persist workflow IDs on the campaign row for lifecycle management
+          await supabaseAdmin
+            .from('campaigns')
+            .update({ n8n_workflow_ids: deployResult.workflow_ids, n8n_status: 'active' })
+            .eq('id', campaignId);
+        } else if (deployResult && !deployResult.success) {
+          console.warn(`[D3-001] Campaign workflow deploy failed for ${campaignId}: ${deployResult.error}`);
+        }
+      } catch (deployErr) {
+        console.error('[D3-001] Campaign workflow deploy error:', deployErr);
+      }
+    }
+
     // Return success with IDs for tracking
     return NextResponse.json({
       success: true,
       campaignId,
       provisionId,
       message: 'Campaign created. Provisioning in progress.',
+      workflowsDeployed: deployResult?.success ?? false,
     }, { status: 201, headers: API_HEADERS });
 
   } catch (error) {
