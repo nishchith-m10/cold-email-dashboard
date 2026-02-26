@@ -98,7 +98,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Terminal states: active, failed. All others are in-progress."
     },
     {
@@ -113,7 +113,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Sidecar supports DELETE_WORKFLOW command. Current rollback just increments counter."
     },
     {
@@ -129,7 +129,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Step 4 credential loop starts around line 410 in ignition-orchestrator.ts."
     }
   ]
