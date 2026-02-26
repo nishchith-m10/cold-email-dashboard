@@ -366,6 +366,13 @@ async function fetchAggregateData(
     .select('id, name')
     .eq('workspace_id', workspaceId);
 
+  // 11. (D3-004) Campaign list from source-of-truth campaigns table
+  const campaignsListQuery = supabaseAdmin
+    .from('campaigns')
+    .select('name, status')
+    .eq('workspace_id', workspaceId)
+    .order('name', { ascending: true });
+
   // Apply campaign filter to step breakdown query
   if (campaign) {
     stepBreakdownQuery = stepBreakdownQuery.eq('campaign_name', campaign);
@@ -405,6 +412,7 @@ async function fetchAggregateData(
     leadsCountResult,
     campaignMappingResult,
     campaignGroupsLookupResult,
+    campaignsListResult,
   ] = await Promise.all([
     countSendsQuery,
     countRepliesQuery,
@@ -422,6 +430,7 @@ async function fetchAggregateData(
     leadsCountQuery,
     campaignMappingQuery,
     campaignGroupsLookupQuery,
+    campaignsListQuery,
   ]);
 
   // Handle errors
@@ -783,11 +792,22 @@ async function fetchAggregateData(
     };
   }).sort((a, b) => b.sends - a.sends);
 
-  // Derive campaign list from stats map keys (group-rolled-up names, excludes 'Unknown')
-  const campaignList = Array.from(campaignStatsMap.keys())
-    .filter(name => name !== 'Unknown')
-    .map(name => ({ name }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  // D3-004: Derive campaign list from campaigns table (source of truth).
+  // Falls back to stats-map keys if the campaigns query failed or returned empty.
+  let campaignList: Array<{ name: string; status?: string }>;
+
+  const campaignsFromTable = campaignsListResult.data as Array<{ name: string; status: string }> | null;
+  if (campaignsFromTable && campaignsFromTable.length > 0) {
+    campaignList = campaignsFromTable
+      .map(c => ({ name: c.name, status: c.status }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } else {
+    // Fallback: derive from event-based stats (legacy path)
+    campaignList = Array.from(campaignStatsMap.keys())
+      .filter(name => name !== 'Unknown')
+      .map(name => ({ name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
 
   // ============================================
   // BUILD FINAL RESPONSE
