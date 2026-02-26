@@ -1,4 +1,7 @@
 {
+  "git": {
+    "deploymentEnabled": false
+  },
   "crons": [
     {
       "path": "/api/admin/refresh-views?token=${MATERIALIZED_VIEWS_REFRESH_TOKEN}",
