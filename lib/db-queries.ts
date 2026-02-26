@@ -16,8 +16,11 @@ import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from './supabase';
 // ============================================
 
 /**
- * Campaigns to exclude from ALL metrics and queries
- * Add any test or demo campaigns here
+ * Campaigns to exclude from ALL metrics and queries — legacy string list.
+ *
+ * MIGRATION NOTE (CC.5): New campaigns should use campaign_groups.is_test = true
+ * instead of adding names here. This list is kept for backward compatibility with
+ * existing data that predates the campaign_groups schema.
  */
 export const EXCLUDED_CAMPAIGNS = [
   'Test Campaign',
@@ -29,8 +32,12 @@ export const EXCLUDED_CAMPAIGNS = [
 ] as const;
 
 /**
- * Apply campaign exclusion filter to a Supabase query
- * Works with any table that has a campaign_name column
+ * Apply campaign exclusion filter to a Supabase query.
+ * Works with any table that has a campaign_name column.
+ * Filters by the legacy EXCLUDED_CAMPAIGNS name list.
+ *
+ * For group-level exclusion (preferred for new campaigns), use campaign_groups.is_test = true
+ * and check shouldExcludeCampaignGroup() after joining to campaign_groups.
  */
 export function applyCampaignExclusion<T>(
   query: T,
@@ -44,14 +51,35 @@ export function applyCampaignExclusion<T>(
 }
 
 /**
- * Check if a campaign name should be excluded
+ * Check if a campaign name should be excluded (legacy string-match path).
+ *
+ * Also accepts an optional `isTestGroup` boolean — set to campaign_groups.is_test
+ * when the campaign group is available. This bridges the old string list with the
+ * new structured is_test flag so both exclusion mechanisms work together.
+ *
+ * @param campaignName - The campaign name to test
+ * @param isTestGroup  - Pass campaign_groups.is_test if available (optional)
  */
-export function shouldExcludeCampaign(campaignName: string | null | undefined): boolean {
+export function shouldExcludeCampaign(
+  campaignName: string | null | undefined,
+  isTestGroup?: boolean
+): boolean {
+  // Group-level exclusion takes priority when available
+  if (isTestGroup === true) return true;
+
   if (!campaignName) return false;
   const lowerName = campaignName.toLowerCase().trim();
   return EXCLUDED_CAMPAIGNS.some(
     excluded => lowerName === excluded.toLowerCase()
   );
+}
+
+/**
+ * Check if a campaign group should be excluded based on its is_test flag.
+ * Use this when querying with a campaign_groups join is available.
+ */
+export function shouldExcludeCampaignGroup(isTest: boolean | null | undefined): boolean {
+  return isTest === true;
 }
 
 // ============================================

@@ -85,12 +85,41 @@ async function fetchByCampaignData(
     contactsQuery = contactsQuery.neq('campaign_name', excludedCampaign);
   }
 
-  // Execute BOTH queries in parallel (2 queries → 1 round trip latency)
-  const [eventsResult, costResult, contactsResult] = await Promise.all([
+  // Campaign name → group_id mapping
+  const campaignMappingQuery = supabaseAdmin
+    .from('campaigns')
+    .select('name, campaign_group_id')
+    .eq('workspace_id', workspaceId)
+    .not('campaign_group_id', 'is', null);
+
+  // Campaign groups name lookup
+  const campaignGroupsLookupQuery = supabaseAdmin
+    .from('campaign_groups')
+    .select('id, name')
+    .eq('workspace_id', workspaceId);
+
+  // Execute all queries in parallel
+  const [eventsResult, costResult, contactsResult, campaignMappingResult, campaignGroupsLookupResult] = await Promise.all([
     eventsQuery,
     costQuery,
     contactsQuery,
+    campaignMappingQuery,
+    campaignGroupsLookupQuery,
   ]);
+
+  // Build group resolver
+  const campaignNameToGroupId = new Map<string, string>();
+  for (const c of (campaignMappingResult.data || [])) {
+    if (c.name && c.campaign_group_id) campaignNameToGroupId.set(c.name, c.campaign_group_id);
+  }
+  const groupIdToGroupName = new Map<string, string>();
+  for (const g of (campaignGroupsLookupResult.data || [])) {
+    groupIdToGroupName.set(g.id, g.name);
+  }
+  const resolveGroupDisplayName = (rawName: string): string => {
+    const groupId = campaignNameToGroupId.get(rawName);
+    return (groupId && groupIdToGroupName.get(groupId)) || rawName;
+  };
 
   if (eventsResult.error) {
     console.error('By-campaign query error:', eventsResult.error);
@@ -107,9 +136,10 @@ async function fetchByCampaignData(
   const email1RecipientsByCampaign = new Map<string, Set<string>>();
 
   for (const row of eventsResult.data || []) {
-    const campaignName = row.campaign_name || 'Unknown';
+    const rawCampaignName = row.campaign_name || 'Unknown';
     // Double-check exclusion (safety net)
-    if (shouldExcludeCampaign(campaignName)) continue;
+    if (shouldExcludeCampaign(rawCampaignName)) continue;
+    const campaignName = resolveGroupDisplayName(rawCampaignName);
     
     const existing = campaignMap.get(campaignName) || {
       sends: 0,
@@ -157,10 +187,10 @@ async function fetchByCampaignData(
   const costMap = new Map<string, number>();
   if (!costResult.error) {
     for (const row of costResult.data || []) {
-      const campaignName = row.campaign_name || 'Unknown';
+      const rawCampaignName = row.campaign_name || 'Unknown';
       // Double-check exclusion (safety net)
-      if (shouldExcludeCampaign(campaignName)) continue;
-      
+      if (shouldExcludeCampaign(rawCampaignName)) continue;
+      const campaignName = resolveGroupDisplayName(rawCampaignName);
       const existing = costMap.get(campaignName) || 0;
       costMap.set(campaignName, existing + (Number(row.cost_usd) || 0));
     }
@@ -170,9 +200,9 @@ async function fetchByCampaignData(
   const contactsMap = new Map<string, number>();
   if (!contactsResult.error) {
     for (const row of contactsResult.data || []) {
-      const campaignName = row.campaign_name || 'Unknown';
-      if (shouldExcludeCampaign(campaignName)) continue;
-
+      const rawCampaignName = row.campaign_name || 'Unknown';
+      if (shouldExcludeCampaign(rawCampaignName)) continue;
+      const campaignName = resolveGroupDisplayName(rawCampaignName);
       const existing = contactsMap.get(campaignName) || 0;
       contactsMap.set(campaignName, existing + (Number(row.sends) || 0));
     }

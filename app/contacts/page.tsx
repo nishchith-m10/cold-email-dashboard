@@ -10,7 +10,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, X, Mail, Building2, Clock3, Users, ArrowLeft, Filter } from 'lucide-react';
+import { Search, Plus, X, Mail, Building2, Clock3, Users, ArrowLeft, Filter, Upload } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,7 @@ import { DateRangePickerMobile } from '@/components/dashboard/date-range-picker-
 import { BottomSheet } from '@/components/mobile';
 import { cn, toISODate, daysAgo } from '@/lib/utils';
 import { useWorkspace } from '@/lib/workspace-context';
+import { CsvImportDialog } from '@/components/campaigns/csv-import-dialog';
 
 type ContactStatus = 'not_sent' | 'contacted' | 'replied' | 'opt_out' | 'cycle_one';
 
@@ -183,10 +184,13 @@ export default function ContactsPage() {
   });
   const [addError, setAddError] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
+  const [showCsvImport, setShowCsvImport] = useState(false);
   const detailCache = useRef<Map<number, ContactDetail>>(new Map());
   const desktopSentinelRef = useRef<HTMLDivElement | null>(null);
   const mobileSentinelRef = useRef<HTMLDivElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Sync guard — prevents two sentinel callbacks from firing fetchPage concurrently
+  const fetchInFlightRef = useRef(false);
 
   // Debounce search input
   useEffect(() => {
@@ -197,6 +201,9 @@ export default function ContactsPage() {
   const fetchPage = useCallback(
     async (cursor: string | null, reset = false, signal?: AbortSignal) => {
       if (!workspaceId || !cursor) return;
+      // Prevent concurrent fetches (e.g. both desktop + mobile sentinels firing at once)
+      if (!reset && fetchInFlightRef.current) return;
+      fetchInFlightRef.current = true;
       setLoading(true);
       setError(null);
 
@@ -222,7 +229,13 @@ export default function ContactsPage() {
         }
         const body = await res.json();
         const incoming: Contact[] = body.contacts || [];
-        setContacts(prev => (reset ? incoming : [...prev, ...incoming]));
+        setContacts(prev => {
+          if (reset) return incoming;
+          // Deduplicate by id to guard against concurrent fetches producing duplicate rows
+          const existingIds = new Set(prev.map(c => c.id));
+          const fresh = incoming.filter(c => !existingIds.has(c.id));
+          return [...prev, ...fresh];
+        });
         setNextCursor(body.next_cursor);
         setHasMore(Boolean(body.next_cursor));
       } catch (err) {
@@ -231,6 +244,7 @@ export default function ContactsPage() {
         console.error(err);
         setError(err instanceof Error ? err.message : 'Failed to load contacts');
       } finally {
+        fetchInFlightRef.current = false;
         setLoading(false);
       }
     },
@@ -537,6 +551,14 @@ export default function ContactsPage() {
               endDate={endDate}
               onDateChange={handleDateChange}
             />
+            <Button
+              variant="outline"
+              onClick={() => setShowCsvImport(true)}
+              className="h-8 px-3 text-xs gap-1.5"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Import CSV
+            </Button>
             <Button onClick={() => setShowAdd(true)} className="h-8 px-3 text-xs gap-1.5">
               <Plus className="h-3.5 w-3.5" />
               Add Lead
@@ -559,6 +581,14 @@ export default function ContactsPage() {
               endDate={endDate}
               onDateChange={handleDateChange}
             />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowCsvImport(true)}
+              className="h-10 w-10"
+            >
+              <Upload className="h-5 w-5" />
+            </Button>
             <Button onClick={() => setShowAdd(true)} size="icon" className="h-10 w-10">
               <Plus className="h-5 w-5" />
             </Button>
@@ -900,6 +930,22 @@ export default function ContactsPage() {
             </>
           )}
         </AnimatePresence>
+
+        {/* CSV Import Dialog */}
+        {workspaceId && (
+          <CsvImportDialog
+            open={showCsvImport}
+            onOpenChange={setShowCsvImport}
+            workspaceId={workspaceId}
+            onSuccess={() => {
+              // Reload contacts list after successful import
+              setContacts([]);
+              setNextCursor('1');
+              setHasMore(true);
+              fetchPage('1', true);
+            }}
+          />
+        )}
 
         {/* Add Lead Modal */}
         <AnimatePresence>

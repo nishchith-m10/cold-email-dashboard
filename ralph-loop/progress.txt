@@ -11,6 +11,13 @@ Started: 2026-02-11
 - Supabase Realtime hooks should use refs for values referenced in subscribe callbacks to avoid re-subscription loops
 - Use `subscribeRef` pattern to break circular deps between `subscribe` and `attemptRetry`
 - event_ts index migration already exists at `20251205_add_event_ts_index.sql`
+- Admin tabs: Component in `components/admin/`, hook in `hooks/`, API routes in `app/api/admin/`. All 3 layers must be wired.
+- Phase 44 types export `MetricTrend` (sparkline data), Phase 71 types export `DiagnosticGuide` (service diagnostics)
+- useScaleHistory, useAPIHealthHistory, useDisasterRecoveryStats, useRestoreSnapshot existed as hooks but had zero frontend consumers — always check before creating new hooks
+- Pure SVG sparklines (no library): polyline with normalized values, 80x24 viewbox works well for inline trend-lines
+- Diagnostic endpoint: `/api/admin/api-health/diagnostics/[serviceId]` returns `{ success, guide: DiagnosticGuide | null, metadata }` — null when service is healthy
+- Fragment with key: Use `<Fragment key={...}>` not `<>` when multiple sibling elements need a key in .map()
+- DiagnosticGuide fields: `{ serviceId, serviceName, issue, severity, impact, diagnosticSteps[], fixPath, estimatedFixTime, preventionTips[] }`
 ---
 
 ## 2026-02-11 - US-001, US-002, US-003
@@ -46,4 +53,66 @@ Started: 2026-02-11
 ## 2026-02-11 - US-006
 - event_ts index already exists (20251205_add_event_ts_index.sql + schema.sql line 85)
 - No action needed
+---
+
+## 2026-02-20 - T3-001 (Wire useScaleHistory sparklines)
+- Added `useScaleHistory(30)` call to `ScaleHealthTab`
+- Created pure SVG `Sparkline` component (polyline, 80x24 viewbox, auto-normalized values)
+- Created `TrendIndicator` component showing metric name, change %, direction arrow, and sparkline
+- Latency metrics: "up" = bad (red), "down" = good (green). Other metrics: inverted.
+- Renders in responsive grid (1-2-3 cols) between metrics table and active alerts
+- Files changed: components/admin/scale-health-tab.tsx (+78 lines)
+- **Learnings:**
+  - MetricTrend.dataPoints can have null values — filter them before plotting
+  - Sparkline color should reflect "good/bad" semantically, not just direction
+---
+
+## 2026-02-20 - T3-002 (Wire useAPIHealthHistory 7-day trends)
+- Added `useAPIHealthHistory(7)` call to `APIHealthTab`
+- Created collapsible "7-Day History" section with toggle button
+- Mobile: card layout per snapshot. Desktop: 6-column table.
+- Shows timestamp, overall status badge, error/degraded counts, latency, slowest service
+- Hidden when no snapshots exist
+- Files changed: components/admin/api-health-tab.tsx (+102 lines)
+- **Learnings:**
+  - Snapshot uses snake_case fields (overall_status, error_count) — matches API response shape
+  - Collapsible pattern: button with ChevronDown/Up toggles `showHistory` state
+---
+
+## 2026-02-20 - T3-003 (Add Diagnostics button to API Health services table)
+- Added "Diagnose" button per service (hidden when status === 'ok')
+- Fetches `/api/admin/api-health/diagnostics/{serviceId}` on click
+- Created `DiagnosticPanel` component: issue, severity badge, impact, numbered steps, fix path, est. fix time, prevention tips
+- Handles cached results (only fetches once per service, then toggles visibility)
+- Both mobile card and desktop table layouts updated
+- Desktop: uses `<Fragment key={...}>` to wrap `<tr>` + diagnostic `<tr>` pairs
+- Files changed: components/admin/api-health-services-table.tsx (+216 lines)
+- **Learnings:**
+  - DiagnosticGuide can be null when service is healthy — use non-null assertion after truthiness check
+  - `React.Fragment` with key prop needed when mapping produces multiple sibling table rows
+  - DiagnosticStep.automated boolean adds nice "Automated" badge for auto-fixable steps
+---
+
+## 2026-02-20 - T3-004 (Wire useDisasterRecoveryStats into DR tab)
+- Added `useDisasterRecoveryStats()` call to `DisasterRecoveryTab`
+- Replaced manual coverage calculation with API stats (graceful fallback to manual calc if stats loading)
+- Added 4-stat grid below coverage: Total Snapshots, Total Size (GB), Monthly Cost ($), Workspaces
+- DollarSign icon for cost display
+- Files changed: components/admin/disaster-recovery-tab.tsx (+47 lines)
+- **Learnings:**
+  - Use nullish coalescing `stats?.coverage ?? fallback()` for graceful API-to-manual fallback
+  - DisasterRecoveryStats has all needed fields: totalSnapshots, totalSizeGb, estimatedMonthlyCost, totalWorkspaces
+---
+
+## 2026-02-20 - T3-005 (Add Restore from Snapshot button in DR tab)
+- Added `useRestoreSnapshot()` hook to `DisasterRecoveryTab`
+- Added RotateCcw icon import for Restore button
+- Each completed snapshot gets a "Restore" button next to Delete
+- Uses `prompt()` for target region input + confirm dialog before restore
+- Success/error toast feedback, loading state during restore
+- Responsive: text hidden on mobile, shown on sm+
+- Files changed: components/admin/disaster-recovery-tab.tsx (+58 lines)
+- **Learnings:**
+  - useRestoreSnapshot params: { snapshotId, targetRegion } — both strings
+  - Only show Restore for `snapshot.status === 'completed'` — failed/pending snapshots can't be restored
 ---

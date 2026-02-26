@@ -222,6 +222,7 @@ describe('Ignition Orchestrator', () => {
         template_placeholder: 'TEMPLATE_GMAIL_UUID',
       },
     ],
+    variables: { YOUR_SENDER_EMAIL: 'sender@test.example' },
   };
 
   it('should create orchestrator', () => {
@@ -254,7 +255,7 @@ describe('Ignition Orchestrator', () => {
     expect(result.success).toBe(true);
     expect(result.partition_name).toBe('genesis.leads_p_test-corp');
     expect(result.droplet_id).toBeDefined();
-    expect(result.workflow_ids).toHaveLength(4);
+    expect(result.workflow_ids).toHaveLength(7);
   });
 
   it('should track state through ignition', async () => {

@@ -15,13 +15,14 @@ import type { Campaign, N8nStatus, CampaignStatus } from '@/lib/dashboard-types'
 // TYPES
 // ============================================
 
-interface CampaignWithN8n extends Campaign {
+export interface CampaignWithN8n extends Campaign {
   id: string;
   name: string;
   status: CampaignStatus;
   n8n_status: N8nStatus;
   n8n_workflow_id?: string;
   version: number;
+  // Inherited from Campaign: campaign_group_id?, is_test?
 }
 
 interface ToggleResult {

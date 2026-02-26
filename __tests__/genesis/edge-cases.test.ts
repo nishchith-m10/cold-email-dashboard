@@ -25,6 +25,7 @@ const BASE_CONFIG: IgnitionConfig = {
   droplet_size: 'professional',
   requested_by: 'user_edge',
   credentials: [],
+  variables: { YOUR_SENDER_EMAIL: 'sender@test.example' },
 };
 
 // ============================================
@@ -83,7 +84,7 @@ describe('Empty Configurations', () => {
   it('should handle empty variables map', async () => {
     const config: IgnitionConfig = {
       ...BASE_CONFIG,
-      variables: {},
+      variables: { YOUR_SENDER_EMAIL: 'sender@empty.test' }, // minimal required field
     };
 
     const orchestrator = new IgnitionOrchestrator(

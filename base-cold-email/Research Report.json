@@ -273,11 +273,11 @@
       "alwaysOutputData": true,
       "credentials": {
         "httpQueryAuth": {
-          "id": "6DunH8n5TZY3tjwT",
+          "id": "YOUR_CREDENTIAL_GOOGLE_CSE_QUERY_ID",
           "name": "Query Auth account"
         },
         "httpHeaderAuth": {
-          "id": "uNNf74d1EVpcGBgo",
+          "id": "YOUR_CREDENTIAL_GOOGLE_CSE_HEADER_ID",
           "name": "Header Auth account"
         }
       },
@@ -353,9 +353,9 @@
         },
         "table": {
           "__rl": true,
-          "value": "leads_ohio",
+          "value": "YOUR_LEADS_TABLE",
           "mode": "list",
-          "cachedResultName": "leads_ohio"
+          "cachedResultName": "YOUR_LEADS_TABLE"
         },
         "returnAll": true,
         "where": {
@@ -385,7 +385,7 @@
       "name": "Get Research Report",
       "credentials": {
         "postgres": {
-          "id": "QKb5WqKXZ29v15Qk",
+          "id": "YOUR_CREDENTIAL_POSTGRES_ID",
           "name": "Leads Ohio"
         }
       }
@@ -598,7 +598,7 @@
       "id": "7ef84977-16d7-4a08-b1e7-b8fd857288bf",
       "credentials": {
         "openAiApi": {
-          "id": "EzDErZcUtMKUzyRO",
+          "id": "YOUR_CREDENTIAL_OPENAI_ID",
           "name": "YOUR_COMPANY_NAME OpenAi account"
         }
       }
@@ -689,7 +689,7 @@
       "id": "cb9a02d0-f52a-4afa-afc7-f6fdd48db82d",
       "credentials": {
         "openAiApi": {
-          "id": "EzDErZcUtMKUzyRO",
+          "id": "YOUR_CREDENTIAL_OPENAI_ID",
           "name": "YOUR_COMPANY_NAME OpenAi account"
         }
       }
@@ -726,7 +726,7 @@
       "id": "80dd32fd-08a0-489e-97e3-b3effd31d0bd",
       "credentials": {
         "openAiApi": {
-          "id": "EzDErZcUtMKUzyRO",
+          "id": "YOUR_CREDENTIAL_OPENAI_ID",
           "name": "YOUR_COMPANY_NAME OpenAi account"
         }
       }
@@ -776,7 +776,7 @@
       "id": "783f9fcd-86ab-4a05-aef6-18bebe6bde56",
       "credentials": {
         "openAiApi": {
-          "id": "EzDErZcUtMKUzyRO",
+          "id": "YOUR_CREDENTIAL_OPENAI_ID",
           "name": "YOUR_COMPANY_NAME OpenAi account"
         }
       }
@@ -809,7 +809,7 @@
     },
     {
       "parameters": {
-        "sendTo": "YOUR_NAME@gmail.com",
+        "sendTo": "YOUR_SENDER_EMAIL",
         "subject": "={{ ( $node[\"Scrape Profiles + Posts - Relevance AI\"].json?.linkedin_profile_details_data?.full_name || $node[\"Scrape Profiles + Posts - Relevance AI\"].json?.output?.linkedin_profile_details_data?.full_name || 'Lead' ) }} Research Report",
         "message": "={{ $json.html }}",
         "options": {}
@@ -825,7 +825,7 @@
       "webhookId": "791dda4d-fc00-4865-9386-347769f4586b",
       "credentials": {
         "gmailOAuth2": {
-          "id": "zfHBUnz62UkbN9cm",
+          "id": "YOUR_CREDENTIAL_GMAIL_ID",
           "name": "Upion Gmail"
         }
       }
@@ -1243,7 +1243,7 @@
       "name": "Update to Google Sheets",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "2EUpgH0WFkM3Lr6E",
+          "id": "YOUR_CREDENTIAL_GOOGLE_SHEETS_ID",
           "name": "YOUR_NAME Sheets account"
         }
       }
@@ -1258,9 +1258,9 @@
         },
         "table": {
           "__rl": true,
-          "value": "leads_ohio",
+          "value": "YOUR_LEADS_TABLE",
           "mode": "list",
-          "cachedResultName": "leads_ohio"
+          "cachedResultName": "YOUR_LEADS_TABLE"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1668,7 +1668,7 @@
       "name": "Update to Supabase",
       "credentials": {
         "postgres": {
-          "id": "QKb5WqKXZ29v15Qk",
+          "id": "YOUR_CREDENTIAL_POSTGRES_ID",
           "name": "Leads Ohio"
         }
       }

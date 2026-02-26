@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useScaleHealth, useScaleAlerts, triggerHealthCheck, acknowledgeAlert, resolveAlert } from '@/hooks/use-scale-health';
+import { useScaleHealth, useScaleAlerts, useScaleHistory, triggerHealthCheck, acknowledgeAlert, resolveAlert } from '@/hooks/use-scale-health';
 import { useToast } from '@/hooks/use-toast';
 import {
   Activity,
@@ -23,9 +23,12 @@ import {
   ChevronDown,
   ChevronUp,
   XCircle,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ScaleAlert, HealthCheckResult, AlertSeverity } from '@/lib/genesis/phase44/types';
+import type { ScaleAlert, HealthCheckResult, AlertSeverity, MetricTrend } from '@/lib/genesis/phase44/types';
 
 // ============================================
 // STATUS BADGE MAPPING
@@ -49,12 +52,70 @@ function StatusBadge({ status }: { status: AlertSeverity }) {
 }
 
 // ============================================
+// SPARKLINE COMPONENT
+// ============================================
+
+function Sparkline({ dataPoints, color = 'stroke-amber-500' }: { dataPoints: Array<{ date: string; value: number | null }>; color?: string }) {
+  const values = dataPoints.map(p => p.value).filter((v): v is number => v !== null);
+  if (values.length < 2) return <span className="text-xs text-muted-foreground">—</span>;
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const w = 80;
+  const h = 24;
+  const points = values
+    .map((v, i) => `${(i / (values.length - 1)) * w},${h - ((v - min) / range) * h}`)
+    .join(' ');
+
+  return (
+    <svg width={w} height={h} className="inline-block" viewBox={`0 0 ${w} ${h}`}>
+      <polyline
+        fill="none"
+        className={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+    </svg>
+  );
+}
+
+function TrendIndicator({ trend }: { trend: MetricTrend }) {
+  const isLatency = trend.metric.includes('latency');
+  // For latency, "up" is bad (red), "down" is good (green). For others, "up" is good (green).
+  const isGood = isLatency ? trend.direction === 'down' : trend.direction === 'up';
+  const isBad = isLatency ? trend.direction === 'up' : trend.direction === 'down';
+
+  const Icon = trend.direction === 'up' ? TrendingUp : trend.direction === 'down' ? TrendingDown : Minus;
+  const color = isGood ? 'text-green-500' : isBad ? 'text-red-500' : 'text-muted-foreground';
+  const sparkColor = isGood ? 'stroke-green-500' : isBad ? 'stroke-red-500' : 'stroke-muted-foreground';
+
+  return (
+    <div className="flex items-center gap-3 border border-border rounded-lg p-3">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{formatMetricName(trend.metric)}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <Icon className={cn('h-3.5 w-3.5', color)} />
+          <span className={cn('text-xs font-medium', color)}>
+            {trend.changePercent !== null ? `${trend.changePercent > 0 ? '+' : ''}${trend.changePercent.toFixed(1)}%` : '—'}
+          </span>
+        </div>
+      </div>
+      <Sparkline dataPoints={trend.dataPoints} color={sparkColor} />
+    </div>
+  );
+}
+
+// ============================================
 // MAIN COMPONENT
 // ============================================
 
 export function ScaleHealthTab() {
   const { summary, fleetOverview, isLoading, mutate } = useScaleHealth();
   const { alerts, mutate: mutateAlerts } = useScaleAlerts('active');
+  const { trends } = useScaleHistory(30);
   const { toast } = useToast();
   const [isRunning, setIsRunning] = useState(false);
   const [expandedAlertId, setExpandedAlertId] = useState<string | null>(null);
@@ -178,6 +239,21 @@ export function ScaleHealthTab() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Trends (30d) */}
+      {trends && trends.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            Trends (30d)
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {trends.map((trend: MetricTrend) => (
+              <TrendIndicator key={trend.metric} trend={trend} />
+            ))}
+          </div>
         </div>
       )}
 
