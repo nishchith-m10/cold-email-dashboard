@@ -1233,6 +1233,32 @@ export class HttpWorkflowDeployer implements WorkflowDeployer {
       jsonStr = jsonStr.replace(new RegExp(escaped, 'g'), value);
     }
 
+    // -----------------------------------------------------------
+    // D2-003: Scan for unresolved placeholders after substitution.
+    // Credential placeholders (YOUR_CREDENTIAL_*) are hard errors;
+    // other YOUR_* placeholders are logged as warnings but allowed.
+    // -----------------------------------------------------------
+    const unresolvedMatches = jsonStr.match(/YOUR_[A-Z_]+/g);
+    if (unresolvedMatches) {
+      const unique = [...new Set(unresolvedMatches)];
+      const credentialPlaceholders = unique.filter(p => p.startsWith('YOUR_CREDENTIAL_'));
+      const contentPlaceholders = unique.filter(p => !p.startsWith('YOUR_CREDENTIAL_'));
+
+      if (credentialPlaceholders.length > 0) {
+        throw new Error(
+          `Workflow '${workflow.name}' has unresolved credential placeholders after substitution: ` +
+          credentialPlaceholders.join(', ')
+        );
+      }
+
+      if (contentPlaceholders.length > 0) {
+        console.warn(
+          `[WorkflowDeployer] Workflow '${workflow.name}' has unresolved content placeholders ` +
+          `(non-fatal): ${contentPlaceholders.join(', ')}`
+        );
+      }
+    }
+
     const substitutedJson: Record<string, unknown> = JSON.parse(jsonStr);
     // Set canonical workflow name from orchestrator
     substitutedJson.name = workflow.name;
