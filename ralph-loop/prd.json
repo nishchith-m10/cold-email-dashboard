@@ -1,89 +1,136 @@
 {
   "project": "cold-email-dashboard",
-  "branchName": "ralph/tier3-wire-unused-hooks",
-  "description": "Tier 3: Wire unused hooks, surface hidden data, and connect orphaned API endpoints to the admin frontend",
+  "branchName": "ralph/domain1-ignition-infrastructure",
+  "description": "Domain 1: Ignition Orchestrator — Replace mock implementations with production Supabase-backed infrastructure for workspace provisioning",
   "userStories": [
     {
-      "id": "T3-001",
-      "title": "Wire useScaleHistory trend sparklines into Scale Health tab",
-      "description": "The useScaleHistory hook fetches MetricTrend[] with dataPoints (date/value pairs) and changePercent, but the Scale Health tab never imports or renders it. Add a Trend section below the metrics table showing mini sparklines or trend indicators per metric.",
+      "id": "D1-001",
+      "title": "Create genesis.ignition_state and genesis.ignition_operations tables",
+      "description": "Create the database migration that defines the ignition_state table (primary state persistence for the ignition orchestrator) and the ignition_operations table (audit trail of individual operations). Both tables live in the genesis schema with RLS policies.",
       "acceptanceCriteria": [
-        "ScaleHealthTab imports and calls useScaleHistory()",
-        "A 'Trends (30d)' section renders below the metrics table",
-        "Each MetricTrend shows metric name, change percentage with up/down arrow, and direction color (green for down on latency, red for up)",
-        "A mini inline SVG sparkline (polyline) renders the dataPoints for each trend",
-        "Graceful fallback if no trend data exists",
+        "Migration file exists at supabase/migrations/20260226_domain1_ignition_state_tables.sql",
+        "genesis.ignition_state table created with all IgnitionState fields as columns",
+        "genesis.ignition_operations table created with: id, workspace_id, operation, status, result (jsonb), error, created_at",
+        "RLS enabled on both tables with service_role full access",
+        "Index on ignition_operations(workspace_id, created_at)",
+        "All statements use IF NOT EXISTS for idempotency",
         "Typecheck passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": "MetricTrend = { metric, dataPoints: {date, value}[], changePercent, direction }. Sparklines can be pure SVG, no library needed."
+      "notes": "IgnitionState interface at ignition-types.ts line 162. IgnitionStateDB interface at ignition-orchestrator.ts line 60."
     },
     {
-      "id": "T3-002",
-      "title": "Wire useAPIHealthHistory trend section into API Health tab",
-      "description": "The useAPIHealthHistory hook fetches snapshots with overall_status, error_count, degraded_count, total_latency_ms, slowest_service — but API Health tab never shows historical data. Add a collapsible '7-Day History' section.",
+      "id": "D1-002",
+      "title": "Implement SupabaseIgnitionStateDB",
+      "description": "Create a production IgnitionStateDB that persists to genesis.ignition_state and genesis.ignition_operations via service-role Supabase client.",
       "acceptanceCriteria": [
-        "APIHealthTab imports and calls useAPIHealthHistory(7)",
-        "A collapsible '7-Day History' section renders below the Performance Summary",
-        "Shows a table/list of snapshots: timestamp, overall status badge, error count, degraded count, total latency, slowest service",
-        "Most recent snapshots first",
-        "Graceful fallback: hidden if no snapshots exist",
+        "New file lib/genesis/supabase-ignition-state-db.ts exists",
+        "SupabaseIgnitionStateDB implements IgnitionStateDB",
+        "save() upserts into genesis.ignition_state",
+        "load() queries by workspace_id, returns null if not found",
+        "delete() removes the row",
+        "logOperation() inserts into genesis.ignition_operations",
+        "Uses getTypedSupabaseAdmin() for DB access",
         "Typecheck passes"
       ],
       "priority": 2,
       "passes": true,
-      "notes": "Snapshot shape: { id, timestamp, overall_status, error_count, degraded_count, total_latency_ms, slowest_service }"
+      "notes": "Use (supabaseAdmin as any).schema('genesis') pattern since genesis schema types may not be in Database type."
     },
     {
-      "id": "T3-003",
-      "title": "Add Diagnostics button per service in API Health services table",
-      "description": "The /api/admin/api-health/diagnostics/[serviceId] endpoint returns DiagnosticGuide with issue, impact, diagnostic steps, fix path, estimated fix time, and prevention tips — but no frontend ever calls it. Add a 'Diagnose' button that fetches and displays the guide inline.",
+      "id": "D1-003",
+      "title": "Implement SupabasePartitionManager",
+      "description": "Create a production PartitionManager that creates/drops workspace lead partitions using genesis.fn_ignite_workspace_partition().",
       "acceptanceCriteria": [
-        "Each service row in APIHealthServicesTable gets a 'Diagnose' button (only shown when status != 'ok')",
-        "Clicking fetches GET /api/admin/api-health/diagnostics/{serviceId}",
-        "DiagnosticGuide renders inline below the service row: issue, severity, impact, steps list, fix path link, estimated time, prevention tips",
-        "Loading state with spinner while fetching",
-        "Graceful error handling if diagnostics fail",
-        "Both mobile card and desktop table layouts updated",
+        "New file lib/genesis/supabase-partition-manager.ts exists",
+        "SupabasePartitionManager implements PartitionManager",
+        "create() calls genesis.fn_ignite_workspace_partition via rpc",
+        "create() registers partition in genesis.partition_registry",
+        "drop() detaches partition, drops table, removes registry row",
         "Typecheck passes"
       ],
       "priority": 3,
       "passes": true,
-      "notes": "DiagnosticGuide = { serviceId, serviceName, issue, severity, impact, diagnosticSteps[], fixPath, estimatedFixTime, preventionTips[] }. DiagnosticStep = { step, action, description, automated }"
+      "notes": "fn_ignite_workspace_partition already handles sanitization, advisory locking, and idempotency."
     },
     {
-      "id": "T3-004",
-      "title": "Wire useDisasterRecoveryStats into DR tab Backup Coverage section",
-      "description": "The DR tab manually calculates coverage from snapshots array, but useDisasterRecoveryStats fetches authoritative stats from the API. Replace manual calculation with the hook's data.",
+      "id": "D1-004",
+      "title": "Implement HttpSidecarClient",
+      "description": "Create a production SidecarClient that sends JWT-signed commands to Sidecar agents using SidecarCommandBuilder.",
       "acceptanceCriteria": [
-        "DisasterRecoveryTab imports and calls useDisasterRecoveryStats()",
-        "Backup Coverage card uses stats.coverage instead of manual calculation",
-        "Additional stats shown: total snapshots count, total size (GB), estimated monthly cost",
-        "Manual calculation code removed",
-        "Graceful fallback if stats loading",
+        "New file lib/genesis/http-sidecar-client.ts exists",
+        "HttpSidecarClient implements SidecarClient",
+        "sendCommand() signs JWT via SidecarCommandBuilder, POSTs to /command",
+        "Retry with exponential backoff (3 attempts) for transient errors",
+        "Does not retry 4xx errors",
+        "Configurable timeout (default 30s)",
         "Typecheck passes"
       ],
       "priority": 4,
       "passes": true,
-      "notes": "DisasterRecoveryStats = { totalSnapshots, totalWorkspaces, workspacesWithRecentBackups, coverage, totalSizeGb, estimatedMonthlyCost }"
+      "notes": "SidecarCommandBuilder in lib/genesis/sidecar-commands.ts. Sidecar at port 3001. JWT in X-Genesis-JWT header."
     },
     {
-      "id": "T3-005",
-      "title": "Add Restore from Snapshot button in DR snapshot inventory",
-      "description": "The useRestoreSnapshot hook exists with a POST to /api/admin/disaster-recovery/restore, but no UI exposes it. Add a 'Restore' action button per snapshot in the inventory table.",
+      "id": "D1-005",
+      "title": "Replace handshake sleep with health check polling",
+      "description": "Replace sleep-based handshake in Step 3 with polling loop that checks Sidecar /health endpoint.",
       "acceptanceCriteria": [
-        "DisasterRecoveryTab imports and uses useRestoreSnapshot()",
-        "Each completed snapshot row has a 'Restore' button next to Delete",
-        "Clicking opens a confirmation dialog asking for target region",
-        "On confirm, calls restoreSnapshot({ snapshotId, targetRegion })",
-        "Success/error toast messages",
-        "Loading state during restore",
+        "Step 3 polls {sidecarUrl}/health every 5s (1s in LOCAL_MODE)",
+        "Proceeds when Sidecar responds 200 with status=ok",
+        "Times out after STEP_TIMEOUTS.handshake_pending",
+        "Each poll logged via onProgress callback",
         "Typecheck passes"
       ],
       "priority": 5,
       "passes": true,
-      "notes": "useRestoreSnapshot returns { restoreSnapshot, isLoading, error }. Params: { snapshotId, targetRegion }"
+      "notes": "Sidecar /health returns { status:'ok', uptime, workspace_id, droplet_id, smtp_enabled }."
+    },
+    {
+      "id": "D1-006",
+      "title": "Add idempotency guard at ignition entry",
+      "description": "Check for existing active/in-progress ignition before starting a new one.",
+      "acceptanceCriteria": [
+        "ignite() checks stateDB.load() before initializing",
+        "Active state returns early { success: true, already_active: true }",
+        "In-progress state returns { success: false, error: 'already in progress' }",
+        "Failed state deletes old state and re-ignites",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Terminal states: active, failed. All others are in-progress."
+    },
+    {
+      "id": "D1-007",
+      "title": "Implement real workflow rollback",
+      "description": "Replace no-op workflow rollback with actual deactivation and deletion via WorkflowDeployer.",
+      "acceptanceCriteria": [
+        "WorkflowDeployer interface gets delete(dropletIp, workflowId) method",
+        "Rollback deactivates then deletes each workflow",
+        "MockWorkflowDeployer implements delete()",
+        "Rollback errors caught and logged, not re-thrown",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Sidecar supports DELETE_WORKFLOW command. Current rollback just increments counter."
+    },
+    {
+      "id": "D1-008",
+      "title": "Add per-credential retry logic",
+      "description": "Wrap each credential injection in Step 4 with retry + exponential backoff.",
+      "acceptanceCriteria": [
+        "Each credential retries up to 3 times (2s, 4s backoff)",
+        "Transient errors (timeout, 503) trigger retry",
+        "Permanent errors (400, 401) fail immediately",
+        "IgnitionError only after all retries exhausted",
+        "Retry attempts logged via onProgress",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Step 4 credential loop starts around line 410 in ignition-orchestrator.ts."
     }
   ]
 }
