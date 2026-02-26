@@ -168,6 +168,8 @@ export interface WorkflowDeployer {
     error?: string;
   }>;
   activate(dropletIp: string, workflowId: string): Promise<{ success: boolean }>;
+  deactivate(dropletIp: string, workflowId: string): Promise<{ success: boolean }>;
+  delete(dropletIp: string, workflowId: string): Promise<{ success: boolean }>;
 }
 
 // ============================================
@@ -252,9 +254,80 @@ export class IgnitionOrchestrator {
 
   /**
    * Main ignition method - provisions complete Sovereign Stack.
+   *
+   * Idempotency guard (D1-006):
+   *   - If the workspace is already `active`, return early success.
+   *   - If an ignition is in-progress, reject to prevent double-provisioning.
+   *   - If the previous attempt `failed`, clear old state and retry.
    */
   async ignite(config: IgnitionConfig): Promise<IgnitionResult> {
     const startTime = Date.now();
+
+    // ── Idempotency guard ─────────────────────────────────────────────
+    const existing = await this.stateDB.load(config.workspace_id);
+
+    if (existing) {
+      // Already fully provisioned – nothing to do.
+      if (existing.status === 'active') {
+        await this.stateDB.logOperation({
+          workspace_id: config.workspace_id,
+          operation: 'ignite',
+          status: 'skipped',
+          result: { reason: 'already_active' },
+        });
+        return {
+          success: true,
+          workspace_id: config.workspace_id,
+          partition_name: existing.partition_name,
+          droplet_id: existing.droplet_id,
+          droplet_ip: existing.droplet_ip,
+          workflow_ids: existing.workflow_ids,
+          credential_count: existing.credential_ids.length,
+          duration_ms: Date.now() - startTime,
+          steps_completed: existing.total_steps,
+        };
+      }
+
+      // Another ignition (or rollback) is still running – reject.
+      const inProgressStatuses: IgnitionStatus[] = [
+        'pending',
+        'partition_creating',
+        'droplet_provisioning',
+        'handshake_pending',
+        'credentials_injecting',
+        'workflows_deploying',
+        'activating',
+        'rollback_in_progress',
+      ];
+      if (inProgressStatuses.includes(existing.status)) {
+        await this.stateDB.logOperation({
+          workspace_id: config.workspace_id,
+          operation: 'ignite',
+          status: 'rejected',
+          result: { reason: 'in_progress', current_status: existing.status },
+        });
+        return {
+          success: false,
+          workspace_id: config.workspace_id,
+          duration_ms: Date.now() - startTime,
+          steps_completed: existing.current_step,
+          error: `Ignition already in progress (status: ${existing.status})`,
+          error_step: existing.status,
+        };
+      }
+
+      // Previous attempt failed – clean up and allow retry.
+      if (existing.status === 'failed') {
+        await this.stateDB.logOperation({
+          workspace_id: config.workspace_id,
+          operation: 'ignite',
+          status: 'retrying',
+          result: { reason: 'previous_failed', previous_error: existing.error_message },
+        });
+        await this.stateDB.delete(config.workspace_id);
+      }
+    }
+    // ── End idempotency guard ─────────────────────────────────────────
 
     // Initialize state
     const state: IgnitionState = {
@@ -356,20 +429,70 @@ export class IgnitionOrchestrator {
         }
       );
 
-      // STEP 3: Wait for handshake (Phase 42 - placeholder for now)
+      // STEP 3: Wait for Sidecar health check
       this.checkCancellation(config.workspace_id);
       await this.executeStep(
         state,
         'handshake_pending',
         3,
         async () => {
-          // In Phase 42, we'll implement the actual handshake wait
-          // For now, we assume the Sidecar will be ready after boot
-          if (this.handshakeDelayMs > 0) {
-            await this.sleep(this.handshakeDelayMs);
+          const sidecarUrl = state.droplet_ip
+            ? `http://${state.droplet_ip}:3001`
+            : undefined;
+
+          if (!sidecarUrl) {
+            throw new IgnitionError(
+              'No droplet IP available for health check',
+              'handshake_pending',
+              config.workspace_id
+            );
           }
-          
-          // Mock webhook URL (Phase 42 will provide actual URL)
+
+          const isLocal = config.local_mode || process.env.LOCAL_MODE === 'true';
+          const pollIntervalMs = isLocal ? 1000 : 5000;
+          const maxWaitMs = isLocal ? 30000 : (STEP_TIMEOUTS.handshake_pending || 300000);
+          const started = Date.now();
+          let healthy = false;
+
+          while (Date.now() - started < maxWaitMs) {
+            this.checkCancellation(config.workspace_id);
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 5000);
+              const resp = await fetch(`${sidecarUrl}/health`, {
+                signal: controller.signal,
+              });
+              clearTimeout(timeoutId);
+
+              if (resp.ok) {
+                const body = await resp.json() as { status?: string };
+                if (body.status === 'ok') {
+                  healthy = true;
+                  break;
+                }
+              }
+            } catch {
+              // Sidecar not ready yet — continue polling
+            }
+
+            this.emitEvent({
+              type: 'step_progress',
+              workspace_id: config.workspace_id,
+              step: 'handshake_pending',
+              message: `Waiting for Sidecar... (${Math.round((Date.now() - started) / 1000)}s)`,
+            });
+
+            await this.sleep(pollIntervalMs);
+          }
+
+          if (!healthy) {
+            throw new IgnitionError(
+              `Sidecar did not become healthy within ${Math.round(maxWaitMs / 1000)}s`,
+              'handshake_pending',
+              config.workspace_id
+            );
+          }
+
           state.webhook_url = `https://${state.droplet_ip}.sslip.io/webhook`;
         }
       );
@@ -400,18 +523,21 @@ export class IgnitionOrchestrator {
             resources.credential_ids.push(storeResult.credential_id!);
             state.credential_ids.push(storeResult.credential_id!);
 
-            // Send to Sidecar
+            // Send to Sidecar with per-credential retry (D1-008)
             if (state.droplet_ip) {
-              const injectResult = await this.sidecarClient.sendCommand(
-                state.droplet_ip,
-                {
-                  action: 'INJECT_CREDENTIAL',
-                  payload: {
-                    credential_type: cred.type,
-                    credential_name: cred.name,
-                    encrypted_data: cred.data,
-                  },
-                }
+              const injectResult = await this.retryTransient(
+                () => this.sidecarClient.sendCommand(
+                  state.droplet_ip!,
+                  {
+                    action: 'INJECT_CREDENTIAL',
+                    payload: {
+                      credential_type: cred.type,
+                      credential_name: cred.name,
+                      encrypted_data: cred.data,
+                    },
+                  }
+                ),
+                { maxAttempts: 3, baseDelayMs: 2000, label: `inject-cred:${cred.name}` }
               );
 
               if (!injectResult.success) {
@@ -651,7 +777,7 @@ export class IgnitionOrchestrator {
         reason: state.error_message,
       });
 
-      const rollbackResult = await this.rollback(config.workspace_id, resources);
+      const rollbackResult = await this.rollback(config.workspace_id, resources, state.droplet_ip);
 
       state.rollback_completed_at = new Date().toISOString();
       state.rollback_success = rollbackResult.success;
@@ -763,7 +889,8 @@ export class IgnitionOrchestrator {
    */
   private async rollback(
     workspaceId: string,
-    resources: CreatedResources
+    resources: CreatedResources,
+    dropletIp?: string
   ): Promise<RollbackResult> {
     const result: RollbackResult = {
       success: true,
@@ -776,10 +903,21 @@ export class IgnitionOrchestrator {
       errors: [],
     };
 
-    // Rollback workflows (reverse order)
+    // Rollback workflows (reverse order) — deactivate then delete via sidecar
     for (const workflowId of resources.workflow_ids.reverse()) {
       try {
-        // Workflows are on the droplet - if droplet is deleted, workflows go with it
+        if (dropletIp) {
+          // Best-effort deactivate before delete (ignore deactivate failure)
+          try {
+            await this.workflowDeployer.deactivate(dropletIp, workflowId);
+          } catch { /* workflow may already be inactive */ }
+
+          const deleteResult = await this.workflowDeployer.delete(dropletIp, workflowId);
+          if (!deleteResult.success) {
+            throw new Error(`Sidecar delete returned success=false for ${workflowId}`);
+          }
+        }
+        // If no dropletIp, the droplet was never provisioned — nothing to clean.
         result.rolled_back.workflows++;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
@@ -901,6 +1039,46 @@ export class IgnitionOrchestrator {
 
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Retry a function on transient failures with exponential backoff.
+   *
+   * Transient: network errors, 5xx, timeouts.
+   * Permanent (no retry): 4xx, credential validation errors.
+   */
+  private async retryTransient<T>(
+    fn: () => Promise<T>,
+    opts: { maxAttempts: number; baseDelayMs: number; label: string }
+  ): Promise<T> {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= opts.maxAttempts; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        const msg = error instanceof Error ? error.message : String(error);
+
+        // Permanent errors — do not retry
+        const isPermanent =
+          /4\d{2}/.test(msg) ||           // 400, 401, 403, 404, 422 …
+          /bad request/i.test(msg) ||
+          /unauthorized/i.test(msg) ||
+          /forbidden/i.test(msg) ||
+          /validation/i.test(msg);
+
+        if (isPermanent || attempt === opts.maxAttempts) {
+          throw error;
+        }
+
+        const delayMs = opts.baseDelayMs * Math.pow(2, attempt - 1);
+        console.warn(
+          `[retryTransient] ${opts.label}: attempt ${attempt}/${opts.maxAttempts} failed (${msg}), retrying in ${delayMs}ms`
+        );
+        await this.sleep(delayMs);
+      }
+    }
+    throw lastError; // unreachable, but satisfies TS
   }
 }
 
@@ -1035,6 +1213,28 @@ export class HttpWorkflowDeployer implements WorkflowDeployer {
     });
     return { success: result.success };
   }
+
+  async deactivate(
+    dropletIp: string,
+    workflowId: string
+  ): Promise<{ success: boolean }> {
+    const result = await this.sidecarClient.sendCommand(dropletIp, {
+      action: 'DEACTIVATE_WORKFLOW',
+      payload: { workflow_id: workflowId },
+    });
+    return { success: result.success };
+  }
+
+  async delete(
+    dropletIp: string,
+    workflowId: string
+  ): Promise<{ success: boolean }> {
+    const result = await this.sidecarClient.sendCommand(dropletIp, {
+      action: 'DELETE_WORKFLOW',
+      payload: { workflow_id: workflowId },
+    });
+    return { success: result.success };
+  }
 }
 
 /**
@@ -1053,6 +1253,14 @@ export class MockWorkflowDeployer implements WorkflowDeployer {
   }
 
   async activate(dropletIp: string, workflowId: string): Promise<{ success: boolean }> {
+    return { success: true };
+  }
+
+  async deactivate(dropletIp: string, workflowId: string): Promise<{ success: boolean }> {
+    return { success: true };
+  }
+
+  async delete(dropletIp: string, workflowId: string): Promise<{ success: boolean }> {
     return { success: true };
   }
 }

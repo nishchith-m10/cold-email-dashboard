@@ -1,0 +1,89 @@
+{
+  "project": "cold-email-dashboard",
+  "branchName": "ralph/tier3-wire-unused-hooks",
+  "description": "Tier 3: Wire unused hooks, surface hidden data, and connect orphaned API endpoints to the admin frontend",
+  "userStories": [
+    {
+      "id": "T3-001",
+      "title": "Wire useScaleHistory trend sparklines into Scale Health tab",
+      "description": "The useScaleHistory hook fetches MetricTrend[] with dataPoints (date/value pairs) and changePercent, but the Scale Health tab never imports or renders it. Add a Trend section below the metrics table showing mini sparklines or trend indicators per metric.",
+      "acceptanceCriteria": [
+        "ScaleHealthTab imports and calls useScaleHistory()",
+        "A 'Trends (30d)' section renders below the metrics table",
+        "Each MetricTrend shows metric name, change percentage with up/down arrow, and direction color (green for down on latency, red for up)",
+        "A mini inline SVG sparkline (polyline) renders the dataPoints for each trend",
+        "Graceful fallback if no trend data exists",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "MetricTrend = { metric, dataPoints: {date, value}[], changePercent, direction }. Sparklines can be pure SVG, no library needed."
+    },
+    {
+      "id": "T3-002",
+      "title": "Wire useAPIHealthHistory trend section into API Health tab",
+      "description": "The useAPIHealthHistory hook fetches snapshots with overall_status, error_count, degraded_count, total_latency_ms, slowest_service — but API Health tab never shows historical data. Add a collapsible '7-Day History' section.",
+      "acceptanceCriteria": [
+        "APIHealthTab imports and calls useAPIHealthHistory(7)",
+        "A collapsible '7-Day History' section renders below the Performance Summary",
+        "Shows a table/list of snapshots: timestamp, overall status badge, error count, degraded count, total latency, slowest service",
+        "Most recent snapshots first",
+        "Graceful fallback: hidden if no snapshots exist",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Snapshot shape: { id, timestamp, overall_status, error_count, degraded_count, total_latency_ms, slowest_service }"
+    },
+    {
+      "id": "T3-003",
+      "title": "Add Diagnostics button per service in API Health services table",
+      "description": "The /api/admin/api-health/diagnostics/[serviceId] endpoint returns DiagnosticGuide with issue, impact, diagnostic steps, fix path, estimated fix time, and prevention tips — but no frontend ever calls it. Add a 'Diagnose' button that fetches and displays the guide inline.",
+      "acceptanceCriteria": [
+        "Each service row in APIHealthServicesTable gets a 'Diagnose' button (only shown when status != 'ok')",
+        "Clicking fetches GET /api/admin/api-health/diagnostics/{serviceId}",
+        "DiagnosticGuide renders inline below the service row: issue, severity, impact, steps list, fix path link, estimated time, prevention tips",
+        "Loading state with spinner while fetching",
+        "Graceful error handling if diagnostics fail",
+        "Both mobile card and desktop table layouts updated",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "DiagnosticGuide = { serviceId, serviceName, issue, severity, impact, diagnosticSteps[], fixPath, estimatedFixTime, preventionTips[] }. DiagnosticStep = { step, action, description, automated }"
+    },
+    {
+      "id": "T3-004",
+      "title": "Wire useDisasterRecoveryStats into DR tab Backup Coverage section",
+      "description": "The DR tab manually calculates coverage from snapshots array, but useDisasterRecoveryStats fetches authoritative stats from the API. Replace manual calculation with the hook's data.",
+      "acceptanceCriteria": [
+        "DisasterRecoveryTab imports and calls useDisasterRecoveryStats()",
+        "Backup Coverage card uses stats.coverage instead of manual calculation",
+        "Additional stats shown: total snapshots count, total size (GB), estimated monthly cost",
+        "Manual calculation code removed",
+        "Graceful fallback if stats loading",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "DisasterRecoveryStats = { totalSnapshots, totalWorkspaces, workspacesWithRecentBackups, coverage, totalSizeGb, estimatedMonthlyCost }"
+    },
+    {
+      "id": "T3-005",
+      "title": "Add Restore from Snapshot button in DR snapshot inventory",
+      "description": "The useRestoreSnapshot hook exists with a POST to /api/admin/disaster-recovery/restore, but no UI exposes it. Add a 'Restore' action button per snapshot in the inventory table.",
+      "acceptanceCriteria": [
+        "DisasterRecoveryTab imports and uses useRestoreSnapshot()",
+        "Each completed snapshot row has a 'Restore' button next to Delete",
+        "Clicking opens a confirmation dialog asking for target region",
+        "On confirm, calls restoreSnapshot({ snapshotId, targetRegion })",
+        "Success/error toast messages",
+        "Loading state during restore",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "useRestoreSnapshot returns { restoreSnapshot, isLoading, error }. Params: { snapshotId, targetRegion }"
+    }
+  ]
+}
