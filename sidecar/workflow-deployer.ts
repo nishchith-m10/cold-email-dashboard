@@ -357,7 +357,18 @@ export class WorkflowDeployer {
     let result = json;
     for (const key of sortedKeys) {
       const value = map[key];
-      if (value === '') continue; // leave unresolved placeholders intact if no value
+      if (value === '') {
+        // D2-005: Empty credential IDs are hard errors — the workflow would
+        // fail at runtime with a cryptic n8n "credential not found" message.
+        // Content placeholders with empty values are left as-is (non-fatal).
+        if (key.startsWith('YOUR_CREDENTIAL_')) {
+          throw new Error(
+            `Credential placeholder '${key}' has no value. ` +
+            `Ensure the corresponding n8n credential is injected before deployment.`
+          );
+        }
+        continue; // content placeholder — leave unresolved
+      }
       // Escape key for use inside a RegExp (dots etc.)
       const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       result = result.replace(new RegExp(escaped, 'g'), value);
