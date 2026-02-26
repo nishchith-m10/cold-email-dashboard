@@ -523,18 +523,21 @@ export class IgnitionOrchestrator {
             resources.credential_ids.push(storeResult.credential_id!);
             state.credential_ids.push(storeResult.credential_id!);
 
-            // Send to Sidecar
+            // Send to Sidecar with per-credential retry (D1-008)
             if (state.droplet_ip) {
-              const injectResult = await this.sidecarClient.sendCommand(
-                state.droplet_ip,
-                {
-                  action: 'INJECT_CREDENTIAL',
-                  payload: {
-                    credential_type: cred.type,
-                    credential_name: cred.name,
-                    encrypted_data: cred.data,
-                  },
-                }
+              const injectResult = await this.retryTransient(
+                () => this.sidecarClient.sendCommand(
+                  state.droplet_ip!,
+                  {
+                    action: 'INJECT_CREDENTIAL',
+                    payload: {
+                      credential_type: cred.type,
+                      credential_name: cred.name,
+                      encrypted_data: cred.data,
+                    },
+                  }
+                ),
+                { maxAttempts: 3, baseDelayMs: 2000, label: `inject-cred:${cred.name}` }
               );
 
               if (!injectResult.success) {
@@ -1036,6 +1039,46 @@ export class IgnitionOrchestrator {
 
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Retry a function on transient failures with exponential backoff.
+   *
+   * Transient: network errors, 5xx, timeouts.
+   * Permanent (no retry): 4xx, credential validation errors.
+   */
+  private async retryTransient<T>(
+    fn: () => Promise<T>,
+    opts: { maxAttempts: number; baseDelayMs: number; label: string }
+  ): Promise<T> {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= opts.maxAttempts; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        const msg = error instanceof Error ? error.message : String(error);
+
+        // Permanent errors — do not retry
+        const isPermanent =
+          /4\d{2}/.test(msg) ||           // 400, 401, 403, 404, 422 …
+          /bad request/i.test(msg) ||
+          /unauthorized/i.test(msg) ||
+          /forbidden/i.test(msg) ||
+          /validation/i.test(msg);
+
+        if (isPermanent || attempt === opts.maxAttempts) {
+          throw error;
+        }
+
+        const delayMs = opts.baseDelayMs * Math.pow(2, attempt - 1);
+        console.warn(
+          `[retryTransient] ${opts.label}: attempt ${attempt}/${opts.maxAttempts} failed (${msg}), retrying in ${delayMs}ms`
+        );
+        await this.sleep(delayMs);
+      }
+    }
+    throw lastError; // unreachable, but satisfies TS
   }
 }
 
