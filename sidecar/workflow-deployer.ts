@@ -228,22 +228,25 @@ export class WorkflowDeployer {
   }
 
   /**
-   * Get template files based on provider
+   * Get template files based on provider.
+   *
+   * D2-004: Returns ALL 7 templates — the 3 provider-specific email
+   * templates plus the 4 provider-agnostic support workflows.
    */
   private getTemplateFiles(provider: 'gmail' | 'smtp'): string[] {
-    if (provider === 'smtp') {
-      return [
-        'Email 1-SMTP.json',
-        'Email 2-SMTP.json',
-        'Email 3-SMTP.json',
-      ];
-    } else {
-      return [
-        'Email 1.json',
-        'Email 2.json',
-        'Email 3.json',
-      ];
-    }
+    const emailTemplates = provider === 'smtp'
+      ? ['Email 1-SMTP.json', 'Email 2-SMTP.json', 'Email 3-SMTP.json']
+      : ['Email 1.json',      'Email 2.json',      'Email 3.json'];
+
+    // Non-email templates are provider-agnostic
+    const supportTemplates = [
+      'Email Preparation.json',
+      'Research Report.json',
+      'Reply Tracker.json',
+      'Opt-Out.json',
+    ];
+
+    return [...emailTemplates, ...supportTemplates];
   }
 
   /**
