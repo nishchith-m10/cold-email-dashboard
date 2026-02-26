@@ -1,136 +1,80 @@
 {
   "project": "cold-email-dashboard",
   "branchName": "ralph/domain2-templates-workflow-deployer",
-  "description": "Domain 2: DEFAULT_TEMPLATES & Workflow Deployer — Harden template deployment with credential validation, placeholder scanning, Sidecar alignment, and explicit empty-value handling",
+  "description": "Domain 2: DEFAULT_TEMPLATES & Workflow Deployer",
   "userStories": [
     {
       "id": "D2-001",
       "title": "Gate Sidecar auto-deploy and document orchestrator-first architecture",
-      "description": "Create the database migration that defines the ignition_state table (primary state persistence for the ignition orchestrator) and the ignition_operations table (audit trail of individual operations). Both tables live in the genesis schema with RLS policies.",
+      "description": "Gate DEPLOY_CAMPAIGN_WORKFLOWS behind SIDECAR_AUTO_DEPLOY env var. Add deprecation notice to workflow-deployer.ts.",
       "acceptanceCriteria": [
-        "Migration file exists at supabase/migrations/20260226_domain1_ignition_state_tables.sql",
-        "genesis.ignition_state table created with all IgnitionState fields as columns",
-        "genesis.ignition_operations table created with: id, workspace_id, operation, status, result (jsonb), error, created_at",
-        "RLS enabled on both tables with service_role full access",
-        "Index on ignition_operations(workspace_id, created_at)",
-        "All statements use IF NOT EXISTS for idempotency",
+        "DEPLOY_CAMPAIGN_WORKFLOWS returns error unless SIDECAR_AUTO_DEPLOY=true",
+        "DEPLOY_WORKFLOW command is unaffected",
+        "workflow-deployer.ts header has deprecation notice",
         "Typecheck passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": "IgnitionState interface at ignition-types.ts line 162. IgnitionStateDB interface at ignition-orchestrator.ts line 60."
+      "notes": "Committed as 163f609"
     },
     {
-      "id": "D1-002",
-      "title": "Implement SupabaseIgnitionStateDB",
-      "description": "Create a production IgnitionStateDB that persists to genesis.ignition_state and genesis.ignition_operations via service-role Supabase client.",
+      "id": "D2-002",
+      "title": "Add required_credentials validation before workflow deployment",
+      "description": "In orchestrator Step 5, validate each template required_credentials before deployment. Build credTypeToN8nId map, check 3 conditions.",
       "acceptanceCriteria": [
-        "New file lib/genesis/supabase-ignition-state-db.ts exists",
-        "SupabaseIgnitionStateDB implements IgnitionStateDB",
-        "save() upserts into genesis.ignition_state",
-        "load() queries by workspace_id, returns null if not found",
-        "delete() removes the row",
-        "logOperation() inserts into genesis.ignition_operations",
-        "Uses getTypedSupabaseAdmin() for DB access",
+        "credTypeToN8nId map built from config.credentials + resources.n8n_credential_ids",
+        "Each template required_credentials validated with 3 checks",
+        "Missing credential type throws IgnitionError",
+        "Missing template_placeholder throws IgnitionError",
+        "Missing n8n ID throws IgnitionError",
         "Typecheck passes"
       ],
       "priority": 2,
       "passes": true,
-      "notes": "Use (supabaseAdmin as any).schema('genesis') pattern since genesis schema types may not be in Database type."
+      "notes": "Committed as 8cf0465"
     },
     {
-      "id": "D1-003",
-      "title": "Implement SupabasePartitionManager",
-      "description": "Create a production PartitionManager that creates/drops workspace lead partitions using genesis.fn_ignite_workspace_partition().",
+      "id": "D2-003",
+      "title": "Scan for unresolved placeholders after workflow substitution",
+      "description": "In HttpWorkflowDeployer.deploy(), scan for YOUR_* tokens after substitution. Credential placeholders throw; content placeholders warn.",
       "acceptanceCriteria": [
-        "New file lib/genesis/supabase-partition-manager.ts exists",
-        "SupabasePartitionManager implements PartitionManager",
-        "create() calls genesis.fn_ignite_workspace_partition via rpc",
-        "create() registers partition in genesis.partition_registry",
-        "drop() detaches partition, drops table, removes registry row",
+        "Regex scan for /YOUR_[A-Z_]+/g after substitution",
+        "YOUR_CREDENTIAL_* matches throw Error",
+        "Non-credential YOUR_* matches log console.warn",
+        "Unique deduplication of matches",
         "Typecheck passes"
       ],
       "priority": 3,
       "passes": true,
-      "notes": "fn_ignite_workspace_partition already handles sanitization, advisory locking, and idempotency."
+      "notes": "Committed as 8be3034"
     },
     {
-      "id": "D1-004",
-      "title": "Implement HttpSidecarClient",
-      "description": "Create a production SidecarClient that sends JWT-signed commands to Sidecar agents using SidecarCommandBuilder.",
+      "id": "D2-004",
+      "title": "Sidecar deployer deploys all 7 workflow templates",
+      "description": "Update getTemplateFiles() to return all 7 templates (3 email + 4 support) instead of only 3.",
       "acceptanceCriteria": [
-        "New file lib/genesis/http-sidecar-client.ts exists",
-        "HttpSidecarClient implements SidecarClient",
-        "sendCommand() signs JWT via SidecarCommandBuilder, POSTs to /command",
-        "Retry with exponential backoff (3 attempts) for transient errors",
-        "Does not retry 4xx errors",
-        "Configurable timeout (default 30s)",
+        "getTemplateFiles() returns 7 templates total",
+        "Email templates selected by provider (gmail vs smtp)",
+        "Support templates: Email Preparation, Research Report, Reply Tracker, Opt-Out",
         "Typecheck passes"
       ],
       "priority": 4,
       "passes": true,
-      "notes": "SidecarCommandBuilder in lib/genesis/sidecar-commands.ts. Sidecar at port 3001. JWT in X-Genesis-JWT header."
+      "notes": "Committed as eb3f82f"
     },
     {
-      "id": "D1-005",
-      "title": "Replace handshake sleep with health check polling",
-      "description": "Replace sleep-based handshake in Step 3 with polling loop that checks Sidecar /health endpoint.",
+      "id": "D2-005",
+      "title": "Throw on empty credential placeholder values in sidecar deployer",
+      "description": "In injectCredentialPlaceholders(), empty YOUR_CREDENTIAL_* values throw Error; empty content placeholders are silently skipped.",
       "acceptanceCriteria": [
-        "Step 3 polls {sidecarUrl}/health every 5s (1s in LOCAL_MODE)",
-        "Proceeds when Sidecar responds 200 with status=ok",
-        "Times out after STEP_TIMEOUTS.handshake_pending",
-        "Each poll logged via onProgress callback",
+        "Empty YOUR_CREDENTIAL_* value throws Error",
+        "Empty content placeholder values are skipped",
+        "Error message guides user to inject credentials first",
         "Typecheck passes"
       ],
       "priority": 5,
       "passes": true,
-      "notes": "Sidecar /health returns { status:'ok', uptime, workspace_id, droplet_id, smtp_enabled }."
-    },
-    {
-      "id": "D1-006",
-      "title": "Add idempotency guard at ignition entry",
-      "description": "Check for existing active/in-progress ignition before starting a new one.",
-      "acceptanceCriteria": [
-        "ignite() checks stateDB.load() before initializing",
-        "Active state returns early { success: true, already_active: true }",
-        "In-progress state returns { success: false, error: 'already in progress' }",
-        "Failed state deletes old state and re-ignites",
-        "Typecheck passes"
-      ],
-      "priority": 6,
-      "passes": true,
-      "notes": "Terminal states: active, failed. All others are in-progress."
-    },
-    {
-      "id": "D1-007",
-      "title": "Implement real workflow rollback",
-      "description": "Replace no-op workflow rollback with actual deactivation and deletion via WorkflowDeployer.",
-      "acceptanceCriteria": [
-        "WorkflowDeployer interface gets delete(dropletIp, workflowId) method",
-        "Rollback deactivates then deletes each workflow",
-        "MockWorkflowDeployer implements delete()",
-        "Rollback errors caught and logged, not re-thrown",
-        "Typecheck passes"
-      ],
-      "priority": 7,
-      "passes": true,
-      "notes": "Sidecar supports DELETE_WORKFLOW command. Current rollback just increments counter."
-    },
-    {
-      "id": "D1-008",
-      "title": "Add per-credential retry logic",
-      "description": "Wrap each credential injection in Step 4 with retry + exponential backoff.",
-      "acceptanceCriteria": [
-        "Each credential retries up to 3 times (2s, 4s backoff)",
-        "Transient errors (timeout, 503) trigger retry",
-        "Permanent errors (400, 401) fail immediately",
-        "IgnitionError only after all retries exhausted",
-        "Retry attempts logged via onProgress",
-        "Typecheck passes"
-      ],
-      "priority": 8,
-      "passes": true,
-      "notes": "Step 4 credential loop starts around line 410 in ignition-orchestrator.ts."
+      "notes": "Committed as 36df5a4"
     }
   ]
 }
