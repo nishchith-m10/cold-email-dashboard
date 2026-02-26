@@ -168,6 +168,8 @@ export interface WorkflowDeployer {
     error?: string;
   }>;
   activate(dropletIp: string, workflowId: string): Promise<{ success: boolean }>;
+  deactivate(dropletIp: string, workflowId: string): Promise<{ success: boolean }>;
+  delete(dropletIp: string, workflowId: string): Promise<{ success: boolean }>;
 }
 
 // ============================================
@@ -772,7 +774,7 @@ export class IgnitionOrchestrator {
         reason: state.error_message,
       });
 
-      const rollbackResult = await this.rollback(config.workspace_id, resources);
+      const rollbackResult = await this.rollback(config.workspace_id, resources, state.droplet_ip);
 
       state.rollback_completed_at = new Date().toISOString();
       state.rollback_success = rollbackResult.success;
@@ -884,7 +886,8 @@ export class IgnitionOrchestrator {
    */
   private async rollback(
     workspaceId: string,
-    resources: CreatedResources
+    resources: CreatedResources,
+    dropletIp?: string
   ): Promise<RollbackResult> {
     const result: RollbackResult = {
       success: true,
@@ -897,10 +900,21 @@ export class IgnitionOrchestrator {
       errors: [],
     };
 
-    // Rollback workflows (reverse order)
+    // Rollback workflows (reverse order) — deactivate then delete via sidecar
     for (const workflowId of resources.workflow_ids.reverse()) {
       try {
-        // Workflows are on the droplet - if droplet is deleted, workflows go with it
+        if (dropletIp) {
+          // Best-effort deactivate before delete (ignore deactivate failure)
+          try {
+            await this.workflowDeployer.deactivate(dropletIp, workflowId);
+          } catch { /* workflow may already be inactive */ }
+
+          const deleteResult = await this.workflowDeployer.delete(dropletIp, workflowId);
+          if (!deleteResult.success) {
+            throw new Error(`Sidecar delete returned success=false for ${workflowId}`);
+          }
+        }
+        // If no dropletIp, the droplet was never provisioned — nothing to clean.
         result.rolled_back.workflows++;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
@@ -1156,6 +1170,28 @@ export class HttpWorkflowDeployer implements WorkflowDeployer {
     });
     return { success: result.success };
   }
+
+  async deactivate(
+    dropletIp: string,
+    workflowId: string
+  ): Promise<{ success: boolean }> {
+    const result = await this.sidecarClient.sendCommand(dropletIp, {
+      action: 'DEACTIVATE_WORKFLOW',
+      payload: { workflow_id: workflowId },
+    });
+    return { success: result.success };
+  }
+
+  async delete(
+    dropletIp: string,
+    workflowId: string
+  ): Promise<{ success: boolean }> {
+    const result = await this.sidecarClient.sendCommand(dropletIp, {
+      action: 'DELETE_WORKFLOW',
+      payload: { workflow_id: workflowId },
+    });
+    return { success: result.success };
+  }
 }
 
 /**
@@ -1174,6 +1210,14 @@ export class MockWorkflowDeployer implements WorkflowDeployer {
   }
 
   async activate(dropletIp: string, workflowId: string): Promise<{ success: boolean }> {
+    return { success: true };
+  }
+
+  async deactivate(dropletIp: string, workflowId: string): Promise<{ success: boolean }> {
+    return { success: true };
+  }
+
+  async delete(dropletIp: string, workflowId: string): Promise<{ success: boolean }> {
     return { success: true };
   }
 }
