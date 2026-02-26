@@ -1,15 +1,27 @@
 /**
  * WORKFLOW DEPLOYER - Phase 64.B Email Provider Abstraction
- * 
- * Deploys the correct workflow templates based on email provider selection:
- * - Gmail: Email 1.json, Email 2.json, Email 3.json
- * - SMTP: Email 1-SMTP.json, Email 2-SMTP.json, Email 3-SMTP.json
- * 
+ *
+ * ⚠️  DEPRECATION NOTICE (D2-001, Domain 2):
+ * This Sidecar-side deployer is a FALLBACK / standalone path.
+ * The primary workflow deployment path is the Ignition Orchestrator
+ * (lib/genesis/ignition-orchestrator.ts → HttpWorkflowDeployer), which:
+ *   1. Deploys ALL 7 templates (not just 3 email templates)
+ *   2. Performs full variable substitution dashboard-side
+ *   3. Uses DEPLOY_WORKFLOW sidecar commands (bypasses this class)
+ *
+ * This class is retained for standalone Sidecar operation (e.g., manual
+ * re-deploy without the orchestrator). It is gated behind the
+ * SIDECAR_AUTO_DEPLOY=true env var in sidecar-agent.ts.
+ *
+ * Deploys workflow templates based on email provider selection:
+ * - Gmail: Email 1.json, Email 2.json, Email 3.json (+ 4 non-email templates)
+ * - SMTP: Email 1-SMTP.json, Email 2-SMTP.json, Email 3-SMTP.json (+ 4 non-email templates)
+ *
  * Architecture:
  * - 1 workspace = 1 droplet = 1 email provider
  * - Reads email_provider_config from Supabase
  * - Injects workspace_id, campaign_name, env vars
- * - Deploys ONLY selected provider's workflows
+ * - Deploys selected provider's workflows
  */
 
 import * as fs from 'fs';
@@ -216,22 +228,25 @@ export class WorkflowDeployer {
   }
 
   /**
-   * Get template files based on provider
+   * Get template files based on provider.
+   *
+   * D2-004: Returns ALL 7 templates — the 3 provider-specific email
+   * templates plus the 4 provider-agnostic support workflows.
    */
   private getTemplateFiles(provider: 'gmail' | 'smtp'): string[] {
-    if (provider === 'smtp') {
-      return [
-        'Email 1-SMTP.json',
-        'Email 2-SMTP.json',
-        'Email 3-SMTP.json',
-      ];
-    } else {
-      return [
-        'Email 1.json',
-        'Email 2.json',
-        'Email 3.json',
-      ];
-    }
+    const emailTemplates = provider === 'smtp'
+      ? ['Email 1-SMTP.json', 'Email 2-SMTP.json', 'Email 3-SMTP.json']
+      : ['Email 1.json',      'Email 2.json',      'Email 3.json'];
+
+    // Non-email templates are provider-agnostic
+    const supportTemplates = [
+      'Email Preparation.json',
+      'Research Report.json',
+      'Reply Tracker.json',
+      'Opt-Out.json',
+    ];
+
+    return [...emailTemplates, ...supportTemplates];
   }
 
   /**
@@ -342,7 +357,18 @@ export class WorkflowDeployer {
     let result = json;
     for (const key of sortedKeys) {
       const value = map[key];
-      if (value === '') continue; // leave unresolved placeholders intact if no value
+      if (value === '') {
+        // D2-005: Empty credential IDs are hard errors — the workflow would
+        // fail at runtime with a cryptic n8n "credential not found" message.
+        // Content placeholders with empty values are left as-is (non-fatal).
+        if (key.startsWith('YOUR_CREDENTIAL_')) {
+          throw new Error(
+            `Credential placeholder '${key}' has no value. ` +
+            `Ensure the corresponding n8n credential is injected before deployment.`
+          );
+        }
+        continue; // content placeholder — leave unresolved
+      }
       // Escape key for use inside a RegExp (dots etc.)
       const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       result = result.replace(new RegExp(escaped, 'g'), value);

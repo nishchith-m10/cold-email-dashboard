@@ -134,3 +134,21 @@ Started: 2026-02-11
   - SidecarCommandBuilder handles JWT signing; always use it (don't roll custom JWT)
   - Rollback needs dropletIp param — state has it but CreatedResources doesn't
 ---
+
+## 2026-02-26 - Domain 2: DEFAULT_TEMPLATES & Workflow Deployer (D2-001 → D2-005)
+- Branch: `ralph/domain2-templates-workflow-deployer`
+- All 5 stories implemented, typechecked (0 new errors), committed
+- **D2-001** (163f609): Gate Sidecar DEPLOY_CAMPAIGN_WORKFLOWS behind SIDECAR_AUTO_DEPLOY env var; deprecation notice
+- **D2-002** (8cf0465): required_credentials validation — credTypeToN8nId map + 3-condition check per template
+- **D2-003** (8be3034): Unresolved placeholder scan — YOUR_CREDENTIAL_* hard error, content placeholders warn
+- **D2-004** (eb3f82f): Sidecar deployer returns all 7 templates (3 email + 4 support)
+- **D2-005** (36df5a4): Empty credential placeholder values throw instead of silent skip
+- **Files modified:**
+  - `sidecar/sidecar-agent.ts` — D2-001 (auto-deploy gate)
+  - `sidecar/workflow-deployer.ts` — D2-001 (deprecation), D2-004 (7 templates), D2-005 (empty cred throw)
+  - `lib/genesis/ignition-orchestrator.ts` — D2-002 (cred validation), D2-003 (placeholder scan)
+- **Learnings:**
+  - `npx tsc --noEmit` OOMs on default heap — use `NODE_OPTIONS="--max-old-space-size=4096"`
+  - Pre-existing 9 TS errors (test files + step_progress type) — none from Domain 2
+  - Sidecar has its own tsconfig; typecheck separately with `cd sidecar && npx tsc --noEmit`
+---

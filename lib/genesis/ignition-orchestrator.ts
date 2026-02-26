@@ -574,7 +574,56 @@ export class IgnitionOrchestrator {
             c => c.type === 'smtp'
           ) ? 'smtp' : 'gmail';
 
+          // ---------------------------------------------------------------
+          // D2-002: Build credential-type → n8n-ID lookup for validation.
+          // After Step 4, resources.n8n_credential_ids[i] corresponds to
+          // config.credentials[i].  We create a map from credential type
+          // to its n8n UUID so that required_credentials can be validated.
+          // ---------------------------------------------------------------
+          const credTypeToN8nId: Record<string, string> = {};
+          for (let i = 0; i < config.credentials.length; i++) {
+            const cred = config.credentials[i];
+            const n8nId = resources.n8n_credential_ids[i];
+            if (n8nId) {
+              credTypeToN8nId[cred.type] = n8nId;
+            }
+          }
+
           for (const template of templates) {
+            // D2-002: Validate required_credentials before deployment
+            for (const requiredType of template.required_credentials) {
+              // Check that a credential of this type was provided in config
+              const matchingCred = config.credentials.find(c => c.type === requiredType);
+              if (!matchingCred) {
+                throw new IgnitionError(
+                  `Template '${template.display_name}' requires credential type '${requiredType}' ` +
+                  `but none was provided in config.credentials`,
+                  'workflows_deploying',
+                  config.workspace_id
+                );
+              }
+
+              // Check that the credential has a template_placeholder assigned
+              if (!matchingCred.template_placeholder) {
+                throw new IgnitionError(
+                  `Template '${template.display_name}' requires credential type '${requiredType}' ` +
+                  `but credential '${matchingCred.name}' has no template_placeholder set`,
+                  'workflows_deploying',
+                  config.workspace_id
+                );
+              }
+
+              // Check that the corresponding n8n credential ID was returned by the Sidecar
+              if (!credTypeToN8nId[requiredType]) {
+                throw new IgnitionError(
+                  `Template '${template.display_name}' requires credential type '${requiredType}' ` +
+                  `but no n8n credential ID was returned for it during injection (Step 4)`,
+                  'workflows_deploying',
+                  config.workspace_id
+                );
+              }
+            }
+
             if (!state.droplet_ip) {
               throw new IgnitionError(
                 'Droplet IP not available',
@@ -1182,6 +1231,32 @@ export class HttpWorkflowDeployer implements WorkflowDeployer {
       // Escape regex special chars in placeholder, then replace globally
       const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       jsonStr = jsonStr.replace(new RegExp(escaped, 'g'), value);
+    }
+
+    // -----------------------------------------------------------
+    // D2-003: Scan for unresolved placeholders after substitution.
+    // Credential placeholders (YOUR_CREDENTIAL_*) are hard errors;
+    // other YOUR_* placeholders are logged as warnings but allowed.
+    // -----------------------------------------------------------
+    const unresolvedMatches = jsonStr.match(/YOUR_[A-Z_]+/g);
+    if (unresolvedMatches) {
+      const unique = [...new Set(unresolvedMatches)];
+      const credentialPlaceholders = unique.filter(p => p.startsWith('YOUR_CREDENTIAL_'));
+      const contentPlaceholders = unique.filter(p => !p.startsWith('YOUR_CREDENTIAL_'));
+
+      if (credentialPlaceholders.length > 0) {
+        throw new Error(
+          `Workflow '${workflow.name}' has unresolved credential placeholders after substitution: ` +
+          credentialPlaceholders.join(', ')
+        );
+      }
+
+      if (contentPlaceholders.length > 0) {
+        console.warn(
+          `[WorkflowDeployer] Workflow '${workflow.name}' has unresolved content placeholders ` +
+          `(non-fatal): ${contentPlaceholders.join(', ')}`
+        );
+      }
     }
 
     const substitutedJson: Record<string, unknown> = JSON.parse(jsonStr);
