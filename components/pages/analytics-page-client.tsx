@@ -36,7 +36,8 @@ export function AnalyticsPageClient() {
   
   const startDate = searchParams.get('start') ?? toISODate(daysAgo(30));
   const endDate = searchParams.get('end') ?? toISODate(new Date());
-  const selectedCampaign = searchParams.get('campaign') ?? undefined;
+  // Primary group-level filter via ?group= (UUID); legacy ?campaign= intentionally dropped
+  const selectedGroupId = searchParams.get('group') ?? undefined;
   
   const { workspace } = useWorkspace();
   const [selectedProvider, setSelectedProvider] = useState<ProviderId | undefined>();
@@ -51,7 +52,7 @@ export function AnalyticsPageClient() {
   const dashboardData = useDashboardData({
     startDate,
     endDate,
-    selectedCampaign,
+    selectedGroupId,
     selectedProvider,
   });
 
@@ -68,6 +69,8 @@ export function AnalyticsPageClient() {
     isSingleDay,
     campaigns,
     campaignsLoading,
+    campaignGroups,
+    campaignGroupsLoading,
     uniqueContacts,
   } = dashboardData;
 
@@ -94,13 +97,14 @@ export function AnalyticsPageClient() {
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [searchParams, router]);
 
-  const handleCampaignChange = useCallback((campaign: string | undefined) => {
+  const handleGroupChange = useCallback((groupId: string | undefined) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (campaign) {
-      params.set('campaign', campaign);
+    if (groupId) {
+      params.set('group', groupId);
     } else {
-      params.delete('campaign');
+      params.delete('group');
     }
+    params.delete('campaign');
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [searchParams, router]);
 
@@ -343,7 +347,7 @@ export function AnalyticsPageClient() {
         <SenderBreakdown
           startDate={startDate}
           endDate={endDate}
-          campaign={selectedCampaign}
+          campaignGroupId={selectedGroupId}
         />
       </motion.div>
     </div>

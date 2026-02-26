@@ -223,7 +223,8 @@ async function fetchAggregateData(
   endDate: string,
   workspaceId: string,
   campaign?: string | null,
-  providerFilter?: string | null
+  providerFilter?: string | null,
+  campaignGroupId?: string | null
 ): Promise<AggregateResponse> {
   if (!supabaseAdmin) {
     return emptyResponse(startDate, endDate);
@@ -251,6 +252,10 @@ async function fetchAggregateData(
       .eq('workspace_id', workspaceId)
       .gte('event_ts', `${start}T00:00:00Z`)
       .lte('event_ts', `${end}T23:59:59Z`);
+    // Campaign group filter (new: filter by campaign_group_id when provided)
+    if (campaignGroupId) {
+      q = q.eq('campaign_group_id', campaignGroupId);
+    }
     if (camp) {
       q = q.eq('campaign_name', camp);
     } else {
@@ -341,17 +346,24 @@ async function fetchAggregateData(
     .lte('created_at', `${endDate}T23:59:59Z`);
 
   // 7. Campaign names (for dropdown)
-  let campaignNamesQuery = supabaseAdmin
-    .from('daily_stats')
-    .select('campaign_name')
-    .eq('workspace_id', workspaceId)
-    .not('campaign_name', 'is', null);
-
   // 8. Leads count (for percentage calculation)
   const leadsTable = await getLeadsTableName(workspaceId);
   const leadsCountQuery = supabaseAdmin
     .from(leadsTable as 'leads_ohio')
     .select('*', { count: 'exact', head: true })
+    .eq('workspace_id', workspaceId);
+
+  // 9. Campaign name → group_id mapping (for group-level rollup)
+  const campaignMappingQuery = supabaseAdmin
+    .from('campaigns')
+    .select('name, campaign_group_id')
+    .eq('workspace_id', workspaceId)
+    .not('campaign_group_id', 'is', null);
+
+  // 10. Campaign groups (for group name lookup)
+  const campaignGroupsLookupQuery = supabaseAdmin
+    .from('campaign_groups')
+    .select('id, name')
     .eq('workspace_id', workspaceId);
 
   // Apply campaign filter to step breakdown query
@@ -364,7 +376,6 @@ async function fetchAggregateData(
       llmUsageQuery = llmUsageQuery.neq('campaign_name', excludedCampaign);
       contactsQuery = contactsQuery.neq('campaign_name', excludedCampaign);
       clickEventsQuery = clickEventsQuery.neq('campaign_name', excludedCampaign);
-      campaignNamesQuery = campaignNamesQuery.neq('campaign_name', excludedCampaign);
     }
   }
 
@@ -391,8 +402,9 @@ async function fetchAggregateData(
     llmUsageResult,
     contactsResult,
     clickEventsResult,
-    campaignNamesResult,
     leadsCountResult,
+    campaignMappingResult,
+    campaignGroupsLookupResult,
   ] = await Promise.all([
     countSendsQuery,
     countRepliesQuery,
@@ -407,8 +419,9 @@ async function fetchAggregateData(
     llmUsageQuery,
     contactsQuery,
     clickEventsQuery,
-    campaignNamesQuery,
     leadsCountQuery,
+    campaignMappingQuery,
+    campaignGroupsLookupQuery,
   ]);
 
   // Handle errors
@@ -594,6 +607,26 @@ async function fetchAggregateData(
   const totalCalls = byProvider.reduce((sum, p) => sum + p.calls, 0);
 
   // ============================================
+  // GROUP RESOLVER (campaign_name → parent group display name)
+  // Built early so all downstream processing can use it.
+  // ============================================
+
+  const campaignNameToGroupId = new Map<string, string>();
+  for (const c of (campaignMappingResult.data || [])) {
+    if (c.name && c.campaign_group_id) {
+      campaignNameToGroupId.set(c.name, c.campaign_group_id);
+    }
+  }
+  const groupIdToGroupName = new Map<string, string>();
+  for (const g of (campaignGroupsLookupResult.data || [])) {
+    groupIdToGroupName.set(g.id, g.name);
+  }
+  const resolveGroupDisplayName = (rawName: string): string => {
+    const groupId = campaignNameToGroupId.get(rawName);
+    return (groupId && groupIdToGroupName.get(groupId)) || rawName;
+  };
+
+  // ============================================
   // PROCESS STEP BREAKDOWN DATA (using stepBreakdownResult - only sent events)
   // ============================================
 
@@ -633,10 +666,11 @@ async function fetchAggregateData(
     if (step === 1 && normalizedEmail) {
       email1Recipients.add(normalizedEmail);
 
-      if (!email1RecipientsByCampaign.has(campaignName)) {
-        email1RecipientsByCampaign.set(campaignName, new Set());
+      const groupDisplayName = resolveGroupDisplayName(campaignName);
+      if (!email1RecipientsByCampaign.has(groupDisplayName)) {
+        email1RecipientsByCampaign.set(groupDisplayName, new Set());
       }
-      email1RecipientsByCampaign.get(campaignName)!.add(normalizedEmail);
+      email1RecipientsByCampaign.get(groupDisplayName)!.add(normalizedEmail);
     }
 
     // Daily sends
@@ -679,28 +713,16 @@ async function fetchAggregateData(
   // PROCESS CAMPAIGN DATA
   // ============================================
 
-  // Campaign list (unique names)
-  const campaignSet = new Set<string>();
-  if (!campaignNamesResult.error) {
-    for (const row of campaignNamesResult.data || []) {
-      if (row.campaign_name && !shouldExcludeCampaign(row.campaign_name)) {
-        campaignSet.add(row.campaign_name);
-      }
-    }
-  }
-  const campaignList = Array.from(campaignSet)
-    .map(name => ({ name }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
   // Campaign stats - aggregate from dailyStats which already has campaign breakdown (OOM-safe)
   const campaignStatsMap = new Map<string, { sends: number; replies: number; opt_outs: number; bounces: number }>();
   const campaignCostMap = new Map<string, number>();
   const campaignContactsMap = new Map<string, number>();
 
-  // Aggregate by campaign from dailyStats (already aggregated at DB level)
+  // Aggregate by campaign group from dailyStats (already aggregated at DB level)
   for (const row of dailyStats) {
-    const name = row.campaign_name || 'Unknown';
-    if (shouldExcludeCampaign(name)) continue;
+    const rawName = row.campaign_name || 'Unknown';
+    if (shouldExcludeCampaign(rawName)) continue;
+    const name = resolveGroupDisplayName(rawName);
     
     const existing = campaignStatsMap.get(name) || { sends: 0, replies: 0, opt_outs: 0, bounces: 0 };
     
@@ -713,16 +735,17 @@ async function fetchAggregateData(
   }
 
   for (const row of llmUsage) {
-    const name = row.campaign_name || 'Unknown';
-    if (shouldExcludeCampaign(name)) continue;
-    
+    const rawName = row.campaign_name || 'Unknown';
+    if (shouldExcludeCampaign(rawName)) continue;
+    const name = resolveGroupDisplayName(rawName);
     campaignCostMap.set(name, (campaignCostMap.get(name) || 0) + (Number(row.cost_usd) || 0));
   }
 
   if (!contactsResult.error) {
     for (const row of contactsResult.data || []) {
-      const name = row.campaign_name || 'Unknown';
-      if (shouldExcludeCampaign(name)) continue;
+      const rawName = row.campaign_name || 'Unknown';
+      if (shouldExcludeCampaign(rawName)) continue;
+      const name = resolveGroupDisplayName(rawName);
       campaignContactsMap.set(name, (campaignContactsMap.get(name) || 0) + (Number(row.sends) || 0));
     }
   }
@@ -759,6 +782,12 @@ async function fetchAggregateData(
       contacts_reached: contactsReached,
     };
   }).sort((a, b) => b.sends - a.sends);
+
+  // Derive campaign list from stats map keys (group-rolled-up names, excludes 'Unknown')
+  const campaignList = Array.from(campaignStatsMap.keys())
+    .filter(name => name !== 'Unknown')
+    .map(name => ({ name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   // ============================================
   // BUILD FINAL RESPONSE
@@ -852,6 +881,7 @@ export async function GET(req: NextRequest) {
   const end = searchParams.get('end');
   const campaign = searchParams.get('campaign');
   const provider = searchParams.get('provider');
+  const campaignGroupId = searchParams.get('campaign_group_id');
   const workspaceId = searchParams.get('workspace_id') || DEFAULT_WORKSPACE_ID;
 
   // Default to last 30 days
@@ -864,6 +894,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(emptyResponse(startDate, endDate), { headers: API_HEADERS });
   }
 
+  // TENANT ISOLATION: Fail-fast group ownership check.
+  // When a campaign_group_id is provided, verify it belongs to the requested workspace
+  // before running the full query fan-out. Prevents silent empty results.
+  if (campaignGroupId) {
+    const { data: groupCheck, error: groupErr } = await supabaseAdmin
+      .from('campaign_groups')
+      .select('id')
+      .eq('id', campaignGroupId)
+      .eq('workspace_id', workspaceId)
+      .maybeSingle();
+
+    if (groupErr || !groupCheck) {
+      return NextResponse.json(
+        { error: 'Campaign group not found in this workspace' },
+        { status: 404, headers: API_HEADERS }
+      );
+    }
+  }
+
   try {
     // Generate cache key
     const cacheKey = apiCacheKey('aggregate', {
@@ -871,12 +920,13 @@ export async function GET(req: NextRequest) {
       end: endDate,
       campaign: campaign || undefined,
       provider: provider || undefined,
+      campaignGroupId: campaignGroupId || undefined,
       workspace: workspaceId,
     });
     // Use cache with 30 second TTL (stale-while-revalidate)
     const data = await cacheManager.getOrSet(
       cacheKey,
-      () => fetchAggregateData(startDate, endDate, workspaceId, campaign, provider),
+      () => fetchAggregateData(startDate, endDate, workspaceId, campaign, provider, campaignGroupId),
       CACHE_TTL.SHORT
     );
     return NextResponse.json(data, { headers: API_HEADERS });
@@ -889,6 +939,7 @@ export async function GET(req: NextRequest) {
       end: endDate,
       campaign: campaign || undefined,
       provider: provider || undefined,
+      campaignGroupId: campaignGroupId || undefined,
       workspace: workspaceId,
     });
 

@@ -54,6 +54,7 @@ const TEST_CONFIG: IgnitionConfig = {
   ],
   variables: {
     CUSTOM_VAR: 'custom-value',
+    YOUR_SENDER_EMAIL: 'sender@test.example',
   },
 };
 
@@ -100,7 +101,7 @@ describe('Successful Ignition Flow', () => {
     expect(result.partition_name).toBe('genesis.leads_p_test-corp');
     expect(result.droplet_id).toBeDefined();
     expect(result.droplet_ip).toBe('10.0.0.1');
-    expect(result.workflow_ids).toHaveLength(4);
+    expect(result.workflow_ids).toHaveLength(7);
     expect(result.credential_count).toBe(2);
     expect(result.steps_completed).toBe(6);
     expect(result.error).toBeUndefined();
@@ -161,7 +162,7 @@ describe('Successful Ignition Flow', () => {
     expect(finalState?.partition_name).toBe('genesis.leads_p_test-corp');
     expect(finalState?.droplet_id).toBeDefined();
     expect(finalState?.droplet_ip).toBe('10.0.0.1');
-    expect(finalState?.workflow_ids).toHaveLength(4);
+    expect(finalState?.workflow_ids).toHaveLength(7);
     expect(finalState?.credential_ids).toHaveLength(2);
     expect(finalState?.error_message).toBeUndefined();
     expect(finalState?.completed_at).toBeDefined();
@@ -220,7 +221,7 @@ describe('Successful Ignition Flow', () => {
     expect(state?.partition_name).toBeDefined();
     expect(state?.droplet_id).toBeDefined();
     expect(state?.credential_ids).toHaveLength(2);
-    expect(state?.workflow_ids).toHaveLength(4);
+    expect(state?.workflow_ids).toHaveLength(7);
   });
 });
 

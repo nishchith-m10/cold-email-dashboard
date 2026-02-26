@@ -11,9 +11,9 @@
         },
         "table": {
           "__rl": true,
-          "value": "leads_ohio",
+          "value": "YOUR_LEADS_TABLE",
           "mode": "list",
-          "cachedResultName": "leads_ohio"
+          "cachedResultName": "YOUR_LEADS_TABLE"
         },
         "where": {
           "values": [
@@ -51,7 +51,7 @@
       "name": "Select Leads for Email 3",
       "credentials": {
         "postgres": {
-          "id": "QKb5WqKXZ29v15Qk",
+          "id": "YOUR_CREDENTIAL_POSTGRES_ID",
           "name": "Leads Ohio"
         }
       }
@@ -66,9 +66,9 @@
         },
         "table": {
           "__rl": true,
-          "value": "leads_ohio",
+          "value": "YOUR_LEADS_TABLE",
           "mode": "list",
-          "cachedResultName": "leads_ohio"
+          "cachedResultName": "YOUR_LEADS_TABLE"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -523,7 +523,7 @@
       "name": "Update Replied Status",
       "credentials": {
         "postgres": {
-          "id": "QKb5WqKXZ29v15Qk",
+          "id": "YOUR_CREDENTIAL_POSTGRES_ID",
           "name": "Leads Ohio"
         }
       }
@@ -538,9 +538,9 @@
         },
         "table": {
           "__rl": true,
-          "value": "leads_ohio",
+          "value": "YOUR_LEADS_TABLE",
           "mode": "list",
-          "cachedResultName": "leads_ohio"
+          "cachedResultName": "YOUR_LEADS_TABLE"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -994,7 +994,7 @@
       "name": "Mark Email 3 Sent",
       "credentials": {
         "postgres": {
-          "id": "QKb5WqKXZ29v15Qk",
+          "id": "YOUR_CREDENTIAL_POSTGRES_ID",
           "name": "Leads Ohio"
         }
       },
@@ -1010,9 +1010,9 @@
         },
         "table": {
           "__rl": true,
-          "value": "leads_ohio",
+          "value": "YOUR_LEADS_TABLE",
           "mode": "list",
-          "cachedResultName": "leads_ohio"
+          "cachedResultName": "YOUR_LEADS_TABLE"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1466,7 +1466,7 @@
       "name": "Mark Email 3 Failed",
       "credentials": {
         "postgres": {
-          "id": "QKb5WqKXZ29v15Qk",
+          "id": "YOUR_CREDENTIAL_POSTGRES_ID",
           "name": "Leads Ohio"
         }
       }
@@ -2230,7 +2230,7 @@
       "name": "Replied status Yes",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "2EUpgH0WFkM3Lr6E",
+          "id": "YOUR_CREDENTIAL_GOOGLE_SHEETS_ID",
           "name": "YOUR_NAME Sheets account"
         }
       }
@@ -2612,7 +2612,7 @@
       "name": "Append or update row in sheet",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "2EUpgH0WFkM3Lr6E",
+          "id": "YOUR_CREDENTIAL_GOOGLE_SHEETS_ID",
           "name": "YOUR_NAME Sheets account"
         }
       }
@@ -2651,7 +2651,7 @@
       "webhookId": "08ecae03-f38c-403c-adf1-0bf01d70946a",
       "credentials": {
         "gmailOAuth2": {
-          "id": "tUD6GQ7CnHfvUM7k",
+          "id": "YOUR_CREDENTIAL_GMAIL_ID",
           "name": "YOUR_COMPANY_NAME"
         }
       }
@@ -2744,7 +2744,7 @@
       "alwaysOutputData": true,
       "credentials": {
         "gmailOAuth2": {
-          "id": "tUD6GQ7CnHfvUM7k",
+          "id": "YOUR_CREDENTIAL_GMAIL_ID",
           "name": "YOUR_COMPANY_NAME"
         }
       }

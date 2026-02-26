@@ -18,6 +18,9 @@
  * @see docs/plans/GENESIS_SINGULARITY_PLAN_V35.md - Phase 41
  */
 
+import fs from 'fs';
+import path from 'path';
+
 import {
   IgnitionConfig,
   IgnitionState,
@@ -32,6 +35,20 @@ import {
 } from './ignition-types';
 
 import { CredentialVault } from './credential-vault';
+
+// ============================================
+// TEMPLATE FILE NAME MAP
+// Maps template_name → { gmail: string, smtp?: string }
+// ============================================
+const TEMPLATE_FILE_MAP: Record<string, { gmail: string; smtp?: string }> = {
+  email_1:           { gmail: 'Email 1.json',           smtp: 'Email 1-SMTP.json' },
+  email_2:           { gmail: 'Email 2.json',           smtp: 'Email 2-SMTP.json' },
+  email_3:           { gmail: 'Email 3.json',           smtp: 'Email 3-SMTP.json' },
+  email_preparation: { gmail: 'Email Preparation.json' },
+  research_report:   { gmail: 'Research Report.json' },
+  reply_tracker:     { gmail: 'Reply Tracker.json' },
+  opt_out:           { gmail: 'Opt-Out.json' },
+};
 
 // ============================================
 // STATE PERSISTENCE INTERFACE
@@ -171,6 +188,7 @@ export class IgnitionOrchestrator {
   private workflowDeployer: WorkflowDeployer;
   private progressCallback?: IgnitionProgressCallback;
   private handshakeDelayMs: number;
+  private templateDir: string;
   private cancellationFlags: Map<string, boolean> = new Map();
 
   constructor(
@@ -180,7 +198,7 @@ export class IgnitionOrchestrator {
     dropletFactory: DropletFactory,
     sidecarClient: SidecarClient,
     workflowDeployer: WorkflowDeployer,
-    options?: { handshakeDelayMs?: number }
+    options?: { handshakeDelayMs?: number; templateDir?: string }
   ) {
     this.stateDB = stateDB;
     this.credentialVault = credentialVault;
@@ -189,6 +207,40 @@ export class IgnitionOrchestrator {
     this.sidecarClient = sidecarClient;
     this.workflowDeployer = workflowDeployer;
     this.handshakeDelayMs = options?.handshakeDelayMs ?? 5000;
+    // Default to <project-root>/base-cold-email (bundled with the app)
+    this.templateDir = options?.templateDir ?? path.join(process.cwd(), 'base-cold-email');
+  }
+
+  /**
+   * Load a workflow template JSON from disk.
+   * Selects the SMTP variant when the workspace uses SMTP credentials.
+   */
+  private loadTemplateJson(
+    templateName: string,
+    emailProvider: 'gmail' | 'smtp'
+  ): Record<string, unknown> {
+    const fileMap = TEMPLATE_FILE_MAP[templateName];
+    if (!fileMap) {
+      throw new Error(`Unknown template: ${templateName}. Add it to TEMPLATE_FILE_MAP.`);
+    }
+
+    const fileName =
+      emailProvider === 'smtp' && fileMap.smtp ? fileMap.smtp : fileMap.gmail;
+
+    const filePath = path.join(this.templateDir, fileName);
+
+    if (!fs.existsSync(filePath)) {
+      throw new Error(
+        `Template file not found: ${filePath}. ` +
+        `Ensure base-cold-email/ is present in the project root.`
+      );
+    }
+
+    try {
+      return JSON.parse(fs.readFileSync(filePath, 'utf8')) as Record<string, unknown>;
+    } catch (e) {
+      throw new Error(`Failed to parse template ${fileName}: ${(e as Error).message}`);
+    }
   }
 
   /**
@@ -257,13 +309,32 @@ export class IgnitionOrchestrator {
         }
       );
 
-      // STEP 2: Provision droplet
+      // STEP 2: Provision droplet (or use local mode)
       this.checkCancellation(config.workspace_id);
       await this.executeStep(
         state,
         'droplet_provisioning',
         2,
         async () => {
+          const isLocalMode = config.local_mode === true
+            || process.env.LOCAL_MODE === 'true';
+
+          if (isLocalMode) {
+            // LOCAL MODE: skip DigitalOcean API call, use a manually-supplied IP.
+            // Useful for beta testing without spending DO API quota.
+            // Spin up n8n locally: docker run -p 5678:5678 n8nio/n8n
+            const localIp = config.local_n8n_ip
+              || process.env.LOCAL_N8N_IP
+              || '127.0.0.1';
+            console.warn(
+              `[Ignition] LOCAL_MODE enabled — skipping DigitalOcean provisioning.` +
+              ` Using local n8n at ${localIp}`
+            );
+            state.droplet_id = 'local';
+            state.droplet_ip = localIp;
+            return;
+          }
+
           const result = await this.dropletFactory.provision({
             workspace_id: config.workspace_id,
             workspace_slug: config.workspace_slug,
@@ -372,6 +443,11 @@ export class IgnitionOrchestrator {
             ? DEFAULT_TEMPLATES.filter(t => config.workflow_templates!.includes(t.template_name))
             : DEFAULT_TEMPLATES;
 
+          // Detect email provider from injected credentials
+          const emailProvider: 'gmail' | 'smtp' = config.credentials.some(
+            c => c.type === 'smtp'
+          ) ? 'smtp' : 'gmail';
+
           for (const template of templates) {
             if (!state.droplet_ip) {
               throw new IgnitionError(
@@ -381,30 +457,113 @@ export class IgnitionOrchestrator {
               );
             }
 
+            // Load the raw template JSON from disk
+            const templateJson = this.loadTemplateJson(template.template_name, emailProvider);
+
             // Build variable map
-            const variableMap = {
-              YOUR_WORKSPACE_ID: config.workspace_id,
+            // ---------------------------------------------------------------
+            // Precedence (lowest → highest):
+            //  1. Derived defaults (workspace identity, droplet URLs, env keys)
+            //  2. config.variables — caller-supplied overrides (highest priority)
+            //
+            // Callers MUST include in config.variables:
+            //   YOUR_SENDER_EMAIL   — the Gmail/SMTP address for this workspace
+            //   YOUR_TEST_EMAIL     — (optional) sandbox test recipient
+            //   YOUR_COMPANY_NAME   — if different from workspace_name
+            // ---------------------------------------------------------------
+            // Determine instance URL — for LOCAL_MODE, use http://localhost:port
+            const isLocalMode = config.local_mode === true || process.env.LOCAL_MODE === 'true';
+            const instanceBase = isLocalMode
+              ? `http://${state.droplet_ip}:5678`
+              : `https://${state.droplet_ip}.sslip.io`;
+
+            const variableMap: Record<string, string> = {
+              // Workspace identity
+              YOUR_WORKSPACE_ID:   config.workspace_id,
               YOUR_WORKSPACE_SLUG: config.workspace_slug,
               YOUR_WORKSPACE_NAME: config.workspace_name,
+              YOUR_COMPANY_NAME:   config.workspace_name, // overridable via config.variables
+              YOUR_NAME:           config.workspace_name, // used in n8n credential display names
+
+              // Campaign group — used to tag events and attribute LLM costs per campaign
+              YOUR_CAMPAIGN_GROUP_ID:   config.campaign_group_id ?? config.workspace_id,
+              YOUR_CAMPAIGN_NAME:       config.campaign_group_name ?? config.workspace_name,
+
+              // Database routing — resolves to this tenant's Supabase partition
               YOUR_LEADS_TABLE: `genesis.leads_p_${config.workspace_slug}`,
+
+              // Per-droplet / instance URLs
+              YOUR_N8N_INSTANCE_URL:         instanceBase,
+              YOUR_UNSUBSCRIBE_REDIRECT_URL: `${instanceBase}/webhook/opt-out`,
+
+              // Dashboard callback URLs
+              YOUR_DASHBOARD_URL: process.env.NEXT_PUBLIC_APP_URL
+                || process.env.BASE_URL
+                || '',
+
+              // Operator-level secrets (shared across all tenants, from env)
+              YOUR_WEBHOOK_TOKEN:           process.env.DASH_WEBHOOK_TOKEN || '',
+              YOUR_RELEVANCE_AI_AUTH_TOKEN: process.env.RELEVANCE_AI_API_KEY
+                || process.env.RELEVANCE_API_KEY
+                || '',
+              YOUR_RELEVANCE_AI_BASE_URL:   process.env.RELEVANCE_AI_BASE_URL
+                || 'https://api-d7b62b.stack.tryrelevance.com',
+              YOUR_RELEVANCE_AI_PROJECT_ID: process.env.RELEVANCE_AI_PROJECT_ID
+                || process.env.RELEVANCE_API_REGION
+                || '',
+              YOUR_RELEVANCE_AI_STUDIO_ID:  process.env.RELEVANCE_AI_STUDIO_ID || '',
+
+              // Google Custom Search Engine
+              YOUR_GOOGLE_CSE_API_KEY: process.env.GOOGLE_CSE_API_KEY || '',
+              YOUR_GOOGLE_CSE_CX:      process.env.GOOGLE_CSE_CX || '',
+
+              // Apify
+              YOUR_APIFY_API_TOKEN: process.env.APIFY_API_KEY || '',
+
+              // Workspace-specific defaults (caller should override these via config.variables)
+              YOUR_SENDER_EMAIL: '',
+              YOUR_TEST_EMAIL:   '',
+
+              // Calendly links — workspace-specific, must be passed via config.variables
+              YOUR_CALENDLY_LINK_1: '',
+              YOUR_CALENDLY_LINK_2: '',
+
+              // Caller overrides — MUST come last (highest priority)
               ...config.variables,
             };
 
-            // Build credential map (template placeholder → n8n UUID)
-            const credentialMap: Record<string, string> = {};
+            // Populate credential ID placeholders from n8n-assigned UUIDs.
+            // Each credential in config.credentials may declare a template_placeholder
+            // matching YOUR_CREDENTIAL_*_ID in the template JSON. After the sidecar
+            // creates the credential in n8n, we get back the real n8n UUID and map it here.
             for (let i = 0; i < config.credentials.length; i++) {
               const cred = config.credentials[i];
-              if (cred.template_placeholder && resources.n8n_credential_ids[i]) {
-                credentialMap[cred.template_placeholder] = resources.n8n_credential_ids[i];
+              const n8nId = resources.n8n_credential_ids[i];
+              if (cred.template_placeholder && n8nId) {
+                variableMap[cred.template_placeholder] = n8nId;
               }
             }
+
+            // Guard: sender email is required for all email workflows
+            if (!variableMap.YOUR_SENDER_EMAIL) {
+              throw new IgnitionError(
+                'YOUR_SENDER_EMAIL must be provided in config.variables. ' +
+                'Pass the workspace Gmail/SMTP address before calling ignite().',
+                'workflows_deploying',
+                config.workspace_id
+              );
+            }
+
+            // credential_map is now populated in variableMap above.
+            // Pass an empty map here so the deployer doesn't double-replace.
+            const credentialMap: Record<string, string> = {};
 
             // Deploy workflow
             const deployResult = await this.workflowDeployer.deploy(
               state.droplet_ip,
               {
                 name: `[${config.workspace_name}] ${template.display_name}`,
-                json: {}, // Would load actual template JSON
+                json: templateJson,
                 credential_map: credentialMap,
                 variable_map: variableMap,
               }
@@ -804,6 +963,77 @@ export class MockSidecarClient implements SidecarClient {
       success: true,
       result: { credential_id: `n8n-cred-${Date.now()}` },
     };
+  }
+}
+
+// ============================================
+// REAL WORKFLOW DEPLOYER
+// ============================================
+
+/**
+ * Production workflow deployer.
+ *
+ * Applies the variable map (incl. credential ID placeholders) to the workflow
+ * JSON client-side, then sends the substituted payload to the Sidecar via
+ * DEPLOY_WORKFLOW / ACTIVATE_WORKFLOW commands.
+ *
+ * Substitution is a simple global string-replace over the JSON string so it
+ * correctly handles values inside strings, node parameters, etc.
+ */
+export class HttpWorkflowDeployer implements WorkflowDeployer {
+  constructor(private sidecarClient: SidecarClient) {}
+
+  async deploy(
+    dropletIp: string,
+    workflow: {
+      name: string;
+      json: Record<string, unknown>;
+      credential_map: Record<string, string>;
+      variable_map: Record<string, string>;
+    }
+  ): Promise<{ success: boolean; workflow_id?: string; error?: string }> {
+    // Merge credential_map into variable_map for a single-pass substitution
+    const allSubstitutions: Record<string, string> = {
+      ...workflow.variable_map,
+      ...workflow.credential_map,
+    };
+
+    // Apply substitutions to the full JSON string
+    let jsonStr = JSON.stringify(workflow.json);
+    for (const [placeholder, value] of Object.entries(allSubstitutions)) {
+      // Escape regex special chars in placeholder, then replace globally
+      const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      jsonStr = jsonStr.replace(new RegExp(escaped, 'g'), value);
+    }
+
+    const substitutedJson: Record<string, unknown> = JSON.parse(jsonStr);
+    // Set canonical workflow name from orchestrator
+    substitutedJson.name = workflow.name;
+
+    const result = await this.sidecarClient.sendCommand(dropletIp, {
+      action: 'DEPLOY_WORKFLOW',
+      payload: { workflow_json: substitutedJson },
+    });
+
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    const workflowId = (result.result as any)?.id
+      || (result.result as any)?.workflow_id;
+
+    return { success: true, workflow_id: workflowId };
+  }
+
+  async activate(
+    dropletIp: string,
+    workflowId: string
+  ): Promise<{ success: boolean }> {
+    const result = await this.sidecarClient.sendCommand(dropletIp, {
+      action: 'ACTIVATE_WORKFLOW',
+      payload: { workflow_id: workflowId },
+    });
+    return { success: result.success };
   }
 }
 

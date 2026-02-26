@@ -49,9 +49,11 @@ const defaultConfig: SWRConfiguration = {
 };
 
 // Hook to fetch summary metrics (from Supabase)
-export function useMetricsSummary(start: string, end: string, campaign?: string) {
+export function useMetricsSummary(start: string, end: string, campaign?: string, campaignGroupId?: string) {
   const params = new URLSearchParams({ start, end });
-  if (campaign) params.set('campaign', campaign);
+  // Prefer group-level filter when available; fall back to legacy campaign name
+  if (campaignGroupId) params.set('campaign_group_id', campaignGroupId);
+  else if (campaign) params.set('campaign', campaign);
   
   const { data, error, isLoading, mutate } = useSWR<MetricsSummary>(
     `/api/metrics/summary?${params.toString()}`,
@@ -75,10 +77,12 @@ export function useTimeSeries(
   metric: TimeSeriesMetric,
   start: string,
   end: string,
-  campaign?: string
+  campaign?: string,
+  campaignGroupId?: string
 ) {
   const params = new URLSearchParams({ metric, start, end });
-  if (campaign) params.set('campaign', campaign);
+  if (campaignGroupId) params.set('campaign_group_id', campaignGroupId);
+  else if (campaign) params.set('campaign', campaign);
 
   const { data, error, isLoading } = useSWR<TimeSeriesData>(
     `/api/metrics/timeseries?${params.toString()}`,
@@ -117,9 +121,10 @@ export function useCampaignStats(start: string, end: string) {
 }
 
 // Hook to fetch cost breakdown (from Supabase)
-export function useCostBreakdown(start: string, end: string, campaign?: string, provider?: string) {
+export function useCostBreakdown(start: string, end: string, campaign?: string, provider?: string, campaignGroupId?: string) {
   const params = new URLSearchParams({ start, end });
-  if (campaign) params.set('campaign', campaign);
+  if (campaignGroupId) params.set('campaign_group_id', campaignGroupId);
+  else if (campaign) params.set('campaign', campaign);
   if (provider && provider !== 'all') params.set('provider', provider);
 
   const { data, error, isLoading, mutate } = useSWR<CostBreakdown>(
@@ -139,10 +144,15 @@ export function useCostBreakdown(start: string, end: string, campaign?: string, 
   };
 }
 
-// Hook to fetch campaigns list (from Supabase)
+// Hook to fetch campaigns list (from Supabase) — workspace-scoped
 export function useCampaigns() {
+  const { workspaceId } = useWorkspace();
+
+  // SWR key includes workspaceId so cache is isolated per workspace
+  const swrKey = workspaceId ? `/api/campaigns?workspace_id=${workspaceId}` : null;
+
   const { data, error, isLoading } = useSWR<CampaignList>(
-    '/api/campaigns',
+    swrKey,
     fetcher,
     { 
       ...defaultConfig,
@@ -153,7 +163,7 @@ export function useCampaigns() {
 
   return {
     campaigns: data?.campaigns || [],
-    isLoading,
+    isLoading: isLoading || !workspaceId,
     isError: error,
   };
 }
@@ -180,9 +190,10 @@ export function useGoogleSheetsStats() {
 }
 
 // Hook to fetch step-level breakdown (from Supabase)
-export function useStepBreakdown(start: string, end: string, campaign?: string) {
+export function useStepBreakdown(start: string, end: string, campaign?: string, campaignGroupId?: string) {
   const params = new URLSearchParams({ start, end });
-  if (campaign) params.set('campaign', campaign);
+  if (campaignGroupId) params.set('campaign_group_id', campaignGroupId);
+  else if (campaign) params.set('campaign', campaign);
 
   const { data, error, isLoading, mutate } = useSWR<StepBreakdownData>(
     `/api/metrics/step-breakdown?${params.toString()}`,
@@ -226,11 +237,12 @@ export interface SenderStatsData {
 }
 
 // Hook to fetch per-sender statistics (from Supabase)
-export function useSenderStats(start: string, end: string, campaign?: string) {
+export function useSenderStats(start: string, end: string, campaign?: string, campaignGroupId?: string) {
   const { workspaceId, isLoading: workspaceLoading } = useWorkspace();
 
   const params = new URLSearchParams({ start, end });
-  if (campaign) params.set('campaign', campaign);
+  if (campaignGroupId) params.set('campaign_group_id', campaignGroupId);
+  else if (campaign) params.set('campaign', campaign);
   if (workspaceId) params.set('workspace_id', workspaceId);
 
   const { data, error, isLoading, mutate } = useSWR<SenderStatsData>(

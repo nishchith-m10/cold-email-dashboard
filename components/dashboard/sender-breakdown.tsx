@@ -6,7 +6,8 @@ import { cn } from '@/lib/utils';
 interface SenderBreakdownProps {
   startDate: string;
   endDate: string;
-  campaign?: string;
+  campaign?: string;        // Legacy: single-campaign name filter (drilldown)
+  campaignGroupId?: string; // Primary: group-level UUID filter
   className?: string;
 }
 
@@ -14,9 +15,10 @@ export function SenderBreakdown({
   startDate,
   endDate,
   campaign,
+  campaignGroupId,
   className,
 }: SenderBreakdownProps) {
-  const { senders, totalSenders, isLoading } = useSenderStats(startDate, endDate, campaign);
+  const { senders, totalSenders, isLoading } = useSenderStats(startDate, endDate, campaign, campaignGroupId);
 
   if (isLoading) {
     return (

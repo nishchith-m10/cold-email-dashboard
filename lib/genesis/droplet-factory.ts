@@ -388,7 +388,7 @@ services:
         max-file: "3"
 
   sidecar:
-    image: ${SIDECAR_IMAGE}
+    image: \${SIDECAR_IMAGE}
     container_name: genesis-sidecar
     restart: unless-stopped
     env_file:
@@ -417,12 +417,12 @@ services:
     container_name: n8n
     restart: unless-stopped
     environment:
-      - N8N_HOST=${N8N_DOMAIN}
+      - N8N_HOST=\${N8N_DOMAIN}
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://${N8N_DOMAIN}/
-      - GENERIC_TIMEZONE=${TIMEZONE}
-      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - WEBHOOK_URL=https://\${N8N_DOMAIN}/
+      - GENERIC_TIMEZONE=\${TIMEZONE}
+      - N8N_ENCRYPTION_KEY=\${N8N_ENCRYPTION_KEY}
       - N8N_LOG_LEVEL=info
       - N8N_PERSONALIZATION_ENABLED=false
       - N8N_DIAGNOSTICS_ENABLED=false

@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UpShot Testing Checklist — March 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --black: #000;
+    --white: #fff;
+    --mid: #555;
+    --light: #ccc;
+    --verlight: #f5f5f5;
+  }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 9.5pt;
+    color: var(--black);
+    background: white;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 20px 24px;
+    line-height: 1.45;
+  }
+
+  /* ─── HEADER ─── */
+  .doc-header {
+    border-top: 3px solid black;
+    border-bottom: 1px solid black;
+    padding: 10px 0 8px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .doc-header h1 {
+    font-size: 16pt;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    text-transform: uppercase;
+  }
+  .doc-header .meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5pt;
+    text-align: right;
+    color: var(--mid);
+    line-height: 1.6;
+  }
+
+  .how-to {
+    background: var(--verlight);
+    border-left: 3px solid black;
+    padding: 6px 10px;
+    font-size: 8.5pt;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .how-to strong { font-weight: 600; }
+
+  /* ─── PRIORITY TABLE ─── */
+  .priority-section {
+    margin-bottom: 16px;
+    page-break-inside: avoid;
+  }
+  .section-title {
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    border-bottom: 1.5px solid black;
+    padding-bottom: 3px;
+    margin-bottom: 8px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+  }
+  table th {
+    background: black;
+    color: white;
+    padding: 4px 7px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  table td {
+    padding: 4px 7px;
+    border-bottom: 1px solid #ddd;
+    vertical-align: top;
+  }
+  table tr:nth-child(even) td { background: var(--verlight); }
+  .blocker-tag {
+    display: inline-block;
+    background: black;
+    color: white;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 6.5pt;
+    padding: 1px 4px;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  .risk-high { font-weight: 600; }
+
+  /* ─── CHECKLIST SECTIONS ─── */
+  .check-section {
+    margin-bottom: 14px;
+    page-break-inside: avoid;
+  }
+  .check-section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .check-section-header h2 {
+    font-size: 9.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    flex: 1;
+    border-bottom: 1.5px solid black;
+    padding-bottom: 3px;
+  }
+  .check-section-header .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7pt;
+    font-weight: 600;
+    border: 1.5px solid black;
+    padding: 1px 5px;
+    white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .tag.blocker { background: black; color: white; }
+  .tag.legal { background: black; color: white; }
+
+  .subsection-title {
+    font-size: 8.5pt;
+    font-weight: 600;
+    margin: 7px 0 4px 0;
+    color: var(--mid);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 2px 0;
+    line-height: 1.4;
+  }
+  .check-item .box {
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid black;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .check-item .text {
+    font-size: 8.5pt;
+    flex: 1;
+  }
+  .check-item .text code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5pt;
+    background: var(--verlight);
+    padding: 0 2px;
+  }
+
+  .status-line {
+    display: flex;
+    gap: 16px;
+    margin-top: 6px;
+    padding-top: 5px;
+    border-top: 1px dashed var(--light);
+    align-items: center;
+  }
+  .status-line .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+  .status-options {
+    display: flex;
+    gap: 12px;
+  }
+  .status-opt {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 8pt;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .status-opt .circle {
+    width: 9px; height: 9px;
+    border: 1.5px solid black;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .notes-line {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 7.5pt;
+    color: var(--mid);
+    margin-top: 4px;
+  }
+  .notes-underline {
+    display: inline-block;
+    border-bottom: 1px solid var(--light);
+    width: 300px;
+  }
+
+  /* ─── SIGN-OFF TABLE ─── */
+  .signoff-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+    margin-top: 8px;
+  }
+  .signoff-table th {
+    background: black;
+    color: white;
+    padding: 4px 8px;
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    text-align: left;
+  }
+  .signoff-table td {
+    padding: 5px 8px;
+    border: 1px solid #ccc;
+    height: 22px;
+  }
+  .signoff-table td:first-child { font-weight: 500; }
+  .signoff-table td.num { 
+    font-family: 'IBM Plex Mono', monospace; 
+    font-size: 7.5pt;
+    color: var(--mid);
+    width: 22px;
+  }
+
+  .final-signoff {
+    margin-top: 14px;
+    border: 2px solid black;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .final-signoff .pass-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 9.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .final-signoff .pass-check .big-box {
+    width: 18px; height: 18px;
+    border: 2px solid black;
+  }
+  .final-signoff .sig-area {
+    font-size: 8.5pt;
+    font-family: 'IBM Plex Mono', monospace;
+    text-align: right;
+    color: var(--mid);
+    line-height: 1.8;
+  }
+  .sig-line {
+    border-bottom: 1px solid black;
+    display: inline-block;
+    width: 160px;
+  }
+
+  .out-of-scope {
+    margin-top: 16px;
+    border: 1px solid var(--light);
+    padding: 8px 12px;
+    page-break-inside: avoid;
+  }
+  .out-of-scope h3 {
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: var(--mid);
+  }
+  .oos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px 20px;
+    font-size: 8pt;
+    color: var(--mid);
+  }
+  .oos-item::before { content: "— "; }
+
+  /* ─── PAGE BREAKS ─── */
+  .page-break { page-break-before: always; }
+
+  /* ─── PRINT ─── */
+  @media print {
+    body { padding: 12px 16px; font-size: 9pt; }
+    a { text-decoration: none; color: black; }
+    .check-item .text code { background: none; border: 1px solid #ccc; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="doc-header">
+  <div>
+    <h1>UpShot Cold Email Platform</h1>
+    <div style="font-size:9pt; font-weight:500; margin-top:2px;">Master Testing Checklist — Post-Genesis Verification</div>
+  </div>
+  <div class="meta">
+    Date: February 2026<br>
+    Deadline: March 9, 2026<br>
+    Goal: 3 Paying Clients
+  </div>
+</div>
+
+<div class="how-to">
+  <strong>HOW TO USE:</strong> Work top to bottom. Mark each item <strong>PASS</strong>, <strong>FAIL</strong>, or <strong>PARTIAL</strong>. Fix all FAILs before advancing. <strong>BLOCKER</strong> items must pass or nothing downstream works.
+</div>
+
+<!-- PRIORITY TABLE -->
+<div class="priority-section">
+  <div class="section-title">Priority Order — Fix in This Exact Sequence</div>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Section</th>
+        <th>What It Tests</th>
+        <th>Risk If Wrong</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>§2 Credential Injection</td><td>n8n credentials auto-injected on boot</td><td class="risk-high">No automation works</td></tr>
+      <tr><td>2</td><td>§3 Workflow Templates</td><td>Templates generic vs Ohio-hardcoded</td><td class="risk-high">Wrong client gets wrong pitch</td></tr>
+      <tr><td>3</td><td>§6 Opt-Out URL</td><td>Unsubscribe URL correct per tenant</td><td class="risk-high">CAN-SPAM violation — legal exposure</td></tr>
+      <tr><td>4</td><td>§11 Onboarding</td><td>11-step wizard completes end-to-end</td><td class="risk-high">No one can onboard</td></tr>
+      <tr><td>5</td><td>§19 Local Mode</td><td>Beta testing without DigitalOcean spend</td><td class="risk-high">No beta testing possible</td></tr>
+      <tr><td>6</td><td>§5 Postgres Routing</td><td>DB nodes point to correct tenant schema</td><td class="risk-high">Data corruption / Ohio data bleed</td></tr>
+      <tr><td>7</td><td>§9 Data Flow</td><td>Webhook events reach dashboard</td><td>Client can't trust analytics</td></tr>
+      <tr><td>8</td><td>§10 Workspace RLS</td><td>Multi-tenant data isolation enforced</td><td>Cross-tenant data leak</td></tr>
+      <tr><td>9</td><td>§8 Campaign Isolation</td><td>Campaign-level data scoping</td><td>Analytics confusion</td></tr>
+      <tr><td>10</td><td>§13 Watchdog</td><td>Drift detection &amp; auto-heal</td><td>Silent workflow failures</td></tr>
+      <tr><td>11</td><td>§16 Financial Controls</td><td>Cost tracking &amp; kill switch</td><td>Can't bill accurately</td></tr>
+      <tr><td>12</td><td>§4 Control Plane</td><td>BullMQ / Heartbeat deployed</td><td>Low for launch, high for scale</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ─── SECTION 1 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>1. Environment &amp; Prerequisites</h2>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text"><code>npm run build</code> completes with zero errors</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><code>npm run dev</code> starts on localhost:3000</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><code>.env.local</code> has all required keys: <code>SUPABASE_URL</code>, <code>SUPABASE_ANON_KEY</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>, <code>CLERK_PUBLISHABLE_KEY</code>, <code>CLERK_SECRET_KEY</code>, <code>CLERK_WEBHOOK_SECRET</code>, <code>DIGITALOCEAN_API_TOKEN</code>, <code>REDIS_URL</code>, <code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>ENCRYPTION_KEY</code>, <code>CRON_SECRET</code>, <code>N8N_BASE_URL</code>, <code>N8N_API_KEY</code></div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Supabase project accessible — can run SQL in dashboard</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><code>genesis</code> schema exists: <code>SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'genesis'</code></div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><code>genesis</code> schema exposed in PostgREST (Dashboard → Settings → API → Exposed schemas)</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Redis/Upstash reachable from app</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Clerk auth working — can sign in / sign up</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">DigitalOcean API token valid — can list droplets</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> PASS</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 2 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>2. Credential Auto-Injection</h2>
+    <span class="tag blocker">BLOCKER</span>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">Sidecar code contains HTTP calls to n8n credentials API (<code>POST /api/v1/credentials</code>)</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Credential creation happens <strong>before</strong> workflow deployment in the ignition sequence</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Verified ignition order: Boot → Handshake → Encrypted creds to Sidecar → Sidecar creates n8n creds → UUID Mapper gets real UUIDs → Replace in templates → Deploy workflows</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">UUID Mapper runs <strong>after</strong> credentials exist (so it can resolve real n8n-assigned UUIDs)</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">After provisioning a test workspace, all credentials visible in n8n UI (Settings → Credentials): Supabase, OpenAI, Anthropic, Gmail, Relevance AI, Apify, Google Sheets</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> PASS</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 3 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>3. Workflow Templates — Generic vs Hardcoded</h2>
+    <span class="tag blocker">BLOCKER</span>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">Open <code>cold-email-system/Email Preparation.json</code> — search "calendly": placeholder (<code>{{CALENDLY_LINK}}</code> or <code>YOUR_CALENDLY_URL</code>) not a real URL</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Search "real estate" — pitch text is a configurable variable, not hardcoded niche content</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Sender email is a placeholder, not a hardcoded address</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Google Sheets document ID is a placeholder, not hardcoded</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><code>lib/genesis/ignition-orchestrator.ts</code> variableMap includes: <code>YOUR_WORKSPACE_ID</code>, <code>YOUR_WORKSPACE_SLUG</code>, <code>YOUR_WORKSPACE_NAME</code>, <code>YOUR_LEADS_TABLE</code></div></div>
+  <div class="check-item"><div class="box"></div><div class="text">variableMap also passes: Calendly link, sender email, company pitch, niche/industry</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">After deployment to test droplet, grep deployed workflow JSON — zero Ohio/legacy hardcoded values remain</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> FULLY GENERIC</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+      <div class="status-opt"><div class="circle"></div> HARDCODED</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 4 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>4. DEFAULT_TEMPLATES Completeness</h2>
+    <span class="tag blocker">BLOCKER</span>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">Open <code>lib/genesis/ignition-types.ts</code> — locate <code>DEFAULT_TEMPLATES</code> array</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">All 7 workflows listed: <strong>Email 1, Email 2, Email 3, Email Preparation, Research Report, Reply Tracker, Opt-Out Handler</strong></div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Each entry has correct <code>template_name</code>, <code>required_credentials</code>, and <code>is_default: true</code></div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> PASS</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 5 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>5. Postgres Node Routing</h2>
+    <span class="tag blocker">BLOCKER</span>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">In each workflow template JSON, every Postgres node table field uses a variable (e.g., <code>YOUR_LEADS_TABLE</code>) — NOT <code>leads_ohio</code></div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Postgres credentials field is a UUID placeholder — not a hardcoded credential ID</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Variable Mapper rewrites <code>YOUR_LEADS_TABLE</code> → <code>genesis.leads_p_{workspace_slug}</code></div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Ohio Firewall (<code>lib/genesis/ohio-firewall.ts</code>) blocks Genesis provisioning paths from touching <code>leads_ohio</code></div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> PASS</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 6 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>6. Opt-Out URL Per Tenant</h2>
+    <span class="tag legal">BLOCKER — LEGAL</span>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">In Email 1/2/3 templates, locate <code>UNSUB_BASE</code> or unsubscribe URL construction</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><code>YOUR_N8N_INSTANCE_URL</code> is a placeholder replaced with tenant's actual droplet URL at deployment</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">After provisioning test droplet: send test email, click unsubscribe link — hits the <strong>correct</strong> n8n instance</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Opt-Out workflow fires and marks contact as <code>opted_out</code> in Supabase <code>email_events</code></div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> CORRECT</div>
+      <div class="status-opt"><div class="circle"></div> HARDCODED TO OHIO</div>
+      <div class="status-opt"><div class="circle"></div> UNTESTED</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ─── SECTION 7 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>7. Ignition Orchestrator — Full Sequence</h2>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">Trigger ignition for a fresh test workspace</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><strong>Step 1 — Partition:</strong> <code>genesis.leads_p_{slug}</code> created in Supabase, registered in <code>genesis.partition_registry</code>, RLS enabled</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><strong>Step 2 — Droplet:</strong> DigitalOcean droplet created (1 vCPU / 1 GB / $6 tier), Cloud-Init script runs, Docker containers start</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><strong>Step 3 — Sidecar:</strong> boots and responds to health check</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><strong>Step 4 — Handshake:</strong> JWT exchange completes between Sidecar and Dashboard</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><strong>Step 5 — Credentials:</strong> injected via Sidecar → n8n API</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><strong>Step 6 — UUID Mapper:</strong> runs, replaces all placeholders</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><strong>Step 7–8 — Deploy &amp; Activate:</strong> all 7 workflows deployed and activated</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Final state: <code>ignition_state</code> shows <code>ACTIVE_HEALTHY</code></div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Idempotency: running ignition again does NOT duplicate anything</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Failure rollback: kill a step mid-way → droplet destroyed, partition dropped, state cleaned up</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> PASS</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 8 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>8. Campaign Provisioning &amp; Isolation</h2>
+  </div>
+  <div class="subsection-title">8a. Campaign Creation</div>
+  <div class="check-item"><div class="box"></div><div class="text">Create Campaign A → record in <code>campaigns</code> table with <code>status: paused</code>, provisioning_status entries for: db, n8n_clone, webhook, activate</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><code>n8n_clone</code> step creates 7 new workflow instances named: <code>[WorkspaceName] CampaignA - Email 1</code>, etc.</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Create Campaign B → 7 more workflows (14 total); Campaign A workflows untouched</div></div>
+  <div class="subsection-title">8b. Dashboard Isolation</div>
+  <div class="check-item"><div class="box"></div><div class="text">Overview shows aggregated data across all campaigns by default</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Select Campaign A → only Campaign A data; Select Campaign B → only Campaign B data</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Filtering works on: Overview, Analytics, Step Breakdown, LLM Costs pages</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Campaign dropdown populated from <code>daily_stats.campaign_name</code></div></div>
+  <div class="subsection-title">8c. Campaign Lifecycle</div>
+  <div class="check-item"><div class="box"></div><div class="text">Toggle Campaign A active → n8n workflows activate via Sidecar; toggle paused → deactivate</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Campaign B unaffected during Campaign A toggles</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> PASS</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 9 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>9. Data Flow — Events &amp; Costs</h2>
+  </div>
+  <div class="subsection-title">9a. Event Ingestion</div>
+  <div class="check-item"><div class="box"></div><div class="text">Send <code>POST /api/events</code> with <code>x-webhook-token</code> header → event appears in <code>email_events</code> with correct <code>workspace_id</code> and <code>campaign_name</code></div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><code>daily_stats</code> trigger fires (row inserted for that day)</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Dashboard aggregate API returns the new event</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">REJECTION: request without token → rejects; wrong token → rejects</div></div>
+  <div class="subsection-title">9b. Cost Events</div>
+  <div class="check-item"><div class="box"></div><div class="text">Send <code>POST /api/cost-events</code> with LLM usage data → row in <code>llm_usage</code>; Analytics page shows cost by provider/model</div></div>
+  <div class="subsection-title">9c. Reply &amp; Opt-Out</div>
+  <div class="check-item"><div class="box"></div><div class="text">Reply event → appears in dashboard Replies; opt_out event → contact suppressed from future sends</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Reply rate and opt-out rate recalculate correctly in summary metrics</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> REAL DATA</div>
+      <div class="status-opt"><div class="circle"></div> BROKEN WEBHOOK</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 10 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>10. Multi-Tenant Workspace Isolation (RLS)</h2>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">Create Workspace A (User A) and Workspace B (User B) with separate Clerk accounts; add test events to Workspace A</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Log in as User B → call <code>/api/dashboard/aggregate</code> → returns <strong>zero</strong> Workspace A data</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">RLS enabled on: <code>email_events</code>, <code>llm_usage</code>, <code>leads / leads_ohio</code>, <code>workspace_credentials</code>, <code>audit_log</code></div></div>
+  <div class="check-item"><div class="box"></div><div class="text">RLS enabled on genesis tables: <code>partition_registry</code>, <code>ignition_state</code>, <code>workspace_health</code>, <code>sandbox_config</code>, <code>webhook_registry</code></div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Direct Supabase query without workspace context → returns empty (fail-closed behavior)</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> FULLY ISOLATED</div>
+      <div class="status-opt"><div class="circle"></div> GAPS</div>
+      <div class="status-opt"><div class="circle"></div> NOT TESTED</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ─── SECTION 11 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>11. Onboarding Wizard — End to End</h2>
+    <span class="tag blocker">BLOCKER</span>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">Create fresh Clerk account (incognito window) and start wizard</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><strong>Step 1 (Brand):</strong> Enter company URL → auto-scrape populates name/logo/description</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><strong>Steps 2–3 (Credentials):</strong> Gmail OAuth or SMTP creds saved to encrypted vault (<code>workspace_credentials</code>, AES-256-GCM)</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><strong>Steps 4–5 (DNS):</strong> SPF/DKIM/DMARC records generated correctly; step is skippable for local testing</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><strong>Steps 6–7 (Tracking):</strong> Tracking domain configured or skippable</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><strong>Steps 8–10 (Config):</strong> Campaign settings, Calendly link, ICP definition saved</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><strong>Step 11 (Launch):</strong> Triggers Ignition Orchestrator → droplet provisions</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Progress persists across browser refresh (state saved to <code>onboarding_progress</code> table)</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">After completion, workspace shows as <code>ONLINE</code> in admin panel</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> COMPLETES</div>
+      <div class="status-opt"><div class="circle"></div> FAILS AT STEP ___</div>
+      <div class="status-opt"><div class="circle"></div> UNTESTED</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 12 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>12. Sandbox Engine</h2>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">Navigate to <code>/sandbox</code> — SandboxPanel renders: Test Runner, Configuration, Execution Monitor, History</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Set sandbox config (max emails, office hours, reply delay) → saves to <code>genesis.sandbox_config</code>, persists on reload</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Trigger test campaign via <code>POST /api/sandbox/test-campaign</code> → Sidecar resolves from <code>genesis.partition_registry</code> → triggers n8n test workflow</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Execution Monitor shows real-time SSE events from <code>/api/sandbox/execution-stream/[executionId]</code></div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Test run appears in History with duration and status; clicking re-opens execution details</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Rate limiter: rapid-fire runs → 429 after limit</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Sandbox operations do NOT create real email events in production tables</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> PASS</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 13 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>13. Watchdog — State Reconciliation</h2>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">Manually delete a workflow directly from n8n UI (introduce drift)</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Trigger watchdog via <code>POST /api/admin/watchdog</code> → detects drift (type: <code>ghost_campaign</code> or <code>orphan_workflow</code>)</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Drift logged in <code>genesis.watchdog_runs</code> and <code>genesis.watchdog_events</code></div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Enable auto-heal → missing workflow recreated; re-run watchdog → zero drifts detected</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> PASS</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 14 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>14. UUID Mapper &amp; Template Manager</h2>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">Run UUID Mapper with raw workflow template JSON + real credential map → all <code>YOUR_*</code> placeholders replaced</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Output is valid n8n workflow JSON (parse it without errors)</div></div>
+  <div class="check-item"><div class="box"></div><div class="text"><code>YOUR_WORKSPACE_ID</code>, <code>YOUR_LEADS_TABLE</code>, <code>YOUR_N8N_INSTANCE_URL</code> all resolved</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Run mapper twice with same input → identical output (deterministic)</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> PASS</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 15 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>15. Admin Panel &amp; God Mode</h2>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text"><code>/admin</code> routes accessible as <code>super_admin</code>; blocked with 403 for regular members</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">API Health page shows status of: Supabase, Clerk, OpenAI, and other external services</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Audit Log page shows events with: actor, action, resource, timestamp</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Freeze workspace → all operations blocked; Unfreeze → operations resume</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Kill switch activate → campaigns pause, spending stops; deactivate → resumes</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> PASS</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 16 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>16. Financial Controls</h2>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text"><code>llm_usage</code> table tracks per-call costs with: provider, model, tokens_in, tokens_out, cost_usd</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Analytics page aggregates costs correctly: total, by provider, by model, daily trend</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Cost-per-reply and cost-per-email calculations are correct</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Kill switch blocks further API spending when activated; state persists across restarts</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> PASS</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ─── SECTION 17 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>17. GDPR &amp; Tenant Lifecycle</h2>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">Data export for a workspace → all lead data included in export</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Data deletion request → 7-day grace period triggers, then data permanently removed</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Workspace delete → cascade cleanup: events, leads, credentials, partition, audit logs, config</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> PASS</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 18 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>18. Audit Logging</h2>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">Admin actions (freeze, rotate credentials, delete user) each create an <code>audit_log</code> entry with: actor, resource, action, IP, timestamp</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Audit log entries cannot be modified or deleted by non-admin users</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Login audit: sign in → event appears in <code>login_audit</code> table</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> PASS</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 19 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>19. Local Mode (Beta Testing)</h2>
+    <span class="tag blocker">BLOCKER</span>
+  </div>
+  <div class="check-item"><div class="box"></div><div class="text">Set <code>LOCAL_MODE=true</code> in <code>.env.local</code></div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Ignition orchestrator skips the DigitalOcean API droplet creation call</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Manual IP accepted (local Docker n8n at <code>localhost:5678</code>)</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">All downstream steps still run: handshake, credential inject, workflow deploy, activate</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Spin up local docker-compose → n8n accessible at <code>localhost:5678</code></div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Dashboard treats local instance as a normal <code>ONLINE</code> workspace</div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> EXISTS</div>
+      <div class="status-opt"><div class="circle"></div> NEEDS BUILDING</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<!-- ─── SECTION 20 ─── -->
+<div class="check-section">
+  <div class="check-section-header">
+    <h2>20. Full End-to-End — 3-Client Simulation</h2>
+  </div>
+  <p style="font-size:8.5pt; color:#555; margin-bottom:7px; font-style:italic;">Pass this and you're client-ready. Each client follows the same flow independently.</p>
+  <div class="subsection-title">Client A</div>
+  <div class="check-item"><div class="box"></div><div class="text">Create workspace → complete onboarding → ignition provisions droplet</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Create Campaign A1 → 7 workflows deployed; import 10 test leads via CSV</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Run Email Preparation → Research Report → Email 1 sends</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Reply to one email → Reply Tracker picks it up → reply event in dashboard</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Click unsubscribe → Opt-Out fires → opt_out event in dashboard</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Dashboard shows correct sends, replies, opt-outs, costs — for Client A only</div></div>
+  <div class="subsection-title">Client B</div>
+  <div class="check-item"><div class="box"></div><div class="text">Create workspace → complete onboarding → ignition provisions <strong>separate</strong> droplet</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Create Campaign B1 → 7 workflows on Client B's own n8n instance</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Run full test flow → all data isolated from Client A; dashboard shows ZERO Client A data</div></div>
+  <div class="subsection-title">Client C</div>
+  <div class="check-item"><div class="box"></div><div class="text">Create workspace → same flow → third independent droplet</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">All 3 workspaces running simultaneously; admin panel shows correct health for all 3</div></div>
+  <div class="check-item"><div class="box"></div><div class="text">Total system: 3 droplets, 3 partitions, 21+ workflows, <strong>zero data crossover</strong></div></div>
+  <div class="status-line">
+    <span class="label">Status</span>
+    <div class="status-options">
+      <div class="status-opt"><div class="circle"></div> ALL 3 PASS</div>
+      <div class="status-opt"><div class="circle"></div> PARTIAL</div>
+      <div class="status-opt"><div class="circle"></div> FAIL</div>
+    </div>
+    <span class="notes-line">Notes: <span class="notes-underline"></span></span>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ─── SIGN-OFF TABLE ─── -->
+<div style="margin-bottom: 14px;">
+  <div class="section-title">Sign-Off</div>
+  <table class="signoff-table">
+    <thead>
+      <tr>
+        <th style="width:22px;">#</th>
+        <th>Section</th>
+        <th style="width:80px;">Status</th>
+        <th style="width:100px;">Tested By</th>
+        <th style="width:80px;">Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="num">1</td><td>Environment &amp; Prerequisites</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">2</td><td>Credential Auto-Injection ★</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">3</td><td>Workflow Templates ★</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">4</td><td>DEFAULT_TEMPLATES Completeness ★</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">5</td><td>Postgres Node Routing ★</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">6</td><td>Opt-Out URL Per Tenant ★</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">7</td><td>Ignition Orchestrator — Full Sequence</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">8</td><td>Campaign Provisioning &amp; Isolation</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">9</td><td>Data Flow — Events &amp; Costs</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">10</td><td>Multi-Tenant Workspace Isolation (RLS)</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">11</td><td>Onboarding Wizard — End to End ★</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">12</td><td>Sandbox Engine</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">13</td><td>Watchdog — State Reconciliation</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">14</td><td>UUID Mapper &amp; Template Manager</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">15</td><td>Admin Panel &amp; God Mode</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">16</td><td>Financial Controls</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">17</td><td>GDPR &amp; Tenant Lifecycle</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">18</td><td>Audit Logging</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">19</td><td>Local Mode ★</td><td></td><td></td><td></td></tr>
+      <tr><td class="num">20</td><td>3-Client Simulation</td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:7.5pt; color:#888; margin-top:5px; font-family:'IBM Plex Mono', monospace;">★ = BLOCKER — must pass before progressing</p>
+</div>
+
+<!-- ─── FINAL SIGN-OFF ─── -->
+<div class="final-signoff">
+  <div class="pass-check">
+    <div class="big-box"></div>
+    All 20 sections PASS — Ready for first paying client
+  </div>
+  <div class="sig-area">
+    Signed: <span class="sig-line"></span><br>
+    Date: <span class="sig-line" style="width:100px;"></span>
+  </div>
+</div>
+
+<!-- ─── OUT OF SCOPE ─── -->
+<div class="out-of-scope">
+  <h3>Out of Scope — Do Not Work on These This Week</h3>
+  <div class="oos-grid">
+    <div class="oos-item">Email verification (NeverBounce / MillionVerifier)</div>
+    <div class="oos-item">A/B testing framework</div>
+    <div class="oos-item">AI reply classification</div>
+    <div class="oos-item">Lead scraper / web scraper</div>
+    <div class="oos-item">Sender warmup automation</div>
+    <div class="oos-item">Stripe integration (collect manually for now)</div>
+    <div class="oos-item">Mailbox warming infrastructure</div>
+    <div class="oos-item">AWS migration (not until 4–5 paying clients)</div>
+    <div class="oos-item">Hot lead alerts</div>
+    <div class="oos-item">Lead scoring</div>
+    <div class="oos-item">Mobile UI polish</div>
+    <div class="oos-item">Control plane on Railway (only if BullMQ fully broken)</div>
+  </div>
+</div>
+
+</body>
+</html>

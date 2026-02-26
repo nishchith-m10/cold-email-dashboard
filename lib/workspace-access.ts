@@ -617,6 +617,31 @@ export async function getCurrentUserAccess(requestedWorkspaceId?: string): Promi
 }
 
 // ============================================
+// CAMPAIGN PERMISSION HELPERS
+// ============================================
+
+/**
+ * Check if a role has write access to campaigns (create/edit/toggle).
+ * Use this in API routes after validateWorkspaceAccess() to enforce
+ * beyond just membership — callers must have canWrite.
+ */
+export function canWriteCampaigns(role: WorkspaceRole | 'super_admin' | null | undefined): boolean {
+  if (!role) return false;
+  if (role === 'super_admin') return true;
+  return ROLE_PERMISSIONS[role]?.canWrite ?? false;
+}
+
+/**
+ * Check if a role can manage (create/delete) campaign groups.
+ * Requires admin or owner — members can only read.
+ */
+export function canManageCampaignGroups(role: WorkspaceRole | 'super_admin' | null | undefined): boolean {
+  if (!role) return false;
+  if (role === 'super_admin') return true;
+  return ROLE_PERMISSIONS[role]?.canManage ?? false;
+}
+
+// ============================================
 // EXPORTS
 // ============================================
 
