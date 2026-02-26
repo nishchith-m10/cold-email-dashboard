@@ -1,0 +1,86 @@
+{
+  "project": "cold-email-dashboard",
+  "branchName": "ralph/fix-recharts-and-runtime-errors",
+  "description": "Fix all Recharts 3.x type errors and runtime issues (timeout, realtime-health, DB index)",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Fix Recharts 3.x TooltipContentProps in all chart components",
+      "description": "All custom tooltip components use TooltipProps which no longer has payload/label/active in Recharts 3.x. Must use TooltipContentProps instead.",
+      "acceptanceCriteria": [
+        "daily-sends-chart.tsx: Use TooltipContentProps instead of TooltipProps for CustomTooltip",
+        "daily-cost-chart.tsx: Use TooltipContentProps instead of TooltipProps for CustomTooltip",
+        "donut-chart.tsx: Use TooltipContentProps instead of TooltipProps for CustomTooltip",
+        "time-series-chart.tsx: Use TooltipContentProps instead of TooltipProps for CustomTooltip",
+        "Typecheck passes for all 4 files"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "In Recharts 3.x, TooltipProps omits payload/label/active (PropertiesReadFromContext). TooltipContentProps extends TooltipProps and adds them back."
+    },
+    {
+      "id": "US-002",
+      "title": "Fix Recharts 3.x chart onClick and dot render prop types",
+      "description": "MouseHandlerDataParam no longer has activePayload. DotItemDotProps has optional cx/cy.",
+      "acceptanceCriteria": [
+        "daily-sends-chart.tsx: Fix onClick handler to use activeTooltipIndex instead of activePayload",
+        "daily-cost-chart.tsx: Fix dot render prop to handle optional cx/cy from DotItemDotProps",
+        "Typecheck passes for both files"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Use chart data array + activeTooltipIndex for click. Use DotItemDotProps type with optional cx/cy handling."
+    },
+    {
+      "id": "US-003",
+      "title": "Fix donut-chart and time-series-chart formatter type mismatch",
+      "description": "Recharts 3.x Formatter<number, string> now accepts (value: number | undefined). Custom formatters must handle undefined.",
+      "acceptanceCriteria": [
+        "donut-chart.tsx: Fix formatter prop type to handle undefined value",
+        "time-series-chart.tsx: Fix formatter prop type to handle undefined value",
+        "Typecheck passes for both files"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Formatter signature changed to (value: TValue | undefined, name: TName | undefined, ...) in Recharts 3.x"
+    },
+    {
+      "id": "US-004",
+      "title": "Fix realtime-health subscription loop",
+      "description": "useRealtimeHealth subscribe callback is unstable due to state deps causing infinite re-subscription.",
+      "acceptanceCriteria": [
+        "subscribe callback does not depend on health.workflowId or health.version in useCallback deps",
+        "Use refs instead of state values in subscribe deps to break the loop",
+        "Max retries error no longer fires on page load",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "The subscribe -> state update -> subscribe recreated -> useEffect re-runs cycle must be broken with refs."
+    },
+    {
+      "id": "US-005",
+      "title": "Increase fetcher timeout for heavy aggregate queries",
+      "description": "15s client timeout is too short for /api/dashboard/aggregate which runs 15 parallel DB queries.",
+      "acceptanceCriteria": [
+        "Increase REQUEST_TIMEOUT from 15000 to 30000 in lib/fetcher.ts",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "The aggregate endpoint runs 15 parallel Supabase queries. 15s is not enough on cold starts."
+    },
+    {
+      "id": "US-006",
+      "title": "Add event_ts database index migration",
+      "description": "Missing index on email_events.event_ts causes slow queries in aggregate and daily sends.",
+      "acceptanceCriteria": [
+        "Create supabase/migrations/add_event_ts_index.sql with CREATE INDEX CONCURRENTLY",
+        "Index covers event_ts column on email_events table"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "This was identified as a high-priority fix in copilot-instructions.md"
+    }
+  ]
+}

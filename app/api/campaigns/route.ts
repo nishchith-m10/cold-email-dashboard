@@ -24,10 +24,10 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Query campaigns table with n8n integration fields
+    // Query campaigns table with n8n integration fields + group membership
     const { data: campaigns, error } = await supabaseAdmin
       .from('campaigns')
-      .select('id, name, description, status, n8n_workflow_id, n8n_status, last_sync_at, version, created_at, updated_at')
+      .select('id, name, description, status, campaign_group_id, n8n_workflow_id, n8n_status, last_sync_at, version, created_at, updated_at')
       .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: false });
 

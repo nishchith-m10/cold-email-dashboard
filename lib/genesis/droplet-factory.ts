@@ -324,6 +324,7 @@ ufw default allow outgoing
 ufw allow 22/tcp
 ufw allow 80/tcp
 ufw allow 443/tcp
+ufw allow 3100/tcp  # Sidecar API (JWT-protected)
 echo "y" | ufw enable
 echo "[CLOUD-INIT] Firewall active."
 
@@ -350,10 +351,130 @@ N8N_ENCRYPTION_KEY=${variables.n8nEncryptionKey}
 TIMEZONE=${variables.timezone}
 DASHBOARD_URL=${process.env.NEXT_PUBLIC_APP_URL}
 PROVISIONING_TOKEN=${variables.provisioningToken}
+N8N_PASSWORD=${variables.postgresPassword}
+N8N_OWNER_EMAIL=admin@${variables.workspaceSlug}.io
+SIDECAR_IMAGE=${process.env.GENESIS_SIDECAR_IMAGE || 'upshot/genesis-sidecar:latest'}
+INTERNAL_ENCRYPTION_KEY=${process.env.INTERNAL_ENCRYPTION_KEY || ''}
+RELEVANCE_AI_API_KEY=${process.env.RELEVANCE_AI_API_KEY || ''}
+APIFY_API_KEY=${process.env.APIFY_API_KEY || ''}
+GOOGLE_CSE_API_KEY=${process.env.GOOGLE_CSE_API_KEY || ''}
+GOOGLE_CSE_CX=${process.env.GOOGLE_CSE_CX || ''}
 EOF
 
-# TODO: Write docker-compose.yml from template
-# TODO: Write Caddyfile from template
+# === PHASE 3: WRITE DOCKER-COMPOSE ===
+
+cat > /opt/genesis/docker-compose.yml <<'COMPOSE_EOF'
+version: '3.8'
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: genesis-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - n8n
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  sidecar:
+    image: \${SIDECAR_IMAGE}
+    container_name: genesis-sidecar
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3100:3100"
+      - "3847:3847"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3847/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      - n8n
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=\${N8N_DOMAIN}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://\${N8N_DOMAIN}/
+      - GENERIC_TIMEZONE=\${TIMEZONE}
+      - N8N_ENCRYPTION_KEY=\${N8N_ENCRYPTION_KEY}
+      - N8N_LOG_LEVEL=info
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_VERSION_NOTIFICATIONS_ENABLED=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  n8n_data:
+    name: n8n_data
+  caddy_data:
+    name: caddy_data
+  caddy_config:
+    name: caddy_config
+
+networks:
+  default:
+    name: genesis_network
+COMPOSE_EOF
+
+echo "[CLOUD-INIT] docker-compose.yml written."
+
+# === PHASE 4: WRITE CADDYFILE ===
+
+cat > /opt/genesis/Caddyfile <<'CADDY_EOF'
+{$N8N_DOMAIN} {
+    reverse_proxy n8n:5678
+}
+CADDY_EOF
+
+echo "[CLOUD-INIT] Caddyfile written."
+
+# === PHASE 5: LAUNCH CONTAINERS ===
+
+cd /opt/genesis
+docker compose pull
+docker compose up -d
+
+echo "[CLOUD-INIT] All containers started."
+echo "[CLOUD-INIT] n8n: https://\${DROPLET_IP}.sslip.io"
+echo "[CLOUD-INIT] Sidecar: http://\${DROPLET_IP}:3100"
 
 echo "[CLOUD-INIT] Cloud-Init complete."
 `;

@@ -72,6 +72,9 @@ export interface Campaign {
   name: string;
   description?: string;
   status?: CampaignStatus;
+  // Campaign group membership (multi-tenant isolation)
+  campaign_group_id?: string;
+  is_test?: boolean;
   // n8n integration fields (Pillar 1)
   n8n_workflow_id?: string;
   n8n_status?: N8nStatus;
@@ -81,12 +84,29 @@ export interface Campaign {
   updated_at?: string;
 }
 
+/**
+ * A campaign group — the primary unit of selection in the dashboard UI.
+ * Groups contain one or more campaigns (e.g. Email 1, Email 2, Email 3).
+ * is_test=true groups are filtered out of all UI selectors automatically.
+ */
+export interface CampaignGroup {
+  id: string;
+  name: string;
+  workspace_id: string; // Non-optional: enforced for tenant isolation
+  is_test: boolean;
+  created_at: string;
+  updated_at?: string;
+  campaigns?: Campaign[]; // Populated when fetched with join
+}
+
 export interface CampaignList {
   campaigns: Campaign[];
 }
 
 export interface CampaignStats {
-  campaign: string;
+  campaign: string;       // Campaign name (display)
+  campaign_id?: string;  // Campaign UUID (for stable identity)
+  campaign_group_id?: string; // Group membership (for filtering)
   sends: number;
   replies: number;
   opt_outs: number;
@@ -208,7 +228,10 @@ export interface ChartDataPoint {
 export interface DashboardParams {
   startDate: string;
   endDate: string;
+  /** @deprecated Use selectedGroupId instead. Kept for legacy single-campaign drilldown. */
   selectedCampaign?: string | null;
+  /** Primary group-level filter — passes ?campaign_group_id= to the aggregate API */
+  selectedGroupId?: string | null;
   selectedProvider?: string | null; // Provider filter for cost analytics
   workspaceId?: string; // Workspace filter (multi-tenant)
 }
@@ -249,7 +272,10 @@ export interface DashboardData {
   totalLeads: number; // Total leads in database for % calculation
   stepLoading: boolean;
 
-  // Campaigns
+  // Campaign groups (primary selection unit)
+  campaignGroups: CampaignGroup[];
+  campaignGroupsLoading: boolean;
+  // Flat campaigns list (for management table)
   campaigns: Campaign[];
   campaignsLoading: boolean;
   campaignStats: CampaignStats[];

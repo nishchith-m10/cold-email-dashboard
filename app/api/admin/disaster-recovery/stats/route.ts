@@ -42,8 +42,33 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Fetch all snapshots
-    const snapshots = await listSnapshots({});
+    // Fetch all snapshots (gracefully handle missing DB functions)
+    let snapshots: Awaited<ReturnType<typeof listSnapshots>>;
+    try {
+      snapshots = await listSnapshots({});
+    } catch (dbErr) {
+      /* eslint-disable-next-line no-console */
+      console.warn('[DR-Stats] Could not fetch snapshots (RPC may not be provisioned yet):', dbErr instanceof Error ? dbErr.message : dbErr);
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            totalSnapshots: 0,
+            totalWorkspaces: 0,
+            workspacesWithRecentBackups: 0,
+            coverage: 0,
+            totalSizeGb: 0,
+            estimatedMonthlyCost: 0,
+            byStatus: {},
+            byRegion: {},
+            byType: {},
+            oldestSnapshot: null,
+            newestSnapshot: null,
+          },
+        },
+        { status: 200, headers: API_HEADERS }
+      );
+    }
 
     // Calculate metrics
     const totalSnapshots = snapshots.length;

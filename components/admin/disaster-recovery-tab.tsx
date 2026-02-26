@@ -20,9 +20,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   useDisasterRecoverySnapshots,
   useRegionalHealth,
+  useDisasterRecoveryStats,
   useCreateSnapshot,
   useDeleteSnapshot,
   useTriggerFailover,
+  useRestoreSnapshot,
 } from '@/hooks/use-disaster-recovery';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -36,6 +38,8 @@ import {
   Trash2,
   AlertCircle,
   Clock,
+  DollarSign,
+  RotateCcw,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -138,9 +142,11 @@ function LoadingSkeleton() {
 export function DisasterRecoveryTab() {
   const { snapshots, isLoading: snapshotsLoading, refresh: refreshSnapshots } = useDisasterRecoverySnapshots();
   const { regionalHealth, isLoading: healthLoading, refresh: refreshHealth } = useRegionalHealth({ refreshInterval: 30000 });
+  const { stats, isLoading: statsLoading } = useDisasterRecoveryStats();
   const { createSnapshot, isLoading: creating } = useCreateSnapshot();
   const { deleteSnapshot, isLoading: deleting } = useDeleteSnapshot();
   const { triggerFailover, isLoading: failingOver } = useTriggerFailover();
+  const { restoreSnapshot, isLoading: restoring } = useRestoreSnapshot();
   const { toast } = useToast();
 
   // Form state
@@ -150,14 +156,18 @@ export function DisasterRecoveryTab() {
 
   const isLoading = snapshotsLoading || healthLoading;
 
-  // Calculate backup coverage
-  const totalWorkspaces = new Set(snapshots.map(s => s.workspaceId)).size;
-  const recentSnapshots = snapshots.filter(s => {
-    const age = Date.now() - new Date(s.createdAt).getTime();
-    return age < 24 * 60 * 60 * 1000; // 24 hours
-  });
-  const workspacesWithRecentBackups = new Set(recentSnapshots.map(s => s.workspaceId)).size;
-  const coverage = totalWorkspaces > 0 ? Math.round((workspacesWithRecentBackups / totalWorkspaces) * 100) : 0;
+  // Use API stats if available, otherwise fallback to manual calculation
+  const coverage = stats?.coverage ?? (() => {
+    const totalWorkspaces = new Set(snapshots.map(s => s.workspaceId)).size;
+    const recentSnapshots = snapshots.filter(s => {
+      const age = Date.now() - new Date(s.createdAt).getTime();
+      return age < 24 * 60 * 60 * 1000;
+    });
+    const workspacesWithRecentBackups = new Set(recentSnapshots.map(s => s.workspaceId)).size;
+    return totalWorkspaces > 0 ? Math.round((workspacesWithRecentBackups / totalWorkspaces) * 100) : 0;
+  })();
+  const totalWorkspacesDisplay = stats?.totalWorkspaces ?? new Set(snapshots.map(s => s.workspaceId)).size;
+  const workspacesWithRecentBackups = stats?.workspacesWithRecentBackups ?? 0;
 
   // Handle manual snapshot creation
   const handleCreateSnapshot = async () => {
@@ -211,6 +221,35 @@ export function DisasterRecoveryTab() {
       toast({
         title: 'Delete Failed',
         description: result.error || 'Failed to delete snapshot',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handle snapshot restore
+  const handleRestoreSnapshot = async (snapshotId: string) => {
+    const region = prompt('Enter target region for restore (e.g., nyc3, sfo3):');
+    if (!region || !region.trim()) return;
+
+    if (!confirm(`⚠️ Restore snapshot ${snapshotId} to region ${region}?\n\nThis will spin up infrastructure from the snapshot in the target region.`)) {
+      return;
+    }
+
+    const result = await restoreSnapshot({
+      snapshotId,
+      targetRegion: region.trim(),
+    });
+
+    if (result.success) {
+      toast({
+        title: 'Restore Initiated',
+        description: `Restoring snapshot to ${region}. This may take several minutes.`,
+      });
+      refreshSnapshots();
+    } else {
+      toast({
+        title: 'Restore Failed',
+        description: result.error || 'Failed to restore snapshot',
         variant: 'destructive',
       });
     }
@@ -286,7 +325,7 @@ export function DisasterRecoveryTab() {
           <div className="flex items-center gap-4">
             <div className="text-4xl font-bold">{coverage}%</div>
             <div className="text-sm text-muted-foreground">
-              {workspacesWithRecentBackups} of {totalWorkspaces} workspaces
+              {workspacesWithRecentBackups} of {totalWorkspacesDisplay} workspaces
             </div>
             {coverage < 80 && (
               <Badge variant="warning" className="ml-auto">
@@ -306,6 +345,37 @@ export function DisasterRecoveryTab() {
               </Badge>
             )}
           </div>
+
+          {/* Additional Stats from API */}
+          {stats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 pt-4 border-t border-border/50">
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Database className="h-3 w-3" />
+                  Total Snapshots
+                </div>
+                <div className="text-lg font-bold">{stats.totalSnapshots}</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  <HardDrive className="h-3 w-3" />
+                  Total Size
+                </div>
+                <div className="text-lg font-bold">{stats.totalSizeGb.toFixed(2)} GB</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  <DollarSign className="h-3 w-3" />
+                  Monthly Cost
+                </div>
+                <div className="text-lg font-bold">${stats.estimatedMonthlyCost.toFixed(2)}</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">Workspaces</div>
+                <div className="text-lg font-bold">{stats.totalWorkspaces}</div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -446,14 +516,32 @@ export function DisasterRecoveryTab() {
                         </Badge>
                       </td>
                       <td className="p-2 text-right">
-                        <Button
-                          onClick={() => handleDeleteSnapshot(snapshot.id)}
-                          variant="ghost"
-                          size="sm"
-                          disabled={deleting}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
+                        <div className="flex items-center gap-1 justify-end">
+                          {snapshot.status === 'completed' && (
+                            <Button
+                              onClick={() => handleRestoreSnapshot(snapshot.id)}
+                              variant="outline"
+                              size="sm"
+                              disabled={restoring}
+                              className="gap-1"
+                            >
+                              {restoring ? (
+                                <RefreshCw className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <RotateCcw className="h-3 w-3" />
+                              )}
+                              <span className="hidden sm:inline">Restore</span>
+                            </Button>
+                          )}
+                          <Button
+                            onClick={() => handleDeleteSnapshot(snapshot.id)}
+                            variant="ghost"
+                            size="sm"
+                            disabled={deleting}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

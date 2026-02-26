@@ -1,6 +1,7 @@
 // Central export for all hooks
 export * from './use-metrics';
 export * from './use-dashboard-data';
+export * from './use-campaign-groups';
 export * from './use-billing';
 export * from './use-workspaces';
 export * from './use-disaster-recovery';

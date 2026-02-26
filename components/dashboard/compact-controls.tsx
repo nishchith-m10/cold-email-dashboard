@@ -7,14 +7,15 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
-import type { Campaign } from '@/lib/dashboard-types';
+import type { CampaignGroup } from '@/lib/dashboard-types';
 import { 
   Calendar, 
   Clock, 
   Settings2, 
   Folder,
   Plus,
-  Check
+  Check,
+  Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import * as Popover from '@radix-ui/react-popover';
@@ -24,9 +25,11 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { DateRangePickerContent } from './date-range-picker-content';
 import { TimezoneSelectorContent } from './timezone-selector-content';
+import { PermissionGate } from '@/components/ui/permission-gate';
 import { cn } from '@/lib/utils';
 
 interface CompactControlsProps {
@@ -35,11 +38,11 @@ interface CompactControlsProps {
   endDate: string;
   onDateChange: (start: string, end: string) => void;
   
-  // Campaigns
-  campaigns: Campaign[];
-  selectedCampaign?: string;
-  onCampaignChange: (campaignId: string | undefined) => void;
-  campaignsLoading?: boolean;
+  // Campaign groups (primary selection unit — is_test groups pre-filtered)
+  campaignGroups: CampaignGroup[];
+  selectedGroupId?: string;
+  onGroupChange: (groupId: string | undefined) => void;
+  campaignGroupsLoading?: boolean;
   onNewCampaign: () => void;
   
   // Timezone
@@ -55,10 +58,10 @@ export function CompactControls({
   startDate,
   endDate,
   onDateChange,
-  campaigns,
-  selectedCampaign,
-  onCampaignChange,
-  campaignsLoading,
+  campaignGroups,
+  selectedGroupId,
+  onGroupChange,
+  campaignGroupsLoading,
   onNewCampaign,
   timezone,
   onTimezoneChange,
@@ -68,7 +71,8 @@ export function CompactControls({
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [timezoneOpen, setTimezoneOpen] = useState(false);
 
-  const selectedCampaignName = campaigns.find(c => c.id === selectedCampaign)?.name || 'All Campaigns';
+  const selectedGroupName =
+    campaignGroups.find(g => g.id === selectedGroupId)?.name || 'All Campaigns';
   
   const dateRangeLabel = `${format(new Date(startDate), 'MMM d')} - ${format(new Date(endDate), 'MMM d, yyyy')}`;
 
@@ -141,63 +145,77 @@ export function CompactControls({
 
       <div key="divider-1" className="h-5 w-px bg-border mx-1" />
 
-      {/* Campaign Selector + New Campaign - Combined Icon Only */}
-      <DropdownMenu key="campaign-menu">
+      {/* Campaign Group Selector + New Campaign - Combined Icon Only */}
+      <DropdownMenu key="group-menu">
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
             size="icon"
             className={cn(
               "h-8 w-8",
-              selectedCampaign && "border-accent-primary bg-accent-primary/5"
+              selectedGroupId && "border-accent-primary bg-accent-primary/5"
             )}
-            disabled={campaignsLoading}
-            title={`Campaign: ${selectedCampaignName}`}
+            disabled={campaignGroupsLoading}
+            title={`Group: ${selectedGroupName}`}
           >
-            <Folder className="h-4 w-4" />
+            <Layers className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56">
-              {/* New Campaign Option */}
-              <DropdownMenuItem
-                className="gap-2 text-accent-primary font-medium"
-                onSelect={onNewCampaign}
-              >
-                <Plus className="h-4 w-4" />
-                Create New Campaign
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator />
-              
-              {/* All Campaigns */}
-              <DropdownMenuItem
-                className="gap-2"
-                onSelect={() => onCampaignChange(undefined)}
-              >
-                {!selectedCampaign && <Check className="h-4 w-4" />}
-                <span className={!selectedCampaign ? 'ml-0' : 'ml-6'}>All Campaigns</span>
-              </DropdownMenuItem>
-              
-              {/* Individual Campaigns */}
-              {campaigns.length > 0 && <DropdownMenuSeparator key="campaign-separator" />}
-              {campaigns.map((campaign) => (
-                <DropdownMenuItem
-                  key={campaign.id}
-                  className="gap-2"
-                  onSelect={() => onCampaignChange(campaign.id)}
-                >
-                  {selectedCampaign === campaign.id && <Check className="h-4 w-4" />}
-                  <span className={selectedCampaign === campaign.id ? 'ml-0' : 'ml-6'}>
-                    {campaign.name}
+        <DropdownMenuContent align="start" className="w-60">
+
+          {/* New Campaign — write-gated: member+ only */}
+          <PermissionGate requires="write" disableInstead disabledMessage="Upgrade your role to create campaigns">
+            <DropdownMenuItem
+              key="new-campaign"
+              className="gap-2 text-accent-primary font-medium"
+              onSelect={onNewCampaign}
+            >
+              <Plus className="h-4 w-4" />
+              Create New Campaign
+            </DropdownMenuItem>
+          </PermissionGate>
+
+          <DropdownMenuSeparator key="top-separator" />
+
+          <DropdownMenuLabel className="text-xs text-text-secondary font-normal px-2 py-1">
+            Campaign Groups
+          </DropdownMenuLabel>
+
+          {/* All Campaigns (clear selection) */}
+          <DropdownMenuItem
+            key="all-groups"
+            className="gap-2"
+            onSelect={() => onGroupChange(undefined)}
+          >
+            {!selectedGroupId && <Check className="h-4 w-4" />}
+            <span className={!selectedGroupId ? 'ml-0' : 'ml-6'}>All Campaigns</span>
+          </DropdownMenuItem>
+
+          {/* Individual Groups (is_test=true already filtered upstream) */}
+          {campaignGroups.length > 0 && <DropdownMenuSeparator key="group-separator" />}
+          {campaignGroups.map((group, index) => (
+            <DropdownMenuItem
+              key={group.id ?? `group-${index}`}
+              className="gap-2"
+              onSelect={() => onGroupChange(group.id)}
+            >
+              {selectedGroupId === group.id && <Check className="h-4 w-4" />}
+              <div className={cn('flex flex-col', selectedGroupId === group.id ? 'ml-0' : 'ml-6')}>
+                <span className="text-sm">{group.name}</span>
+                {group.campaigns && group.campaigns.length > 0 && (
+                  <span className="text-xs text-text-secondary">
+                    {group.campaigns.length} sequence{group.campaigns.length !== 1 ? 's' : ''}
                   </span>
-                </DropdownMenuItem>
-              ))}
-              
-              {campaigns.length === 0 && !campaignsLoading && (
-                <div className="px-2 py-1.5 text-sm text-text-secondary">
-                  No campaigns yet
-                </div>
-              )}
+                )}
+              </div>
+            </DropdownMenuItem>
+          ))}
+
+          {campaignGroups.length === 0 && !campaignGroupsLoading && (
+            <div className="px-2 py-1.5 text-sm text-text-secondary">
+              No campaign groups yet
+            </div>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

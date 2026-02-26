@@ -31,6 +31,7 @@ import { CampaignManagementCardStack } from '@/components/dashboard/campaign-man
 import { MobileCollapsibleWidget } from '@/components/dashboard/mobile-collapsible-widget';
 import { NewCampaignModal } from '@/components/campaigns/new-campaign-modal';
 import { CompactControls } from '@/components/dashboard/compact-controls';
+import { PermissionGate } from '@/components/ui/permission-gate';
 import { BarChart3, TrendingUp } from 'lucide-react';
 
 export function DashboardPageClient() {
@@ -40,7 +41,10 @@ export function DashboardPageClient() {
   // Read dates from URL params with fallbacks
   const startDate = searchParams.get('start') ?? toISODate(daysAgo(30));
   const endDate = searchParams.get('end') ?? toISODate(new Date());
-  const selectedCampaign = searchParams.get('campaign') ?? undefined;
+  // Primary group-level filter via ?group= (UUID); legacy ?campaign= silently dropped
+  const selectedGroupId = searchParams.get('group') ?? undefined;
+  // (Legacy ?campaign= param is intentionally ignored — group-based selection is the
+  //  current model. Old bookmarks with ?campaign= will show "All Campaigns".)
   
   // Local UI state (doesn't need URL persistence)
   const [selectedDate, setSelectedDate] = useState<string | undefined>();
@@ -70,7 +74,7 @@ export function DashboardPageClient() {
   const dashboardData = useDashboardData({
     startDate,
     endDate,
-    selectedCampaign,
+    selectedGroupId,
   });
 
   const {
@@ -94,6 +98,8 @@ export function DashboardPageClient() {
     campaignsLoading,
     campaignStats,
     campaignStatsLoading,
+    campaignGroups,
+    campaignGroupsLoading,
   } = dashboardData;
 
   const handleDateChange = useCallback((start: string, end: string) => {
@@ -104,13 +110,15 @@ export function DashboardPageClient() {
     setSelectedDate(undefined);
   }, [searchParams, router]);
 
-  const handleCampaignChange = useCallback((campaign: string | undefined) => {
+  const handleGroupChange = useCallback((groupId: string | undefined) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (campaign) {
-      params.set('campaign', campaign);
+    if (groupId) {
+      params.set('group', groupId);
     } else {
-      params.delete('campaign');
+      params.delete('group');
     }
+    // Also clear legacy campaign param when switching groups
+    params.delete('campaign');
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [searchParams, router]);
 
@@ -360,10 +368,10 @@ export function DashboardPageClient() {
             startDate={startDate}
             endDate={endDate}
             onDateChange={handleDateChange}
-            campaigns={campaigns}
-            selectedCampaign={selectedCampaign}
-            onCampaignChange={handleCampaignChange}
-            campaignsLoading={campaignsLoading}
+            campaignGroups={campaignGroups}
+            selectedGroupId={selectedGroupId}
+            onGroupChange={handleGroupChange}
+            campaignGroupsLoading={campaignGroupsLoading}
             onNewCampaign={() => setShowNewCampaignModal(true)}
             timezone={timezone}
             onTimezoneChange={setTimezone}
@@ -405,11 +413,13 @@ export function DashboardPageClient() {
         </SortableContext>
       </DndContext>
 
-      {/* New Campaign Modal */}
-      <NewCampaignModal
-        isOpen={showNewCampaignModal}
-        onClose={() => setShowNewCampaignModal(false)}
-      />
+      {/* New Campaign Modal — write-gated: viewers cannot trigger creation */}
+      <PermissionGate requires="write">
+        <NewCampaignModal
+          isOpen={showNewCampaignModal}
+          onClose={() => setShowNewCampaignModal(false)}
+        />
+      </PermissionGate>
 
       {/* Dashboard Settings Panel */}
       <DashboardSettingsPanel

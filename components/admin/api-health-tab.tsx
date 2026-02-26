@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAPIHealth, triggerHealthCheck } from '@/hooks/use-api-health';
+import { useAPIHealth, useAPIHealthHistory, triggerHealthCheck } from '@/hooks/use-api-health';
 import { useToast } from '@/hooks/use-toast';
 import { APIHealthServicesTable } from '@/components/admin/api-health-services-table';
 import {
@@ -27,6 +27,9 @@ import {
   Clock,
   TrendingUp,
   Zap,
+  ChevronDown,
+  ChevronUp,
+  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { HealthStatus } from '@/lib/genesis/phase71/types';
@@ -94,8 +97,10 @@ function LoadingSkeleton() {
 
 export function APIHealthTab() {
   const { report, fromCache, cacheAge, isLoading, mutate } = useAPIHealth();
+  const { snapshots: historySnapshots } = useAPIHealthHistory(7);
   const { toast } = useToast();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const handleRefreshAll = async () => {
     setIsRefreshing(true);
@@ -285,6 +290,102 @@ export function APIHealthTab() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 7-Day History */}
+      {historySnapshots && historySnapshots.length > 0 && (
+        <div className="border border-border rounded-lg overflow-hidden">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <History className="h-4 w-4 text-amber-500" />
+              <span className="text-sm font-semibold">7-Day History</span>
+              <Badge variant="secondary" className="text-xs">{historySnapshots.length} snapshots</Badge>
+            </div>
+            {showHistory ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+
+          {showHistory && (
+            <div className="border-t border-border">
+              {/* Mobile: Card Layout */}
+              <div className="md:hidden divide-y divide-border">
+                {historySnapshots.map((snap) => {
+                  const statusCfg = OVERALL_STATUS_CONFIG[snap.overall_status as HealthStatus] || OVERALL_STATUS_CONFIG.ok;
+                  return (
+                    <div key={snap.id} className="p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(snap.timestamp).toLocaleString()}
+                        </span>
+                        <Badge variant={statusCfg.variant} className="gap-1 text-xs">
+                          {snap.overall_status?.toUpperCase()}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Errors</span>
+                          <p className="font-medium text-red-500">{snap.error_count}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Degraded</span>
+                          <p className="font-medium text-yellow-500">{snap.degraded_count}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Latency</span>
+                          <p className="font-medium">{snap.total_latency_ms}ms</p>
+                        </div>
+                      </div>
+                      {snap.slowest_service && (
+                        <p className="text-xs text-muted-foreground">Slowest: {snap.slowest_service}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop: Table Layout */}
+              <table className="hidden md:table w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-surface-elevated">
+                    <th className="px-4 py-2 text-left font-medium text-muted-foreground">Timestamp</th>
+                    <th className="px-4 py-2 text-left font-medium text-muted-foreground">Status</th>
+                    <th className="px-4 py-2 text-left font-medium text-muted-foreground">Errors</th>
+                    <th className="px-4 py-2 text-left font-medium text-muted-foreground">Degraded</th>
+                    <th className="px-4 py-2 text-left font-medium text-muted-foreground">Total Latency</th>
+                    <th className="px-4 py-2 text-left font-medium text-muted-foreground">Slowest</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historySnapshots.map((snap) => {
+                    const statusCfg = OVERALL_STATUS_CONFIG[snap.overall_status as HealthStatus] || OVERALL_STATUS_CONFIG.ok;
+                    return (
+                      <tr key={snap.id} className="border-b border-border last:border-0 hover:bg-muted/30">
+                        <td className="px-4 py-2 text-xs text-muted-foreground">
+                          {new Date(snap.timestamp).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2">
+                          <Badge variant={statusCfg.variant} className="gap-1 text-xs">
+                            {snap.overall_status?.toUpperCase()}
+                          </Badge>
+                        </td>
+                        <td className={cn('px-4 py-2 font-mono text-xs', snap.error_count > 0 && 'text-red-500 font-semibold')}>
+                          {snap.error_count}
+                        </td>
+                        <td className={cn('px-4 py-2 font-mono text-xs', snap.degraded_count > 0 && 'text-yellow-500 font-semibold')}>
+                          {snap.degraded_count}
+                        </td>
+                        <td className="px-4 py-2 font-mono text-xs">{snap.total_latency_ms}ms</td>
+                        <td className="px-4 py-2 text-xs text-muted-foreground">{snap.slowest_service || '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>

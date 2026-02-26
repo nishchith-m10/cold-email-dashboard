@@ -21,6 +21,7 @@ import { N8nManager } from './n8n-manager';
 import { DockerManager } from './docker-manager';
 import { SMTPService, SendEmailRequest, CheckReplyRequest } from './smtp-service';
 import { WorkflowDeployer, WorkflowDeploymentRequest } from './workflow-deployer';
+import { decryptCredential } from './crypto-utils';
 
 // ============================================
 // CONFIGURATION
@@ -162,6 +163,9 @@ export class SidecarAgent {
     this.app.listen(this.config.port, () => {
       console.log(`✅ Sidecar Agent listening on port ${this.config.port}`);
     });
+
+    // Bootstrap n8n: wait for it to be ready, set up owner account, obtain API key
+    await this.bootstrapN8n();
 
     // Perform handshake with Dashboard (if this is first boot)
     await this.performHandshake();
@@ -429,10 +433,18 @@ export class SidecarAgent {
   private async handleInjectCredential(payload: {
     credential_type: string;
     credential_name: string;
-    encrypted_data: any;
+    encrypted_data: string;
   }): Promise<any> {
-    // TODO: Decrypt encrypted_data using workspace key
-    const decryptedData = payload.encrypted_data; // Placeholder
+    const masterKey = process.env.INTERNAL_ENCRYPTION_KEY;
+    if (!masterKey) {
+      throw new Error('INTERNAL_ENCRYPTION_KEY is not set — cannot decrypt credential');
+    }
+
+    const decryptedData = decryptCredential(
+      payload.encrypted_data,
+      this.config.workspaceId,
+      masterKey
+    ) as Record<string, any>;
 
     const credentialId = await this.n8nManager.createCredential({
       name: payload.credential_name,
@@ -445,10 +457,18 @@ export class SidecarAgent {
 
   private async handleRotateCredential(payload: {
     credential_id: string;
-    encrypted_data: any;
+    encrypted_data: string;
   }): Promise<any> {
-    // TODO: Decrypt encrypted_data
-    const decryptedData = payload.encrypted_data; // Placeholder
+    const masterKey = process.env.INTERNAL_ENCRYPTION_KEY;
+    if (!masterKey) {
+      throw new Error('INTERNAL_ENCRYPTION_KEY is not set — cannot decrypt credential');
+    }
+
+    const decryptedData = decryptCredential(
+      payload.encrypted_data,
+      this.config.workspaceId,
+      masterKey
+    ) as Record<string, any>;
 
     await this.n8nManager.updateCredential(payload.credential_id, decryptedData);
     return { success: true };
@@ -643,6 +663,138 @@ export class SidecarAgent {
     } catch (error) {
       console.error('❌ Health report failed:', error instanceof Error ? error.message : String(error));
     }
+  }
+
+  // ==========================================================================
+  // N8N BOOTSTRAP
+  // ==========================================================================
+
+  /**
+   * Bootstrap n8n on first boot:
+   *  1. Wait until n8n is reachable
+   *  2. If owner setup has not been completed, run it via the internal REST API
+   *  3. Create a static API key and store it in this.config / reinit N8nManager
+   */
+  private async bootstrapN8n(): Promise<void> {
+    console.log('🔧 Bootstrapping n8n...');
+    try {
+      await this.waitForN8n();
+      const setupNeeded = await this.isOwnerSetupNeeded();
+
+      if (!setupNeeded) {
+        console.log('✅ n8n owner already configured');
+        if (!this.config.n8nApiKey) {
+          console.warn('⚠️  No N8N_API_KEY in env and owner already set — some commands may fail.');
+        }
+        return;
+      }
+
+      console.log('   No owner found, running first-time setup...');
+      const ownerEmail = process.env.N8N_OWNER_EMAIL || `admin@${this.config.workspaceId}.internal`;
+      const ownerPassword = process.env.N8N_PASSWORD || process.env.N8N_OWNER_PASSWORD;
+
+      if (!ownerPassword) {
+        throw new Error('N8N_PASSWORD (or N8N_OWNER_PASSWORD) is not set — cannot bootstrap n8n owner');
+      }
+
+      const sessionCookie = await this.setupN8nOwner(ownerEmail, ownerPassword);
+      const apiKey = await this.createN8nApiKey(sessionCookie);
+
+      // Persist for this process lifetime; reinit manager with real key
+      this.config.n8nApiKey = apiKey;
+      this.n8nManager = new N8nManager(this.config.n8nUrl, apiKey);
+
+      console.log('✅ n8n bootstrapped — API key acquired');
+    } catch (err) {
+      console.error('❌ n8n bootstrap failed:', err instanceof Error ? err.message : String(err));
+      // Non-fatal: Sidecar can still serve some commands; log and continue
+    }
+  }
+
+  /** Poll n8n /healthz until it responds 200 (max 10 min) */
+  private async waitForN8n(maxWaitMs = 600_000, intervalMs = 5_000): Promise<void> {
+    const deadline = Date.now() + maxWaitMs;
+    let attempt = 0;
+    while (Date.now() < deadline) {
+      attempt++;
+      try {
+        await axios.get(`${this.config.n8nUrl}/healthz`, { timeout: 5000 });
+        console.log(`   n8n healthy after ${attempt} poll(s)`);
+        return;
+      } catch {
+        if (attempt % 12 === 0) {
+          console.log(`   Still waiting for n8n... (${Math.round((Date.now() - (deadline - maxWaitMs)) / 1000)}s elapsed)`);
+        }
+        await new Promise(r => setTimeout(r, intervalMs));
+      }
+    }
+    throw new Error('n8n did not become healthy within 10 minutes');
+  }
+
+  /** Return true if the first-time owner setup wizard has not yet been completed */
+  private async isOwnerSetupNeeded(): Promise<boolean> {
+    try {
+      const res = await axios.get(`${this.config.n8nUrl}/rest/settings`, { timeout: 10_000 });
+      return res.data?.data?.userManagement?.showSetupOnFirstLoad === true;
+    } catch (err) {
+      console.warn('   Could not check n8n settings:', err instanceof Error ? err.message : String(err));
+      return false;
+    }
+  }
+
+  /** Call POST /rest/owner/setup and return the session cookie string */
+  private async setupN8nOwner(email: string, password: string): Promise<string> {
+    const res = await axios.post(
+      `${this.config.n8nUrl}/rest/owner/setup`,
+      {
+        email,
+        firstName: 'Genesis',
+        lastName: 'Admin',
+        password,
+        agree: true,
+      },
+      {
+        timeout: 30_000,
+        validateStatus: (s) => s < 500,
+      }
+    );
+
+    if (res.status !== 200) {
+      throw new Error(`Owner setup returned HTTP ${res.status}: ${JSON.stringify(res.data)}`);
+    }
+
+    // Extract Set-Cookie header
+    const setCookie = res.headers['set-cookie'];
+    if (!setCookie || setCookie.length === 0) {
+      throw new Error('Owner setup succeeded but no Set-Cookie header returned');
+    }
+
+    // Join all cookie parts as a single Cookie header value
+    return setCookie.map((c: string) => c.split(';')[0]).join('; ');
+  }
+
+  /** Create a static n8n API key using the owner session cookie; return the key string */
+  private async createN8nApiKey(sessionCookie: string): Promise<string> {
+    const res = await axios.post(
+      `${this.config.n8nUrl}/rest/users/me/api-key`,
+      {},
+      {
+        headers: { Cookie: sessionCookie },
+        timeout: 15_000,
+        validateStatus: (s) => s < 500,
+      }
+    );
+
+    if (res.status !== 200 && res.status !== 201) {
+      throw new Error(`API key creation returned HTTP ${res.status}: ${JSON.stringify(res.data)}`);
+    }
+
+    const apiKey: string = res.data?.data?.apiKey ?? res.data?.apiKey;
+    if (!apiKey) {
+      throw new Error(`Unexpected API key response shape: ${JSON.stringify(res.data)}`);
+    }
+
+    return apiKey;
   }
 
   /**

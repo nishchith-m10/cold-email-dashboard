@@ -40,6 +40,28 @@ export interface WorkflowDeploymentRequest {
   campaign_name: string;
   dashboard_url: string;
   dashboard_api_url: string;
+
+  // --- Credential IDs (n8n credential UUIDs per workspace) ---
+  credential_gmail_id?: string;
+  credential_google_sheets_id?: string;
+  credential_postgres_id?: string;
+  credential_openai_id?: string;
+  credential_anthropic_id?: string;
+  credential_google_cse_query_id?: string;
+
+  // --- Content variables ---
+  leads_table?: string;          // e.g. "leads_ohio"
+  webhook_token?: string;
+  company_name?: string;
+  sender_name?: string;
+  unsubscribe_redirect_url?: string;
+  relevance_ai_auth_token?: string;
+  relevance_ai_base_url?: string;
+  relevance_ai_studio_id?: string;
+  relevance_ai_project_id?: string;
+
+  // --- Escape hatch: any additional YOUR_* replacements ---
+  extra_placeholders?: Record<string, string>;
 }
 
 export interface WorkflowDeploymentResult {
@@ -228,7 +250,7 @@ export class WorkflowDeployer {
         const content = fs.readFileSync(filepath, 'utf-8');
         let workflowJson = content;
 
-        // Inject environment variables
+        // Pass 1: Replace {{ $env.VAR_NAME }} placeholders
         workflowJson = this.injectVariables(workflowJson, {
           WORKSPACE_ID: request.workspace_id,
           CAMPAIGN_NAME: request.campaign_name,
@@ -241,6 +263,9 @@ export class WorkflowDeployer {
           SMTP_FROM_EMAIL: providerConfig.from_email || '',
           SMTP_FROM_NAME: providerConfig.from_name || '',
         });
+
+        // Pass 2: Replace YOUR_* credential & content placeholders
+        workflowJson = this.injectCredentialPlaceholders(workflowJson, request);
 
         const workflow: N8nWorkflow = JSON.parse(workflowJson);
         
@@ -269,6 +294,57 @@ export class WorkflowDeployer {
       result = result.replace(regex, value);
     }
     
+    return result;
+  }
+
+  /**
+   * Inject YOUR_* credential and content placeholders.
+   * Performs literal string replacement on all YOUR_* tokens in
+   * the template JSON so credential IDs and config values are
+   * wired to the workspace's actual n8n credentials.
+   */
+  private injectCredentialPlaceholders(
+    json: string,
+    request: WorkflowDeploymentRequest
+  ): string {
+    // Build the YOUR_* → value map
+    const map: Record<string, string> = {
+      YOUR_CREDENTIAL_GMAIL_ID:         request.credential_gmail_id ?? '',
+      YOUR_CREDENTIAL_GOOGLE_SHEETS_ID: request.credential_google_sheets_id ?? '',
+      YOUR_CREDENTIAL_POSTGRES_ID:      request.credential_postgres_id ?? '',
+      YOUR_CREDENTIAL_OPENAI_ID:        request.credential_openai_id ?? '',
+      YOUR_CREDENTIAL_ANTHROPIC_ID:     request.credential_anthropic_id ?? '',
+      YOUR_CREDENTIAL_GOOGLE_CSE_QUERY_ID: request.credential_google_cse_query_id ?? '',
+
+      YOUR_LEADS_TABLE:            request.leads_table ?? 'leads_default',
+      YOUR_WEBHOOK_TOKEN:          request.webhook_token ?? '',
+      YOUR_DASHBOARD_URL:          request.dashboard_url,
+      YOUR_COMPANY_NAME:           request.company_name ?? '',
+      YOUR_NAME:                   request.sender_name ?? '',
+      YOUR_UNSUBSCRIBE_REDIRECT_URL: request.unsubscribe_redirect_url ?? request.dashboard_url,
+
+      YOUR_RELEVANCE_AI_AUTH_TOKEN: request.relevance_ai_auth_token ?? '',
+      YOUR_RELEVANCE_AI_BASE_URL:   request.relevance_ai_base_url ?? '',
+      YOUR_RELEVANCE_AI_STUDIO_ID:  request.relevance_ai_studio_id ?? '',
+      YOUR_RELEVANCE_AI_PROJECT_ID: request.relevance_ai_project_id ?? '',
+
+      // Merge any caller-supplied extras
+      ...(request.extra_placeholders ?? {}),
+    };
+
+    // Sort keys longest-first so longer tokens are replaced before shorter prefixes
+    // (avoids YOUR_CREDENTIAL_GMAIL_ID being partially matched by YOUR_CREDENTIAL_G...)
+    const sortedKeys = Object.keys(map).sort((a, b) => b.length - a.length);
+
+    let result = json;
+    for (const key of sortedKeys) {
+      const value = map[key];
+      if (value === '') continue; // leave unresolved placeholders intact if no value
+      // Escape key for use inside a RegExp (dots etc.)
+      const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      result = result.replace(new RegExp(escaped, 'g'), value);
+    }
+
     return result;
   }
 
