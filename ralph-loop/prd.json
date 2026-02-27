@@ -1,130 +1,91 @@
 {
   "project": "cold-email-dashboard",
-  "branchName": "ralph/domain4-event-ingestion-cost-tracking",
-  "description": "Domain 4: Event Ingestion & Cost Tracking — Security, multi-tenancy, and attribution fixes",
+  "branchName": "ralph/domain5-rls-multi-tenant-security",
+  "description": "Domain 5: RLS & Multi-Tenant Security Posture — Tenant-scoped clients, hardened RLS policies, cache invalidation, workspace middleware, super admin audit logging",
   "userStories": [
     {
-      "id": "D4-001",
-      "title": "Per-workspace webhook tokens (Critical Security Fix)",
-      "description": "Add webhook_token column to workspaces table. Generate per-workspace tokens on creation. Update both event ingestion APIs to validate token against workspace, deriving workspace_id server-side. Keep DASH_WEBHOOK_TOKEN as gated super-admin bypass.",
+      "id": "D5-001",
+      "title": "Tenant-scoped Supabase client + RLS policy hardening",
+      "description": "Create createTenantSupabaseClient() and setTenantContext() in lib/supabase.ts. Harden ALL RLS policies by removing the insecure NULL-fallback pattern. Add RLS to workspaces, user_workspaces, campaigns, notifications. Create set_tenant_context() RPC. Create governance_audit_log table.",
       "acceptanceCriteria": [
-        "Migration adds webhook_token TEXT UNIQUE column to workspaces table",
-        "Existing workspaces get generated tokens via UPDATE",
-        "createWorkspace() generates webhook_token on new workspace creation",
-        "Both /api/events and /api/cost-events validate token against workspaces table",
-        "workspace_id derived server-side from token lookup — not trusted from payload",
-        "DASH_WEBHOOK_TOKEN works as super-admin bypass when ALLOW_GLOBAL_WEBHOOK_TOKEN=true",
-        "401 returned for unknown/mismatched tokens",
+        "createTenantSupabaseClient(workspaceId) sets app.current_workspace_id via RPC",
+        "setTenantContext(client, workspaceId) calls set_tenant_context RPC",
+        "set_tenant_context() SQL function created with SECURITY DEFINER",
+        "All existing RLS policies drop NULL-fallback and use strict tenant isolation",
+        "Service-role bypass policies added for all tables",
+        "RLS enabled on workspaces, user_workspaces, campaigns, notifications",
+        "governance_audit_log table created with RLS",
         "Typecheck passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": ""
+      "notes": "Committed at 6cff3f3"
     },
     {
-      "id": "D4-002",
-      "title": "Secure cost-events GET endpoint",
-      "description": "Add Clerk auth() + validateWorkspaceAccess() to GET /api/cost-events. Return 401 if unauthenticated, 403 if no workspace access.",
+      "id": "D5-002",
+      "title": "Protect materialized views from direct PostgREST access",
+      "description": "REVOKE SELECT on mv_daily_stats, mv_llm_cost, v_llm_cost_secure from anon/authenticated. Create secure wrapper views (daily_stats_secure, llm_cost_secure) filtered by tenant context.",
       "acceptanceCriteria": [
-        "GET /api/cost-events requires Clerk authentication",
-        "Workspace access validated via validateWorkspaceAccess()",
-        "401 returned for unauthenticated requests",
-        "403 returned for unauthorized workspace access",
-        "Typecheck passes"
+        "SELECT revoked on mv_daily_stats from anon and authenticated",
+        "SELECT revoked on mv_llm_cost from anon and authenticated",
+        "daily_stats_secure view created with workspace_id filter",
+        "llm_cost_secure view created with workspace_id filter",
+        "Secure views granted to authenticated and service_role"
       ],
       "priority": 2,
       "passes": true,
-      "notes": ""
+      "notes": "Committed at 4200a81"
     },
     {
-      "id": "D4-003",
-      "title": "Remove DEFAULT_WORKSPACE_ID fallback from ingestion",
-      "description": "Change workspace_id from optional to required in both event route Zod schemas. Remove DEFAULT_WORKSPACE_ID fallback. Return 400 when workspace_id missing.",
+      "id": "D5-003",
+      "title": "Cache invalidation on membership changes + TTL reduction",
+      "description": "Reduce workspace access cache TTL from 5 minutes to 60 seconds. Add clearAllWorkspaceEntries(workspaceId). Wire cache invalidation into freeze-workspace and members routes.",
       "acceptanceCriteria": [
-        "workspace_id is required in eventSchema and costEventSchema",
-        "400 returned when workspace_id is missing",
-        "DEFAULT_WORKSPACE_ID import removed from both route files",
-        "Typecheck passes"
+        "CACHE_TTL_MS reduced to 60 seconds",
+        "clearAllWorkspaceEntries(workspaceId) function added",
+        "freeze-workspace POST calls clearAllWorkspaceEntries after freeze",
+        "freeze-workspace DELETE calls clearAllWorkspaceEntries after unfreeze",
+        "Members POST (add) calls clearWorkspaceCache for new user",
+        "Members PATCH (role change) calls clearWorkspaceCache for target user",
+        "Members DELETE (remove) calls clearWorkspaceCache for removed user"
       ],
       "priority": 3,
       "passes": true,
-      "notes": ""
+      "notes": "Committed at 6e1b84a"
     },
     {
-      "id": "D4-004",
-      "title": "Add indexed idempotency_key column to email_events",
-      "description": "Migration adding idempotency_key TEXT column + partial unique index. Update event route to write and query the indexed column instead of JSONB metadata extraction.",
+      "id": "D5-004",
+      "title": "Workspace access middleware (withWorkspaceAuth wrapper)",
+      "description": "Create lib/workspace-middleware.ts with withWorkspaceAuth() that extracts workspace_id, validates Clerk auth, validates membership, sets tenant RLS context, and provides WorkspaceContext to handlers.",
       "acceptanceCriteria": [
-        "Migration adds idempotency_key TEXT column",
-        "Unique index on (workspace_id, idempotency_key) WHERE idempotency_key IS NOT NULL",
-        "Event route writes idempotency_key to new column",
-        "Idempotency check uses .eq('idempotency_key', key) instead of metadata->> extraction",
-        "Backfill UPDATE included in migration",
+        "withWorkspaceAuth() wrapper created in lib/workspace-middleware.ts",
+        "Extracts workspace_id from query params or headers",
+        "Validates Clerk authentication",
+        "Validates workspace access via canAccessWorkspace()",
+        "Creates tenant-scoped Supabase client with RLS context",
+        "Provides WorkspaceContext (userId, workspaceId, role, tenantClient, adminClient)",
         "Typecheck passes"
       ],
       "priority": 4,
       "passes": true,
-      "notes": ""
+      "notes": "Committed at a0bd4dc"
     },
     {
-      "id": "D4-005",
-      "title": "Automatic budget enforcement in cost-events",
-      "description": "Before inserting cost events, check current month spend against plan limit. Reject with 402 if budget exceeded.",
+      "id": "D5-005",
+      "title": "Super admin audit logging",
+      "description": "When super admin bypass is used in canAccessWorkspace(), fire-and-forget insert into governance_audit_log with actor_id, action, workspace_id, and endpoint URL.",
       "acceptanceCriteria": [
-        "Pre-insert budget check queries current month SUM(cost_usd)",
-        "Events rejected with 402 when budget exceeded",
-        "Response includes current_spend and limit",
-        "Enterprise plan (unlimited) is never rejected",
+        "logSuperAdminAccess() function added (fire-and-forget pattern)",
+        "canAccessWorkspace() calls logSuperAdminAccess when SUPER_ADMIN_IDS match",
+        "canAccessWorkspace() accepts optional requestUrl parameter",
+        "validateWorkspaceAccess() passes request.url to canAccessWorkspace()",
+        "withWorkspaceAuth() passes req.url to canAccessWorkspace()",
+        "Audit log includes actor_id, action='super_admin_access', workspace_id, endpoint metadata",
         "Typecheck passes"
       ],
       "priority": 5,
       "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "D4-006",
-      "title": "Add campaign_group_id to cost tracking path",
-      "description": "Add campaign_group_id to costEventSchema, write it to llm_usage INSERT, rebuild v_llm_cost_secure with campaign dimension, update Research Report.json template.",
-      "acceptanceCriteria": [
-        "costEventSchema accepts campaign_group_id: z.string().uuid().optional()",
-        "llm_usage INSERT includes campaign_group_id",
-        "v_llm_cost_secure rebuilt with campaign_group_id in SELECT + GROUP BY",
-        "base-cold-email/Research Report.json cost event includes campaign_group_id",
-        "Typecheck passes"
-      ],
-      "priority": 6,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "D4-007",
-      "title": "Guard against missing contacts/emails tables",
-      "description": "Wrap contacts/emails upserts in proper try-catch detecting 'relation does not exist'. Remove (supabaseAdmin as any) type assertions. Add graceful skip logging.",
-      "acceptanceCriteria": [
-        "contacts/emails upserts wrapped in try-catch",
-        "42P01 (relation not found) error handled gracefully",
-        "(supabaseAdmin as any) type assertions removed",
-        "Console warning logged when tables missing",
-        "Event insertion continues even if contact/email tables missing",
-        "Typecheck passes"
-      ],
-      "priority": 7,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "D4-008",
-      "title": "Fix n8n template hardcoded WORKSPACE_ID",
-      "description": "Update Email 1/2/3 click-tracking code to use YOUR_WORKSPACE_ID placeholder instead of hardcoded 'default'. Update Research Report.json cost event to include workspace_id.",
-      "acceptanceCriteria": [
-        "Email 1.json click-tracking uses YOUR_WORKSPACE_ID not 'default'",
-        "Email 2.json click-tracking uses YOUR_WORKSPACE_ID not 'default'",
-        "Email 3.json click-tracking uses YOUR_WORKSPACE_ID not 'default'",
-        "Research Report.json cost event includes workspace_id: YOUR_WORKSPACE_ID"
-      ],
-      "priority": 8,
-      "passes": true,
-      "notes": ""
+      "notes": "Committed at 52be2a7"
     }
   ]
 }

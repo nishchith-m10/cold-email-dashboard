@@ -203,3 +203,43 @@ Started: 2026-02-11
   - llm_usage.campaign_group_id column existed but was always NULL — only needed ingestion + view updates
   - contacts/emails tables ARE properly typed in Supabase schema — (as any) casts were unnecessary
 ---
+
+## Domain 5: RLS & Multi-Tenant Security Posture
+Branch: `ralph/domain5-rls-multi-tenant-security`
+- **D5-001** (6cff3f3): Tenant-scoped Supabase client + RLS policy hardening
+  - createTenantSupabaseClient() + setTenantContext() in lib/supabase.ts
+  - set_tenant_context() SQL RPC (SECURITY DEFINER)
+  - Hardened ALL RLS policies: removed insecure NULL-fallback pattern
+  - Added RLS to workspaces, user_workspaces, campaigns, notifications
+  - Created governance_audit_log table with RLS
+  - Service-role bypass policies on all tables
+- **D5-002** (4200a81): Protect materialized views from direct PostgREST access
+  - REVOKE SELECT on mv_daily_stats, mv_llm_cost from anon/authenticated
+  - Created daily_stats_secure + llm_cost_secure wrapper views with tenant filter
+- **D5-003** (6e1b84a): Cache invalidation on membership changes + TTL reduction
+  - CACHE_TTL_MS reduced from 5 min to 60 seconds
+  - clearAllWorkspaceEntries(workspaceId) added for workspace-wide cache bust
+  - Freeze/unfreeze routes call clearAllWorkspaceEntries()
+  - Member add/remove/role-change routes call clearWorkspaceCache()
+- **D5-004** (a0bd4dc): withWorkspaceAuth() middleware wrapper
+  - lib/workspace-middleware.ts: composable route wrapper
+  - Extracts workspace_id, validates Clerk + membership, sets RLS tenant context
+  - Provides WorkspaceContext (userId, workspaceId, role, tenantClient, adminClient)
+- **D5-005** (52be2a7): Super admin audit logging
+  - logSuperAdminAccess() fire-and-forget insert to governance_audit_log
+  - canAccessWorkspace() + validateWorkspaceAccess() + withWorkspaceAuth() pass request URL
+- **Files created:**
+  - `lib/workspace-middleware.ts` — withWorkspaceAuth() composable wrapper
+  - `supabase/migrations/20260301_domain5_rls_hardening.sql` — RLS overhaul
+  - `supabase/migrations/20260301_domain5_protect_materialized_views.sql` — MV protection
+- **Files modified:**
+  - `lib/supabase.ts` — createTenantSupabaseClient, setTenantContext, supabaseAnonKey
+  - `lib/api-workspace-guard.ts` — TTL reduction, clearAllWorkspaceEntries, super admin audit
+  - `app/api/admin/freeze-workspace/route.ts` — cache invalidation on freeze/unfreeze
+  - `app/api/workspaces/[workspaceId]/members/route.ts` — cache invalidation on membership changes
+- **Learnings:**
+  - Old RLS policies had `OR current_setting(...) IS NULL` — made RLS a no-op when no context set
+  - PostgreSQL materialized views cannot have RLS — must use REVOKE + wrapper views
+  - Session variable transitioned from app.workspace_id to app.current_workspace_id
+  - Fire-and-forget pattern uses .then() on Supabase promise chain (no await) for non-blocking audit
+---
