@@ -65,6 +65,7 @@ type SidecarCommand =
   | 'PULL_IMAGE'
   | 'SWAP_CONTAINER'
   | 'GET_LOGS'
+  | 'GET_WORKFLOW'
   | 'COLLECT_METRICS';
 
 interface CommandRequest {
@@ -323,6 +324,10 @@ export class SidecarAgent {
           }
           break;
 
+        case 'GET_WORKFLOW':
+          result = await this.handleGetWorkflow(command.payload);
+          break;
+
         case 'UPDATE_WORKFLOW':
           result = await this.handleUpdateWorkflow(command.payload);
           break;
@@ -418,6 +423,11 @@ export class SidecarAgent {
 
     const result = await this.n8nManager.createWorkflow(workflowJson);
     return result;
+  }
+
+  private async handleGetWorkflow(payload: { workflow_id: string }): Promise<any> {
+    const workflow = await this.n8nManager.getWorkflow(payload.workflow_id);
+    return { success: true, workflow };
   }
 
   private async handleUpdateWorkflow(payload: {
