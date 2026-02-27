@@ -1,0 +1,58 @@
+{
+  "project": "cold-email-dashboard",
+  "branchName": "ralph/sandbox-ux-fixes",
+  "description": "Sandbox UX Fixes — Legacy workflow isolation for Leads Campaign, free node positioning, campaign/sequence naming fix, dark mode visibility fixes.",
+  "userStories": [
+    {
+      "id": "SBX-FIX-001",
+      "title": "Legacy Workflow Template Source (cold-email-system)",
+      "description": "The Leads Campaign workspace uses legacy workflows from cold-email-system/ folder, not the standard base-cold-email/ templates. The API route should detect legacy workspaces and load from cold-email-system/ instead.",
+      "acceptanceCriteria": [
+        "API route GET /api/sandbox/workflow/[campaignId] checks for legacy template source",
+        "Legacy workspaces load templates from cold-email-system/ directory",
+        "Standard workspaces continue loading from base-cold-email/",
+        "Template file mapping works for both directories",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "SBX-FIX-002",
+      "title": "Enable Free Node Positioning on Canvas",
+      "description": "Enable nodesDraggable on the WorkflowCanvas so users can freely position nodes. Remove the no-op drag handler. Edges should remain connected and visible as smooth-step connections between nodes.",
+      "acceptanceCriteria": [
+        "Nodes are draggable on the canvas",
+        "Edges remain connected during and after drag",
+        "Smooth-step edge type with visible connection lines between nodes",
+        "MiniMap reflects node position changes",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "SBX-FIX-003",
+      "title": "Fix Campaign vs Sequence Naming in Dropdown",
+      "description": "The WorkflowSelector tabs (Email 1, Email 2, Email 3) are sequences within a single campaign, not separate campaigns. Update the header text and ensure the campaign dropdown shows actual campaign names, while the tabs clearly label as sequences/workflows within that campaign.",
+      "acceptanceCriteria": [
+        "Campaign dropdown shows actual campaign names",
+        "WorkflowSelector tabs are labeled as sequences/workflows, not campaigns",
+        "Header clarifies the relationship between campaign and sequences",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "SBX-FIX-004",
+      "title": "Dark Mode and Tooltip Visibility Fixes",
+      "description": "Fix dark mode issues: ReactFlow Controls (zoom in/out/reset) invisible against white background, campaign selector box is white in dark mode, replace default browser tooltip with custom themed tooltip.",
+      "acceptanceCriteria": [
+        "ReactFlow Controls buttons visible in dark mode with proper contrast",
+        "Campaign selector dropdown matches dark theme",
+        "Custom tooltip replaces default Chrome tooltip on campaign selector",
+        "All interactive elements have proper dark mode contrast",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    }
+  ]
+}

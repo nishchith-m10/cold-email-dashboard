@@ -41,12 +41,17 @@ const API_HEADERS = {
 
 /**
  * Load a base template JSON from the `base-cold-email/` directory.
+ * For the Ohio (legacy) workspace, loads from `cold-email-system/` instead.
  */
 async function loadBaseTemplate(
   workflowType: WorkflowTemplateType,
+  workspaceId?: string,
 ): Promise<unknown | null> {
   const filename = WORKFLOW_TEMPLATE_FILES[workflowType];
-  const templatePath = path.join(process.cwd(), 'base-cold-email', filename);
+  const ohioId = process.env.NEXT_PUBLIC_OHIO_WORKSPACE_ID;
+  const isLegacy = ohioId && workspaceId === ohioId;
+  const folder = isLegacy ? 'cold-email-system' : 'base-cold-email';
+  const templatePath = path.join(process.cwd(), folder, filename);
 
   try {
     const raw = await fs.readFile(templatePath, 'utf-8');
@@ -153,7 +158,7 @@ export async function GET(
     }
 
     // ── 5. Fallback to base template ────────────────────────────────
-    const template = await loadBaseTemplate(workflowType);
+    const template = await loadBaseTemplate(workflowType, workspaceId ?? undefined);
     if (!template) {
       return NextResponse.json(
         { error: `Template not found for workflow type: ${workflowType}` },
