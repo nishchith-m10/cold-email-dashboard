@@ -3,7 +3,6 @@
 import React from 'react';
 import { SWRConfig, SWRConfiguration } from 'swr';
 import { fetcher } from './fetcher';
-import * as Sentry from '@sentry/nextjs';
 
 /**
  * Global SWR Configuration
@@ -47,10 +46,12 @@ const swrConfig: SWRConfiguration = {
       console.error(`SWR Error for ${key}:`, error);
     }
     
-    // In production, you might want to send to error tracking service
-    Sentry.captureException(error, {
-      tags: { swrKey: key },
-    });
+    // Send to Sentry in production (dynamic import to avoid blocking SWR provider)
+    if (process.env.NODE_ENV === 'production') {
+      import('@sentry/nextjs')
+        .then((Sentry) => Sentry.captureException(error, { tags: { swrKey: key } }))
+        .catch(() => {}); // Silently ignore if Sentry isn't available
+    }
   },
   
   // Success handler (for debugging)
