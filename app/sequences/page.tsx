@@ -10,7 +10,7 @@ import { SequenceList } from '@/components/sequences/sequence-list';
 import { SequenceDetail } from '@/components/sequences/sequence-detail';
 import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { DateRangePickerMobile } from '@/components/dashboard/date-range-picker-mobile';
-import { toISODate, daysAgo } from '@/lib/utils';
+import { toISODate, daysAgo, cn } from '@/lib/utils';
 import type { SequenceListResponse, SequenceDetail as SequenceDetailType } from '@/lib/dashboard-types';
 import { Mail, ArrowLeft, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -134,22 +134,26 @@ export default function SequencesPage() {
               endDate={endDate}
               onDateChange={handleDateChange}
             />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" role="group" aria-label="Items per page">
               <span className="text-sm text-text-secondary">Items:</span>
-              <select
-                value={limit}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setLimit(value === 'all' ? 'all' : Number(value) as LimitOption);
-                }}
-                className="px-3 py-1.5 text-sm bg-surface-elevated border border-border-primary rounded-md text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
-              >
+              <div className="flex items-center gap-1">
                 {LIMIT_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
+                  <button
+                    key={option}
+                    onClick={() => setLimit(option)}
+                    className={cn(
+                      'px-3 py-1 text-sm font-medium rounded-md transition-colors',
+                      limit === option
+                        ? 'bg-accent-primary text-white'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
+                    )}
+                    aria-pressed={limit === option}
+                    aria-label={`Show ${option === 'all' ? 'all' : option} items`}
+                  >
                     {option === 'all' ? 'All' : option}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
           </div>
 
