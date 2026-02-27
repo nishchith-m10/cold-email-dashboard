@@ -243,3 +243,45 @@ Branch: `ralph/domain5-rls-multi-tenant-security`
   - Session variable transitioned from app.workspace_id to app.current_workspace_id
   - Fire-and-forget pattern uses .then() on Supabase promise chain (no await) for non-blocking audit
 ---
+
+## Domain 6: Onboarding Wizard (2026-03-01)
+Branch: `ralph/domain6-onboarding-wizard`
+- **D6-001** (c5d1fc3): Launch route + ignition-status route
+  - POST /api/onboarding/launch — Clerk auth, workspace access, assemble config, ignite
+  - GET /api/onboarding/ignition-status — polls SupabaseIgnitionStateDB for provisioning state
+  - Uses real SupabaseIgnitionStateDB (0 args) + SupabasePartitionManager (0 args) + mock sidecar/deployer
+- **D6-002** (cc19997): IgnitionConfig assembler service
+  - lib/genesis/ignition-config-assembler.ts (361 lines)
+  - assemble(workspaceId, requestedBy) reads workspace, infrastructure, credentials, brand data
+  - Credentials decrypted via CredentialVaultService, mapped to CredentialConfig[] via VAULT_TO_IGNITION_TYPE
+  - validate() checks workspace_id, slug, name, region, size, requested_by, YOUR_SENDER_EMAIL, credentials
+- **D6-003** (a52d0e1): Fix infrastructure and progress DB error handling
+  - POST handlers now return { success: false, error } with 500 on DB write failure
+  - Previously returned { success: true } on catch — silent data loss
+- **D6-004** (247c9b0): Workspace access validation on credentials endpoint
+  - GET + POST /api/onboarding/credentials now call canAccessWorkspace()
+  - Returns 403 on unauthorized workspace access
+- **D6-005** (5c5e2e6): Auth check + SSRF protection on auto-scrape
+  - Added Clerk auth → 401 if unauthenticated
+  - isSafeUrl() blocks internal IPs (127.x, 10.x, 192.168.x, 172.16-31.x, 169.254.x, 0.0.0.0, localhost, ::1)
+  - Only http/https schemes allowed
+- **D6-006** (c3737c6): Encryption key rotation support
+  - EncryptionService accepts optional previousMasterKeyHex (or ENCRYPTION_MASTER_KEY_PREVIOUS env var)
+  - decrypt() tries current key first, falls back to previous key
+  - reEncryptAllCredentials(workspaceId) on CredentialVaultService — reads, decrypts, re-encrypts all rows
+- **Files created:**
+  - `lib/genesis/ignition-config-assembler.ts` — IgnitionConfig assembler
+  - `app/api/onboarding/launch/route.ts` — launch endpoint
+  - `app/api/onboarding/ignition-status/route.ts` — status polling endpoint
+- **Files modified:**
+  - `app/api/onboarding/infrastructure/route.ts` — DB error handling fix
+  - `app/api/onboarding/progress/route.ts` — DB error handling fix
+  - `app/api/onboarding/credentials/route.ts` — workspace access validation
+  - `app/api/onboarding/brand/auto-scrape/route.ts` — auth + SSRF protection
+  - `lib/genesis/phase64/credential-vault-service.ts` — key rotation support (+117 lines)
+- **Learnings:**
+  - SupabaseIgnitionStateDB and SupabasePartitionManager take 0 constructor args — they call getTypedSupabaseAdmin() internally
+  - HttpSidecarClient takes {workspaceId, dropletId, privateKey} — not {apiKey}
+  - CredentialVault DB adapter needs (as any) casts for genesis schema tables not in auto-generated types
+  - SSRF protection must check resolved IP, not hostname — but DNS rebinding prevention is beyond scope for MVP
+---
