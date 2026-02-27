@@ -22,4 +22,5 @@ export { NodeDetailDrawer } from './NodeDetailDrawer';
 export { NodeEditForm } from './NodeEditForm';
 export { ExecutionTimeline } from './ExecutionTimeline';
 export { ExecutionHistory } from './ExecutionHistory';
+export { TestRunModal } from './TestRunModal';
 export { nodeTypes } from './nodes';
