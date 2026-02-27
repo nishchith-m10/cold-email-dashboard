@@ -18,7 +18,8 @@
         "lib/workflow-graph/index.ts re-exports all public types and registry",
         "npx tsc --noEmit passes (use NODE_OPTIONS='--max-old-space-size=4096')"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Committed at 84a088b. Types: WorkflowGraph, GraphNode, GraphEdge, NodeCategory (8 values), EditableParamDescriptor, WorkflowMetadata. Registry: 16 n8n node types + classifyHttpRequestNode contextual classifier."
     },
     {
       "id": "SBX-002",
@@ -36,7 +37,8 @@
         "dagre and @types/dagre are installed in package.json",
         "npx tsc --noEmit passes (use NODE_OPTIONS='--max-old-space-size=4096')"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Committed at 43ccd52. transformN8nToGraph adapter parses nodes/connections, filters sticky notes, classifies httpRequest, detects editable params. autoLayout via dagre (LR, nodesep=60, ranksep=120). dagre + @types/dagre installed."
     },
     {
       "id": "SBX-003",
@@ -51,7 +53,8 @@
         "Command handler returns { success: true, workflow: <full JSON> }",
         "npx tsc --noEmit passes in sidecar directory (cd sidecar && npx tsc --noEmit)"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Committed at a2ae32f. Added N8nManager.getWorkflow(id) with 404 handling. Added GET_WORKFLOW command + handleGetWorkflow handler."
     },
     {
       "id": "SBX-004",
@@ -68,7 +71,8 @@
         "Handles errors with appropriate HTTP status codes",
         "npx tsc --noEmit passes (use NODE_OPTIONS='--max-old-space-size=4096')"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "dd2d02c — GET route with Clerk auth, workspace validation, workflowType query param, live sidecar path (stub for future campaign_workflows), template fallback from base-cold-email/, proper error handling."
     },
     {
       "id": "SBX-005",
@@ -81,7 +85,8 @@
         "npx tsc --noEmit passes (use NODE_OPTIONS='--max-old-space-size=4096')",
         "npm install completes without errors"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Committed at aa8289c. @xyflow/react installed, flow/index.ts created, CSS imported in globals.css."
     },
     {
       "id": "SBX-006",
@@ -96,7 +101,8 @@
         "Handles null campaignId gracefully (does not fetch)",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "9637492 — SWR hook with GraphNode→ReactFlow Node conversion, GraphEdge→Edge conversion, null-safe campaignId, deduping, useMemo'd arrays."
     },
     {
       "id": "SBX-007",
@@ -112,7 +118,8 @@
         "Icons from lucide-react used for each category",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Committed at 358f6dd. 6 category nodes + BaseNode shared component + types.ts (CustomNodeData) + index.ts (nodeTypes map). All use Handle/Position from @xyflow/react, lucide-react icons, memo()."
     },
     {
       "id": "SBX-008",
@@ -129,7 +136,8 @@
         "onNodeClick callback passes clicked node data",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "618181e — ReactFlow wrapper with MiniMap, Controls, Background(dots), smoothstep animated edges, nodesDraggable=false, fitView, loading skeleton, empty state, ReactFlowProvider wrapping."
     },
     {
       "id": "SBX-009",
@@ -144,7 +152,8 @@
         "Horizontally scrollable on mobile (overflow-x-auto)",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "c5bb5b2 — WorkflowSelector with 7 ordered tabs, lucide icons, activeStatus dots, memo'd, overflow-x-auto. Barrel updated."
     },
     {
       "id": "SBX-010",
@@ -161,7 +170,8 @@
         "Close button and click-outside-to-close behavior",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "67dceea — NodeDetailDrawer slide-in panel with param renderers (cron/code/prompt/nested), Escape+click-outside close, category badge, credential badges, editable param indicators. cron-humanizer parses standard 5-field cron."
     },
     {
       "id": "SBX-011",
@@ -178,7 +188,8 @@
         "onSave callback receives nodeId and changed parameters",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "1e5c790 — NodeEditForm with text/textarea/number/cron/select inputs, dirty state tracking, cron preview with humanizeCron, Save/Reset buttons, nested path value extraction."
     },
     {
       "id": "SBX-012",
@@ -206,7 +217,8 @@
         "Does not mutate the original workflow object",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "288fa32 — buildNodePatch with deep-merge, ID/name lookup, immutable ops, descriptive errors."
     },
     {
       "id": "SBX-014",
