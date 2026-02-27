@@ -213,6 +213,20 @@ export class N8nManager {
     }
   }
 
+  async getWorkflow(workflowId: string): Promise<N8nWorkflow> {
+    try {
+      const response = await this.client.get(`/workflows/${workflowId}`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        throw new Error(`Workflow not found: ${workflowId}`);
+      }
+      throw new Error(
+        `Failed to get workflow: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
   async deleteWorkflow(workflowId: string): Promise<void> {
     try {
       await this.client.delete(`/workflows/${workflowId}`);
