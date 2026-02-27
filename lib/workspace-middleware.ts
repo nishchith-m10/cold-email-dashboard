@@ -73,8 +73,8 @@ export function withWorkspaceAuth(handler: WorkspaceHandler) {
       );
     }
 
-    // 3. Validate membership / super admin
-    const { hasAccess, role } = await canAccessWorkspace(userId, workspaceId);
+    // 3. Validate membership / super admin (pass URL for audit logging)
+    const { hasAccess, role } = await canAccessWorkspace(userId, workspaceId, req.url);
     if (!hasAccess) {
       return NextResponse.json(
         { error: 'Access denied to this workspace', workspace_id: workspaceId },
