@@ -16,4 +16,5 @@
 // SBX-019: ExecutionHistory
 // SBX-022: TestRunModal
 
-export {};
+export { WorkflowSelector } from './WorkflowSelector';
+export { nodeTypes } from './nodes';;
