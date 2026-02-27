@@ -10,6 +10,7 @@
  */
 
 import { memo, useCallback, useEffect, useMemo } from 'react';
+import { useTheme } from '@/hooks/use-theme';
 import {
   ReactFlow,
   MiniMap,
@@ -54,6 +55,7 @@ function WorkflowCanvasInner({
   nodeStatusMap,
 }: WorkflowCanvasProps) {
   const { fitView } = useReactFlow();
+  const { theme } = useTheme();
 
   // Fit view when nodes change (initial load / workflow switch)
   useEffect(() => {
@@ -131,7 +133,7 @@ function WorkflowCanvasInner({
       nodesDraggable={true}
       nodesConnectable={false}
       elementsSelectable={true}
-      colorMode="dark"
+      colorMode={theme === 'light' ? 'light' : 'dark'}
       fitView
       fitViewOptions={{ padding: 0.15 }}
       minZoom={0.2}
