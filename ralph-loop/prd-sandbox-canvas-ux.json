@@ -1,0 +1,42 @@
+{
+  "project": "cold-email-dashboard",
+  "branchName": "ralph/sandbox-canvas-ux",
+  "description": "Sandbox Canvas UX — Fix MiniMap light mode, node sizing/spacing, edge visibility, and draggability. Does NOT address live n8n mutation sync (that requires sidecar infrastructure).",
+  "userStories": [
+    {
+      "id": "SBX-CANVAS-001",
+      "title": "MiniMap Theme-Aware Styling",
+      "description": "MiniMap background still appears dark in light mode. Remove hardcoded dark class overrides and let ReactFlow's colorMode handle it natively.",
+      "acceptanceCriteria": [
+        "MiniMap background matches light/dark theme automatically",
+        "MiniMap node fills are visible in both themes",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-CANVAS-002",
+      "title": "Increase Node Size and Layout Spacing",
+      "description": "Nodes are too small in the default bird's-eye view. Increase BaseNode min-width, increase dagre layout nodesep/ranksep to prevent overlap, and increase fitView padding so nodes are readable on load.",
+      "acceptanceCriteria": [
+        "BaseNode min-width increased for readability",
+        "dagre layout spacing prevents node overlap",
+        "fitView padding makes nodes readable without zooming",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-CANVAS-003",
+      "title": "Edge Visibility and Handle Styling",
+      "description": "Connection lines (edges) between nodes must be clearly visible in both themes. Handle dots on nodes must be visible. Edge stroke color should adapt to light/dark mode.",
+      "acceptanceCriteria": [
+        "Edges are clearly visible in dark mode (blue animated lines)",
+        "Edges are clearly visible in light mode (darker blue or contrasting color)",
+        "Handle dots on nodes are visible in both themes",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    }
+  ]
+}
