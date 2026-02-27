@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { z } from 'zod';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_WEBHOOK } from '@/lib/rate-limit';
 import { resolveWebhookAuth } from '@/lib/webhook-auth';
+import { isWorkspaceFrozen } from '@/lib/workspace-frozen-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,6 +148,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: authResult.error }, { status: authResult.status });
   }
   const workspaceId = authResult.workspaceId;
+
+  // D8-002: Block event ingestion for frozen workspaces
+  if (await isWorkspaceFrozen(workspaceId)) {
+    return NextResponse.json(
+      { error: 'Workspace is frozen — events rejected' },
+      { status: 403, headers: rateLimitHeaders(rateLimit) }
+    );
+  }
+
   const campaignName = campaign || 'Default Campaign';
   const eventTs = event_ts ? new Date(event_ts).toISOString() : new Date().toISOString();
   const emailNumber = step ?? null; // Align naming with DB (email_number)

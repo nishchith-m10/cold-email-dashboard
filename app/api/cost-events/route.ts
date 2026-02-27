@@ -6,6 +6,7 @@ import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_WEBHOOK } fro
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
 import { resolveWebhookAuth } from '@/lib/webhook-auth';
 import { validateWorkspaceAccess } from '@/lib/api-workspace-guard';
+import { isWorkspaceFrozen } from '@/lib/workspace-frozen-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,6 +137,14 @@ export async function POST(req: NextRequest) {
       );
     }
     const resolvedWorkspaceId = authResult.workspaceId;
+
+    // D8-002: Block cost ingestion for frozen workspaces
+    if (await isWorkspaceFrozen(resolvedWorkspaceId)) {
+      return NextResponse.json(
+        { error: 'Workspace is frozen — cost events rejected' },
+        { status: 403, headers: rateLimitHeaders(rateLimit) }
+      );
+    }
 
     // ── D4-005: Pre-insert budget enforcement ─────────────────────
     // Check if workspace has exceeded its plan's cost limit BEFORE inserting.
