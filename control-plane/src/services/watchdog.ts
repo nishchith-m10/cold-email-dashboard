@@ -37,10 +37,22 @@ export function createWatchdogService(
   let lastRunAt: string | null = null;
   let errorCount = 0;
   let lastError: string | null = null;
+  let degraded = false;
+  let degradedReason: string | null = null;
 
-  // Create a BullMQ queue for dispatching reboot jobs
-  const redis = new IORedis(config.redisUrl, { maxRetriesPerRequest: null });
-  const rebootQueue = new Queue(QUEUE_NAMES.HARD_REBOOT, { connection: redis });
+  // D8-007: Graceful degradation — wrap Redis/BullMQ in try-catch
+  let redis: IORedis | null = null;
+  let rebootQueue: Queue | null = null;
+
+  try {
+    redis = new IORedis(config.redisUrl, { maxRetriesPerRequest: null });
+    rebootQueue = new Queue(QUEUE_NAMES.HARD_REBOOT, { connection: redis });
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    degraded = true;
+    degradedReason = `Redis not available — watchdog remediation (reboots) disabled: ${errMsg}`;
+    logger.warn({ error: errMsg }, 'Redis not available — watchdog running in degraded mode (health checks only, no reboot queue)');
+  }
 
   async function poll(): Promise<void> {
     try {
@@ -153,21 +165,34 @@ export function createWatchdogService(
     );
 
     if (action.action === 'reboot') {
-      const jobData: HardRebootJob = {
-        droplet_id: action.droplet_id,
-        workspace_id: action.workspace_id,
-        reason: 'zombie_detected',
-      };
+      // D8-007: Only queue reboot if Redis/BullMQ is available
+      if (rebootQueue) {
+        const jobData: HardRebootJob = {
+          droplet_id: action.droplet_id,
+          workspace_id: action.workspace_id,
+          reason: 'zombie_detected',
+        };
 
-      await rebootQueue.add('hard-reboot', jobData, {
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 10000 },
-      });
+        await rebootQueue.add('hard-reboot', jobData, {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 10000 },
+        });
 
-      actionLogger.info(
-        { droplet_id: action.droplet_id },
-        'Hard reboot job enqueued'
-      );
+        actionLogger.info(
+          { droplet_id: action.droplet_id },
+          'Hard reboot job enqueued'
+        );
+      } else {
+        // Degraded mode — log critical alert instead of queuing
+        actionLogger.error(
+          {
+            droplet_id: action.droplet_id,
+            workspace_id: action.workspace_id,
+            reason: action.reason,
+          },
+          'CRITICAL: Reboot required but Redis/BullMQ unavailable — manual intervention needed'
+        );
+      }
     }
 
     if (action.action === 'mark_zombie') {
@@ -199,13 +224,16 @@ export function createWatchdogService(
         clearInterval(intervalHandle);
         intervalHandle = null;
       }
-      rebootQueue.close().catch(() => {});
-      redis.quit().catch(() => {});
+      // D8-007: Only close Redis/BullMQ if they were initialized
+      if (rebootQueue) rebootQueue.close().catch(() => {});
+      if (redis) redis.quit().catch(() => {});
       logger.info('Watchdog service stopped');
     },
 
     isHealthy() {
       if (!running) return false;
+      // D8-007: Degraded mode is explicitly unhealthy
+      if (degraded) return false;
       // Unhealthy if last run was more than 3x the interval ago
       if (lastRunAt) {
         const age = Date.now() - new Date(lastRunAt).getTime();
@@ -221,7 +249,9 @@ export function createWatchdogService(
         last_run_at: lastRunAt,
         error_count: errorCount,
         last_error: lastError,
-      };
+        // D8-007: Surface degradation reason in health check
+        ...(degraded ? { degraded: true, degraded_reason: degradedReason } : {}),
+      } as ServiceHealth;
     },
   };
 }
