@@ -17,7 +17,7 @@
 // SBX-022: TestRunModal
 
 export { WorkflowSelector } from './WorkflowSelector';
-export { WorkflowCanvas } from './WorkflowCanvas';
+export { WorkflowCanvas, type NodeStatusMap } from './WorkflowCanvas';
 export { NodeDetailDrawer } from './NodeDetailDrawer';
 export { NodeEditForm } from './NodeEditForm';
-export { nodeTypes } from './nodes';;
+export { nodeTypes } from './nodes';

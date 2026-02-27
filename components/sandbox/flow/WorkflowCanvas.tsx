@@ -24,9 +24,13 @@ import {
 } from '@xyflow/react';
 import { nodeTypes } from './nodes';
 import type { CustomNodeData } from './nodes/types';
+import type { NodeExecutionOverlayStatus } from '@/lib/workflow-graph/types';
 import { Loader2 } from 'lucide-react';
 
 /* ---------- Types ---------- */
+
+/** Map of node ID → execution status for live overlays */
+export type NodeStatusMap = Map<string, NodeExecutionOverlayStatus>;
 
 export interface WorkflowCanvasProps {
   /** Nodes to render */
@@ -37,6 +41,8 @@ export interface WorkflowCanvasProps {
   onNodeClick?: (node: Node<CustomNodeData>) => void;
   /** Whether the graph is loading */
   isLoading?: boolean;
+  /** Optional execution status map — merges status into node data */
+  nodeStatusMap?: NodeStatusMap;
 }
 
 /* ---------- Inner canvas (requires ReactFlowProvider ancestor) ---------- */
@@ -46,6 +52,7 @@ function WorkflowCanvasInner({
   edges,
   onNodeClick,
   isLoading,
+  nodeStatusMap,
 }: WorkflowCanvasProps) {
   const { fitView } = useReactFlow();
 
@@ -57,6 +64,18 @@ function WorkflowCanvasInner({
       return () => clearTimeout(timer);
     }
   }, [nodes, fitView]);
+
+  // Merge nodeStatusMap into node data when present
+  const nodesWithStatus = useMemo(() => {
+    if (!nodeStatusMap || nodeStatusMap.size === 0) return nodes;
+    return nodes.map((node) => {
+      const status = nodeStatusMap.get(node.id);
+      if (status && status !== node.data.status) {
+        return { ...node, data: { ...node.data, status } };
+      }
+      return node;
+    });
+  }, [nodes, nodeStatusMap]);
 
   // Default edges to animated smooth-step via defaultEdgeOptions
   const defaultEdgeOptions = useMemo(
@@ -104,7 +123,7 @@ function WorkflowCanvasInner({
 
   return (
     <ReactFlow
-      nodes={nodes}
+      nodes={nodesWithStatus}
       edges={edges}
       nodeTypes={nodeTypes}
       defaultEdgeOptions={defaultEdgeOptions}
