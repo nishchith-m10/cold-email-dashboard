@@ -167,7 +167,7 @@ export function Sidebar() {
               href={fullHref}
               className={cn(
                 'flex items-center h-10 rounded-lg transition-colors',
-                isExpanded ? 'gap-3 px-3' : 'justify-center',
+                isExpanded ? 'gap-3 px-3' : 'justify-center overflow-hidden',
                 isActive ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:text-text-primary hover:bg-accent-primary/5'
               )}
               title={!isExpanded ? item.label : undefined}
@@ -176,11 +176,11 @@ export function Sidebar() {
               <AnimatePresence mode="wait">
                 {isExpanded && (
                   <motion.span
-                    className="text-sm font-medium whitespace-nowrap overflow-hidden"
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 'auto' }}
-                    exit={{ opacity: 0, width: 0 }}
-                    transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+                    className="text-sm font-medium whitespace-nowrap will-change-transform"
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
                   >
                     {item.label}
                   </motion.span>
@@ -205,7 +205,7 @@ export function Sidebar() {
                   href={fullHref}
                   className={cn(
                     'flex items-center h-10 rounded-lg transition-colors',
-                    isExpanded ? 'gap-3 px-3' : 'justify-center',
+                    isExpanded ? 'gap-3 px-3' : 'justify-center overflow-hidden',
                     isActive ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:text-text-primary hover:bg-accent-primary/5'
                   )}
                   title={!isExpanded ? item.label : undefined}
@@ -214,11 +214,11 @@ export function Sidebar() {
                   <AnimatePresence mode="wait">
                     {isExpanded && (
                       <motion.span
-                        className="text-sm font-medium whitespace-nowrap overflow-hidden"
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 'auto' }}
-                        exit={{ opacity: 0, width: 0 }}
-                        transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+                        className="text-sm font-medium whitespace-nowrap will-change-transform"
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -8 }}
+                        transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
                       >
                         {item.label}
                       </motion.span>
@@ -275,11 +275,11 @@ export function Sidebar() {
             <AnimatePresence mode="wait">
               {isExpanded && (
                 <motion.span
-                  className="text-sm font-medium whitespace-nowrap overflow-hidden"
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+                  className="text-sm font-medium whitespace-nowrap will-change-transform"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
                 >
                   Sidebar control
                 </motion.span>
