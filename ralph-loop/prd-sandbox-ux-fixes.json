@@ -14,7 +14,7 @@
         "Template file mapping works for both directories",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SBX-FIX-002",
@@ -27,7 +27,7 @@
         "MiniMap reflects node position changes",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SBX-FIX-003",
@@ -39,7 +39,7 @@
         "Header clarifies the relationship between campaign and sequences",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "SBX-FIX-004",
@@ -52,7 +52,7 @@
         "All interactive elements have proper dark mode contrast",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 }
