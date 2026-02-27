@@ -265,7 +265,8 @@
         "Handles SSE connection errors gracefully",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "40d9193 — SSE stream mapping with name-to-id lookup, status normalization, graceful error handling"
     },
     {
       "id": "SBX-017",
@@ -281,7 +282,8 @@
         "Animations use Tailwind or CSS keyframes",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "d7edec3 — WorkflowCanvas merges nodeStatusMap into node data; BaseNode + 6 category nodes already render status overlays with pulse/ring/icons"
     },
     {
       "id": "SBX-018",
@@ -296,7 +298,8 @@
         "Color-coded: green for success, red for error, blue for running",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "1b467be — Vertical timeline with auto-scroll, status icons, duration, focus-to-node buttons"
     },
     {
       "id": "SBX-019",
@@ -310,7 +313,8 @@
         "Loading and empty states handled",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "f8db855 — SWR-based history list with loading/empty/error states, active selection, replay click"
     },
     {
       "id": "SBX-020",
@@ -324,7 +328,8 @@
         "Toggle button to show/hide metrics overlay",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "ea0c849 — API aggregates from genesis schema, SWR hook with metricsMap for node lookup"
     },
     {
       "id": "SBX-021",
@@ -341,7 +346,8 @@
         "Dark mode works correctly",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "cd2d142 — Full page rebuild with WorkflowSelector, WorkflowCanvas, NodeDetailDrawer, ExecutionTimeline, ExecutionHistory, TestRunModal integration"
     },
     {
       "id": "SBX-022",
@@ -357,7 +363,8 @@
         "Modal closes after successful trigger",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "98e054c — Lightweight modal with test email input, POST to /api/sandbox/test-campaign, executionId callback"
     },
     {
       "id": "SBX-023",
@@ -373,7 +380,8 @@
         "npx tsc --noEmit passes",
         "App builds successfully"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "655276c — Deleted 5 deprecated files (939 lines removed), no remaining imports"
     }
   ]
 }
