@@ -113,7 +113,7 @@ export function CampaignWizard({ onClose }: CampaignWizardProps) {
                 'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium',
                 index <= currentStepIndex
                   ? 'bg-accent-primary text-white'
-                  : 'bg-muted text-muted-foreground'
+                  : 'bg-surface-elevated text-text-secondary'
               )}
             >
               {index + 1}
@@ -121,20 +121,20 @@ export function CampaignWizard({ onClose }: CampaignWizardProps) {
             <span
               className={cn(
                 'ml-2 text-sm',
-                index <= currentStepIndex ? 'text-foreground' : 'text-muted-foreground'
+                index <= currentStepIndex ? 'text-text-primary' : 'text-text-secondary'
               )}
             >
               {label}
             </span>
             {index < steps.length - 1 && (
-              <ChevronRight className="mx-3 h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="mx-3 h-4 w-4 text-text-secondary" />
             )}
           </div>
         ))}
       </div>
 
       {/* Step Content */}
-      <div className="min-h-[300px]">
+      <div>
         {/* Step 1: Template Selection */}
         {step === 'template' && (
           <TemplateGallery
@@ -173,8 +173,8 @@ export function CampaignWizard({ onClose }: CampaignWizardProps) {
             </div>
 
             {selectedTemplate && (
-              <div className="p-3 bg-muted/50 rounded-lg">
-                <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+              <div className="p-3 bg-surface-elevated/50 rounded-lg">
+                <div className="text-xs text-text-secondary uppercase tracking-wide mb-1">
                   Template
                 </div>
                 <div className="font-medium">{selectedTemplate.name}</div>
@@ -182,7 +182,7 @@ export function CampaignWizard({ onClose }: CampaignWizardProps) {
             )}
 
             {error && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+              <div className="p-3 bg-accent-danger/10 border border-accent-danger/20 rounded-lg text-accent-danger text-sm">
                 {error}
               </div>
             )}
@@ -195,7 +195,7 @@ export function CampaignWizard({ onClose }: CampaignWizardProps) {
             <div className="text-center">
               <Rocket className="h-12 w-12 mx-auto text-accent-primary mb-4" />
               <h3 className="text-lg font-semibold">Setting up your campaign</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-text-secondary">
                 This will only take a moment...
               </p>
             </div>
@@ -213,7 +213,7 @@ export function CampaignWizard({ onClose }: CampaignWizardProps) {
         <div className="flex justify-between pt-4 border-t border-border">
           <button
             onClick={step === 'template' ? onClose : handleBack}
-            className="flex items-center gap-2 px-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-text-secondary hover:text-text-primary transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
             {step === 'template' ? 'Cancel' : 'Back'}
