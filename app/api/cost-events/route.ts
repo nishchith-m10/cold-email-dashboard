@@ -135,9 +135,51 @@ export async function POST(req: NextRequest) {
       );
     }
     const resolvedWorkspaceId = authResult.workspaceId;
+
+    // ── D4-005: Pre-insert budget enforcement ─────────────────────
+    // Check if workspace has exceeded its plan's cost limit BEFORE inserting.
+    // This provides hard enforcement (not just advisory alerts).
+    {
+      const { data: workspace } = await supabaseAdmin
+        .from('workspaces')
+        .select('plan')
+        .eq('id', resolvedWorkspaceId)
+        .single();
+
+      const plan = workspace?.plan || 'free';
+      const planLimits = getPlanLimits(plan);
+      const costLimit = planLimits.cost_limit;
+
+      if (costLimit !== null && costLimit > 0) {
+        const now = new Date();
+        const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01T00:00:00Z`;
+
+        const { data: spendData } = await supabaseAdmin
+          .from('llm_usage')
+          .select('cost_usd')
+          .eq('workspace_id', resolvedWorkspaceId)
+          .gte('created_at', monthStart);
+
+        const currentSpend = spendData?.reduce(
+          (sum: number, row: { cost_usd: number }) => sum + (Number(row.cost_usd) || 0), 0
+        ) || 0;
+
+        if (currentSpend >= costLimit) {
+          return NextResponse.json(
+            {
+              error: 'Budget limit exceeded',
+              current_spend: currentSpend,
+              limit: costLimit,
+              plan,
+            },
+            { status: 402, headers: rateLimitHeaders(rateLimit) }
+          );
+        }
+      }
+    }
     
-    const results = [];
-    const errors = [];
+    const results: Array<{ id: string; provider: string; model: string; cost_usd: number }> = [];
+    const errors: Array<{ event: unknown; error: string }> = [];
     const workspaceIds = new Set<string>();
 
     for (const event of events) {
