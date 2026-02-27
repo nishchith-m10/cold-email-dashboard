@@ -121,6 +121,7 @@ function WorkflowCanvasInner({
   }
 
   return (
+    <div style={{ width: '100%', height: '100%' }}>
     <ReactFlow
       nodes={nodesWithStatus}
       edges={edges}
@@ -148,6 +149,7 @@ function WorkflowCanvasInner({
         className="!bg-background/80 !border-border"
       />
     </ReactFlow>
+    </div>
   );
 }
 
@@ -155,9 +157,11 @@ function WorkflowCanvasInner({
 
 function WorkflowCanvasWithProvider(props: WorkflowCanvasProps) {
   return (
-    <ReactFlowProvider>
-      <WorkflowCanvasInner {...props} />
-    </ReactFlowProvider>
+    <div style={{ width: '100%', height: '100%' }}>
+      <ReactFlowProvider>
+        <WorkflowCanvasInner {...props} />
+      </ReactFlowProvider>
+    </div>
   );
 }
 
