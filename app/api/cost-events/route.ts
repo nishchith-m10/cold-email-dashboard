@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { calculateLlmCost } from '@/lib/constants';
 import { z } from 'zod';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_WEBHOOK } from '@/lib/rate-limit';
 import { checkBudgetAlerts } from '@/lib/budget-alerts';
+import { resolveWebhookAuth } from '@/lib/webhook-auth';
+import { validateWorkspaceAccess } from '@/lib/api-workspace-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,18 +31,7 @@ const batchCostEventsSchema = z.union([
   z.array(costEventSchema).min(1).max(100),
 ]);
 
-// Validate webhook token
-function validateToken(req: NextRequest): boolean {
-  const token = req.headers.get('x-webhook-token');
-  const expectedToken = process.env.DASH_WEBHOOK_TOKEN;
-  
-  if (!expectedToken) {
-    console.warn('DASH_WEBHOOK_TOKEN not configured - allowing all requests');
-    return true;
-  }
-  
-  return token === expectedToken;
-}
+
 
 // Plan limits helper (matches billing/usage route)
 interface PlanLimits {
@@ -94,10 +85,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Validate token
-  if (!validateToken(req)) {
+  // Early reject: missing token header (before body parse)
+  const token = req.headers.get('x-webhook-token');
+  if (!token) {
     return NextResponse.json(
-      { error: 'Unauthorized - invalid or missing X-Webhook-Token' },
+      { error: 'Missing x-webhook-token header' },
       { status: 401 }
     );
   }
@@ -130,6 +122,18 @@ export async function POST(req: NextRequest) {
     
     // Handle both single event and batch
     const events = Array.isArray(validation.data) ? validation.data : [validation.data];
+
+    // Resolve workspace from webhook token (D4-001: per-workspace tokens)
+    // Use the first event's workspace_id as fallback for global-token path
+    const payloadWsId = events[0]?.workspace_id;
+    const authResult = await resolveWebhookAuth(token, payloadWsId);
+    if ('error' in authResult) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
+    }
+    const resolvedWorkspaceId = authResult.workspaceId;
     
     const results = [];
     const errors = [];
@@ -159,7 +163,8 @@ export async function POST(req: NextRequest) {
           costUsd = 0;
         }
 
-        const workspaceId = event.workspace_id || DEFAULT_WORKSPACE_ID;
+        // D4-001: workspace_id derived from token, not trusted from payload
+        const workspaceId = resolvedWorkspaceId;
         workspaceIds.add(workspaceId);
 
         // Insert into llm_usage table
@@ -275,15 +280,25 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET /api/cost-events - Get recent cost events (for debugging)
+// GET /api/cost-events - Get recent cost events (authenticated via Clerk)
 export async function GET(req: NextRequest) {
   if (!supabaseAdmin) {
     return NextResponse.json({ events: [], error: 'Database not configured' });
   }
 
+  // D4-001 / D4-002: Require authenticated workspace access
+  const accessError = await validateWorkspaceAccess(req, new URL(req.url).searchParams);
+  if (accessError) {
+    return accessError; // 401/403 response
+  }
+
   const { searchParams } = new URL(req.url);
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)));
-  const workspaceId = searchParams.get('workspace_id') || DEFAULT_WORKSPACE_ID;
+  const workspaceId = searchParams.get('workspace_id');
+
+  if (!workspaceId) {
+    return NextResponse.json({ error: 'workspace_id query parameter is required' }, { status: 400 });
+  }
 
   try {
     const { data, error } = await supabaseAdmin

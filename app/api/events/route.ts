@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { z } from 'zod';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_WEBHOOK } from '@/lib/rate-limit';
+import { resolveWebhookAuth } from '@/lib/webhook-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,10 +95,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
   }
 
-  // Verify webhook token
+  // Early reject: missing token header (before body parse)
   const token = req.headers.get('x-webhook-token');
-  if (!token || token !== process.env.DASH_WEBHOOK_TOKEN) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!token) {
+    return NextResponse.json({ error: 'Missing x-webhook-token header' }, { status: 401 });
   }
 
   // Parse and validate request body
@@ -138,7 +139,12 @@ export async function POST(req: NextRequest) {
     metadata,
   } = validation.data;
 
-  const workspaceId = workspace_id || DEFAULT_WORKSPACE_ID;
+  // D4-001: Resolve workspace from webhook token (per-workspace tokens)
+  const authResult = await resolveWebhookAuth(token, workspace_id);
+  if ('error' in authResult) {
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+  }
+  const workspaceId = authResult.workspaceId;
   const campaignName = campaign || 'Default Campaign';
   const eventTs = event_ts ? new Date(event_ts).toISOString() : new Date().toISOString();
   const emailNumber = step ?? null; // Align naming with DB (email_number)

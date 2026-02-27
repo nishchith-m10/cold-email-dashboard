@@ -1,71 +1,130 @@
 {
   "project": "cold-email-dashboard",
-  "branchName": "ralph/domain3-campaign-isolation-partitioning",
-  "description": "Domain 3: Campaign Isolation & Data Partitioning",
+  "branchName": "ralph/domain4-event-ingestion-cost-tracking",
+  "description": "Domain 4: Event Ingestion & Cost Tracking — Security, multi-tenancy, and attribution fixes",
   "userStories": [
     {
-      "id": "D3-001",
-      "title": "Per-campaign workflow deployer function",
-      "description": "Create lib/genesis/campaign-workflow-deployer.ts with deployForCampaign() that loads templates, builds campaign-specific variable map, and deploys 7 workflows named [{workspace}] {template} — {campaign}. Wire into POST /api/campaigns/provision to trigger deployment when workspace has active ignition.",
+      "id": "D4-001",
+      "title": "Per-workspace webhook tokens (Critical Security Fix)",
+      "description": "Add webhook_token column to workspaces table. Generate per-workspace tokens on creation. Update both event ingestion APIs to validate token against workspace, deriving workspace_id server-side. Keep DASH_WEBHOOK_TOKEN as gated super-admin bypass.",
       "acceptanceCriteria": [
-        "deployForCampaign(workspaceId, campaignId, campaignName, workspaceName, workspaceSlug) exported",
-        "Loads droplet_ip from genesis.partition_registry",
-        "Loads 7 templates via email_provider_config provider selection",
-        "YOUR_CAMPAIGN_NAME set to campaign-specific name",
-        "Workflow names include campaign suffix: [{workspace}] {template} — {campaign}",
-        "Returns array of deployed workflow IDs",
-        "Campaign provision route calls deployer when ignition status is active",
+        "Migration adds webhook_token TEXT UNIQUE column to workspaces table",
+        "Existing workspaces get generated tokens via UPDATE",
+        "createWorkspace() generates webhook_token on new workspace creation",
+        "Both /api/events and /api/cost-events validate token against workspaces table",
+        "workspace_id derived server-side from token lookup — not trusted from payload",
+        "DASH_WEBHOOK_TOKEN works as super-admin bypass when ALLOW_GLOBAL_WEBHOOK_TOKEN=true",
+        "401 returned for unknown/mismatched tokens",
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": true,
-      "notes": "Committed as 07e795d"
+      "passes": false,
+      "notes": ""
     },
     {
-      "id": "D3-002",
-      "title": "Add campaign_group_id column to email_events",
-      "description": "Migration to add campaign_group_id UUID column to email_events with partial index. Update event ingestion API to accept and store campaign_group_id.",
+      "id": "D4-002",
+      "title": "Secure cost-events GET endpoint",
+      "description": "Add Clerk auth() + validateWorkspaceAccess() to GET /api/cost-events. Return 401 if unauthenticated, 403 if no workspace access.",
       "acceptanceCriteria": [
-        "Migration adds campaign_group_id UUID column (nullable) to email_events",
-        "Partial index on campaign_group_id WHERE NOT NULL",
-        "Event ingestion route accepts campaign_group_id in payload",
-        "Event ingestion stores campaign_group_id when provided",
+        "GET /api/cost-events requires Clerk authentication",
+        "Workspace access validated via validateWorkspaceAccess()",
+        "401 returned for unauthenticated requests",
+        "403 returned for unauthorized workspace access",
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
-      "notes": "Committed as 2bebbc7"
+      "passes": false,
+      "notes": ""
     },
     {
-      "id": "D3-003",
-      "title": "Add composite indexes for campaign query performance",
-      "description": "Migration adding composite indexes: (workspace_id, event_type, event_ts), (workspace_id, campaign_name), (workspace_id, day) on daily_stats, (workspace_id, created_at) on llm_usage.",
+      "id": "D4-003",
+      "title": "Remove DEFAULT_WORKSPACE_ID fallback from ingestion",
+      "description": "Change workspace_id from optional to required in both event route Zod schemas. Remove DEFAULT_WORKSPACE_ID fallback. Return 400 when workspace_id missing.",
       "acceptanceCriteria": [
-        "idx_email_events_ws_type_ts on (workspace_id, event_type, event_ts)",
-        "idx_email_events_ws_campaign on (workspace_id, campaign_name)",
-        "idx_daily_stats_ws_day on (workspace_id, day)",
-        "idx_llm_usage_ws_created on (workspace_id, created_at)",
-        "All indexes use IF NOT EXISTS",
+        "workspace_id is required in eventSchema and costEventSchema",
+        "400 returned when workspace_id is missing",
+        "DEFAULT_WORKSPACE_ID import removed from both route files",
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": true,
-      "notes": "Committed as 0ff9a12"
+      "passes": false,
+      "notes": ""
     },
     {
-      "id": "D3-004",
-      "title": "Normalize campaign dropdown to use campaigns table",
-      "description": "Update aggregate route campaign list to query from campaigns table (source of truth) instead of deriving from email_events campaign_name. Include campaign status and event count.",
+      "id": "D4-004",
+      "title": "Add indexed idempotency_key column to email_events",
+      "description": "Migration adding idempotency_key TEXT column + partial unique index. Update event route to write and query the indexed column instead of JSONB metadata extraction.",
       "acceptanceCriteria": [
-        "Campaign list fetched from campaigns table filtered by workspace_id",
-        "Each campaign includes name and status",
-        "Fallback to existing behavior if campaigns query fails",
-        "campaignList sorted alphabetically by name",
+        "Migration adds idempotency_key TEXT column",
+        "Unique index on (workspace_id, idempotency_key) WHERE idempotency_key IS NOT NULL",
+        "Event route writes idempotency_key to new column",
+        "Idempotency check uses .eq('idempotency_key', key) instead of metadata->> extraction",
+        "Backfill UPDATE included in migration",
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": true,
-      "notes": "Committed as f33998e"
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "D4-005",
+      "title": "Automatic budget enforcement in cost-events",
+      "description": "Before inserting cost events, check current month spend against plan limit. Reject with 402 if budget exceeded.",
+      "acceptanceCriteria": [
+        "Pre-insert budget check queries current month SUM(cost_usd)",
+        "Events rejected with 402 when budget exceeded",
+        "Response includes current_spend and limit",
+        "Enterprise plan (unlimited) is never rejected",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "D4-006",
+      "title": "Add campaign_group_id to cost tracking path",
+      "description": "Add campaign_group_id to costEventSchema, write it to llm_usage INSERT, rebuild v_llm_cost_secure with campaign dimension, update Research Report.json template.",
+      "acceptanceCriteria": [
+        "costEventSchema accepts campaign_group_id: z.string().uuid().optional()",
+        "llm_usage INSERT includes campaign_group_id",
+        "v_llm_cost_secure rebuilt with campaign_group_id in SELECT + GROUP BY",
+        "base-cold-email/Research Report.json cost event includes campaign_group_id",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "D4-007",
+      "title": "Guard against missing contacts/emails tables",
+      "description": "Wrap contacts/emails upserts in proper try-catch detecting 'relation does not exist'. Remove (supabaseAdmin as any) type assertions. Add graceful skip logging.",
+      "acceptanceCriteria": [
+        "contacts/emails upserts wrapped in try-catch",
+        "42P01 (relation not found) error handled gracefully",
+        "(supabaseAdmin as any) type assertions removed",
+        "Console warning logged when tables missing",
+        "Event insertion continues even if contact/email tables missing",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "D4-008",
+      "title": "Fix n8n template hardcoded WORKSPACE_ID",
+      "description": "Update Email 1/2/3 click-tracking code to use YOUR_WORKSPACE_ID placeholder instead of hardcoded 'default'. Update Research Report.json cost event to include workspace_id.",
+      "acceptanceCriteria": [
+        "Email 1.json click-tracking uses YOUR_WORKSPACE_ID not 'default'",
+        "Email 2.json click-tracking uses YOUR_WORKSPACE_ID not 'default'",
+        "Email 3.json click-tracking uses YOUR_WORKSPACE_ID not 'default'",
+        "Research Report.json cost event includes workspace_id: YOUR_WORKSPACE_ID"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
     }
   ]
 }

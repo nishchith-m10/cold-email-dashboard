@@ -676,8 +676,9 @@ export class IgnitionOrchestrator {
                 || process.env.BASE_URL
                 || '',
 
-              // Operator-level secrets (shared across all tenants, from env)
-              YOUR_WEBHOOK_TOKEN:           process.env.DASH_WEBHOOK_TOKEN || '',
+              // Per-workspace webhook token (D4-001) — falls back to global env var
+              YOUR_WEBHOOK_TOKEN:           config.webhook_token
+                || process.env.DASH_WEBHOOK_TOKEN || '',
               YOUR_RELEVANCE_AI_AUTH_TOKEN: process.env.RELEVANCE_AI_API_KEY
                 || process.env.RELEVANCE_API_KEY
                 || '',
