@@ -250,6 +250,7 @@ async function fetchAggregateData(
   const buildEventFilters = (query: any, start: string, end: string, camp?: string | null) => {
     let q = query
       .eq('workspace_id', workspaceId)
+      .eq('is_test', false)
       .gte('event_ts', `${start}T00:00:00Z`)
       .lte('event_ts', `${end}T23:59:59Z`);
     // Campaign group filter (new: filter by campaign_group_id when provided)
@@ -307,6 +308,7 @@ async function fetchAggregateData(
     .from('email_events')
     .select('email_number, step, event_ts, contact_email, campaign_name, metadata')
     .eq('workspace_id', workspaceId)
+    .eq('is_test', false)
     .eq('event_type', 'sent')
     .gte('event_ts', `${startDate}T00:00:00Z`)
     .lte('event_ts', `${endDate}T23:59:59Z`);
@@ -325,6 +327,7 @@ async function fetchAggregateData(
     .from('llm_usage')
     .select('provider, model, tokens_in, tokens_out, cost_usd, created_at, campaign_name')
     .eq('workspace_id', workspaceId)
+    .eq('is_test', false)
     .gte('created_at', `${startDate}T00:00:00Z`)
     .lte('created_at', `${endDate}T23:59:59Z`);
 
@@ -341,6 +344,7 @@ async function fetchAggregateData(
     .from('email_events')
     .select('created_at')
     .eq('workspace_id', workspaceId)
+    .eq('is_test', false)
     .eq('event_type', 'clicked')
     .gte('created_at', `${startDate}T00:00:00Z`)
     .lte('created_at', `${endDate}T23:59:59Z`);

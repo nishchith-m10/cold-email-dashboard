@@ -284,4 +284,25 @@ Branch: `ralph/domain6-onboarding-wizard`
   - HttpSidecarClient takes {workspaceId, dropletId, privateKey} — not {apiKey}
   - CredentialVault DB adapter needs (as any) casts for genesis schema tables not in auto-generated types
   - SSRF protection must check resolved IP, not hostname — but DNS rebinding prevention is beyond scope for MVP
+
+## Domain 7 — Sandbox Engine (5 stories)
+- **Branch:** ralph/domain7-sandbox-engine
+- **D7-001** (7f46df7): Added `is_test BOOLEAN NOT NULL DEFAULT false` to email_events and llm_usage via migration. Partial indexes on `is_test WHERE is_test = true`. Updated Zod schemas and INSERT logic in events + cost-events routes.
+- **D7-002** (fd3e095): Added `.eq('is_test', false)` to `buildEventFilters` helper (covers 8 count queries) and standalone queries (stepBreakdown, llmUsage, clickEvents) in dashboard aggregate route.
+- **D7-003** (72769df): Optimized SSE polling: 500ms → 2000ms interval, MAX_POLLS 600 → 150, heartbeat every 10 → every 5 polls. 4x reduction in DB queries.
+- **D7-004** (777a39c): Replaced all mock EventDB stubs with real genesis schema queries (insertEvent, getEventsByExecution, isExecutionComplete, getExecutionWorkspace, getAllEvents, listTestRuns, countRunsInWindow).
+- **D7-005** (2e7bda6): Added LOCAL_MODE fallback to createWorkspaceLookupDB — falls back to LOCAL_SIDECAR_URL or LOCAL_N8N_URL env vars when partition_registry has no entry.
+- **Files created:**
+  - `supabase/migrations/20260301_domain7_is_test_columns.sql` — is_test column migration
+- **Files modified:**
+  - `app/api/events/route.ts` — Zod schema + INSERT for is_test
+  - `app/api/cost-events/route.ts` — Zod schema + INSERT for is_test
+  - `app/api/dashboard/aggregate/route.ts` — is_test=false filter on all production queries
+  - `app/api/sandbox/execution-stream/[executionId]/route.ts` — SSE polling optimization
+  - `app/api/sandbox/test-campaign/route.ts` — real EventDB impl + LOCAL_MODE fallback
+- **Learnings:**
+  - genesis.sandbox_test_runs and genesis.workflow_execution_events already existed in migration 20260208130001
+  - buildEventFilters helper centralizes filter logic for 8 count queries — single point of change
+  - daily_stats is a materialized view — doesn't need is_test filter since test data never enters it
+  - (supabaseAdmin as any).schema('genesis') pattern required for genesis tables not in auto-generated types
 ---

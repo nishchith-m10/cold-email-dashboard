@@ -40,14 +40,54 @@ function createRateLimitDB() {
 
 function createEventDB(): ExecutionEventDB | null {
   if (!supabaseAdmin) return null;
+  const genesisDb = (supabaseAdmin as any).schema('genesis');
   return {
-    async insertEvent() { return { error: null }; },
-    async getEventsByExecution() { return { data: null, error: null }; },
-    async isExecutionComplete() { return false; },
-    async getExecutionWorkspace() { return null; },
-    async getAllEvents() { return { data: null, error: null }; },
+    async insertEvent(event: Record<string, unknown>) {
+      const { error } = await genesisDb
+        .from('workflow_execution_events')
+        .insert(event);
+      return { error };
+    },
+    async getEventsByExecution(executionId: string, afterId?: string) {
+      let q = genesisDb
+        .from('workflow_execution_events')
+        .select('*')
+        .eq('execution_id', executionId)
+        .order('created_at', { ascending: true });
+      if (afterId) {
+        q = q.gt('id', afterId);
+      }
+      const { data, error } = await q;
+      return { data, error };
+    },
+    async isExecutionComplete(executionId: string) {
+      const { data } = await genesisDb
+        .from('workflow_execution_events')
+        .select('id')
+        .eq('execution_id', executionId)
+        .eq('node_type', '_execution_complete')
+        .maybeSingle();
+      return !!data;
+    },
+    async getExecutionWorkspace(executionId: string) {
+      const { data } = await genesisDb
+        .from('workflow_execution_events')
+        .select('workspace_id')
+        .eq('execution_id', executionId)
+        .limit(1)
+        .maybeSingle();
+      return data?.workspace_id ?? null;
+    },
+    async getAllEvents(executionId: string) {
+      const { data, error } = await genesisDb
+        .from('workflow_execution_events')
+        .select('*')
+        .eq('execution_id', executionId)
+        .order('created_at', { ascending: true });
+      return { data, error };
+    },
     async createTestRun(run: Record<string, unknown>) {
-      const { data, error } = await (supabaseAdmin as any).schema('genesis')
+      const { data, error } = await genesisDb
         .from('sandbox_test_runs')
         .insert(run)
         .select()
@@ -55,14 +95,31 @@ function createEventDB(): ExecutionEventDB | null {
       return { data, error };
     },
     async updateTestRun(runId: string, updates: Record<string, unknown>) {
-      const { error } = await (supabaseAdmin as any).schema('genesis')
+      const { error } = await genesisDb
         .from('sandbox_test_runs')
         .update(updates)
         .eq('id', runId);
       return { error };
     },
-    async listTestRuns() { return { data: null, error: null }; },
-    async countRunsInWindow() { return 0; },
+    async listTestRuns(workspaceId: string, limit = 20) {
+      const { data, error } = await genesisDb
+        .from('sandbox_test_runs')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('started_at', { ascending: false })
+        .limit(limit);
+      return { data, error };
+    },
+    async countRunsInWindow(workspaceId: string, windowSeconds: number) {
+      const cutoff = new Date(Date.now() - windowSeconds * 1000).toISOString();
+      const { count, error } = await genesisDb
+        .from('sandbox_test_runs')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId)
+        .gte('started_at', cutoff);
+      if (error) return 0;
+      return count ?? 0;
+    },
   };
 }
 
@@ -76,7 +133,14 @@ function createWorkspaceLookupDB() {
         .select('sidecar_url')
         .eq('workspace_id', workspaceId)
         .maybeSingle();
-      return data?.sidecar_url ?? null;
+
+      if (data?.sidecar_url) return data.sidecar_url;
+
+      // LOCAL_MODE fallback: use env var when partition_registry has no entry
+      const localUrl = process.env.LOCAL_SIDECAR_URL || process.env.LOCAL_N8N_URL;
+      if (localUrl) return localUrl;
+
+      return null;
     },
   };
 }

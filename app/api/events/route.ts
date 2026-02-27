@@ -75,6 +75,7 @@ const eventSchema = z.object({
   body: z.string().max(50000).optional(),
   workspace_id: z.string().max(100).optional(),
   idempotency_key: z.string().max(200),
+  is_test: z.boolean().optional(), // D7-001: sandbox test event flag
   metadata: z.record(z.unknown()).optional(),
 });
 
@@ -136,6 +137,7 @@ export async function POST(req: NextRequest) {
     body: email_body,
     workspace_id,
     idempotency_key,
+    is_test,
     metadata,
   } = validation.data;
 
@@ -238,6 +240,7 @@ export async function POST(req: NextRequest) {
         provider_message_id: provider_message_id || null,
         event_key: eventKey,
         idempotency_key: idempotency_key || null, // D4-004: indexed column
+        is_test: is_test || false, // D7-001: sandbox test event isolation
         metadata: { ...(metadata || {}), idempotency_key },
       })
       .select('id')
