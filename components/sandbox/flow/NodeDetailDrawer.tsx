@@ -10,8 +10,8 @@
  * @module components/sandbox/flow/NodeDetailDrawer
  */
 
-import { memo, useEffect, useRef } from 'react';
-import { X, Lock, Clock, Code2, MessageSquare, ChevronRight } from 'lucide-react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { X, Lock, Clock, Code2, MessageSquare, ChevronRight, Pencil, Eye } from 'lucide-react';
 import type { GraphNode } from '@/lib/workflow-graph/types';
 import { getNodeRegistryEntry } from '@/lib/workflow-graph/registry';
 import { humanizeCron } from '@/lib/workflow-graph/cron-humanizer';
@@ -186,16 +186,26 @@ export interface NodeDetailDrawerProps {
   node: GraphNode | null;
   /** Callback to close the drawer */
   onClose: () => void;
-  /** Optional: slot for edit form below read-only params */
+  /** Whether the user has permission to edit (owner/admin) */
+  canEdit?: boolean;
+  /** Optional: slot for edit form below read-only params (shown only in edit mode) */
   children?: React.ReactNode;
 }
 
 function NodeDetailDrawerComponent({
   node,
   onClose,
+  canEdit = false,
   children,
 }: NodeDetailDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  // Reset edit mode when node changes
+  const handleClose = useCallback(() => {
+    setIsEditMode(false);
+    onClose();
+  }, [onClose]);
 
   // Close on click outside
   useEffect(() => {
@@ -204,7 +214,7 @@ function NodeDetailDrawerComponent({
         drawerRef.current &&
         !drawerRef.current.contains(e.target as HTMLElement)
       ) {
-        onClose();
+        handleClose();
       }
     }
 
@@ -212,18 +222,18 @@ function NodeDetailDrawerComponent({
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [node, onClose]);
+  }, [node, handleClose]);
 
   // Close on Escape
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') handleClose();
     }
     if (node) {
       document.addEventListener('keydown', handleKeyDown);
     }
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [node, onClose]);
+  }, [node, handleClose]);
 
   const registryEntry = node ? getNodeRegistryEntry(node.type) : null;
   const categoryBadge = node ? CATEGORY_BADGE_COLORS[node.category] ?? CATEGORY_BADGE_COLORS.unknown : '';
@@ -274,12 +284,28 @@ function NodeDetailDrawerComponent({
                   </span>
                 )}
               </div>
-              <button
-                onClick={onClose}
-                className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                {/* Edit mode toggle — only visible for owners/admins */}
+                {canEdit && node.editableParams.length > 0 && (
+                  <button
+                    onClick={() => setIsEditMode((prev) => !prev)}
+                    className={`p-1 rounded-md transition-colors ${
+                      isEditMode
+                        ? 'bg-primary/10 text-primary'
+                        : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                    }`}
+                    title={isEditMode ? 'Switch to read-only' : 'Edit parameters'}
+                  >
+                    {isEditMode ? <Eye className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                  </button>
+                )}
+                <button
+                  onClick={handleClose}
+                  className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
             {/* Body */}
@@ -348,8 +374,8 @@ function NodeDetailDrawerComponent({
                 </div>
               )}
 
-              {/* Edit form slot */}
-              {children}
+              {/* Edit form slot — only shown when canEdit and in edit mode */}
+              {canEdit && isEditMode && children}
             </div>
           </div>
         )}
