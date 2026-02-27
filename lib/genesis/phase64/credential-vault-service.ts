@@ -33,22 +33,27 @@ const SALT_LENGTH = 32;
 
 export class EncryptionService {
   private masterKey: Buffer;
+  private previousMasterKey: Buffer | null;
 
-  constructor(masterKeyHex?: string) {
+  constructor(masterKeyHex?: string, previousMasterKeyHex?: string) {
     // In production, load from environment variable
     const key = masterKeyHex || process.env.ENCRYPTION_MASTER_KEY;
     if (!key) {
       throw new Error('ENCRYPTION_MASTER_KEY not configured');
     }
     this.masterKey = Buffer.from(key, 'hex');
+
+    // D6-006: Support previous key for rotation
+    const prevKey = previousMasterKeyHex || process.env.ENCRYPTION_MASTER_KEY_PREVIOUS;
+    this.previousMasterKey = prevKey ? Buffer.from(prevKey, 'hex') : null;
   }
 
   /**
    * Derive a workspace-specific encryption key using PBKDF2
    */
-  private deriveWorkspaceKey(workspaceId: string, salt: Buffer): Buffer {
+  private deriveWorkspaceKey(workspaceId: string, salt: Buffer, masterKey?: Buffer): Buffer {
     return crypto.pbkdf2Sync(
-      Buffer.concat([this.masterKey, Buffer.from(workspaceId)]),
+      Buffer.concat([(masterKey || this.masterKey), Buffer.from(workspaceId)]),
       salt,
       100000, // iterations
       32, // key length
@@ -79,8 +84,30 @@ export class EncryptionService {
 
   /**
    * Decrypt a value using AES-256-GCM
+   *
+   * D6-006: If decryption with the current key fails and a previous key is
+   * available, retries with the previous key to support key rotation.
    */
   decrypt(ciphertext: string, workspaceId: string): string {
+    try {
+      return this.decryptWithKey(ciphertext, workspaceId, this.masterKey);
+    } catch (currentKeyError) {
+      // If we have a previous key, try that before giving up
+      if (this.previousMasterKey) {
+        try {
+          return this.decryptWithKey(ciphertext, workspaceId, this.previousMasterKey);
+        } catch {
+          // Both keys failed — throw the original error
+        }
+      }
+      throw currentKeyError;
+    }
+  }
+
+  /**
+   * Internal: decrypt with a specific master key.
+   */
+  private decryptWithKey(ciphertext: string, workspaceId: string, masterKey: Buffer): string {
     const combined = Buffer.from(ciphertext, 'base64');
     
     const salt = combined.subarray(0, SALT_LENGTH);
@@ -91,7 +118,7 @@ export class EncryptionService {
     );
     const encrypted = combined.subarray(SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH);
     
-    const key = this.deriveWorkspaceKey(workspaceId, salt);
+    const key = this.deriveWorkspaceKey(workspaceId, salt, masterKey);
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
     
@@ -544,6 +571,92 @@ export class CredentialVaultService {
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Failed to delete credential' 
+      };
+    }
+  }
+
+  // ============================================
+  // KEY ROTATION (D6-006)
+  // ============================================
+
+  /**
+   * Re-encrypt all credentials for a workspace with the current encryption key.
+   *
+   * Usage during key rotation:
+   *   1. Set new key as ENCRYPTION_MASTER_KEY
+   *   2. Set old key as ENCRYPTION_MASTER_KEY_PREVIOUS
+   *   3. Call reEncryptAllCredentials(workspaceId) for each workspace
+   *   4. Once all workspaces migrated, remove ENCRYPTION_MASTER_KEY_PREVIOUS
+   *
+   * The EncryptionService.decrypt() will automatically try the previous key
+   * if the current key fails, so credentials remain readable during migration.
+   */
+  async reEncryptAllCredentials(
+    workspaceId: string
+  ): Promise<{ success: boolean; migratedCount: number; errors: string[] }> {
+    const errors: string[] = [];
+    let migratedCount = 0;
+
+    try {
+      // Fetch all raw credential rows
+      const result = await this.supabase
+        .from('genesis.workspace_credentials')
+        .select('*')
+        .eq('workspace_id', workspaceId);
+
+      if (result.error) {
+        return { success: false, migratedCount: 0, errors: [result.error.message] };
+      }
+
+      const rows = result.data || [];
+
+      for (const row of rows) {
+        try {
+          // Re-encrypt each encrypted field
+          const updates: Record<string, string> = {};
+
+          if (row.access_token) {
+            const plaintext = this.encryption.decrypt(row.access_token, workspaceId);
+            updates.access_token = this.encryption.encrypt(plaintext, workspaceId);
+          }
+          if (row.refresh_token) {
+            const plaintext = this.encryption.decrypt(row.refresh_token, workspaceId);
+            updates.refresh_token = this.encryption.encrypt(plaintext, workspaceId);
+          }
+          if (row.api_key) {
+            const plaintext = this.encryption.decrypt(row.api_key, workspaceId);
+            updates.api_key = this.encryption.encrypt(plaintext, workspaceId);
+          }
+
+          if (Object.keys(updates).length > 0) {
+            const { error: updateError } = await this.supabase
+              .from('genesis.workspace_credentials')
+              .update(updates)
+              .eq('id', row.id);
+
+            if (updateError) {
+              errors.push(`Failed to update credential ${row.id}: ${updateError.message}`);
+            } else {
+              migratedCount++;
+            }
+          }
+        } catch (credError) {
+          errors.push(
+            `Failed to re-encrypt credential ${row.id}: ${credError instanceof Error ? credError.message : 'Unknown error'}`
+          );
+        }
+      }
+
+      return {
+        success: errors.length === 0,
+        migratedCount,
+        errors,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        migratedCount,
+        errors: [error instanceof Error ? error.message : 'Failed to re-encrypt credentials'],
       };
     }
   }

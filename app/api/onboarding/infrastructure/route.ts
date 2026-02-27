@@ -108,17 +108,20 @@ export async function POST(req: NextRequest) {
       const result = await service.saveConfiguration(workspaceId, region, size);
 
       if (!result.success) {
-        // If table doesn't exist, log and continue
-        console.warn('Config service error (might be missing table):', result.error);
-        // Still return success to allow onboarding flow to continue
-        return NextResponse.json({ success: true });
+        console.error('Infrastructure config save failed:', result.error);
+        return NextResponse.json(
+          { success: false, error: 'Configuration could not be saved. Please try again.' },
+          { status: 500 },
+        );
       }
 
       return NextResponse.json({ success: true });
     } catch (dbError: any) {
-      // Handle database errors gracefully
-      console.warn('Database error in infrastructure POST:', dbError.message);
-      return NextResponse.json({ success: true });
+      console.error('Database error in infrastructure POST:', dbError.message);
+      return NextResponse.json(
+        { success: false, error: 'Configuration could not be saved. Please try again.' },
+        { status: 500 },
+      );
     }
   } catch (error) {
     console.error('Infrastructure POST error:', error);

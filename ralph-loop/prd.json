@@ -1,91 +1,90 @@
 {
   "project": "cold-email-dashboard",
-  "branchName": "ralph/domain5-rls-multi-tenant-security",
-  "description": "Domain 5: RLS & Multi-Tenant Security Posture — Tenant-scoped clients, hardened RLS policies, cache invalidation, workspace middleware, super admin audit logging",
+  "branchName": "ralph/domain6-onboarding-wizard",
+  "description": "Domain 6: Onboarding Wizard — Launch route wiring, IgnitionConfig assembler, DB error handling, workspace auth on credentials, SSRF protection on auto-scrape, encryption key rotation",
   "userStories": [
     {
-      "id": "D5-001",
-      "title": "Tenant-scoped Supabase client + RLS policy hardening",
-      "description": "Create createTenantSupabaseClient() and setTenantContext() in lib/supabase.ts. Harden ALL RLS policies by removing the insecure NULL-fallback pattern. Add RLS to workspaces, user_workspaces, campaigns, notifications. Create set_tenant_context() RPC. Create governance_audit_log table.",
+      "id": "D6-001",
+      "title": "Wire onboarding completion to ignition orchestrator",
+      "description": "Create POST /api/onboarding/launch route that validates auth, verifies all stages complete, assembles IgnitionConfig via assembler, calls IgnitionOrchestrator.ignite(). Create GET /api/onboarding/ignition-status route that reads from genesis.ignition_state table.",
       "acceptanceCriteria": [
-        "createTenantSupabaseClient(workspaceId) sets app.current_workspace_id via RPC",
-        "setTenantContext(client, workspaceId) calls set_tenant_context RPC",
-        "set_tenant_context() SQL function created with SECURITY DEFINER",
-        "All existing RLS policies drop NULL-fallback and use strict tenant isolation",
-        "Service-role bypass policies added for all tables",
-        "RLS enabled on workspaces, user_workspaces, campaigns, notifications",
-        "governance_audit_log table created with RLS",
-        "Typecheck passes"
+        "POST /api/onboarding/launch exists with Clerk auth + workspace access validation",
+        "Route verifies all onboarding stages are complete before launching",
+        "Route assembles IgnitionConfig from collected onboarding data via IgnitionConfigAssembler",
+        "Route calls IgnitionOrchestrator.ignite() and returns ignition state",
+        "GET /api/onboarding/ignition-status returns current ignition state for a workspace",
+        "Both routes handle errors gracefully and return appropriate status codes"
       ],
-      "priority": 1,
       "passes": true,
-      "notes": "Committed at 6cff3f3"
+      "notes": "Committed at c5d1fc3"
     },
     {
-      "id": "D5-002",
-      "title": "Protect materialized views from direct PostgREST access",
-      "description": "REVOKE SELECT on mv_daily_stats, mv_llm_cost, v_llm_cost_secure from anon/authenticated. Create secure wrapper views (daily_stats_secure, llm_cost_secure) filtered by tenant context.",
+      "id": "D6-002",
+      "title": "Create IgnitionConfig assembler service",
+      "description": "Create lib/genesis/ignition-config-assembler.ts with IgnitionConfigAssembler class. assemble() collects workspace identity, region/size, credentials (decrypted), variables (brand data), and returns complete IgnitionConfig. validate() checks all required fields.",
       "acceptanceCriteria": [
-        "SELECT revoked on mv_daily_stats from anon and authenticated",
-        "SELECT revoked on mv_llm_cost from anon and authenticated",
-        "daily_stats_secure view created with workspace_id filter",
-        "llm_cost_secure view created with workspace_id filter",
-        "Secure views granted to authenticated and service_role"
+        "IgnitionConfigAssembler class exists in lib/genesis/ignition-config-assembler.ts",
+        "assemble(workspaceId, requestedBy) reads workspace, infrastructure, credentials, and brand data",
+        "Credentials are decrypted and converted to CredentialConfig[] format",
+        "Variables include YOUR_SENDER_EMAIL from brand/credentials data",
+        "validate(config) checks all required fields and returns detailed errors",
+        "Returns descriptive errors for missing data"
       ],
-      "priority": 2,
       "passes": true,
-      "notes": "Committed at 4200a81"
+      "notes": "Committed at cc19997"
     },
     {
-      "id": "D5-003",
-      "title": "Cache invalidation on membership changes + TTL reduction",
-      "description": "Reduce workspace access cache TTL from 5 minutes to 60 seconds. Add clearAllWorkspaceEntries(workspaceId). Wire cache invalidation into freeze-workspace and members routes.",
+      "id": "D6-003",
+      "title": "Fix infrastructure and progress endpoints to fail on DB errors",
+      "description": "In POST /api/onboarding/infrastructure, change catch block to return { success: false } with 500 instead of { success: true }. Same fix in POST /api/onboarding/progress.",
       "acceptanceCriteria": [
-        "CACHE_TTL_MS reduced to 60 seconds",
-        "clearAllWorkspaceEntries(workspaceId) function added",
-        "freeze-workspace POST calls clearAllWorkspaceEntries after freeze",
-        "freeze-workspace DELETE calls clearAllWorkspaceEntries after unfreeze",
-        "Members POST (add) calls clearWorkspaceCache for new user",
-        "Members PATCH (role change) calls clearWorkspaceCache for target user",
-        "Members DELETE (remove) calls clearWorkspaceCache for removed user"
+        "POST /api/onboarding/infrastructure returns { success: false, error } with status 500 on DB write failure",
+        "POST /api/onboarding/progress returns { success: false, error } with status 500 on DB write failure",
+        "GET endpoints still return defaults gracefully on missing tables",
+        "Error messages are user-friendly"
       ],
-      "priority": 3,
       "passes": true,
-      "notes": "Committed at 6e1b84a"
+      "notes": "Committed at a52d0e1"
     },
     {
-      "id": "D5-004",
-      "title": "Workspace access middleware (withWorkspaceAuth wrapper)",
-      "description": "Create lib/workspace-middleware.ts with withWorkspaceAuth() that extracts workspace_id, validates Clerk auth, validates membership, sets tenant RLS context, and provides WorkspaceContext to handlers.",
+      "id": "D6-004",
+      "title": "Add workspace access validation to credentials endpoint",
+      "description": "In POST and GET /api/onboarding/credentials, after Clerk auth, validate user has access to the workspace via canAccessWorkspace(). Return 403 if no access.",
       "acceptanceCriteria": [
-        "withWorkspaceAuth() wrapper created in lib/workspace-middleware.ts",
-        "Extracts workspace_id from query params or headers",
-        "Validates Clerk authentication",
-        "Validates workspace access via canAccessWorkspace()",
-        "Creates tenant-scoped Supabase client with RLS context",
-        "Provides WorkspaceContext (userId, workspaceId, role, tenantClient, adminClient)",
-        "Typecheck passes"
+        "POST /api/onboarding/credentials calls canAccessWorkspace(userId, workspaceId)",
+        "Returns 403 with Forbidden if user lacks workspace access",
+        "GET /api/onboarding/credentials also validates workspace access",
+        "Imports canAccessWorkspace from lib/api-workspace-guard"
       ],
-      "priority": 4,
       "passes": true,
-      "notes": "Committed at a0bd4dc"
+      "notes": "Committed at 247c9b0"
     },
     {
-      "id": "D5-005",
-      "title": "Super admin audit logging",
-      "description": "When super admin bypass is used in canAccessWorkspace(), fire-and-forget insert into governance_audit_log with actor_id, action, workspace_id, and endpoint URL.",
+      "id": "D6-005",
+      "title": "Add auth check and SSRF protection to brand auto-scrape",
+      "description": "Add Clerk auth check to POST /api/onboarding/brand/auto-scrape. Add SSRF protection: validate URL scheme is http/https only, reject internal IPs.",
       "acceptanceCriteria": [
-        "logSuperAdminAccess() function added (fire-and-forget pattern)",
-        "canAccessWorkspace() calls logSuperAdminAccess when SUPER_ADMIN_IDS match",
-        "canAccessWorkspace() accepts optional requestUrl parameter",
-        "validateWorkspaceAccess() passes request.url to canAccessWorkspace()",
-        "withWorkspaceAuth() passes req.url to canAccessWorkspace()",
-        "Audit log includes actor_id, action='super_admin_access', workspace_id, endpoint metadata",
-        "Typecheck passes"
+        "Auto-scrape endpoint requires Clerk auth (returns 401 if not authenticated)",
+        "URL scheme validation rejects non-http/https schemes",
+        "Internal IP detection blocks 10.x, 192.168.x, 127.x, 169.254.x, 0.0.0.0",
+        "Valid public URLs continue to work normally"
       ],
-      "priority": 5,
       "passes": true,
-      "notes": "Committed at 52be2a7"
+      "notes": "Committed at 5c5e2e6"
+    },
+    {
+      "id": "D6-006",
+      "title": "Implement encryption key rotation support",
+      "description": "Add ENCRYPTION_MASTER_KEY_PREVIOUS env var support to EncryptionService. When decrypt fails with current key, retry with previous key. Add reEncryptAllCredentials() method.",
+      "acceptanceCriteria": [
+        "EncryptionService accepts optional previousMasterKeyHex parameter",
+        "decrypt() tries current key first, falls back to previous key on failure",
+        "CredentialVaultService has reEncryptAllCredentials(workspaceId) method",
+        "reEncryptAll reads, decrypts with old/current key, re-encrypts with current key",
+        "ENCRYPTION_MASTER_KEY_PREVIOUS env var is supported"
+      ],
+      "passes": true,
+      "notes": "Committed at c3737c6"
     }
   ]
 }
