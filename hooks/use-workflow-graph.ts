@@ -86,6 +86,8 @@ interface UseWorkflowGraphReturn {
   flowNodes: Node<CustomNodeData>[];
   /** React Flow edges ready for <ReactFlow edges={...} /> */
   flowEdges: Edge[];
+  /** Raw GraphNode array (for drawer, overlay, etc.) */
+  graphNodes: GraphNode[];
   /** Workflow metadata */
   metadata: WorkflowMetadata | null;
   /** Whether this is from a live sidecar or a static template */
@@ -130,9 +132,12 @@ export function useWorkflowGraph({
     return data.graph.edges.map(toFlowEdge);
   }, [data?.graph?.edges]);
 
+  const graphNodes = data?.graph?.nodes ?? [];
+
   return {
     flowNodes,
     flowEdges,
+    graphNodes,
     metadata: data?.graph?.metadata ?? null,
     source: data?.source ?? null,
     isLoading,
