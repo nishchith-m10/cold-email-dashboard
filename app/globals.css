@@ -3,6 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* React Flow (xyflow) base styles */
+@import '@xyflow/react/dist/style.css';
+
 /* ============================================================
    CSS VARIABLES - DARK MODE (Default)
    ============================================================ */
