@@ -114,6 +114,11 @@
     background-color: #F1F5F9 !important;
   }
   
+  /* Sidebar active item highlight — stronger in light mode for visibility */
+  html.light .bg-accent-primary\/10 {
+    background-color: rgba(37, 99, 235, 0.15) !important;
+  }
+  
   /* Border colors */
   html.light .border-border {
     border-color: #CBD5E1 !important;
