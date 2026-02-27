@@ -1,115 +1,104 @@
 {
   "project": "cold-email-dashboard",
-  "branchName": "ralph/domain8-watchdog-admin-compliance",
-  "description": "Domain 8: Watchdog, Admin & Compliance — Make kill switch actually block dashboard/ingestion/sidecar, audit log immutability, login audit via Clerk webhooks, watchdog persistence + scheduling, control-plane graceful degradation",
+  "branchName": "ralph/infra-free-tier-hardening",
+  "description": "Infrastructure Hardening (Free Tier) — GitHub Actions CI, Sentry error tracking, Telegram alerting for watchdog & scale-alerts, Postgres FTS migration, Search API upgrade",
   "userStories": [
     {
-      "id": "D8-001",
-      "title": "Block dashboard access for frozen workspaces",
-      "description": "In canAccessWorkspace() (lib/api-workspace-guard.ts), after verifying workspace membership, also query workspace.status. If status === 'frozen', return { hasAccess: false, frozenReason }. Add workspace status to the CacheEntry interface so the frozen check is cached (60s TTL). Update validateWorkspaceAccess() to return a 403 with { error: 'Workspace is frozen', reason } when the workspace is frozen. This ensures the kill switch actually blocks dashboard API access.",
+      "id": "INFRA-001",
+      "title": "GitHub Actions CI pipeline",
+      "description": "Create .github/workflows/ci.yml that runs on push to main and on pull_request. Steps: checkout, setup Node 20, npm ci, npx tsc --noEmit, next lint, npm test -- --passWithNoTests. CI ONLY — absolutely no Vercel deploy steps, no CD, no deployment triggers.",
       "acceptanceCriteria": [
-        "canAccessWorkspace queries workspaces.status after membership check",
-        "If status === 'frozen', returns { hasAccess: false } regardless of membership",
-        "CacheEntry includes workspaceStatus field",
-        "validateWorkspaceAccess returns 403 with 'Workspace is frozen' error for frozen workspaces",
-        "Super admins can still access frozen workspaces (bypass frozen check)",
-        "clearAllWorkspaceEntries still works to invalidate cache on freeze/unfreeze"
+        ".github/workflows/ci.yml file exists",
+        "Triggers on push to main and pull_request",
+        "Uses Node 20",
+        "Runs npm ci for dependency install",
+        "Runs npx tsc --noEmit for type checking",
+        "Runs next lint for linting",
+        "Runs npm test -- --passWithNoTests for unit tests",
+        "Contains ZERO Vercel deploy or CD steps"
       ],
-      "passes": true,
-      "notes": "Committed at e3b9060"
+      "passes": false,
+      "notes": ""
     },
     {
-      "id": "D8-002",
-      "title": "Block event and cost ingestion for frozen workspaces",
-      "description": "In /api/events/route.ts and /api/cost-events/route.ts, after resolving the workspace via resolveWebhookAuth, check workspace status. If frozen, return 403 with { error: 'Workspace is frozen — events rejected' }. Use a lightweight cached check (in-memory Map with 60s TTL) to avoid per-request DB queries. This prevents frozen workspaces from continuing to receive email events and accumulate LLM costs.",
+      "id": "INFRA-002",
+      "title": "Sentry error tracking integration",
+      "description": "Install @sentry/nextjs. Create sentry.client.config.ts, sentry.server.config.ts, and sentry.edge.config.ts initializing Sentry with process.env.SENTRY_DSN (NOT NEXT_PUBLIC — use SENTRY_DSN only). Set tracesSampleRate: 0.1 and replaysSessionSampleRate: 0 (free tier optimization). Wrap next.config.js with withSentryConfig. In lib/swr-config.tsx, replace the Sentry.captureException comment (line ~50) with actual Sentry.captureException(error) call, importing from @sentry/nextjs. Set Sentry environment to process.env.NODE_ENV.",
       "acceptanceCriteria": [
-        "Events route checks workspace frozen status after resolveWebhookAuth",
-        "Cost-events route checks workspace frozen status after resolveWebhookAuth",
-        "Both return 403 with frozen error message when workspace is frozen",
-        "Frozen status is cached with 60s TTL to avoid per-request DB lookups",
-        "Cache is separate from access guard cache (ingestion routes use webhook auth, not Clerk auth)"
+        "@sentry/nextjs is installed in package.json dependencies",
+        "sentry.client.config.ts exists with Sentry.init({ dsn, tracesSampleRate: 0.1 })",
+        "sentry.server.config.ts exists with Sentry.init({ dsn })",
+        "sentry.edge.config.ts exists with Sentry.init({ dsn })",
+        "next.config.js is wrapped with withSentryConfig",
+        "lib/swr-config.tsx calls Sentry.captureException(error) in onError handler",
+        "Uses SENTRY_DSN env var (not NEXT_PUBLIC_SENTRY_DSN)",
+        "npx tsc --noEmit passes with no errors",
+        "next lint passes"
       ],
-      "passes": true,
-      "notes": "Committed at 9a61d05"
+      "passes": false,
+      "notes": ""
     },
     {
-      "id": "D8-003",
-      "title": "Freeze invalidates webhook token and signals sidecar",
-      "description": "In freeze-workspace POST handler, after revoking API keys: (1) Set the workspace webhook_token to null in the workspaces table, immediately blocking all event/cost submissions at the auth layer. (2) Look up the sidecar URL from genesis.partition_registry and send a best-effort DEACTIVATE_ALL_WORKFLOWS POST to the sidecar. If sidecar is unreachable, log warning but still complete the freeze. In unfreeze DELETE handler: (1) Generate a new webhook token (crypto.randomUUID). (2) Optionally signal sidecar to reactivate. Log the new token in audit for the admin to update n8n.",
+      "id": "INFRA-003",
+      "title": "Telegram alerting for watchdog service",
+      "description": "Create control-plane/src/services/telegram.ts with a sendTelegramAlert(token, chatId, message) helper that POSTs to the Telegram Bot API. In control-plane/src/services/watchdog.ts, replace the PagerDuty/Slack stub comment (line ~202) with a real call to sendTelegramAlert for 'alert' actions. Read TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID from process.env. If either is missing, log a warning and skip (graceful degradation). Include the workspace_id, reason, and action type in the Telegram message.",
       "acceptanceCriteria": [
-        "Freeze POST sets workspaces.webhook_token = null for the frozen workspace",
-        "Freeze POST looks up sidecar URL from genesis.partition_registry",
-        "Freeze POST sends best-effort DEACTIVATE_ALL_WORKFLOWS to sidecar (try-catch, log on failure)",
-        "Unfreeze DELETE generates a new webhook_token via crypto.randomUUID()",
-        "Unfreeze DELETE updates workspaces.webhook_token with the new token",
-        "New token is included in the unfreeze response and logged to governance_audit_log metadata",
-        "Sidecar communication failure does NOT block the freeze/unfreeze operation"
+        "control-plane/src/services/telegram.ts exists with sendTelegramAlert function",
+        "sendTelegramAlert POSTs to https://api.telegram.org/bot<token>/sendMessage",
+        "watchdog.ts imports and calls sendTelegramAlert for 'alert' actions",
+        "Message includes workspace_id, reason, and action type",
+        "Gracefully degrades if TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID are not set",
+        "Errors in Telegram send are caught and logged, never crash the watchdog",
+        "control-plane tsc --noEmit passes"
       ],
-      "passes": true,
-      "notes": "Committed at 1827f02"
+      "passes": false,
+      "notes": ""
     },
     {
-      "id": "D8-004",
-      "title": "Audit log append-only enforcement",
-      "description": "Create a migration that adds a Postgres trigger on governance_audit_log preventing UPDATE and DELETE operations. The trigger function raises an exception with a clear message. This provides database-level immutability regardless of which role issues the query.",
+      "id": "INFRA-004",
+      "title": "Telegram alerting for scale-alerts service",
+      "description": "In control-plane/src/services/scale-alerts.ts, replace the PagerDuty/Slack stub comments (lines ~62 and ~68) with real calls to sendTelegramAlert (from telegram.ts). Send CRITICAL alerts with a red circle emoji and WARNING alerts with a yellow circle emoji. Include the metric name, current count, and threshold in the message.",
       "acceptanceCriteria": [
-        "Migration creates prevent_audit_modification() trigger function",
-        "Trigger fires BEFORE UPDATE OR DELETE on governance_audit_log",
-        "Trigger raises exception: 'Audit log entries cannot be modified or deleted'",
-        "INSERT operations are unaffected",
-        "Migration uses IF NOT EXISTS / OR REPLACE for idempotency"
+        "scale-alerts.ts imports sendTelegramAlert from telegram.ts",
+        "evaluatePartitions() sends Telegram alert on critical threshold breach",
+        "evaluatePartitions() sends Telegram alert on warning threshold breach",
+        "Critical alerts use red circle emoji, warning alerts use yellow circle",
+        "Messages include metric name, count, and threshold",
+        "Errors in Telegram send are caught and logged, never crash scale-alerts",
+        "control-plane tsc --noEmit passes"
       ],
-      "passes": true,
-      "notes": "Committed at c606c26"
+      "passes": false,
+      "notes": ""
     },
     {
-      "id": "D8-005",
-      "title": "Login audit via Clerk webhooks",
-      "description": "Create app/api/webhooks/clerk/route.ts handling Clerk webhook events. Handle session.created (login tracking), user.created, and user.deleted events. Verify webhook signature using the svix library (Clerk uses Svix). Create migration for login_audit table with columns: id (uuid PK), user_id, email, event_type, ip_address, user_agent, metadata (jsonb), created_at. Insert login records on session.created events.",
+      "id": "INFRA-005",
+      "title": "Postgres FTS migration — tsvector columns and GIN indexes",
+      "description": "Create a Supabase migration that adds a tsvector generated column 'search_vector' to the campaigns table (generated from name) and contacts table (generated from email). Add GIN indexes on both search_vector columns. Use IF NOT EXISTS for idempotency. Apply via the Supabase MCP tool (mcp_supabase_apply_migration).",
       "acceptanceCriteria": [
-        "New route app/api/webhooks/clerk/route.ts exists",
-        "Route verifies Svix webhook signature from headers (svix-id, svix-timestamp, svix-signature)",
-        "Handles session.created event — inserts into login_audit",
-        "Handles user.created and user.deleted events — inserts into login_audit",
-        "Migration creates login_audit table with proper columns",
-        "Returns 200 on success, 400 on invalid signature, 400 on unhandled event type",
-        "Route is excluded from Clerk auth middleware (public webhook endpoint)"
+        "Migration file exists in supabase/migrations/",
+        "campaigns table gets search_vector column generated from name",
+        "contacts table gets search_vector column generated from email",
+        "GIN indexes are created on both search_vector columns",
+        "Migration uses IF NOT EXISTS / idempotent DDL",
+        "Migration is applied via Supabase MCP"
       ],
-      "passes": true,
-      "notes": "Committed at ffdc92a"
+      "passes": false,
+      "notes": ""
     },
     {
-      "id": "D8-006",
-      "title": "Watchdog persistence tables and SupabaseWatchdogDB",
-      "description": "Create migration for genesis.watchdog_runs table (id uuid PK, run_type text, workspace_ids text[], started_at timestamptz, completed_at timestamptz, total_drifts_found int, drifts_healed int, errors jsonb, status text) and genesis.watchdog_drifts table (id uuid PK, run_id uuid FK, workspace_id text, drift_type text, severity text, details jsonb, auto_healable boolean, healed boolean, healed_at timestamptz, healing_attempts int, created_at timestamptz). Create lib/genesis/phase43/supabase-watchdog-db.ts implementing the WatchdogDB interface with real Supabase queries.",
+      "id": "INFRA-006",
+      "title": "Search API upgrade to use FTS with ILIKE fallback",
+      "description": "Update app/api/search/route.ts to use websearch_to_tsquery with the search_vector columns from INFRA-005. Use Supabase .textSearch() method for campaigns (on search_vector) and contacts (on search_vector). Keep the existing ILIKE as a fallback if the FTS query returns no results (graceful degradation). This handles the case where search_vector columns may not exist yet in all environments.",
       "acceptanceCriteria": [
-        "Migration creates genesis.watchdog_runs table with all specified columns",
-        "Migration creates genesis.watchdog_drifts table with FK to watchdog_runs",
-        "SupabaseWatchdogDB class implements WatchdogDB interface",
-        "storeDrift() inserts into genesis.watchdog_drifts",
-        "storeRun() inserts/updates genesis.watchdog_runs",
-        "getDrifts() queries genesis.watchdog_drifts with optional filters",
-        "getRecentRuns() queries genesis.watchdog_runs ordered by started_at desc"
+        "Search route attempts FTS via textSearch() on search_vector first",
+        "Falls back to ILIKE if FTS returns zero results",
+        "Works for both campaigns and contacts",
+        "Existing page search logic is unchanged",
+        "npx tsc --noEmit passes",
+        "next lint passes"
       ],
-      "passes": true,
-      "notes": "Committed at eef84b6"
-    },
-    {
-      "id": "D8-007",
-      "title": "Watchdog admin scheduling route and control-plane graceful degradation",
-      "description": "Create GET /api/admin/watchdog/run route that triggers a full watchdog cycle. The route is protected with super admin auth. It instantiates StateReconciliationWatchdog with SupabaseWatchdogDB, runs detectDriftsForAll() for all active workspaces, persists the run results, and returns a summary. Also update control-plane/src/services/watchdog.ts to wrap Redis/BullMQ initialization in try-catch — if Redis is unavailable, the watchdog still runs health checks but logs critical alerts instead of queuing reboot jobs, and reports isHealthy()=false with degradation reason.",
-      "acceptanceCriteria": [
-        "New route app/api/admin/watchdog/run/route.ts exists",
-        "Route requires super admin auth (SUPER_ADMIN_IDS check)",
-        "Route uses SupabaseWatchdogDB from D8-006",
-        "Route creates a watchdog_runs record, runs drift detection, updates run with results",
-        "Route returns JSON summary: { run_id, drifts_found, workspaces_scanned, duration_ms }",
-        "Control-plane watchdog wraps Redis/BullMQ init in try-catch",
-        "If Redis unavailable, watchdog starts in degraded mode (health checks only, no reboot queue)",
-        "Degraded watchdog reports isHealthy()=false with reason"
-      ],
-      "passes": true,
-      "notes": "Committed at 1285050"
+      "passes": false,
+      "notes": ""
     }
   ]
 }
