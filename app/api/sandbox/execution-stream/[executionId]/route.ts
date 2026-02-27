@@ -64,7 +64,7 @@ export async function GET(
   const encoder = new TextEncoder();
   let lastEventTime = '1970-01-01T00:00:00Z';
   let pollCount = 0;
-  const MAX_POLLS = 600; // 5 minutes max at 500ms intervals
+  const MAX_POLLS = 150; // 5 minutes max at 2000ms intervals
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -111,8 +111,8 @@ export async function GET(
             controller.close();
           }
 
-          // Heartbeat every 10 polls (5s)
-          if (pollCount % 10 === 0) {
+          // Heartbeat every 5 polls (10s)
+          if (pollCount % 5 === 0) {
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ type: 'heartbeat', timestamp: new Date().toISOString() })}\n\n`)
             );
@@ -124,7 +124,7 @@ export async function GET(
             encoder.encode(`data: ${JSON.stringify({ type: 'error', data: { message: 'Poll error' } })}\n\n`)
           );
         }
-      }, 500); // Poll every 500ms
+      }, 2000); // Poll every 2s — reduces DB pressure
 
       request.signal.addEventListener('abort', () => {
         clearInterval(interval);

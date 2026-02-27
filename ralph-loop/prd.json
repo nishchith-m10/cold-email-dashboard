@@ -1,90 +1,79 @@
 {
   "project": "cold-email-dashboard",
-  "branchName": "ralph/domain6-onboarding-wizard",
-  "description": "Domain 6: Onboarding Wizard — Launch route wiring, IgnitionConfig assembler, DB error handling, workspace auth on credentials, SSRF protection on auto-scrape, encryption key rotation",
+  "branchName": "ralph/domain7-sandbox-engine",
+  "description": "Domain 7: Sandbox Engine — is_test columns, aggregate query isolation, SSE polling optimization, real EventDB implementation, LOCAL_MODE sidecar fallback",
   "userStories": [
     {
-      "id": "D6-001",
-      "title": "Wire onboarding completion to ignition orchestrator",
-      "description": "Create POST /api/onboarding/launch route that validates auth, verifies all stages complete, assembles IgnitionConfig via assembler, calls IgnitionOrchestrator.ignite(). Create GET /api/onboarding/ignition-status route that reads from genesis.ignition_state table.",
+      "id": "D7-001",
+      "title": "Add is_test column to email_events and llm_usage",
+      "description": "Create migration adding is_test BOOLEAN NOT NULL DEFAULT false to email_events and llm_usage. Add partial indexes on is_test WHERE is_test = true. Update Zod schemas and INSERT logic in events and cost-events API routes.",
       "acceptanceCriteria": [
-        "POST /api/onboarding/launch exists with Clerk auth + workspace access validation",
-        "Route verifies all onboarding stages are complete before launching",
-        "Route assembles IgnitionConfig from collected onboarding data via IgnitionConfigAssembler",
-        "Route calls IgnitionOrchestrator.ignite() and returns ignition state",
-        "GET /api/onboarding/ignition-status returns current ignition state for a workspace",
-        "Both routes handle errors gracefully and return appropriate status codes"
+        "Migration adds is_test column to email_events with default false",
+        "Migration adds is_test column to llm_usage with default false",
+        "Partial indexes created for efficient filtering",
+        "Events API route Zod schema includes optional is_test boolean",
+        "Events API route INSERT includes is_test field",
+        "Cost-events API route Zod schema includes optional is_test boolean",
+        "Cost-events API route INSERT includes is_test field"
       ],
       "passes": true,
-      "notes": "Committed at c5d1fc3"
+      "notes": "Committed at 7f46df7"
     },
     {
-      "id": "D6-002",
-      "title": "Create IgnitionConfig assembler service",
-      "description": "Create lib/genesis/ignition-config-assembler.ts with IgnitionConfigAssembler class. assemble() collects workspace identity, region/size, credentials (decrypted), variables (brand data), and returns complete IgnitionConfig. validate() checks all required fields.",
+      "id": "D7-002",
+      "title": "Filter is_test events from dashboard aggregate queries",
+      "description": "Add .eq('is_test', false) to buildEventFilters helper and standalone queries (stepBreakdown, llmUsage, clickEvents) in the dashboard aggregate route so sandbox test data never appears in production dashboards.",
       "acceptanceCriteria": [
-        "IgnitionConfigAssembler class exists in lib/genesis/ignition-config-assembler.ts",
-        "assemble(workspaceId, requestedBy) reads workspace, infrastructure, credentials, and brand data",
-        "Credentials are decrypted and converted to CredentialConfig[] format",
-        "Variables include YOUR_SENDER_EMAIL from brand/credentials data",
-        "validate(config) checks all required fields and returns detailed errors",
-        "Returns descriptive errors for missing data"
+        "buildEventFilters adds .eq('is_test', false) — covers 8 count queries",
+        "stepBreakdownQuery filters is_test=false",
+        "llmUsageQuery filters is_test=false",
+        "clickEventsQuery filters is_test=false",
+        "daily_stats excluded (materialized view, no test data)"
       ],
       "passes": true,
-      "notes": "Committed at cc19997"
+      "notes": "Committed at fd3e095"
     },
     {
-      "id": "D6-003",
-      "title": "Fix infrastructure and progress endpoints to fail on DB errors",
-      "description": "In POST /api/onboarding/infrastructure, change catch block to return { success: false } with 500 instead of { success: true }. Same fix in POST /api/onboarding/progress.",
+      "id": "D7-003",
+      "title": "Optimize SSE polling interval",
+      "description": "Reduce execution-stream SSE polling from 500ms to 2000ms. Adjust MAX_POLLS from 600 to 150 (maintains 5-min timeout). Adjust heartbeat from every 10 polls to every 5 polls.",
       "acceptanceCriteria": [
-        "POST /api/onboarding/infrastructure returns { success: false, error } with status 500 on DB write failure",
-        "POST /api/onboarding/progress returns { success: false, error } with status 500 on DB write failure",
-        "GET endpoints still return defaults gracefully on missing tables",
-        "Error messages are user-friendly"
+        "Poll interval changed from 500ms to 2000ms",
+        "MAX_POLLS changed from 600 to 150 (same 5-min timeout)",
+        "Heartbeat changed from every 10 polls (5s) to every 5 polls (10s)",
+        "4x reduction in DB query volume"
       ],
       "passes": true,
-      "notes": "Committed at a52d0e1"
+      "notes": "Committed at 72769df"
     },
     {
-      "id": "D6-004",
-      "title": "Add workspace access validation to credentials endpoint",
-      "description": "In POST and GET /api/onboarding/credentials, after Clerk auth, validate user has access to the workspace via canAccessWorkspace(). Return 403 if no access.",
+      "id": "D7-004",
+      "title": "Replace mock EventDB stubs with real Supabase implementations",
+      "description": "In createEventDB(), replace stub methods (insertEvent, getEventsByExecution, isExecutionComplete, getExecutionWorkspace, getAllEvents, listTestRuns, countRunsInWindow) with real genesis schema queries.",
       "acceptanceCriteria": [
-        "POST /api/onboarding/credentials calls canAccessWorkspace(userId, workspaceId)",
-        "Returns 403 with Forbidden if user lacks workspace access",
-        "GET /api/onboarding/credentials also validates workspace access",
-        "Imports canAccessWorkspace from lib/api-workspace-guard"
+        "insertEvent INSERTs into genesis.workflow_execution_events",
+        "getEventsByExecution SELECTs with optional afterId cursor",
+        "isExecutionComplete checks for _execution_complete node_type",
+        "getExecutionWorkspace returns workspace_id from first event",
+        "getAllEvents returns all events ordered by created_at",
+        "listTestRuns SELECTs from sandbox_test_runs with limit",
+        "countRunsInWindow uses COUNT with timestamp window"
       ],
       "passes": true,
-      "notes": "Committed at 247c9b0"
+      "notes": "Committed at 777a39c"
     },
     {
-      "id": "D6-005",
-      "title": "Add auth check and SSRF protection to brand auto-scrape",
-      "description": "Add Clerk auth check to POST /api/onboarding/brand/auto-scrape. Add SSRF protection: validate URL scheme is http/https only, reject internal IPs.",
+      "id": "D7-005",
+      "title": "Add LOCAL_MODE fallback for sidecar URL lookup",
+      "description": "In createWorkspaceLookupDB().getSidecarUrl(), when partition_registry returns no URL, fall back to LOCAL_SIDECAR_URL or LOCAL_N8N_URL environment variables for local development.",
       "acceptanceCriteria": [
-        "Auto-scrape endpoint requires Clerk auth (returns 401 if not authenticated)",
-        "URL scheme validation rejects non-http/https schemes",
-        "Internal IP detection blocks 10.x, 192.168.x, 127.x, 169.254.x, 0.0.0.0",
-        "Valid public URLs continue to work normally"
+        "getSidecarUrl tries partition_registry first",
+        "Falls back to LOCAL_SIDECAR_URL env var if no registry entry",
+        "Falls back to LOCAL_N8N_URL env var as secondary fallback",
+        "Returns null only if all sources exhausted"
       ],
       "passes": true,
-      "notes": "Committed at 5c5e2e6"
-    },
-    {
-      "id": "D6-006",
-      "title": "Implement encryption key rotation support",
-      "description": "Add ENCRYPTION_MASTER_KEY_PREVIOUS env var support to EncryptionService. When decrypt fails with current key, retry with previous key. Add reEncryptAllCredentials() method.",
-      "acceptanceCriteria": [
-        "EncryptionService accepts optional previousMasterKeyHex parameter",
-        "decrypt() tries current key first, falls back to previous key on failure",
-        "CredentialVaultService has reEncryptAllCredentials(workspaceId) method",
-        "reEncryptAll reads, decrypts with old/current key, re-encrypts with current key",
-        "ENCRYPTION_MASTER_KEY_PREVIOUS env var is supported"
-      ],
-      "passes": true,
-      "notes": "Committed at c3737c6"
+      "notes": "Committed at 2e7bda6"
     }
   ]
 }
