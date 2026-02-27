@@ -148,6 +148,21 @@ export async function deployForCampaign(
       const workflowName = `[${config.workspace_name}] ${template.display_name} — ${config.campaign_name}`;
 
       // Build campaign-specific variable map
+      // D4-001: Query workspace's webhook_token for per-workspace auth
+      let webhookToken = process.env.DASH_WEBHOOK_TOKEN || '';
+      try {
+        const { data: wsRow } = await supabaseAdmin
+          .from('workspaces')
+          .select('webhook_token')
+          .eq('id', config.workspace_id)
+          .single();
+        if (wsRow?.webhook_token) {
+          webhookToken = wsRow.webhook_token;
+        }
+      } catch (err) {
+        console.warn(`[campaign-deployer] Could not fetch webhook_token for workspace ${config.workspace_id}, using global fallback`);
+      }
+
       const variableMap: Record<string, string> = {
         YOUR_WORKSPACE_ID: config.workspace_id,
         YOUR_WORKSPACE_SLUG: config.workspace_slug,
@@ -156,6 +171,7 @@ export async function deployForCampaign(
         YOUR_CAMPAIGN_NAME: config.campaign_name,
         YOUR_CAMPAIGN_GROUP_ID: config.campaign_group_id ?? config.workspace_id,
         YOUR_LEADS_TABLE: `genesis.leads_p_${config.workspace_slug}`,
+        YOUR_WEBHOOK_TOKEN: webhookToken,
       };
 
       const result = await workflowDeployer.deploy(droplet_ip, {
