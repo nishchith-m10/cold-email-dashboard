@@ -134,6 +134,11 @@ export interface IgnitionConfig {
   campaign_group_id?: string;
   campaign_group_name?: string;
 
+  // Per-workspace webhook token (D4-001)
+  // If provided, injected as YOUR_WEBHOOK_TOKEN into n8n workflows.
+  // Falls back to process.env.DASH_WEBHOOK_TOKEN if not provided.
+  webhook_token?: string;
+
   // Workflow selection
   workflow_templates?: string[];  // Defaults to all templates
   

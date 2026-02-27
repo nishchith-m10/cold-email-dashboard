@@ -172,3 +172,34 @@ Started: 2026-02-11
   - email_events lacked campaign_group_id — aggregate route's `.eq('campaign_group_id', ...)` would silently return zero results
   - Campaign dropdown from events shows phantom/renamed campaigns; campaigns table is the source of truth
 ---
+## Domain 4 — Event Ingestion & Cost Tracking (2026-03-01)
+- **Branch:** `ralph/domain4-event-ingestion-cost-tracking`
+- **D4-001** (6f45736): Per-workspace webhook tokens — migration, resolveWebhookAuth(), routes updated, ignition + campaign deployer
+- **D4-002** (in D4-001): GET /api/cost-events secured with Clerk auth + validateWorkspaceAccess
+- **D4-003** (in D4-001): DEFAULT_WORKSPACE_ID removed from both routes — workspace_id derived from token
+- **D4-004** (7289dcb): Indexed idempotency_key column replaces slow metadata->> JSONB extraction
+- **D4-006→005** (a565a1f): campaign_group_id added to cost-events Zod + INSERT + v_llm_cost_secure rebuilt
+- **D4-005** (88b35b9): Pre-insert budget enforcement — 402 rejection when plan limit exceeded
+- **D4-007** (717460b): contacts/emails upserts guarded with try-catch, (as any) removed
+- **D4-008** (60f8b82): n8n templates — WORKSPACE_ID='default'→'YOUR_WORKSPACE_ID', Research Report cost events gain workspace_id + campaign_group_id
+- **Files created:**
+  - `lib/webhook-auth.ts` — shared resolveWebhookAuth(), 3-tier strategy
+  - `supabase/migrations/20260301_domain4_webhook_tokens.sql` — webhook_token column
+  - `supabase/migrations/20260301_domain4_idempotency_key.sql` — idempotency_key column
+  - `supabase/migrations/20260301_domain4_cost_view_campaign_group.sql` — rebuild v_llm_cost_secure
+- **Files modified:**
+  - `app/api/events/route.ts` — D4-001 (auth), D4-004 (idempotency), D4-007 (type safety)
+  - `app/api/cost-events/route.ts` — D4-001 (auth), D4-005 (budget), D4-006 (campaign_group_id)
+  - `lib/genesis/ignition-orchestrator.ts` — D4-001 (per-workspace token in variable map)
+  - `lib/genesis/campaign-workflow-deployer.ts` — D4-001 (query workspace webhook_token)
+  - `lib/genesis/ignition-types.ts` — D4-001 (webhook_token field)
+  - `base-cold-email/Email 1,2,3.json` + SMTP variants — D4-008
+  - `base-cold-email/Research Report.json` — D4-008
+  - `cold-email-system/Email 1,2,3.json` + Research Report — D4-008
+- **Learnings:**
+  - Per-workspace token lookup eliminates trust-the-client workspace_id problem entirely
+  - Global DASH_WEBHOOK_TOKEN kept as gated fallback (ALLOW_GLOBAL_WEBHOOK_TOKEN env var) for migration period
+  - DB DEFAULT `encode(gen_random_bytes(32), 'hex')` auto-generates tokens on workspace creation — no app-level crypto needed
+  - llm_usage.campaign_group_id column existed but was always NULL — only needed ingestion + view updates
+  - contacts/emails tables ARE properly typed in Supabase schema — (as any) casts were unnecessary
+---

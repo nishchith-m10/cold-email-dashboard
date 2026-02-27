@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { z } from 'zod';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_WEBHOOK } from '@/lib/rate-limit';
+import { resolveWebhookAuth } from '@/lib/webhook-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,10 +95,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
   }
 
-  // Verify webhook token
+  // Early reject: missing token header (before body parse)
   const token = req.headers.get('x-webhook-token');
-  if (!token || token !== process.env.DASH_WEBHOOK_TOKEN) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!token) {
+    return NextResponse.json({ error: 'Missing x-webhook-token header' }, { status: 401 });
   }
 
   // Parse and validate request body
@@ -138,60 +139,80 @@ export async function POST(req: NextRequest) {
     metadata,
   } = validation.data;
 
-  const workspaceId = workspace_id || DEFAULT_WORKSPACE_ID;
+  // D4-001: Resolve workspace from webhook token (per-workspace tokens)
+  const authResult = await resolveWebhookAuth(token, workspace_id);
+  if ('error' in authResult) {
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+  }
+  const workspaceId = authResult.workspaceId;
   const campaignName = campaign || 'Default Campaign';
   const eventTs = event_ts ? new Date(event_ts).toISOString() : new Date().toISOString();
   const emailNumber = step ?? null; // Align naming with DB (email_number)
 
   try {
-    // Upsert contact - NOTE: 'contacts' table may not exist in all deployments
-    // Using type assertion to bypass strict type checking for optional tables
-    const { data: contact, error: contactError } = await (supabaseAdmin as any)
-      .from('contacts')
-      .upsert(
-        { 
-          workspace_id: workspaceId, 
-          email: contact_email 
-        },
-        { onConflict: 'workspace_id,email' }
-      )
-      .select('id')
-      .single();
+    // D4-007: Upsert contact — gracefully skip if contacts table doesn't exist
+    let contactId: string | null = null;
+    try {
+      const { data: contact, error: contactError } = await supabaseAdmin
+        .from('contacts')
+        .upsert(
+          { 
+            workspace_id: workspaceId, 
+            email: contact_email 
+          },
+          { onConflict: 'workspace_id,email' }
+        )
+        .select('id')
+        .single();
 
-    if (contactError && !contactError.message.includes('duplicate')) {
-      console.error('Contact upsert error:', contactError);
+      if (contactError) {
+        // 42P01 = relation does not exist
+        if (contactError.code === '42P01') {
+          console.warn('[events] contacts table does not exist — skipping contact upsert');
+        } else if (!contactError.message.includes('duplicate')) {
+          console.error('Contact upsert error:', contactError);
+        }
+      }
+      contactId = contact?.id || null;
+    } catch {
+      console.warn('[events] contacts upsert failed — continuing without contact_id');
     }
 
-    const contactId = contact?.id || null;
-
-    // For 'sent' events, also upsert the email record
-    // NOTE: 'emails' table may not exist in all deployments
+    // D4-007: Upsert email record for 'sent' events — gracefully skip if emails table doesn't exist
     if (event_type === 'sent' && emailNumber) {
-      const { error: emailError } = await (supabaseAdmin as any)
-        .from('emails')
-        .upsert({
-          contact_id: contactId,
-          workspace_id: workspaceId,
-          step: emailNumber,
-          subject: subject || null,
-          body: email_body || null,
-          provider: provider || 'gmail',
-          provider_message_id: provider_message_id || null,
-          sent_at: eventTs,
-        }, { onConflict: 'contact_id,step' });
+      try {
+        const { error: emailError } = await supabaseAdmin
+          .from('emails')
+          .upsert({
+            contact_id: contactId,
+            workspace_id: workspaceId,
+            step: emailNumber,
+            subject: subject || null,
+            body: email_body || null,
+            provider: provider || 'gmail',
+            provider_message_id: provider_message_id || null,
+            sent_at: eventTs,
+          }, { onConflict: 'contact_id,step' });
 
-      if (emailError) {
-        console.error('Email upsert error:', emailError);
+        if (emailError) {
+          if (emailError.code === '42P01') {
+            console.warn('[events] emails table does not exist — skipping email upsert');
+          } else {
+            console.error('Email upsert error:', emailError);
+          }
+        }
+      } catch {
+        console.warn('[events] emails upsert failed — continuing without email record');
       }
     }
 
-    // Idempotency: short-circuit if this key already exists for workspace
+    // D4-004: Idempotency check using indexed column (replaces slow JSONB extraction)
     if (idempotency_key) {
       const { data: existing } = await supabaseAdmin
         .from('email_events')
         .select('id')
         .eq('workspace_id', workspaceId)
-        .eq('metadata->>idempotency_key', idempotency_key)
+        .eq('idempotency_key', idempotency_key)
         .limit(1);
       if (existing && existing.length > 0) {
         return NextResponse.json({ ok: true, deduped: true }, { headers: rateLimitHeaders(rateLimit) });
@@ -216,6 +237,7 @@ export async function POST(req: NextRequest) {
         provider: provider || null,
         provider_message_id: provider_message_id || null,
         event_key: eventKey,
+        idempotency_key: idempotency_key || null, // D4-004: indexed column
         metadata: { ...(metadata || {}), idempotency_key },
       })
       .select('id')
