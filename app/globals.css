@@ -78,6 +78,18 @@
   }
   
   /* ============================================================
+     THEME TRANSITION — smooth 200ms background/border animation
+     ============================================================ */
+  body {
+    transition: background-color 200ms ease-in-out, color 200ms ease-in-out;
+  }
+  
+  header, aside, nav, main,
+  .bg-surface, .bg-background, .bg-surface-elevated, .bg-card {
+    transition: background-color 200ms ease-in-out, border-color 200ms ease-in-out;
+  }
+
+  /* ============================================================
      LIGHT MODE OVERRIDES - Comprehensive
      ============================================================ */
   html.light body {
