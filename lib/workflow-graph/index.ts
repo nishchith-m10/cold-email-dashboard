@@ -46,3 +46,6 @@ export { autoLayout, hasValidPositions } from './layout';
 
 // Cron humanizer
 export { humanizeCron } from './cron-humanizer';
+
+// Patch builder
+export { buildNodePatch } from './patch-builder';
