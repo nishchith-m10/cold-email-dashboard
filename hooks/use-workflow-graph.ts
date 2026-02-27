@@ -67,7 +67,7 @@ function toFlowEdge(graphEdge: GraphEdge): Edge {
     animated: true,
     style: {
       strokeWidth: 2,
-      stroke: 'hsl(var(--primary))',
+      stroke: '#3b82f6',
     },
   };
 }
