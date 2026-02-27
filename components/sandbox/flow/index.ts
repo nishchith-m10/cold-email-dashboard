@@ -19,4 +19,5 @@
 export { WorkflowSelector } from './WorkflowSelector';
 export { WorkflowCanvas } from './WorkflowCanvas';
 export { NodeDetailDrawer } from './NodeDetailDrawer';
+export { NodeEditForm } from './NodeEditForm';
 export { nodeTypes } from './nodes';;
