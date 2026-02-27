@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic';
 const costEventSchema = z.object({
   workspace_id: z.string().max(100).optional(),
   campaign_name: z.string().max(200).optional(),
+  campaign_group_id: z.string().uuid().optional(), // D4-005: campaign cost attribution
   contact_email: z.string().email().optional(),
   provider: z.string().min(1).max(50),
   model: z.string().min(1).max(100),
@@ -173,6 +174,7 @@ export async function POST(req: NextRequest) {
           .insert({
             workspace_id: workspaceId,
             campaign_name: event.campaign_name || null,
+            campaign_group_id: event.campaign_group_id || null, // D4-005
             contact_email: event.contact_email || null,
             provider: event.provider,
             model: event.model,
