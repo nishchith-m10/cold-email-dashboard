@@ -210,7 +210,7 @@ export function CampaignWizard({ onClose }: CampaignWizardProps) {
 
       {/* Navigation Buttons */}
       {step !== 'provisioning' && (
-        <div className="flex justify-between pt-4 border-t border-border">
+        <div className="flex items-center justify-between pt-4 mt-4 border-t border-border">
           <button
             onClick={step === 'template' ? onClose : handleBack}
             className="flex items-center gap-2 px-4 py-2 text-text-secondary hover:text-text-primary transition-colors"
