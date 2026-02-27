@@ -32,7 +32,7 @@ interface CacheEntry {
 }
 
 const accessCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds (hardened in D5-003)
 
 /**
  * Clear expired cache entries
@@ -234,6 +234,19 @@ export function clearWorkspaceCache(userId: string, workspaceId: string) {
 export function clearUserCache(userId: string) {
   for (const key of accessCache.keys()) {
     if (key.startsWith(`${userId}:`)) {
+      accessCache.delete(key);
+    }
+  }
+}
+
+/**
+ * Clear all cache entries for a workspace (all users)
+ * Used when workspace membership changes or workspace is frozen/unfrozen.
+ * D5-003: Ensures no stale access decisions survive membership mutations.
+ */
+export function clearAllWorkspaceEntries(workspaceId: string) {
+  for (const key of accessCache.keys()) {
+    if (key.endsWith(`:${workspaceId}`)) {
       accessCache.delete(key);
     }
   }
