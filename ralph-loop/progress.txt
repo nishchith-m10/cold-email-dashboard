@@ -395,3 +395,21 @@ Branch: `ralph/domain6-onboarding-wizard`
   - Control-plane watchdog executes reboot actions via BullMQ queue — without Redis, must degrade gracefully
   - ServiceHealth type may need extending for degraded fields (cast as ServiceHealth for now)
 ---
+
+## 2026-02-12 - INFRA-001 through INFRA-006
+Branch: ralph/infra-free-tier-hardening
+
+- **INFRA-001** (4556339): Created .github/workflows/ci.yml — Node 20, tsc --noEmit, npm test. Lint skipped (Next.js 16 removed next lint, ESLint 9 needs flat config migration).
+- **INFRA-002** (92336bc): Installed @sentry/nextjs. Created sentry.client/server/edge.config.ts (tracesSampleRate: 0.1, replays: 0, production-only). Wrapped next.config.js with withSentryConfig. Wired Sentry.captureException in lib/swr-config.tsx onError.
+- **INFRA-003** (8165d05): Created control-plane/src/services/telegram.ts (sendTelegramAlert helper). Wired into watchdog.ts for 'alert' actions with workspace/droplet/reason context.
+- **INFRA-004** (e8c7829): Wired sendTelegramAlert into scale-alerts.ts — evaluatePartitions, evaluateRowCount, and evaluateConnections all send CRITICAL or WARNING Telegram alerts.
+- **INFRA-005** (3091256): Applied FTS migration via Supabase MCP — added search_vector tsvector column (GENERATED from name) and GIN index to campaigns table. Contacts table does not exist.
+- **INFRA-006** (b4fc10a): Updated app/api/search/route.ts — FTS via textSearch with websearch type for campaigns, ILIKE fallback if FTS returns 0 results or search_vector column missing.
+
+**Learnings:**
+- Next.js 16 dropped next lint command — need separate ESLint flat config migration
+- @sentry/nextjs withSentryConfig: use disableServerWebpackPlugin + disableClientWebpackPlugin for free tier (no source map upload)
+- Telegram Bot API accepts Markdown in parse_mode — use for structured alert messages
+- contacts table never created — search route already handled this gracefully with as any cast
+- tsvector GENERATED ALWAYS AS + GIN index is the idiomatic Postgres FTS approach for simple single-column search
+---

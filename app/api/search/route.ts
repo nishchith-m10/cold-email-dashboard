@@ -49,14 +49,41 @@ export async function GET(req: NextRequest) {
 
   const term = buildIlike(query);
 
-  // Search campaigns table directly (not daily_stats)
-  const campaignsQuery = supabaseAdmin
-    .from('campaigns')
-    .select('id, name')
-    .eq('workspace_id', workspaceId)
-    .ilike('name', term)
-    .limit(LIMIT)
-    .order('name', { ascending: true });
+  // Search campaigns using FTS (search_vector) with ILIKE fallback
+  let campaigns: Array<{ id: string; name: string }> = [];
+  try {
+    const ftsRes = await supabaseAdmin
+      .from('campaigns')
+      .select('id, name')
+      .eq('workspace_id', workspaceId)
+      .textSearch('search_vector', query, { type: 'websearch' })
+      .limit(LIMIT)
+      .order('name', { ascending: true });
+
+    if (ftsRes.data && ftsRes.data.length > 0) {
+      campaigns = ftsRes.data.map((c) => ({ id: c.id, name: c.name }));
+    } else {
+      // Fallback to ILIKE if FTS returns no results (or search_vector doesn't exist)
+      const ilikeRes = await supabaseAdmin
+        .from('campaigns')
+        .select('id, name')
+        .eq('workspace_id', workspaceId)
+        .ilike('name', term)
+        .limit(LIMIT)
+        .order('name', { ascending: true });
+      campaigns = ilikeRes.data?.map((c) => ({ id: c.id, name: c.name })) || [];
+    }
+  } catch {
+    // If FTS column doesn't exist yet, fall back to ILIKE
+    const ilikeRes = await supabaseAdmin
+      .from('campaigns')
+      .select('id, name')
+      .eq('workspace_id', workspaceId)
+      .ilike('name', term)
+      .limit(LIMIT)
+      .order('name', { ascending: true });
+    campaigns = ilikeRes.data?.map((c) => ({ id: c.id, name: c.name })) || [];
+  }
 
   // NOTE: 'contacts' table may not exist - using type assertion for optional table
   const contactsQuery = (supabaseAdmin as any)
@@ -67,13 +94,7 @@ export async function GET(req: NextRequest) {
     .limit(LIMIT)
     .order('email', { ascending: true });
 
-  const [campaignsRes, contactsRes] = await Promise.all([campaignsQuery, contactsQuery]);
-
-  const campaigns =
-    campaignsRes.data?.map((c) => ({
-      id: c.id,
-      name: c.name,
-    })) || [];
+  const contactsRes = await contactsQuery;
 
   const contacts =
     contactsRes.data?.map((c: { id: string; email: string }) => ({

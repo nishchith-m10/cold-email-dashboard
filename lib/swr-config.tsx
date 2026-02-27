@@ -46,8 +46,12 @@ const swrConfig: SWRConfiguration = {
       console.error(`SWR Error for ${key}:`, error);
     }
     
-    // In production, you might want to send to error tracking service
-    // e.g., Sentry.captureException(error)
+    // Send to Sentry in production (dynamic import to avoid blocking SWR provider)
+    if (process.env.NODE_ENV === 'production') {
+      import('@sentry/nextjs')
+        .then((Sentry) => Sentry.captureException(error, { tags: { swrKey: key } }))
+        .catch(() => {}); // Silently ignore if Sentry isn't available
+    }
   },
   
   // Success handler (for debugging)
