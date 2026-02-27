@@ -21,4 +21,5 @@ export { WorkflowCanvas, type NodeStatusMap } from './WorkflowCanvas';
 export { NodeDetailDrawer } from './NodeDetailDrawer';
 export { NodeEditForm } from './NodeEditForm';
 export { ExecutionTimeline } from './ExecutionTimeline';
+export { ExecutionHistory } from './ExecutionHistory';
 export { nodeTypes } from './nodes';
