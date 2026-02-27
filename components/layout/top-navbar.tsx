@@ -78,6 +78,7 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
   };
 
   return (
+    <>
     <header className="fixed top-0 left-0 right-0 z-50 w-full h-12 border-b border-border bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/60">
       <div className="flex items-center h-full px-4 gap-3">
         {/* LEFT: Logo + Branding + Workspace */}
@@ -312,7 +313,8 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
           </div>
         </div>
       </div>
-      <SignOutTransition isVisible={isSigningOut} />
     </header>
+    <SignOutTransition isVisible={isSigningOut} />
+    </>
   );
 }
