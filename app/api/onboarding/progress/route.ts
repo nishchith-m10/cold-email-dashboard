@@ -101,17 +101,11 @@ export async function POST(req: NextRequest) {
       const result = await service.completeStage(workspaceId, completedStage);
 
       if (!result.success) {
-        // If table doesn't exist, log and continue
-        console.warn('Progress service error (might be missing table):', result.error);
-        // Still return success to allow onboarding flow to continue
-        const currentIndex = ONBOARDING_STAGES.indexOf(completedStage);
-        const nextStage = currentIndex < ONBOARDING_STAGES.length - 1 
-          ? ONBOARDING_STAGES[currentIndex + 1] 
-          : null;
-        return NextResponse.json({
-          success: true,
-          nextStage,
-        });
+        console.error('Progress update failed:', result.error);
+        return NextResponse.json(
+          { success: false, error: 'Progress could not be saved. Please try again.' },
+          { status: 500 },
+        );
       }
 
       return NextResponse.json({
@@ -119,16 +113,11 @@ export async function POST(req: NextRequest) {
         nextStage: result.nextStage,
       });
     } catch (dbError: any) {
-      // Handle database errors gracefully
-      console.warn('Database error in progress POST:', dbError.message);
-      const currentIndex = ONBOARDING_STAGES.indexOf(completedStage);
-      const nextStage = currentIndex < ONBOARDING_STAGES.length - 1 
-        ? ONBOARDING_STAGES[currentIndex + 1] 
-        : null;
-      return NextResponse.json({
-        success: true,
-        nextStage,
-      });
+      console.error('Database error in progress POST:', dbError.message);
+      return NextResponse.json(
+        { success: false, error: 'Progress could not be saved. Please try again.' },
+        { status: 500 },
+      );
     }
   } catch (error) {
     console.error('Onboarding progress POST error:', error);
