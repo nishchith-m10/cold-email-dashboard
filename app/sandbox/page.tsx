@@ -45,7 +45,7 @@ import {
 
 /* ---------- Sub-components ---------- */
 
-/** Simple campaign dropdown selector — shows campaign groups (not individual sequences) */
+/** Campaign group dropdown — styled to match the timezone selector panel */
 function CampaignSelector({
   groups,
   selectedId,
@@ -57,62 +57,58 @@ function CampaignSelector({
   onSelect: (id: string) => void;
   isLoading: boolean;
 }) {
-  const [showTooltip, setShowTooltip] = useState(false);
+  const [open, setOpen] = useState(false);
 
   if (isLoading) {
-    return (
-      <div className="h-9 w-48 bg-surface animate-pulse rounded-md" />
-    );
+    return <div className="h-8 w-40 bg-surface animate-pulse rounded-md" />;
   }
 
   if (groups.length === 0) {
-    return (
-      <span className="text-sm text-text-secondary">No campaigns</span>
-    );
+    return <span className="text-xs text-text-secondary">No campaigns</span>;
   }
 
-  const selectedName = groups.find((g) => g.id === selectedId)?.name ?? groups[0]?.name ?? 'Select campaign';
+  const activeId = selectedId ?? groups[0]?.id ?? null;
+  const selectedName = groups.find((g) => g.id === activeId)?.name ?? 'Campaign';
 
   return (
-    <div
-      className="relative"
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
-    >
-      <select
-        value={selectedId ?? groups[0]?.id ?? ''}
-        onChange={(e) => onSelect(e.target.value)}
-        className="appearance-none h-9 pl-3 pr-8 border rounded-md text-sm focus:outline-none cursor-pointer"
-        style={{
-          background: 'var(--card)',
-          color: 'var(--text-primary)',
-          borderColor: 'var(--border)',
-        }}
+    <div className="relative">
+      {/* Trigger button — matches timezone selector trigger style */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-border bg-surface text-xs text-text-primary hover:bg-surface-elevated transition-colors"
       >
-        {groups.map((g) => (
-          <option
-            key={g.id}
-            value={g.id}
-            style={{ background: 'var(--card)', color: 'var(--text-primary)' }}
-          >
-            {g.name}
-          </option>
-        ))}
-      </select>
-      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary pointer-events-none" />
+        <SquareTerminal className="h-3.5 w-3.5 text-text-secondary" />
+        <span className="flex-1 text-left max-w-[120px] truncate">{selectedName}</span>
+        <ChevronDown className={`h-3.5 w-3.5 text-text-secondary transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
 
-      {/* Custom tooltip */}
-      {showTooltip && (
-        <div
-          className="absolute top-full mt-1 right-0 z-50 px-2.5 py-1.5 text-xs rounded-md shadow-md border whitespace-nowrap pointer-events-none"
-          style={{
-            background: 'var(--surface-elevated)',
-            color: 'var(--text-primary)',
-            borderColor: 'var(--border)',
-          }}
-        >
-          Campaign: {selectedName}
-        </div>
+      {open && (
+        <>
+          {/* Backdrop to close on outside click */}
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+
+          {/* Dropdown panel — exact same style as timezone-selector-content */}
+          <div className="absolute top-full right-0 mt-2 z-50">
+            <div className="rounded-xl border border-border bg-surface shadow-lg p-2 min-w-[180px]">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary px-2 py-1.5 mb-1">
+                Campaign
+              </p>
+              {groups.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => { onSelect(g.id); setOpen(false); }}
+                  className={`w-full rounded-md px-2 py-1.5 text-left text-xs transition flex items-center gap-1.5 ${
+                    g.id === activeId
+                      ? 'bg-accent-primary/10 text-accent-primary'
+                      : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
+                  }`}
+                >
+                  {g.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
