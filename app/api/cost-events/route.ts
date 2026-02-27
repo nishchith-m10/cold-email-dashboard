@@ -24,6 +24,7 @@ const costEventSchema = z.object({
   purpose: z.string().max(200).optional(),
   workflow_id: z.string().max(100).optional(),
   run_id: z.string().max(100).optional(),
+  is_test: z.boolean().optional(), // D7-001: sandbox test event flag
   metadata: z.record(z.unknown()).optional(),
 });
 
@@ -230,6 +231,7 @@ export async function POST(req: NextRequest) {
               raw_usage: event.raw_usage,
               ...event.metadata,
             },
+            is_test: event.is_test || false, // D7-001: sandbox test event isolation
             created_at: new Date().toISOString(),
           })
           .select()
