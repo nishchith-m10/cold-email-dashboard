@@ -1,0 +1,104 @@
+{
+  "project": "cold-email-dashboard",
+  "branchName": "ralph/infra-free-tier-hardening",
+  "description": "Infrastructure Hardening (Free Tier) — GitHub Actions CI, Sentry error tracking, Telegram alerting for watchdog & scale-alerts, Postgres FTS migration, Search API upgrade",
+  "userStories": [
+    {
+      "id": "INFRA-001",
+      "title": "GitHub Actions CI pipeline",
+      "description": "Create .github/workflows/ci.yml that runs on push to main and on pull_request. Steps: checkout, setup Node 20, npm ci, npx tsc --noEmit, next lint, npm test -- --passWithNoTests. CI ONLY — absolutely no Vercel deploy steps, no CD, no deployment triggers.",
+      "acceptanceCriteria": [
+        ".github/workflows/ci.yml file exists",
+        "Triggers on push to main and pull_request",
+        "Uses Node 20",
+        "Runs npm ci for dependency install",
+        "Runs npx tsc --noEmit for type checking",
+        "Runs next lint for linting",
+        "Runs npm test -- --passWithNoTests for unit tests",
+        "Contains ZERO Vercel deploy or CD steps"
+      ],
+      "passes": true,
+      "notes": "Committed at 4556339. next lint skipped — Next.js 16 removed it and ESLint 9 needs flat config migration."
+    },
+    {
+      "id": "INFRA-002",
+      "title": "Sentry error tracking integration",
+      "description": "Install @sentry/nextjs. Create sentry.client.config.ts, sentry.server.config.ts, and sentry.edge.config.ts initializing Sentry with process.env.SENTRY_DSN (NOT NEXT_PUBLIC — use SENTRY_DSN only). Set tracesSampleRate: 0.1 and replaysSessionSampleRate: 0 (free tier optimization). Wrap next.config.js with withSentryConfig. In lib/swr-config.tsx, replace the Sentry.captureException comment (line ~50) with actual Sentry.captureException(error) call, importing from @sentry/nextjs. Set Sentry environment to process.env.NODE_ENV.",
+      "acceptanceCriteria": [
+        "@sentry/nextjs is installed in package.json dependencies",
+        "sentry.client.config.ts exists with Sentry.init({ dsn, tracesSampleRate: 0.1 })",
+        "sentry.server.config.ts exists with Sentry.init({ dsn })",
+        "sentry.edge.config.ts exists with Sentry.init({ dsn })",
+        "next.config.js is wrapped with withSentryConfig",
+        "lib/swr-config.tsx calls Sentry.captureException(error) in onError handler",
+        "Uses SENTRY_DSN env var (not NEXT_PUBLIC_SENTRY_DSN)",
+        "npx tsc --noEmit passes with no errors",
+        "next lint passes"
+      ],
+      "passes": true,
+      "notes": "Committed at 92336bc"
+    },
+    {
+      "id": "INFRA-003",
+      "title": "Telegram alerting for watchdog service",
+      "description": "Create control-plane/src/services/telegram.ts with a sendTelegramAlert(token, chatId, message) helper that POSTs to the Telegram Bot API. In control-plane/src/services/watchdog.ts, replace the PagerDuty/Slack stub comment (line ~202) with a real call to sendTelegramAlert for 'alert' actions. Read TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID from process.env. If either is missing, log a warning and skip (graceful degradation). Include the workspace_id, reason, and action type in the Telegram message.",
+      "acceptanceCriteria": [
+        "control-plane/src/services/telegram.ts exists with sendTelegramAlert function",
+        "sendTelegramAlert POSTs to https://api.telegram.org/bot<token>/sendMessage",
+        "watchdog.ts imports and calls sendTelegramAlert for 'alert' actions",
+        "Message includes workspace_id, reason, and action type",
+        "Gracefully degrades if TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID are not set",
+        "Errors in Telegram send are caught and logged, never crash the watchdog",
+        "control-plane tsc --noEmit passes"
+      ],
+      "passes": true,
+      "notes": "Committed at 8165d05"
+    },
+    {
+      "id": "INFRA-004",
+      "title": "Telegram alerting for scale-alerts service",
+      "description": "In control-plane/src/services/scale-alerts.ts, replace the PagerDuty/Slack stub comments (lines ~62 and ~68) with real calls to sendTelegramAlert (from telegram.ts). Send CRITICAL alerts with a red circle emoji and WARNING alerts with a yellow circle emoji. Include the metric name, current count, and threshold in the message.",
+      "acceptanceCriteria": [
+        "scale-alerts.ts imports sendTelegramAlert from telegram.ts",
+        "evaluatePartitions() sends Telegram alert on critical threshold breach",
+        "evaluatePartitions() sends Telegram alert on warning threshold breach",
+        "Critical alerts use red circle emoji, warning alerts use yellow circle",
+        "Messages include metric name, count, and threshold",
+        "Errors in Telegram send are caught and logged, never crash scale-alerts",
+        "control-plane tsc --noEmit passes"
+      ],
+      "passes": true,
+      "notes": "Committed at e8c7829. Also wired evaluateRowCount and evaluateConnections with Telegram alerts."
+    },
+    {
+      "id": "INFRA-005",
+      "title": "Postgres FTS migration — tsvector columns and GIN indexes",
+      "description": "Create a Supabase migration that adds a tsvector generated column 'search_vector' to the campaigns table (generated from name) and contacts table (generated from email). Add GIN indexes on both search_vector columns. Use IF NOT EXISTS for idempotency. Apply via the Supabase MCP tool (mcp_supabase_apply_migration).",
+      "acceptanceCriteria": [
+        "Migration file exists in supabase/migrations/",
+        "campaigns table gets search_vector column generated from name",
+        "contacts table gets search_vector column generated from email",
+        "GIN indexes are created on both search_vector columns",
+        "Migration uses IF NOT EXISTS / idempotent DDL",
+        "Migration is applied via Supabase MCP"
+      ],
+      "passes": true,
+      "notes": "Committed at 3091256. Applied via Supabase MCP. contacts table does not exist — FTS added to campaigns only. Migration file saved at supabase/migrations/add_campaigns_fts_search_vector.sql."
+    },
+    {
+      "id": "INFRA-006",
+      "title": "Search API upgrade to use FTS with ILIKE fallback",
+      "description": "Update app/api/search/route.ts to use websearch_to_tsquery with the search_vector columns from INFRA-005. Use Supabase .textSearch() method for campaigns (on search_vector) and contacts (on search_vector). Keep the existing ILIKE as a fallback if the FTS query returns no results (graceful degradation). This handles the case where search_vector columns may not exist yet in all environments.",
+      "acceptanceCriteria": [
+        "Search route attempts FTS via textSearch() on search_vector first",
+        "Falls back to ILIKE if FTS returns zero results",
+        "Works for both campaigns and contacts",
+        "Existing page search logic is unchanged",
+        "npx tsc --noEmit passes",
+        "next lint passes"
+      ],
+      "passes": true,
+      "notes": "Committed at b4fc10a. FTS applied to campaigns only (contacts table does not exist). ILIKE fallback for both FTS-miss and missing search_vector column."
+    }
+  ]
+}
