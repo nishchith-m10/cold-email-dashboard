@@ -131,7 +131,7 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
             onClick={() => onShareOpen?.()}
             title="Invite Team Members"
           >
-            <UserPlus className="h-5 w-5 text-text-secondary hover:text-accent-primary transition-colors" />
+            <UserPlus className="h-5 w-5 text-text-secondary hover:text-text-primary transition-colors" />
           </Button>
 
           {/* Notifications - Hidden on onboarding */}
@@ -143,7 +143,7 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
               className="relative"
               onClick={() => setShowNotifications(!showNotifications)}
             >
-              <Bell className="h-5 w-5 text-text-secondary" />
+              <Bell className="h-5 w-5 text-text-secondary hover:text-text-primary transition-colors" />
               {unreadCount > 0 && (
                 <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-accent-danger rounded-full animate-pulse" />
               )}
