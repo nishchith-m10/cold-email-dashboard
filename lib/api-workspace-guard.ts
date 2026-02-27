@@ -24,11 +24,12 @@ const supabase = createClient(
 // Super admin users who can access all workspaces
 const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
 
-// In-memory cache for workspace access (5 minute TTL)
+// In-memory cache for workspace access (60s TTL)
 interface CacheEntry {
   hasAccess: boolean;
   timestamp: number;
   role?: string;
+  workspaceStatus?: string; // D8-001: cache frozen status
 }
 
 const accessCache = new Map<string, CacheEntry>();
@@ -76,8 +77,8 @@ export async function canAccessWorkspace(
   userId: string,
   workspaceId: string,
   requestUrl?: string,
-): Promise<{ hasAccess: boolean; role?: string }> {
-  // Super admin bypass
+): Promise<{ hasAccess: boolean; role?: string; frozen?: boolean; freezeReason?: string }> {
+  // Super admin bypass — can always access, even frozen workspaces
   if (SUPER_ADMIN_IDS.includes(userId)) {
     // D5-005: Fire-and-forget audit log for super admin access
     logSuperAdminAccess(userId, workspaceId, requestUrl);
@@ -89,6 +90,10 @@ export async function canAccessWorkspace(
   const cached = accessCache.get(cacheKey);
   
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    // D8-001: If workspace is frozen, deny access
+    if (cached.workspaceStatus === 'frozen') {
+      return { hasAccess: false, role: cached.role, frozen: true };
+    }
     return { hasAccess: cached.hasAccess, role: cached.role };
   }
 
@@ -97,7 +102,7 @@ export async function canAccessWorkspace(
     clearExpiredCache();
   }
 
-  // Query database
+  // Query database — membership
   const { data, error } = await supabase
     .from('user_workspaces')
     .select('role')
@@ -107,13 +112,30 @@ export async function canAccessWorkspace(
 
   const hasAccess = !error && !!data;
   const role = data?.role;
+
+  // D8-001: Query workspace status to check frozen state
+  let workspaceStatus: string | undefined;
+  if (hasAccess) {
+    const { data: ws } = await supabase
+      .from('workspaces')
+      .select('status')
+      .eq('id', workspaceId)
+      .maybeSingle();
+    workspaceStatus = ws?.status || undefined;
+  }
   
-  // Cache result
+  // Cache result (including workspace status)
   accessCache.set(cacheKey, {
     hasAccess,
     role,
+    workspaceStatus,
     timestamp: Date.now(),
   });
+
+  // D8-001: If workspace is frozen, deny access
+  if (hasAccess && workspaceStatus === 'frozen') {
+    return { hasAccess: false, role, frozen: true };
+  }
 
   return { hasAccess, role };
 }
@@ -173,8 +195,20 @@ export async function validateWorkspaceAccess(
   }
 
   // Validate access (pass request URL for super admin audit logging)
-  const { hasAccess, role } = await canAccessWorkspace(userId, workspaceId, request.url);
+  const { hasAccess, role, frozen } = await canAccessWorkspace(userId, workspaceId, request.url);
   
+  // D8-001: Specific error for frozen workspaces
+  if (frozen) {
+    return NextResponse.json(
+      { 
+        error: 'Workspace is frozen',
+        workspace_id: workspaceId,
+        reason: 'This workspace has been suspended by an administrator',
+      },
+      { status: 403 }
+    );
+  }
+
   if (!hasAccess) {
     return NextResponse.json(
       { 
