@@ -12,6 +12,7 @@
 import type { ControlPlaneConfig, Logger } from '../config';
 import type { ServiceHealth } from '../../../packages/shared/types';
 import { SCALE_ALERT_THRESHOLDS } from '../../../packages/shared/constants';
+import { sendTelegramAlert } from './telegram';
 
 export interface ScaleAlertsService {
   start(): void;
@@ -59,13 +60,19 @@ export function createScaleAlertsService(
         { count, threshold: SCALE_ALERT_THRESHOLDS.CRITICAL_PARTITION_COUNT },
         'CRITICAL: Partition count approaching PostgreSQL limit'
       );
-      // In production: trigger PagerDuty critical alert
+      sendTelegramAlert(
+        `🔴 *CRITICAL: Partition Count*\nCount: ${count}\nThreshold: ${SCALE_ALERT_THRESHOLDS.CRITICAL_PARTITION_COUNT}\nAction required: partition expansion needed`,
+        checkLogger
+      );
     } else if (count >= SCALE_ALERT_THRESHOLDS.WARNING_PARTITION_COUNT) {
       checkLogger.warn(
         { count, threshold: SCALE_ALERT_THRESHOLDS.WARNING_PARTITION_COUNT },
         'WARNING: Partition count approaching warning threshold'
       );
-      // In production: trigger Slack warning
+      sendTelegramAlert(
+        `🟡 *WARNING: Partition Count*\nCount: ${count}\nThreshold: ${SCALE_ALERT_THRESHOLDS.WARNING_PARTITION_COUNT}`,
+        checkLogger
+      );
     } else {
       checkLogger.debug({ count }, 'Partition count within normal range');
     }
@@ -81,10 +88,18 @@ export function createScaleAlertsService(
         { count, threshold: criticalThreshold },
         'CRITICAL: Row count approaching 1B — partition expansion required'
       );
+      sendTelegramAlert(
+        `🔴 *CRITICAL: Row Count*\nCount: ${count.toLocaleString()}\nThreshold: ${criticalThreshold.toLocaleString()}\nAction required: partition expansion needed`,
+        checkLogger
+      );
     } else if (count >= warningThreshold) {
       checkLogger.warn(
         { count, threshold: warningThreshold },
         'WARNING: Row count approaching warning threshold'
+      );
+      sendTelegramAlert(
+        `🟡 *WARNING: Row Count*\nCount: ${count.toLocaleString()}\nThreshold: ${warningThreshold.toLocaleString()}`,
+        checkLogger
       );
     }
   }
@@ -103,10 +118,18 @@ export function createScaleAlertsService(
         { count, percent, maxConnections },
         'CRITICAL: Connection pool near exhaustion'
       );
+      sendTelegramAlert(
+        `🔴 *CRITICAL: Connection Pool*\nActive: ${count}/${maxConnections} (${percent.toFixed(1)}%)\nAction required: connection pool near exhaustion`,
+        checkLogger
+      );
     } else if (percent >= warningThreshold) {
       checkLogger.warn(
         { count, percent, maxConnections },
         'WARNING: Connection pool usage elevated'
+      );
+      sendTelegramAlert(
+        `🟡 *WARNING: Connection Pool*\nActive: ${count}/${maxConnections} (${percent.toFixed(1)}%)`,
+        checkLogger
       );
     }
   }

@@ -12,6 +12,7 @@
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import type { ControlPlaneConfig, Logger } from '../config';
+import { sendTelegramAlert } from './telegram';
 import type {
   ServiceHealth,
   DropletHealthRecord,
@@ -199,8 +200,17 @@ export function createWatchdogService(
       await markDropletZombie(action.workspace_id, _config);
     }
 
-    // For 'alert' actions, in production this would send to PagerDuty/Slack
-    // For now it's logged above
+    // Send alert actions to Telegram
+    if (action.action === 'alert') {
+      const msg = [
+        '🔴 *Watchdog Alert*',
+        `*Action:* ${action.action}`,
+        `*Workspace:* \`${action.workspace_id}\``,
+        `*Droplet:* \`${action.droplet_id}\``,
+        `*Reason:* ${action.reason}`,
+      ].join('\n');
+      await sendTelegramAlert(msg, actionLogger);
+    }
   }
 
   return {
