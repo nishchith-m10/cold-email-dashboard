@@ -44,7 +44,7 @@ import {
 
 /* ---------- Sub-components ---------- */
 
-/** Simple campaign dropdown selector */
+/** Simple campaign dropdown selector with dark mode support */
 function CampaignSelector({
   campaigns,
   selectedId,
@@ -56,6 +56,8 @@ function CampaignSelector({
   onSelect: (id: string) => void;
   isLoading: boolean;
 }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
   if (isLoading) {
     return (
       <div className="h-9 w-48 bg-muted animate-pulse rounded-md" />
@@ -68,26 +70,41 @@ function CampaignSelector({
     );
   }
 
+  const selectedName = campaigns.find((c) => c.id === selectedId)?.name ?? 'Select campaign';
+
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
       <select
         value={selectedId ?? ''}
         onChange={(e) => onSelect(e.target.value)}
         className="
           appearance-none h-9 pl-3 pr-8
-          bg-card border border-border rounded-md
-          text-sm text-foreground
+          bg-card text-foreground
+          border border-border rounded-md
+          text-sm
           focus:ring-2 focus:ring-ring focus:outline-none
           cursor-pointer
+          dark:bg-card dark:text-foreground dark:border-border
         "
       >
         {campaigns.map((c) => (
-          <option key={c.id} value={c.id}>
+          <option key={c.id} value={c.id} className="bg-card text-foreground">
             {c.name}
           </option>
         ))}
       </select>
       <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+
+      {/* Custom tooltip */}
+      {showTooltip && (
+        <div className="absolute top-full mt-1 right-0 z-50 px-2.5 py-1.5 bg-popover text-popover-foreground text-xs rounded-md shadow-md border border-border whitespace-nowrap pointer-events-none">
+          Campaign: {selectedName}
+        </div>
+      )}
     </div>
   );
 }
@@ -239,7 +256,7 @@ export default function SandboxPage() {
             <div>
               <h1 className="text-lg font-semibold">Sandbox</h1>
               <p className="text-xs text-muted-foreground hidden sm:block">
-                Workflow visualizer &amp; test runner
+                Campaign workflow sequences &amp; test runner
               </p>
             </div>
           </div>
@@ -266,7 +283,13 @@ export default function SandboxPage() {
           </div>
         </div>
 
-        {/* Workflow tabs */}
+        {/* Workflow sequence tabs */}
+        <div className="flex items-center gap-2 px-4 pb-1">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+            Sequences
+          </span>
+          <div className="h-px flex-1 bg-border/50" />
+        </div>
         <WorkflowSelector
           selected={workflowType}
           onSelect={handleWorkflowChange}
