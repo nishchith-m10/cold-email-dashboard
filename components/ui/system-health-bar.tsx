@@ -81,7 +81,7 @@ export function SystemHealthBar({ workspaceId, className, compact = false }: Sys
       <Icon 
         className={cn(
           'flex-shrink-0',
-          compact ? 'h-5 w-5' : 'h-4 w-4',
+          compact ? 'h-4 w-4' : 'h-4 w-4',
           health.status === 'live' && 'text-green-500',
           health.status === 'syncing' && 'text-text-secondary animate-spin',
           health.status === 'stale' && 'text-text-secondary',
@@ -90,7 +90,7 @@ export function SystemHealthBar({ workspaceId, className, compact = false }: Sys
       />
 
       {!compact && (
-        <span className="text-xs font-medium">{config.label}</span>
+        <span className="text-xs font-medium text-text-primary">{config.label}</span>
       )}
 
       {health.errorMessage && !compact && (
