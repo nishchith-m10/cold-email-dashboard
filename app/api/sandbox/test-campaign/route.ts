@@ -133,7 +133,14 @@ function createWorkspaceLookupDB() {
         .select('sidecar_url')
         .eq('workspace_id', workspaceId)
         .maybeSingle();
-      return data?.sidecar_url ?? null;
+
+      if (data?.sidecar_url) return data.sidecar_url;
+
+      // LOCAL_MODE fallback: use env var when partition_registry has no entry
+      const localUrl = process.env.LOCAL_SIDECAR_URL || process.env.LOCAL_N8N_URL;
+      if (localUrl) return localUrl;
+
+      return null;
     },
   };
 }
