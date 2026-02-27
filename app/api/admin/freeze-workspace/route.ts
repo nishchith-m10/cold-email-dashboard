@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
 import { clearAllWorkspaceEntries } from '@/lib/api-workspace-guard';
+import { invalidateFrozenCache } from '@/lib/workspace-frozen-cache';
+import { randomUUID } from 'crypto';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -112,6 +114,45 @@ export async function POST(req: NextRequest) {
       .eq('workspace_id', workspace_id)
       .is('revoked_at', null);
 
+    // D8-003: Invalidate the workspace webhook token to immediately block event/cost ingestion
+    await supabase
+      .from('workspaces')
+      .update({ webhook_token: null })
+      .eq('id', workspace_id);
+
+    // D8-003: Best-effort sidecar deactivation — send DEACTIVATE_ALL_WORKFLOWS
+    try {
+      const genesisClient = (supabase as any).schema('genesis');
+      const { data: partition } = await genesisClient
+        .from('partition_registry')
+        .select('sidecar_url')
+        .eq('workspace_id', workspace_id)
+        .maybeSingle();
+
+      if (partition?.sidecar_url) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        try {
+          await fetch(`${partition.sidecar_url}/admin/deactivate-all`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ workspace_id, reason: reason || 'Workspace frozen' }),
+            signal: controller.signal,
+          });
+          /* eslint-disable-next-line no-console */
+          console.log(`[Kill Switch] Sidecar deactivation sent for workspace ${workspace_id}`);
+        } catch (sidecarErr) {
+          /* eslint-disable-next-line no-console */
+          console.warn(`[Kill Switch] Sidecar deactivation failed (non-blocking):`, sidecarErr instanceof Error ? sidecarErr.message : sidecarErr);
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+    } catch {
+      /* eslint-disable-next-line no-console */
+      console.warn(`[Kill Switch] Could not look up sidecar URL for workspace ${workspace_id}`);
+    }
+
     // Log to governance audit
     await supabase.from('governance_audit_log').insert({
       workspace_id,
@@ -120,11 +161,13 @@ export async function POST(req: NextRequest) {
       actor_email: actorEmail,
       action: 'freeze',
       reason: reason || 'No reason provided',
-      metadata: { previous_status: workspace.status },
+      metadata: { previous_status: workspace.status, webhook_token_invalidated: true },
     });
 
     // D5-003: Invalidate cached access for all users of this workspace
     clearAllWorkspaceEntries(workspace_id);
+    // D8-002: Invalidate frozen status cache
+    invalidateFrozenCache(workspace_id);
 
     /* eslint-disable-next-line no-console */
     console.log(`[Kill Switch] Workspace "${workspace.name}" frozen by ${actorEmail}`);
@@ -228,6 +271,13 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
+    // D8-003: Generate a new webhook token for the unfrozen workspace
+    const newWebhookToken = randomUUID();
+    await supabase
+      .from('workspaces')
+      .update({ webhook_token: newWebhookToken })
+      .eq('id', workspace_id);
+
     // Log to governance audit
     await supabase.from('governance_audit_log').insert({
       workspace_id,
@@ -236,11 +286,17 @@ export async function DELETE(req: NextRequest) {
       actor_email: actorEmail,
       action: 'unfreeze',
       reason: 'Workspace restored to active status',
-      metadata: { previous_status: 'frozen' },
+      metadata: {
+        previous_status: 'frozen',
+        new_webhook_token_generated: true,
+        new_webhook_token: newWebhookToken,
+      },
     });
 
     // D5-003: Invalidate cached access for all users of this workspace
     clearAllWorkspaceEntries(workspace_id);
+    // D8-002: Invalidate frozen status cache
+    invalidateFrozenCache(workspace_id);
 
     /* eslint-disable-next-line no-console */
     console.log(`[Kill Switch] Workspace "${workspace.name}" unfrozen by ${actorEmail}`);
@@ -249,6 +305,7 @@ export async function DELETE(req: NextRequest) {
       success: true,
       message: `Workspace "${workspace.name}" has been unfrozen`,
       workspace_id,
+      new_webhook_token: newWebhookToken,
     }, { headers: API_HEADERS });
 
   } catch (error) {
