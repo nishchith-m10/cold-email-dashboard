@@ -3,6 +3,8 @@ import { headers } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 // Initialize Supabase with service role (bypasses RLS)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +17,7 @@ const supabase = createClient(
   }
 );
 
-interface ClerkWebhookEvent {
+interface ClerkUserEvent {
   type: 'user.created' | 'user.updated' | 'user.deleted';
   data: {
     id: string;
@@ -30,6 +32,21 @@ interface ClerkWebhookEvent {
     updated_at: number;
   };
 }
+
+// D8-005: Session event for login audit
+interface ClerkSessionEvent {
+  type: 'session.created';
+  data: {
+    id: string;
+    user_id: string;
+    client_id?: string;
+    status?: string;
+    created_at: number;
+    last_active_at?: number;
+  };
+}
+
+type ClerkWebhookEvent = ClerkUserEvent | ClerkSessionEvent;
 
 export async function POST(req: Request) {
   // Get webhook secret from environment
@@ -85,13 +102,43 @@ export async function POST(req: Request) {
   }
 
   // Handle the webhook event
-  const { type, data } = evt;
-  const userId = data.id;
+  const { type } = evt;
 
   try {
     switch (type) {
+      case 'session.created': {
+        // D8-005: Login audit — record session creation
+        const sessionData = (evt as ClerkSessionEvent).data;
+        const ip = headerPayload.get('x-forwarded-for') || headerPayload.get('x-real-ip') || 'unknown';
+        const userAgent = headerPayload.get('user-agent') || 'unknown';
+
+        // Insert login audit record (graceful: table might not exist yet)
+        try {
+          await supabase.from('login_audit').insert({
+            user_id: sessionData.user_id,
+            event_type: 'session.created',
+            ip_address: ip,
+            user_agent: userAgent,
+            metadata: {
+              session_id: sessionData.id,
+              client_id: sessionData.client_id || null,
+              status: sessionData.status || null,
+            },
+          });
+        } catch {
+          /* eslint-disable-next-line no-console */
+          console.warn('[Clerk Webhook] login_audit table may not exist — skipping login audit');
+        }
+
+        /* eslint-disable-next-line no-console */
+        console.log(`✓ Login recorded for user ${sessionData.user_id}`);
+        break;
+      }
+
       case 'user.created':
       case 'user.updated': {
+        const data = (evt as ClerkUserEvent).data;
+        const userId = data.id;
         // Extract email (use primary email)
         const primaryEmail = data.email_addresses.find((e) => e.id === data.email_addresses[0]?.id);
         
@@ -130,6 +177,22 @@ export async function POST(req: Request) {
           );
         }
 
+        // D8-005: Audit log for user lifecycle events
+        try {
+          await supabase.from('login_audit').insert({
+            user_id: userId,
+            email: primaryEmail.email_address,
+            event_type: type,
+            metadata: {
+              first_name: data.first_name || null,
+              last_name: data.last_name || null,
+            },
+          });
+        } catch {
+          /* eslint-disable-next-line no-console */
+          console.warn('[Clerk Webhook] login_audit insert failed — continuing');
+        }
+
         /* eslint-disable-next-line no-console */
         console.log(`✓ User ${type === 'user.created' ? 'created' : 'updated'}: ${userId} (${primaryEmail.email_address})`);
         
@@ -155,6 +218,23 @@ export async function POST(req: Request) {
       }
 
       case 'user.deleted': {
+        const data = (evt as ClerkUserEvent).data;
+        const userId = data.id;
+
+        // D8-005: Audit log for user deletion
+        try {
+          const email = data.email_addresses?.[0]?.email_address || null;
+          await supabase.from('login_audit').insert({
+            user_id: userId,
+            email,
+            event_type: 'user.deleted',
+            metadata: {},
+          });
+        } catch {
+          /* eslint-disable-next-line no-console */
+          console.warn('[Clerk Webhook] login_audit insert failed — continuing');
+        }
+
         // Delete user from Supabase (CASCADE will remove from user_workspaces)
         const { error } = await supabase
           .from('users')
@@ -177,7 +257,7 @@ export async function POST(req: Request) {
 
       default: {
         /* eslint-disable-next-line no-console */
-        console.warn(`Unhandled webhook event type: ${type}`);
+        console.warn(`Unhandled webhook event type: ${(evt as { type: string }).type}`);
       }
     }
 

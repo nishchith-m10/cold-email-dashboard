@@ -21,6 +21,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/llm-usage',
   '/api/track/(.*)',
   '/api/webhook/(.*)',
+  '/api/webhooks/clerk',  // D8-005: Clerk webhook (uses Svix signature, not Clerk auth)
   '/api/health',
 ]);
 
