@@ -150,44 +150,59 @@ export async function POST(req: NextRequest) {
   const emailNumber = step ?? null; // Align naming with DB (email_number)
 
   try {
-    // Upsert contact - NOTE: 'contacts' table may not exist in all deployments
-    // Using type assertion to bypass strict type checking for optional tables
-    const { data: contact, error: contactError } = await (supabaseAdmin as any)
-      .from('contacts')
-      .upsert(
-        { 
-          workspace_id: workspaceId, 
-          email: contact_email 
-        },
-        { onConflict: 'workspace_id,email' }
-      )
-      .select('id')
-      .single();
+    // D4-007: Upsert contact — gracefully skip if contacts table doesn't exist
+    let contactId: string | null = null;
+    try {
+      const { data: contact, error: contactError } = await supabaseAdmin
+        .from('contacts')
+        .upsert(
+          { 
+            workspace_id: workspaceId, 
+            email: contact_email 
+          },
+          { onConflict: 'workspace_id,email' }
+        )
+        .select('id')
+        .single();
 
-    if (contactError && !contactError.message.includes('duplicate')) {
-      console.error('Contact upsert error:', contactError);
+      if (contactError) {
+        // 42P01 = relation does not exist
+        if (contactError.code === '42P01') {
+          console.warn('[events] contacts table does not exist — skipping contact upsert');
+        } else if (!contactError.message.includes('duplicate')) {
+          console.error('Contact upsert error:', contactError);
+        }
+      }
+      contactId = contact?.id || null;
+    } catch {
+      console.warn('[events] contacts upsert failed — continuing without contact_id');
     }
 
-    const contactId = contact?.id || null;
-
-    // For 'sent' events, also upsert the email record
-    // NOTE: 'emails' table may not exist in all deployments
+    // D4-007: Upsert email record for 'sent' events — gracefully skip if emails table doesn't exist
     if (event_type === 'sent' && emailNumber) {
-      const { error: emailError } = await (supabaseAdmin as any)
-        .from('emails')
-        .upsert({
-          contact_id: contactId,
-          workspace_id: workspaceId,
-          step: emailNumber,
-          subject: subject || null,
-          body: email_body || null,
-          provider: provider || 'gmail',
-          provider_message_id: provider_message_id || null,
-          sent_at: eventTs,
-        }, { onConflict: 'contact_id,step' });
+      try {
+        const { error: emailError } = await supabaseAdmin
+          .from('emails')
+          .upsert({
+            contact_id: contactId,
+            workspace_id: workspaceId,
+            step: emailNumber,
+            subject: subject || null,
+            body: email_body || null,
+            provider: provider || 'gmail',
+            provider_message_id: provider_message_id || null,
+            sent_at: eventTs,
+          }, { onConflict: 'contact_id,step' });
 
-      if (emailError) {
-        console.error('Email upsert error:', emailError);
+        if (emailError) {
+          if (emailError.code === '42P01') {
+            console.warn('[events] emails table does not exist — skipping email upsert');
+          } else {
+            console.error('Email upsert error:', emailError);
+          }
+        }
+      } catch {
+        console.warn('[events] emails upsert failed — continuing without email record');
       }
     }
 
