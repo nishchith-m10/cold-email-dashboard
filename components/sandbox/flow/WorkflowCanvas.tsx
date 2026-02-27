@@ -83,7 +83,7 @@ function WorkflowCanvasInner({
       animated: true,
       style: {
         strokeWidth: 2,
-        stroke: 'hsl(var(--primary))',
+        stroke: '#3b82f6',
       },
     }),
     [],
@@ -130,6 +130,7 @@ function WorkflowCanvasInner({
       nodesDraggable={true}
       nodesConnectable={false}
       elementsSelectable={true}
+      colorMode="dark"
       fitView
       fitViewOptions={{ padding: 0.15 }}
       minZoom={0.2}
@@ -139,7 +140,6 @@ function WorkflowCanvasInner({
       <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
       <Controls
         showInteractive={false}
-        className="!bg-card !border-border !shadow-sm [&>button]:!bg-card [&>button]:!border-border [&>button]:!text-foreground [&>button:hover]:!bg-muted [&>button>svg]:!fill-foreground"
       />
       <MiniMap
         nodeStrokeWidth={3}

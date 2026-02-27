@@ -83,25 +83,25 @@ function CampaignSelector({
         onChange={(e) => onSelect(e.target.value)}
         className="
           appearance-none h-9 pl-3 pr-8
-          bg-card text-foreground
+          bg-surface text-text-primary
           border border-border rounded-md
           text-sm
-          focus:ring-2 focus:ring-ring focus:outline-none
+          focus:outline-none focus:ring-2 focus:ring-accent-primary
           cursor-pointer
-          dark:bg-card dark:text-foreground dark:border-border
         "
+        style={{ background: '#141416', color: '#fafafa', borderColor: '#27272a' }}
       >
         {campaigns.map((c) => (
-          <option key={c.id} value={c.id} className="bg-card text-foreground">
+          <option key={c.id} value={c.id} style={{ background: '#141416', color: '#fafafa' }}>
             {c.name}
           </option>
         ))}
       </select>
-      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary pointer-events-none" />
 
       {/* Custom tooltip */}
       {showTooltip && (
-        <div className="absolute top-full mt-1 right-0 z-50 px-2.5 py-1.5 bg-popover text-popover-foreground text-xs rounded-md shadow-md border border-border whitespace-nowrap pointer-events-none">
+        <div className="absolute top-full mt-1 right-0 z-50 px-2.5 py-1.5 text-xs rounded-md shadow-md border whitespace-nowrap pointer-events-none" style={{ background: '#1c1c1f', color: '#fafafa', borderColor: '#27272a' }}>
           Campaign: {selectedName}
         </div>
       )}
