@@ -18,6 +18,7 @@ import { motion } from 'framer-motion';
 import { useWorkspace } from '@/lib/workspace-context';
 import { usePermissions } from '@/lib/hooks/use-permissions';
 import { useCampaigns } from '@/hooks/use-campaigns';
+import { useCampaignGroups } from '@/hooks/use-campaign-groups';
 import { useWorkflowGraph } from '@/hooks/use-workflow-graph';
 import { useWorkflowMutation } from '@/hooks/use-workflow-mutation';
 import { useExecutionOverlay } from '@/hooks/use-execution-overlay';
@@ -44,14 +45,14 @@ import {
 
 /* ---------- Sub-components ---------- */
 
-/** Simple campaign dropdown selector with dark mode support */
+/** Simple campaign dropdown selector — shows campaign groups (not individual sequences) */
 function CampaignSelector({
-  campaigns,
+  groups,
   selectedId,
   onSelect,
   isLoading,
 }: {
-  campaigns: { id: string; name: string }[];
+  groups: { id: string; name: string }[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   isLoading: boolean;
@@ -60,17 +61,17 @@ function CampaignSelector({
 
   if (isLoading) {
     return (
-      <div className="h-9 w-48 bg-muted animate-pulse rounded-md" />
+      <div className="h-9 w-48 bg-surface animate-pulse rounded-md" />
     );
   }
 
-  if (campaigns.length === 0) {
+  if (groups.length === 0) {
     return (
-      <span className="text-sm text-muted-foreground">No campaigns</span>
+      <span className="text-sm text-text-secondary">No campaigns</span>
     );
   }
 
-  const selectedName = campaigns.find((c) => c.id === selectedId)?.name ?? 'Select campaign';
+  const selectedName = groups.find((g) => g.id === selectedId)?.name ?? groups[0]?.name ?? 'Select campaign';
 
   return (
     <div
@@ -79,21 +80,22 @@ function CampaignSelector({
       onMouseLeave={() => setShowTooltip(false)}
     >
       <select
-        value={selectedId ?? ''}
+        value={selectedId ?? groups[0]?.id ?? ''}
         onChange={(e) => onSelect(e.target.value)}
-        className="
-          appearance-none h-9 pl-3 pr-8
-          bg-surface text-text-primary
-          border border-border rounded-md
-          text-sm
-          focus:outline-none focus:ring-2 focus:ring-accent-primary
-          cursor-pointer
-        "
-        style={{ background: '#141416', color: '#fafafa', borderColor: '#27272a' }}
+        className="appearance-none h-9 pl-3 pr-8 border rounded-md text-sm focus:outline-none cursor-pointer"
+        style={{
+          background: 'var(--card)',
+          color: 'var(--text-primary)',
+          borderColor: 'var(--border)',
+        }}
       >
-        {campaigns.map((c) => (
-          <option key={c.id} value={c.id} style={{ background: '#141416', color: '#fafafa' }}>
-            {c.name}
+        {groups.map((g) => (
+          <option
+            key={g.id}
+            value={g.id}
+            style={{ background: 'var(--card)', color: 'var(--text-primary)' }}
+          >
+            {g.name}
           </option>
         ))}
       </select>
@@ -101,7 +103,14 @@ function CampaignSelector({
 
       {/* Custom tooltip */}
       {showTooltip && (
-        <div className="absolute top-full mt-1 right-0 z-50 px-2.5 py-1.5 text-xs rounded-md shadow-md border whitespace-nowrap pointer-events-none" style={{ background: '#1c1c1f', color: '#fafafa', borderColor: '#27272a' }}>
+        <div
+          className="absolute top-full mt-1 right-0 z-50 px-2.5 py-1.5 text-xs rounded-md shadow-md border whitespace-nowrap pointer-events-none"
+          style={{
+            background: 'var(--surface-elevated)',
+            color: 'var(--text-primary)',
+            borderColor: 'var(--border)',
+          }}
+        >
           Campaign: {selectedName}
         </div>
       )}
@@ -119,14 +128,29 @@ export default function SandboxPage() {
   const { workspaceId } = useWorkspace();
   const { canWrite } = usePermissions();
 
-  // Campaign management
+  // Campaign management — groups represent user-facing campaigns, individual
+  // campaign records are sequences (Email 1, Email 2, etc.) within each group.
   const { campaigns, isLoading: campaignsLoading } = useCampaigns({
     workspaceId: workspaceId ?? undefined,
   });
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const { groups, isLoading: groupsLoading } = useCampaignGroups(workspaceId);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
-  // Auto-select first campaign
-  const activeCampaignId = selectedCampaignId ?? campaigns[0]?.id ?? null;
+  // Active group (auto-select first)
+  const activeGroup = useMemo(
+    () => groups.find((g) => g.id === selectedGroupId) ?? groups[0] ?? null,
+    [groups, selectedGroupId],
+  );
+
+  // Active campaign ID — first campaign that belongs to the active group
+  const activeCampaignId = useMemo(() => {
+    if (!activeGroup) return campaigns[0]?.id ?? null;
+    return (
+      campaigns.find((c) => c.campaign_group_id === activeGroup.id)?.id ??
+      campaigns[0]?.id ??
+      null
+    );
+  }, [activeGroup, campaigns]);
 
   // Workflow type selection
   const [workflowType, setWorkflowType] = useState<WorkflowTemplateType>('email_preparation');
@@ -273,12 +297,12 @@ export default function SandboxPage() {
               </span>
             )}
 
-            {/* Campaign selector */}
+            {/* Campaign selector — shows groups (e.g. "Leads Campaign"), not individual sequences */}
             <CampaignSelector
-              campaigns={campaigns}
-              selectedId={activeCampaignId}
-              onSelect={setSelectedCampaignId}
-              isLoading={campaignsLoading}
+              groups={groups}
+              selectedId={selectedGroupId}
+              onSelect={setSelectedGroupId}
+              isLoading={groupsLoading}
             />
           </div>
         </div>
