@@ -20,7 +20,6 @@ import {
   ReactFlowProvider,
   type Node,
   type Edge,
-  type OnNodeDrag,
 } from '@xyflow/react';
 import { nodeTypes } from './nodes';
 import type { CustomNodeData } from './nodes/types';
@@ -95,9 +94,6 @@ function WorkflowCanvasInner({
     [onNodeClick],
   );
 
-  // No-op drag handler to prevent default drag behavior
-  const noop: OnNodeDrag<Node<CustomNodeData>> = useCallback(() => {}, []);
-
   /* Loading skeleton */
   if (isLoading) {
     return (
@@ -128,8 +124,7 @@ function WorkflowCanvasInner({
       nodeTypes={nodeTypes}
       defaultEdgeOptions={defaultEdgeOptions}
       onNodeClick={handleNodeClick}
-      onNodeDragStart={noop}
-      nodesDraggable={false}
+      nodesDraggable={true}
       nodesConnectable={false}
       elementsSelectable={true}
       fitView
@@ -139,7 +134,10 @@ function WorkflowCanvasInner({
       proOptions={{ hideAttribution: true }}
     >
       <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-      <Controls showInteractive={false} />
+      <Controls
+        showInteractive={false}
+        className="!bg-card !border-border !shadow-sm [&>button]:!bg-card [&>button]:!border-border [&>button]:!text-foreground [&>button:hover]:!bg-muted [&>button>svg]:!fill-foreground"
+      />
       <MiniMap
         nodeStrokeWidth={3}
         zoomable
