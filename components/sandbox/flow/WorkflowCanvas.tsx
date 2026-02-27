@@ -83,6 +83,30 @@ function WorkflowCanvasInner({
     });
   }, [nodes, nodeStatusMap]);
 
+  // Color palette for light/dark modes
+  const colors = useMemo(() => ({
+    light: {
+      edge: '#1e40af',         // darker blue for light bg
+      control: '#1f2937',      // dark gray for buttons
+      controlBg: '#ffffff',    // white bg
+      controlBorder: '#e5e7eb', // light gray border
+      minimap: '#ffffff',      // white bg
+      minimapBorder: '#d1d5db', // light gray border
+      minimapNode: '#1e40af',  // darker blue for mini nodes
+    },
+    dark: {
+      edge: '#60a5fa',         // lighter blue for dark bg
+      control: '#fafafa',      // off-white for buttons
+      controlBg: '#1f2937',    // dark gray bg
+      controlBorder: '#374151', // mid-gray border
+      minimap: '#111827',      // very dark bg
+      minimapBorder: '#374151', // mid-gray border
+      minimapNode: '#60a5fa',  // lighter blue for mini nodes
+    },
+  }), []);
+
+  const currentColors = colors[colorMode] || colors.dark;
+
   // Default edges to animated smooth-step via defaultEdgeOptions
   const defaultEdgeOptions = useMemo(
     () => ({
@@ -90,10 +114,10 @@ function WorkflowCanvasInner({
       animated: true,
       style: {
         strokeWidth: 2.5,
-        stroke: colorMode === 'light' ? '#2563eb' : '#60a5fa',
+        stroke: currentColors.edge,
       },
     }),
-    [colorMode],
+    [currentColors],
   );
 
   // Handle node click — forward the node to parent
@@ -148,11 +172,21 @@ function WorkflowCanvasInner({
       <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
       <Controls
         showInteractive={false}
+        style={{
+          backgroundColor: currentColors.controlBg,
+          border: `1px solid ${currentColors.controlBorder}`,
+        }}
       />
       <MiniMap
         nodeStrokeWidth={3}
         zoomable
         pannable
+        style={{
+          backgroundColor: currentColors.minimap,
+          border: `1px solid ${currentColors.minimapBorder}`,
+          borderRadius: '4px',
+        }}
+        nodeColor={() => currentColors.minimapNode}
       />
     </ReactFlow>
     </div>
