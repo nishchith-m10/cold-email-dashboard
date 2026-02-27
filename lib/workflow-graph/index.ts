@@ -37,3 +37,9 @@ export {
   normalizeNodeType,
   getNodeRegistryEntry,
 } from './registry';
+
+// Adapter
+export { transformN8nToGraph } from './adapter';
+
+// Layout
+export { autoLayout, hasValidPositions } from './layout';
