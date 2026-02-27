@@ -97,10 +97,14 @@ const nextConfig = {
 };
 
 module.exports = withSentryConfig(nextConfig, {
-  // Suppress source map upload warnings in CI (no auth token)
+  // Suppress Sentry CLI warnings (no auth token on free tier)
   silent: true,
-  
+
   // Disable source map upload (free tier — no org auth token)
-  disableServerWebpackPlugin: true,
-  disableClientWebpackPlugin: true,
+  sourcemaps: {
+    disable: true,
+  },
+
+  // Disable telemetry for faster builds
+  telemetry: false,
 });
