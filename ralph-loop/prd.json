@@ -1,104 +1,367 @@
 {
   "project": "cold-email-dashboard",
-  "branchName": "ralph/infra-free-tier-hardening",
-  "description": "Infrastructure Hardening (Free Tier) — GitHub Actions CI, Sentry error tracking, Telegram alerting for watchdog & scale-alerts, Postgres FTS migration, Search API upgrade",
+  "branchName": "ralph/sandbox-redesign-flow",
+  "description": "Sandbox Redesign — Flow-based workflow visualization engine replacing the old Phase 45 sandbox. Visual n8n-style canvas with custom nodes, node editing, live execution overlay, and production monitoring. See docs/plans/SANDBOX_REDESIGN_EXECUTION_PLAN.md for full architecture.",
   "userStories": [
     {
-      "id": "INFRA-001",
-      "title": "GitHub Actions CI pipeline",
-      "description": "Create .github/workflows/ci.yml that runs on push to main and on pull_request. Steps: checkout, setup Node 20, npm ci, npx tsc --noEmit, next lint, npm test -- --passWithNoTests. CI ONLY — absolutely no Vercel deploy steps, no CD, no deployment triggers.",
+      "id": "SBX-001",
+      "title": "Workflow Graph Type System + Node Metadata Registry",
+      "description": "Create lib/workflow-graph/ with core TypeScript types representing an n8n workflow as a renderable graph. Define WorkflowGraph (nodes + edges + metadata), GraphNode (id, name, type, category, position, parameters, editableParams), GraphEdge (source, target, sourceHandle, targetHandle), NodeCategory enum (trigger, ai_llm, email_send, data_db, logic_routing, tracking, utility, unknown), and EditableParamDescriptor (key, label, type, path, options). Create NODE_TYPE_REGISTRY mapping ~20 observed n8n node types (scheduleTrigger, webhook, gmailTrigger, gmail, httpRequest, postgres, googleSheets, code, set, if, splitInBatches, merge, limit, wait, respondToWebhook, html) to their NodeCategory, display label, and color. httpRequest nodes need contextual classification helper (ai_llm if URL contains openai/anthropic, tracking if URL contains event tracking, email_send if SMTP, else utility). Export everything from lib/workflow-graph/index.ts barrel.",
       "acceptanceCriteria": [
-        ".github/workflows/ci.yml file exists",
-        "Triggers on push to main and pull_request",
-        "Uses Node 20",
-        "Runs npm ci for dependency install",
-        "Runs npx tsc --noEmit for type checking",
-        "Runs next lint for linting",
-        "Runs npm test -- --passWithNoTests for unit tests",
-        "Contains ZERO Vercel deploy or CD steps"
+        "lib/workflow-graph/types.ts exports WorkflowGraph, GraphNode, GraphEdge, NodeCategory, EditableParamDescriptor, WorkflowMetadata types",
+        "NodeCategory is a string union or enum with exactly: trigger, ai_llm, email_send, data_db, logic_routing, tracking, utility, unknown",
+        "GraphNode has fields: id, name, type, category (NodeCategory), position ({x,y}), parameters (Record<string,unknown>), editableParams (EditableParamDescriptor[]), credentials (string[])",
+        "WorkflowMetadata has fields: workflowId, workflowName, workflowType (WorkflowType from phase45 types), active (boolean), nodeCount, edgeCount",
+        "lib/workflow-graph/registry.ts exports NODE_TYPE_REGISTRY (Record<string, {category, label, color}>)",
+        "Registry covers all 16+ observed n8n node types from base templates",
+        "classifyHttpRequestNode() function exported that takes node parameters and returns NodeCategory based on URL/credential analysis",
+        "lib/workflow-graph/index.ts re-exports all public types and registry",
+        "npx tsc --noEmit passes (use NODE_OPTIONS='--max-old-space-size=4096')"
       ],
-      "passes": true,
-      "notes": "Committed at 4556339. next lint skipped — Next.js 16 removed it and ESLint 9 needs flat config migration."
+      "passes": false
     },
     {
-      "id": "INFRA-002",
-      "title": "Sentry error tracking integration",
-      "description": "Install @sentry/nextjs. Create sentry.client.config.ts, sentry.server.config.ts, and sentry.edge.config.ts initializing Sentry with process.env.SENTRY_DSN (NOT NEXT_PUBLIC — use SENTRY_DSN only). Set tracesSampleRate: 0.1 and replaysSessionSampleRate: 0 (free tier optimization). Wrap next.config.js with withSentryConfig. In lib/swr-config.tsx, replace the Sentry.captureException comment (line ~50) with actual Sentry.captureException(error) call, importing from @sentry/nextjs. Set Sentry environment to process.env.NODE_ENV.",
+      "id": "SBX-002",
+      "title": "n8n-to-Graph Adapter + dagre Auto-Layout",
+      "description": "Create lib/workflow-graph/adapter.ts with a pure function transformN8nToGraph(n8nWorkflow: unknown): WorkflowGraph. It must: parse n8n JSON (nodes[], connections{}), filter out sticky notes (n8n-nodes-internal.stickyNote), map each n8n node to a GraphNode using the registry + classifyHttpRequestNode, parse the connections object into GraphEdge[], detect editable params per node using known patterns (AI prompt nodes get 'prompt' param, schedule nodes get 'rule.interval' param, limit nodes get 'maxItems'), compute metadata. Create lib/workflow-graph/layout.ts with autoLayout(graph: WorkflowGraph): WorkflowGraph that uses dagre to compute left-to-right positions for all nodes (rankdir='LR', nodesep=60, ranksep=120, node width=200, height=80). The adapter should call autoLayout if nodes lack positions or all positions are 0,0.",
       "acceptanceCriteria": [
-        "@sentry/nextjs is installed in package.json dependencies",
-        "sentry.client.config.ts exists with Sentry.init({ dsn, tracesSampleRate: 0.1 })",
-        "sentry.server.config.ts exists with Sentry.init({ dsn })",
-        "sentry.edge.config.ts exists with Sentry.init({ dsn })",
-        "next.config.js is wrapped with withSentryConfig",
-        "lib/swr-config.tsx calls Sentry.captureException(error) in onError handler",
-        "Uses SENTRY_DSN env var (not NEXT_PUBLIC_SENTRY_DSN)",
-        "npx tsc --noEmit passes with no errors",
-        "next lint passes"
+        "lib/workflow-graph/adapter.ts exports transformN8nToGraph function",
+        "Function correctly parses n8n workflow JSON nodes array into GraphNode[]",
+        "Function correctly parses n8n connections object into GraphEdge[]",
+        "Sticky notes (n8n-nodes-internal.stickyNote) are filtered out",
+        "Each node gets correct NodeCategory from registry + httpRequest classifier",
+        "Editable params detected for AI prompt nodes, schedule trigger nodes, limit nodes",
+        "lib/workflow-graph/layout.ts exports autoLayout function using dagre",
+        "Auto-layout produces left-to-right graph with no overlapping nodes",
+        "dagre and @types/dagre are installed in package.json",
+        "npx tsc --noEmit passes (use NODE_OPTIONS='--max-old-space-size=4096')"
       ],
-      "passes": true,
-      "notes": "Committed at 92336bc"
+      "passes": false
     },
     {
-      "id": "INFRA-003",
-      "title": "Telegram alerting for watchdog service",
-      "description": "Create control-plane/src/services/telegram.ts with a sendTelegramAlert(token, chatId, message) helper that POSTs to the Telegram Bot API. In control-plane/src/services/watchdog.ts, replace the PagerDuty/Slack stub comment (line ~202) with a real call to sendTelegramAlert for 'alert' actions. Read TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID from process.env. If either is missing, log a warning and skip (graceful degradation). Include the workspace_id, reason, and action type in the Telegram message.",
+      "id": "SBX-003",
+      "title": "Sidecar: Add getWorkflow + GET_WORKFLOW Command",
+      "description": "Add N8nManager.getWorkflow(id: string) method that calls GET /api/v1/workflows/{id} on the n8n instance and returns the full workflow JSON. Add GET_WORKFLOW to the SidecarCommand type union and handle it in SidecarAgent.executeCommand() — payload: { workflow_id: string }, returns: { success: true, workflow: object }. Follow exact patterns from existing getMetrics/getExecutionLogs methods in n8n-manager.ts and existing command handlers in sidecar-agent.ts.",
       "acceptanceCriteria": [
-        "control-plane/src/services/telegram.ts exists with sendTelegramAlert function",
-        "sendTelegramAlert POSTs to https://api.telegram.org/bot<token>/sendMessage",
-        "watchdog.ts imports and calls sendTelegramAlert for 'alert' actions",
-        "Message includes workspace_id, reason, and action type",
-        "Gracefully degrades if TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID are not set",
-        "Errors in Telegram send are caught and logged, never crash the watchdog",
-        "control-plane tsc --noEmit passes"
+        "sidecar/n8n-manager.ts has getWorkflow(id: string) method calling GET /api/v1/workflows/{id}",
+        "Method returns full n8n workflow JSON object",
+        "Method handles 404 (workflow not found) gracefully with descriptive error",
+        "GET_WORKFLOW added to SidecarCommand type/interface in sidecar-agent.ts",
+        "handleGetWorkflow method in SidecarAgent extracts workflow_id from payload",
+        "Command handler returns { success: true, workflow: <full JSON> }",
+        "npx tsc --noEmit passes in sidecar directory (cd sidecar && npx tsc --noEmit)"
       ],
-      "passes": true,
-      "notes": "Committed at 8165d05"
+      "passes": false
     },
     {
-      "id": "INFRA-004",
-      "title": "Telegram alerting for scale-alerts service",
-      "description": "In control-plane/src/services/scale-alerts.ts, replace the PagerDuty/Slack stub comments (lines ~62 and ~68) with real calls to sendTelegramAlert (from telegram.ts). Send CRITICAL alerts with a red circle emoji and WARNING alerts with a yellow circle emoji. Include the metric name, current count, and threshold in the message.",
+      "id": "SBX-004",
+      "title": "Dashboard API: GET /api/sandbox/workflow/[campaignId]",
+      "description": "Create app/api/sandbox/workflow/[campaignId]/route.ts. This GET endpoint: authenticates via Clerk, gets workspace from header, looks up campaign's sidecar URL + workflow IDs from campaign_workflows table, sends GET_WORKFLOW command via HttpSidecarClient for the requested workflow, transforms response via transformN8nToGraph adapter, returns WorkflowGraph JSON. If sidecar is unavailable, fall back to reading the base template from base-cold-email/ directory and transforming that instead (playground mode). Include a 'source' field in response: 'live' or 'template'.",
       "acceptanceCriteria": [
-        "scale-alerts.ts imports sendTelegramAlert from telegram.ts",
-        "evaluatePartitions() sends Telegram alert on critical threshold breach",
-        "evaluatePartitions() sends Telegram alert on warning threshold breach",
-        "Critical alerts use red circle emoji, warning alerts use yellow circle",
-        "Messages include metric name, count, and threshold",
-        "Errors in Telegram send are caught and logged, never crash scale-alerts",
-        "control-plane tsc --noEmit passes"
+        "app/api/sandbox/workflow/[campaignId]/route.ts exists with GET handler",
+        "Authenticates request via Clerk auth()",
+        "Validates workspace access",
+        "Fetches workflow JSON from sidecar via GET_WORKFLOW command",
+        "Transforms n8n JSON to WorkflowGraph via adapter",
+        "Returns { graph: WorkflowGraph, source: 'live' | 'template' }",
+        "Falls back to base-cold-email template if sidecar unavailable",
+        "Handles errors with appropriate HTTP status codes",
+        "npx tsc --noEmit passes (use NODE_OPTIONS='--max-old-space-size=4096')"
       ],
-      "passes": true,
-      "notes": "Committed at e8c7829. Also wired evaluateRowCount and evaluateConnections with Telegram alerts."
+      "passes": false
     },
     {
-      "id": "INFRA-005",
-      "title": "Postgres FTS migration — tsvector columns and GIN indexes",
-      "description": "Create a Supabase migration that adds a tsvector generated column 'search_vector' to the campaigns table (generated from name) and contacts table (generated from email). Add GIN indexes on both search_vector columns. Use IF NOT EXISTS for idempotency. Apply via the Supabase MCP tool (mcp_supabase_apply_migration).",
+      "id": "SBX-005",
+      "title": "Install @xyflow/react + Scaffold Flow Directory",
+      "description": "Install @xyflow/react (the MIT-licensed successor to React Flow). Create components/sandbox/flow/ directory with a placeholder index.ts barrel export. Add the required @xyflow/react CSS import to app/globals.css. Do NOT install dagre here — that is in SBX-002.",
       "acceptanceCriteria": [
-        "Migration file exists in supabase/migrations/",
-        "campaigns table gets search_vector column generated from name",
-        "contacts table gets search_vector column generated from email",
-        "GIN indexes are created on both search_vector columns",
-        "Migration uses IF NOT EXISTS / idempotent DDL",
-        "Migration is applied via Supabase MCP"
+        "@xyflow/react is in package.json dependencies",
+        "components/sandbox/flow/index.ts exists with placeholder export",
+        "@xyflow/react/dist/style.css imported in app/globals.css",
+        "npx tsc --noEmit passes (use NODE_OPTIONS='--max-old-space-size=4096')",
+        "npm install completes without errors"
       ],
-      "passes": true,
-      "notes": "Committed at 3091256. Applied via Supabase MCP. contacts table does not exist — FTS added to campaigns only. Migration file saved at supabase/migrations/add_campaigns_fts_search_vector.sql."
+      "passes": false
     },
     {
-      "id": "INFRA-006",
-      "title": "Search API upgrade to use FTS with ILIKE fallback",
-      "description": "Update app/api/search/route.ts to use websearch_to_tsquery with the search_vector columns from INFRA-005. Use Supabase .textSearch() method for campaigns (on search_vector) and contacts (on search_vector). Keep the existing ILIKE as a fallback if the FTS query returns no results (graceful degradation). This handles the case where search_vector columns may not exist yet in all environments.",
+      "id": "SBX-006",
+      "title": "SWR Hook: useWorkflowGraph",
+      "description": "Create hooks/use-workflow-graph.ts with a useSWR hook that fetches WorkflowGraph for a campaignId + workflowType. Calls GET /api/sandbox/workflow/[campaignId]?type=[workflowType]. Converts WorkflowGraph nodes/edges into React Flow Node[] and Edge[] format. Returns { flowNodes, flowEdges, metadata, source, isLoading, error, mutate }.",
       "acceptanceCriteria": [
-        "Search route attempts FTS via textSearch() on search_vector first",
-        "Falls back to ILIKE if FTS returns zero results",
-        "Works for both campaigns and contacts",
-        "Existing page search logic is unchanged",
+        "hooks/use-workflow-graph.ts exports useWorkflowGraph(campaignId, workflowType) hook",
+        "Uses SWR to fetch from /api/sandbox/workflow/[campaignId]",
+        "Converts GraphNode[] to React Flow Node[] with correct type field for custom nodes",
+        "Converts GraphEdge[] to React Flow Edge[] with animated prop",
+        "Returns flowNodes, flowEdges, metadata, source (live/template), isLoading, error, mutate",
+        "Handles null campaignId gracefully (does not fetch)",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-007",
+      "title": "Custom Node Components (6 Visual Categories)",
+      "description": "Create 6 custom React Flow node components under components/sandbox/flow/nodes/. TriggerNode (green-500 border, Zap icon), AiLlmNode (purple-500 border, Brain icon), EmailSendNode (blue-500 border, Mail icon), DataDbNode (amber-500 border, Database icon), LogicRoutingNode (gray-400 border, GitBranch icon), TrackingNode (teal-500 border, BarChart icon). Each shows name, type label, status dot, Handle for I/O. All accept status data prop. Use lucide-react icons.",
+      "acceptanceCriteria": [
+        "components/sandbox/flow/nodes/ contains TriggerNode.tsx, AiLlmNode.tsx, EmailSendNode.tsx, DataDbNode.tsx, LogicRoutingNode.tsx, TrackingNode.tsx",
+        "Each node uses React Flow Handle components for source/target connections",
+        "Each node has distinct border color matching its category",
+        "Each node displays name and type label",
+        "Each node accepts status data prop (idle | running | success | error)",
+        "nodes/index.ts exports nodeTypes object mapping category strings to node components",
+        "Icons from lucide-react used for each category",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-008",
+      "title": "WorkflowCanvas Component + Edge Rendering",
+      "description": "Create WorkflowCanvas.tsx wrapping ReactFlow with custom nodeTypes, MiniMap, Controls, Background (dots). Read-only positioning (nodesDraggable=false). Smooth step edges. Loading skeleton. fitView on initial render.",
+      "acceptanceCriteria": [
+        "components/sandbox/flow/WorkflowCanvas.tsx exports WorkflowCanvas component",
+        "Uses ReactFlow from @xyflow/react with custom nodeTypes",
+        "Includes MiniMap, Controls, and Background components",
+        "Nodes are not draggable (nodesDraggable={false})",
+        "Edges use smoothstep type with animation",
+        "Shows loading skeleton/spinner when isLoading=true",
+        "Calls fitView on initial render",
+        "onNodeClick callback passes clicked node data",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-009",
+      "title": "Workflow Selector Tabs",
+      "description": "Create WorkflowSelector.tsx — horizontal tab bar for switching between 7 workflow types. Uses WorkflowType enum from phase45 types. Selected tab highlighted. Emits onSelect callback. Horizontally scrollable on mobile.",
+      "acceptanceCriteria": [
+        "components/sandbox/flow/WorkflowSelector.tsx exports WorkflowSelector component",
+        "Shows 7 tabs matching all WorkflowType values",
+        "Selected tab has visual highlight",
+        "Each tab shows workflow display name",
+        "onSelect callback fires with selected WorkflowType",
+        "Horizontally scrollable on mobile (overflow-x-auto)",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-010",
+      "title": "Node Detail Drawer (Read-Only)",
+      "description": "Create NodeDetailDrawer.tsx — side drawer on node click. Shows name, type, category, all parameters. Special renderers for cron (humanized), AI prompts (monospace), JS code (code block), credentials (badges). Create lib/workflow-graph/cron-humanizer.ts.",
+      "acceptanceCriteria": [
+        "components/sandbox/flow/NodeDetailDrawer.tsx exports NodeDetailDrawer component",
+        "Drawer slides in from right side",
+        "Shows node name, type, category with colored badge",
+        "Displays all node parameters in readable format",
+        "AI prompts rendered in scrollable monospace/pre block",
+        "Cron expressions humanized",
+        "lib/workflow-graph/cron-humanizer.ts exports humanizeCron function",
+        "Close button and click-outside-to-close behavior",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-011",
+      "title": "Editable Parameter Forms",
+      "description": "Create NodeEditForm.tsx — inline edit forms for editable node parameters. Appropriate input per param type. Dirty state tracking. Save/Reset buttons. Calls onSave(nodeId, changes) callback.",
+      "acceptanceCriteria": [
+        "components/sandbox/flow/NodeEditForm.tsx exports NodeEditForm component",
+        "Renders appropriate input types based on EditableParamDescriptor.type",
+        "Textarea for prompt/text type params",
+        "Number input for number params",
+        "Text input for cron params",
+        "Tracks dirty state — Save button only enabled when changes exist",
+        "Reset button restores original values",
+        "onSave callback receives nodeId and changed parameters",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-012",
+      "title": "Role-Gated Edit Toggle",
+      "description": "Gate edit mode in NodeDetailDrawer/NodeEditForm by workspace role. Only owners/admins can edit. Viewers see read-only.",
+      "acceptanceCriteria": [
+        "NodeDetailDrawer checks user role before showing edit UI",
+        "Owners and admins see Edit button/toggle",
+        "Viewers/members see read-only parameter display",
+        "Edit mode toggle switches between read-only and edit forms",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-013",
+      "title": "Surgical Patch Builder for Node Updates",
+      "description": "Create lib/workflow-graph/patch-builder.ts. buildNodePatch(originalWorkflow, nodeId, paramChanges) finds target node, deep-merges param changes, returns { nodes: [...] } with only the target node modified. No mutation of original.",
+      "acceptanceCriteria": [
+        "lib/workflow-graph/patch-builder.ts exports buildNodePatch function",
+        "Function finds target node by ID in the original workflow nodes array",
+        "Function deep-merges paramChanges into the target node's parameters",
+        "Returns { nodes: [...] } with all nodes, only the target node modified",
+        "Throws descriptive error if nodeId not found",
+        "Does not mutate the original workflow object",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-014",
+      "title": "Dashboard API: POST /api/sandbox/workflow/update",
+      "description": "POST endpoint: { campaignId, workflowType, nodeId, paramChanges }. Auth + role check, GET current workflow, apply patch, UPDATE_WORKFLOW to sidecar, return updated graph.",
+      "acceptanceCriteria": [
+        "app/api/sandbox/workflow/update/route.ts exists with POST handler",
+        "Authenticates via Clerk and validates workspace role",
+        "Rejects non-owner/non-admin with 403",
+        "Fetches current workflow state from sidecar before patching",
+        "Uses buildNodePatch to construct update payload",
+        "Sends UPDATE_WORKFLOW command to sidecar",
+        "Returns transformed WorkflowGraph after successful update",
+        "Handles sidecar errors gracefully",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-015",
+      "title": "Optimistic UI + Mutation Hook",
+      "description": "Create hooks/use-workflow-mutation.ts. SWR mutation with optimistic cache update, rollback on error, toast notifications. mutateNode(nodeId, paramChanges) function.",
+      "acceptanceCriteria": [
+        "hooks/use-workflow-mutation.ts exports useWorkflowMutation hook",
+        "Hook provides mutateNode(nodeId, paramChanges) function",
+        "Optimistic update applied to SWR cache immediately",
+        "Reverts on API error",
+        "Shows success/error toast via useToast hook",
+        "Loading state exposed (isMutating)",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-016",
+      "title": "Map Execution Events to Graph Nodes",
+      "description": "Create hooks/use-execution-overlay.ts. Connects to SSE stream, maps ExecutionEvent.node_name to GraphNode.name. Returns Map<nodeId, status>.",
+      "acceptanceCriteria": [
+        "hooks/use-execution-overlay.ts exports useExecutionOverlay hook",
+        "Connects to existing SSE endpoint for execution streaming",
+        "Maps execution events to graph nodes by node name",
+        "Returns nodeStatusMap: Map<string, 'idle' | 'running' | 'success' | 'error'>",
+        "Updates status in real-time as events arrive",
+        "Handles SSE connection errors gracefully",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-017",
+      "title": "Node Status Animation on Canvas",
+      "description": "All 6 custom nodes display execution status visually. Running: pulsing border. Success: green check. Error: red X. Idle: default. WorkflowCanvas passes nodeStatusMap via data.",
+      "acceptanceCriteria": [
+        "All 6 node components respond to data.status prop",
+        "Running status shows pulsing border animation",
+        "Success status shows green check icon and tint",
+        "Error status shows red X icon and tint",
+        "Idle status shows default appearance",
+        "WorkflowCanvas passes nodeStatusMap to nodes via data prop",
+        "Animations use Tailwind or CSS keyframes",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-018",
+      "title": "Execution Timeline Sidebar",
+      "description": "Create ExecutionTimeline.tsx — vertical timeline of execution events with timestamps, durations, focus-to-node buttons, auto-scroll, color-coded status.",
+      "acceptanceCriteria": [
+        "components/sandbox/flow/ExecutionTimeline.tsx exports ExecutionTimeline component",
+        "Shows vertical timeline of execution events",
+        "Each event shows node name, timestamp, duration, status icon",
+        "Focus button calls onFocusNode(nodeId) callback",
+        "Auto-scrolls to latest event during live execution",
+        "Color-coded: green for success, red for error, blue for running",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-019",
+      "title": "Execution History Per Workflow",
+      "description": "Create ExecutionHistory.tsx — list of last N executions for selected workflow. Click to replay execution overlay on canvas.",
+      "acceptanceCriteria": [
+        "components/sandbox/flow/ExecutionHistory.tsx exports ExecutionHistory component",
+        "Fetches execution history for selected workflow/campaign",
+        "Shows list of recent executions with timestamp, status, duration",
+        "Clicking an execution loads its events and overlays on canvas",
+        "Loading and empty states handled",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-020",
+      "title": "Per-Node Performance Metrics",
+      "description": "Create hooks/use-node-metrics.ts + app/api/sandbox/workflow/metrics/route.ts. Aggregate per-node avg duration and error rate. Toggle-able overlay on nodes.",
+      "acceptanceCriteria": [
+        "hooks/use-node-metrics.ts exports useNodeMetrics hook",
+        "app/api/sandbox/workflow/metrics/route.ts fetches and aggregates execution data",
+        "Returns per-node metrics: avgDuration, errorRate, executionCount",
+        "Metrics displayed as badges on nodes when overlay enabled",
+        "Toggle button to show/hide metrics overlay",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-021",
+      "title": "Redesign Sandbox Page Layout",
+      "description": "Rebuild app/sandbox/page.tsx. Top: campaign selector + WorkflowSelector. Center: WorkflowCanvas. Right: NodeDetailDrawer. Bottom: ExecutionTimeline + ExecutionHistory. Dark mode compatible.",
+      "acceptanceCriteria": [
+        "app/sandbox/page.tsx uses new flow-based components",
+        "Campaign selector at top selects active campaign",
+        "WorkflowSelector tabs switch between 7 workflows",
+        "WorkflowCanvas renders the selected workflow",
+        "NodeDetailDrawer opens on node click",
+        "ExecutionTimeline visible during/after test runs",
+        "Layout is responsive",
+        "Dark mode works correctly",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-022",
+      "title": "Simplified Test Runner Modal",
+      "description": "Create TestRunModal.tsx — lightweight dialog. Pre-selects campaign. Test email input. Run triggers existing sandbox API. Connects to execution overlay. No config knobs.",
+      "acceptanceCriteria": [
+        "components/sandbox/flow/TestRunModal.tsx exports TestRunModal component",
+        "Modal shows test email input field",
+        "Campaign is pre-selected from current context",
+        "Run button triggers /api/sandbox/test-campaign",
+        "After trigger, execution overlay activates on canvas",
+        "No MAX_EMAILS_PER_DAY, OFFICE_HOURS, or other config knobs",
+        "Modal closes after successful trigger",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "SBX-023",
+      "title": "Remove Deprecated Sandbox Components",
+      "description": "Delete old Phase 45 sandbox components: configuration-section.tsx, config-status-bar.tsx, execution-monitor.tsx, test-runner.tsx, sandbox-panel.tsx. Remove dead imports.",
+      "acceptanceCriteria": [
+        "components/sandbox/configuration-section.tsx deleted",
+        "components/sandbox/config-status-bar.tsx deleted",
+        "components/sandbox/execution-monitor.tsx deleted",
+        "components/sandbox/test-runner.tsx deleted",
+        "components/sandbox/sandbox-panel.tsx deleted",
+        "No remaining imports of deleted components anywhere in codebase",
         "npx tsc --noEmit passes",
-        "next lint passes"
+        "App builds successfully"
       ],
-      "passes": true,
-      "notes": "Committed at b4fc10a. FTS applied to campaigns only (contacts table does not exist). ILIKE fallback for both FTS-miss and missing search_vector column."
+      "passes": false
     }
   ]
 }
