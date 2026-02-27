@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { canAccessWorkspace } from '@/lib/api-workspace-guard';
 import { EncryptionService, CredentialVaultService } from '@/lib/genesis/phase64/credential-vault-service';
 import { CredentialValidationService } from '@/lib/genesis/phase64/credential-validation-service';
 
@@ -65,6 +66,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // D6-004: Validate workspace access
+    const access = await canAccessWorkspace(userId, workspaceId, req.url);
+    if (!access.hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     // Handle relevance_config specially
     if (type === 'relevance_config') {
       const result = await vault!.getRelevanceConfig(workspaceId);
@@ -116,6 +123,12 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // D6-004: Validate workspace access
+      const access = await canAccessWorkspace(userId, workspaceId, req.url);
+      if (!access.hasAccess) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
       // Validate the configuration
       const validationResult = await validator!.validateCredential(type, '', config);
       if (!validationResult.valid) {
@@ -144,7 +157,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // TODO: Validate user has access to workspace
+    // D6-004: Validate workspace access
+    const access = await canAccessWorkspace(userId, workspaceId, req.url);
+    if (!access.hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     // Validate credential before storing
     const validationResult = await validator!.validateCredential(type, value, metadata);
