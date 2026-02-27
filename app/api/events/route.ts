@@ -191,13 +191,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Idempotency: short-circuit if this key already exists for workspace
+    // D4-004: Idempotency check using indexed column (replaces slow JSONB extraction)
     if (idempotency_key) {
       const { data: existing } = await supabaseAdmin
         .from('email_events')
         .select('id')
         .eq('workspace_id', workspaceId)
-        .eq('metadata->>idempotency_key', idempotency_key)
+        .eq('idempotency_key', idempotency_key)
         .limit(1);
       if (existing && existing.length > 0) {
         return NextResponse.json({ ok: true, deduped: true }, { headers: rateLimitHeaders(rateLimit) });
@@ -222,6 +222,7 @@ export async function POST(req: NextRequest) {
         provider: provider || null,
         provider_message_id: provider_message_id || null,
         event_key: eventKey,
+        idempotency_key: idempotency_key || null, // D4-004: indexed column
         metadata: { ...(metadata || {}), idempotency_key },
       })
       .select('id')
