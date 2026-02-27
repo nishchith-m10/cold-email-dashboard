@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
+import { clearAllWorkspaceEntries } from '@/lib/api-workspace-guard';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -122,6 +123,9 @@ export async function POST(req: NextRequest) {
       metadata: { previous_status: workspace.status },
     });
 
+    // D5-003: Invalidate cached access for all users of this workspace
+    clearAllWorkspaceEntries(workspace_id);
+
     /* eslint-disable-next-line no-console */
     console.log(`[Kill Switch] Workspace "${workspace.name}" frozen by ${actorEmail}`);
 
@@ -234,6 +238,9 @@ export async function DELETE(req: NextRequest) {
       reason: 'Workspace restored to active status',
       metadata: { previous_status: 'frozen' },
     });
+
+    // D5-003: Invalidate cached access for all users of this workspace
+    clearAllWorkspaceEntries(workspace_id);
 
     /* eslint-disable-next-line no-console */
     console.log(`[Kill Switch] Workspace "${workspace.name}" unfrozen by ${actorEmail}`);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { checkRateLimit, getClientId, rateLimitHeaders, RATE_LIMIT_READ, RATE_LIMIT_STRICT } from '@/lib/rate-limit';
+import { clearWorkspaceCache, clearAllWorkspaceEntries } from '@/lib/api-workspace-guard';
 import { 
   getWorkspaceAccess, 
   getWorkspaceMembers, 
@@ -211,6 +212,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // D5-003: Clear cached access so new member is recognized immediately
+    clearWorkspaceCache(newUserId, workspaceId);
+
     return NextResponse.json({
       success: true,
       message: `User added to workspace as ${role}`,
@@ -335,6 +339,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // D5-003: Clear cached access so role change is recognized immediately
+    clearWorkspaceCache(targetUserId, workspaceId);
+
     return NextResponse.json({
       success: true,
       message: `User role updated to ${role}`,
@@ -413,6 +420,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       { status: 400, headers: API_HEADERS }
     );
   }
+
+  // D5-003: Clear cached access so removed user is denied immediately
+  clearWorkspaceCache(targetUserId, workspaceId);
 
   return NextResponse.json({
     success: true,
