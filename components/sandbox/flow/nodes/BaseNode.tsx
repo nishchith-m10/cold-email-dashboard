@@ -75,7 +75,7 @@ function BaseNodeComponent({
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-2.5 !h-2.5 !bg-muted-foreground/50 !border-background"
+        className="!w-3 !h-3 !bg-blue-400 !border-2 !border-background"
       />
 
       {/* Node body */}
@@ -83,8 +83,8 @@ function BaseNodeComponent({
         className={`
           flex items-center gap-2.5 px-3 py-2.5
           bg-card text-card-foreground
-          border-l-[3px] border rounded-lg shadow-sm
-          min-w-[160px] max-w-[220px]
+          border-l-[3px] border rounded-lg shadow-md
+          min-w-[200px] max-w-[260px]
           transition-all duration-200
           ${borderColorClass}
           ${statusStyle.border}
@@ -106,7 +106,7 @@ function BaseNodeComponent({
         {/* Text content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
-            <p className="text-xs font-medium truncate leading-tight">
+            <p className="text-[11px] font-medium truncate leading-tight">
               {label}
             </p>
             {statusStyle.icon}
@@ -126,7 +126,7 @@ function BaseNodeComponent({
       <Handle
         type="source"
         position={Position.Right}
-        className="!w-2.5 !h-2.5 !bg-muted-foreground/50 !border-background"
+        className="!w-3 !h-3 !bg-blue-400 !border-2 !border-background"
       />
     </>
   );
