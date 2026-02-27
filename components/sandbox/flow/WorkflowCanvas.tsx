@@ -61,7 +61,7 @@ function WorkflowCanvasInner({
   useEffect(() => {
     if (nodes.length > 0) {
       // Small delay to let React Flow finish layout
-      const timer = setTimeout(() => fitView({ padding: 0.15 }), 50);
+      const timer = setTimeout(() => fitView({ padding: 0.25 }), 50);
       return () => clearTimeout(timer);
     }
   }, [nodes, fitView]);
@@ -84,11 +84,11 @@ function WorkflowCanvasInner({
       type: 'smoothstep' as const,
       animated: true,
       style: {
-        strokeWidth: 2,
-        stroke: '#3b82f6',
+        strokeWidth: 2.5,
+        stroke: theme === 'light' ? '#2563eb' : '#60a5fa',
       },
     }),
-    [],
+    [theme],
   );
 
   // Handle node click — forward the node to parent
@@ -135,9 +135,9 @@ function WorkflowCanvasInner({
       elementsSelectable={true}
       colorMode={theme === 'light' ? 'light' : 'dark'}
       fitView
-      fitViewOptions={{ padding: 0.15 }}
-      minZoom={0.2}
-      maxZoom={2}
+      fitViewOptions={{ padding: 0.25 }}
+      minZoom={0.3}
+      maxZoom={2.5}
       proOptions={{ hideAttribution: true }}
     >
       <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
@@ -148,7 +148,6 @@ function WorkflowCanvasInner({
         nodeStrokeWidth={3}
         zoomable
         pannable
-        className="!bg-background/80 !border-border"
       />
     </ReactFlow>
     </div>

@@ -65,10 +65,6 @@ function toFlowEdge(graphEdge: GraphEdge): Edge {
     targetHandle: graphEdge.targetHandle,
     type: 'smoothstep',
     animated: true,
-    style: {
-      strokeWidth: 2,
-      stroke: '#3b82f6',
-    },
   };
 }
 

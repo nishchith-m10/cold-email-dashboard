@@ -16,16 +16,16 @@ const LAYOUT_CONFIG = {
   /** Direction: left-to-right */
   rankdir: 'LR' as const,
   /** Horizontal separation between nodes */
-  nodesep: 60,
+  nodesep: 100,
   /** Vertical separation between ranks */
-  ranksep: 120,
+  ranksep: 180,
   /** Default node width for layout computation */
-  nodeWidth: 200,
+  nodeWidth: 240,
   /** Default node height for layout computation */
   nodeHeight: 80,
   /** Margin type */
-  marginx: 20,
-  marginy: 20,
+  marginx: 40,
+  marginy: 40,
 };
 
 /**
