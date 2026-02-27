@@ -74,7 +74,16 @@ export function withWorkspaceAuth(handler: WorkspaceHandler) {
     }
 
     // 3. Validate membership / super admin (pass URL for audit logging)
-    const { hasAccess, role } = await canAccessWorkspace(userId, workspaceId, req.url);
+    const { hasAccess, role, frozen } = await canAccessWorkspace(userId, workspaceId, req.url);
+
+    // D8-001: Specific error for frozen workspaces
+    if (frozen) {
+      return NextResponse.json(
+        { error: 'Workspace is frozen', workspace_id: workspaceId, reason: 'This workspace has been suspended by an administrator' },
+        { status: 403, headers: API_HEADERS },
+      );
+    }
+
     if (!hasAccess) {
       return NextResponse.json(
         { error: 'Access denied to this workspace', workspace_id: workspaceId },

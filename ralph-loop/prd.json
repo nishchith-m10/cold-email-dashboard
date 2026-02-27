@@ -1,79 +1,108 @@
 {
   "project": "cold-email-dashboard",
-  "branchName": "ralph/domain7-sandbox-engine",
-  "description": "Domain 7: Sandbox Engine — is_test columns, aggregate query isolation, SSE polling optimization, real EventDB implementation, LOCAL_MODE sidecar fallback",
+  "branchName": "ralph/domain8-watchdog-admin-compliance",
+  "description": "Domain 8: Watchdog, Admin & Compliance — Make kill switch actually block dashboard/ingestion/sidecar, audit log immutability, login audit via Clerk webhooks, watchdog persistence + scheduling, control-plane graceful degradation",
   "userStories": [
     {
-      "id": "D7-001",
-      "title": "Add is_test column to email_events and llm_usage",
-      "description": "Create migration adding is_test BOOLEAN NOT NULL DEFAULT false to email_events and llm_usage. Add partial indexes on is_test WHERE is_test = true. Update Zod schemas and INSERT logic in events and cost-events API routes.",
+      "id": "D8-001",
+      "title": "Block dashboard access for frozen workspaces",
+      "description": "In canAccessWorkspace() (lib/api-workspace-guard.ts), after verifying workspace membership, also query workspace.status. If status === 'frozen', return { hasAccess: false, frozenReason }. Add workspace status to the CacheEntry interface so the frozen check is cached (60s TTL). Update validateWorkspaceAccess() to return a 403 with { error: 'Workspace is frozen', reason } when the workspace is frozen. This ensures the kill switch actually blocks dashboard API access.",
       "acceptanceCriteria": [
-        "Migration adds is_test column to email_events with default false",
-        "Migration adds is_test column to llm_usage with default false",
-        "Partial indexes created for efficient filtering",
-        "Events API route Zod schema includes optional is_test boolean",
-        "Events API route INSERT includes is_test field",
-        "Cost-events API route Zod schema includes optional is_test boolean",
-        "Cost-events API route INSERT includes is_test field"
+        "canAccessWorkspace queries workspaces.status after membership check",
+        "If status === 'frozen', returns { hasAccess: false } regardless of membership",
+        "CacheEntry includes workspaceStatus field",
+        "validateWorkspaceAccess returns 403 with 'Workspace is frozen' error for frozen workspaces",
+        "Super admins can still access frozen workspaces (bypass frozen check)",
+        "clearAllWorkspaceEntries still works to invalidate cache on freeze/unfreeze"
       ],
-      "passes": true,
-      "notes": "Committed at 7f46df7"
+      "passes": false
     },
     {
-      "id": "D7-002",
-      "title": "Filter is_test events from dashboard aggregate queries",
-      "description": "Add .eq('is_test', false) to buildEventFilters helper and standalone queries (stepBreakdown, llmUsage, clickEvents) in the dashboard aggregate route so sandbox test data never appears in production dashboards.",
+      "id": "D8-002",
+      "title": "Block event and cost ingestion for frozen workspaces",
+      "description": "In /api/events/route.ts and /api/cost-events/route.ts, after resolving the workspace via resolveWebhookAuth, check workspace status. If frozen, return 403 with { error: 'Workspace is frozen — events rejected' }. Use a lightweight cached check (in-memory Map with 60s TTL) to avoid per-request DB queries. This prevents frozen workspaces from continuing to receive email events and accumulate LLM costs.",
       "acceptanceCriteria": [
-        "buildEventFilters adds .eq('is_test', false) — covers 8 count queries",
-        "stepBreakdownQuery filters is_test=false",
-        "llmUsageQuery filters is_test=false",
-        "clickEventsQuery filters is_test=false",
-        "daily_stats excluded (materialized view, no test data)"
+        "Events route checks workspace frozen status after resolveWebhookAuth",
+        "Cost-events route checks workspace frozen status after resolveWebhookAuth",
+        "Both return 403 with frozen error message when workspace is frozen",
+        "Frozen status is cached with 60s TTL to avoid per-request DB lookups",
+        "Cache is separate from access guard cache (ingestion routes use webhook auth, not Clerk auth)"
       ],
-      "passes": true,
-      "notes": "Committed at fd3e095"
+      "passes": false
     },
     {
-      "id": "D7-003",
-      "title": "Optimize SSE polling interval",
-      "description": "Reduce execution-stream SSE polling from 500ms to 2000ms. Adjust MAX_POLLS from 600 to 150 (maintains 5-min timeout). Adjust heartbeat from every 10 polls to every 5 polls.",
+      "id": "D8-003",
+      "title": "Freeze invalidates webhook token and signals sidecar",
+      "description": "In freeze-workspace POST handler, after revoking API keys: (1) Set the workspace webhook_token to null in the workspaces table, immediately blocking all event/cost submissions at the auth layer. (2) Look up the sidecar URL from genesis.partition_registry and send a best-effort DEACTIVATE_ALL_WORKFLOWS POST to the sidecar. If sidecar is unreachable, log warning but still complete the freeze. In unfreeze DELETE handler: (1) Generate a new webhook token (crypto.randomUUID). (2) Optionally signal sidecar to reactivate. Log the new token in audit for the admin to update n8n.",
       "acceptanceCriteria": [
-        "Poll interval changed from 500ms to 2000ms",
-        "MAX_POLLS changed from 600 to 150 (same 5-min timeout)",
-        "Heartbeat changed from every 10 polls (5s) to every 5 polls (10s)",
-        "4x reduction in DB query volume"
+        "Freeze POST sets workspaces.webhook_token = null for the frozen workspace",
+        "Freeze POST looks up sidecar URL from genesis.partition_registry",
+        "Freeze POST sends best-effort DEACTIVATE_ALL_WORKFLOWS to sidecar (try-catch, log on failure)",
+        "Unfreeze DELETE generates a new webhook_token via crypto.randomUUID()",
+        "Unfreeze DELETE updates workspaces.webhook_token with the new token",
+        "New token is included in the unfreeze response and logged to governance_audit_log metadata",
+        "Sidecar communication failure does NOT block the freeze/unfreeze operation"
       ],
-      "passes": true,
-      "notes": "Committed at 72769df"
+      "passes": false
     },
     {
-      "id": "D7-004",
-      "title": "Replace mock EventDB stubs with real Supabase implementations",
-      "description": "In createEventDB(), replace stub methods (insertEvent, getEventsByExecution, isExecutionComplete, getExecutionWorkspace, getAllEvents, listTestRuns, countRunsInWindow) with real genesis schema queries.",
+      "id": "D8-004",
+      "title": "Audit log append-only enforcement",
+      "description": "Create a migration that adds a Postgres trigger on governance_audit_log preventing UPDATE and DELETE operations. The trigger function raises an exception with a clear message. This provides database-level immutability regardless of which role issues the query.",
       "acceptanceCriteria": [
-        "insertEvent INSERTs into genesis.workflow_execution_events",
-        "getEventsByExecution SELECTs with optional afterId cursor",
-        "isExecutionComplete checks for _execution_complete node_type",
-        "getExecutionWorkspace returns workspace_id from first event",
-        "getAllEvents returns all events ordered by created_at",
-        "listTestRuns SELECTs from sandbox_test_runs with limit",
-        "countRunsInWindow uses COUNT with timestamp window"
+        "Migration creates prevent_audit_modification() trigger function",
+        "Trigger fires BEFORE UPDATE OR DELETE on governance_audit_log",
+        "Trigger raises exception: 'Audit log entries cannot be modified or deleted'",
+        "INSERT operations are unaffected",
+        "Migration uses IF NOT EXISTS / OR REPLACE for idempotency"
       ],
-      "passes": true,
-      "notes": "Committed at 777a39c"
+      "passes": false
     },
     {
-      "id": "D7-005",
-      "title": "Add LOCAL_MODE fallback for sidecar URL lookup",
-      "description": "In createWorkspaceLookupDB().getSidecarUrl(), when partition_registry returns no URL, fall back to LOCAL_SIDECAR_URL or LOCAL_N8N_URL environment variables for local development.",
+      "id": "D8-005",
+      "title": "Login audit via Clerk webhooks",
+      "description": "Create app/api/webhooks/clerk/route.ts handling Clerk webhook events. Handle session.created (login tracking), user.created, and user.deleted events. Verify webhook signature using the svix library (Clerk uses Svix). Create migration for login_audit table with columns: id (uuid PK), user_id, email, event_type, ip_address, user_agent, metadata (jsonb), created_at. Insert login records on session.created events.",
       "acceptanceCriteria": [
-        "getSidecarUrl tries partition_registry first",
-        "Falls back to LOCAL_SIDECAR_URL env var if no registry entry",
-        "Falls back to LOCAL_N8N_URL env var as secondary fallback",
-        "Returns null only if all sources exhausted"
+        "New route app/api/webhooks/clerk/route.ts exists",
+        "Route verifies Svix webhook signature from headers (svix-id, svix-timestamp, svix-signature)",
+        "Handles session.created event — inserts into login_audit",
+        "Handles user.created and user.deleted events — inserts into login_audit",
+        "Migration creates login_audit table with proper columns",
+        "Returns 200 on success, 400 on invalid signature, 400 on unhandled event type",
+        "Route is excluded from Clerk auth middleware (public webhook endpoint)"
       ],
-      "passes": true,
-      "notes": "Committed at 2e7bda6"
+      "passes": false
+    },
+    {
+      "id": "D8-006",
+      "title": "Watchdog persistence tables and SupabaseWatchdogDB",
+      "description": "Create migration for genesis.watchdog_runs table (id uuid PK, run_type text, workspace_ids text[], started_at timestamptz, completed_at timestamptz, total_drifts_found int, drifts_healed int, errors jsonb, status text) and genesis.watchdog_drifts table (id uuid PK, run_id uuid FK, workspace_id text, drift_type text, severity text, details jsonb, auto_healable boolean, healed boolean, healed_at timestamptz, healing_attempts int, created_at timestamptz). Create lib/genesis/phase43/supabase-watchdog-db.ts implementing the WatchdogDB interface with real Supabase queries.",
+      "acceptanceCriteria": [
+        "Migration creates genesis.watchdog_runs table with all specified columns",
+        "Migration creates genesis.watchdog_drifts table with FK to watchdog_runs",
+        "SupabaseWatchdogDB class implements WatchdogDB interface",
+        "storeDrift() inserts into genesis.watchdog_drifts",
+        "storeRun() inserts/updates genesis.watchdog_runs",
+        "getDrifts() queries genesis.watchdog_drifts with optional filters",
+        "getRecentRuns() queries genesis.watchdog_runs ordered by started_at desc"
+      ],
+      "passes": false
+    },
+    {
+      "id": "D8-007",
+      "title": "Watchdog admin scheduling route and control-plane graceful degradation",
+      "description": "Create GET /api/admin/watchdog/run route that triggers a full watchdog cycle. The route is protected with super admin auth. It instantiates StateReconciliationWatchdog with SupabaseWatchdogDB, runs detectDriftsForAll() for all active workspaces, persists the run results, and returns a summary. Also update control-plane/src/services/watchdog.ts to wrap Redis/BullMQ initialization in try-catch — if Redis is unavailable, the watchdog still runs health checks but logs critical alerts instead of queuing reboot jobs, and reports isHealthy()=false with degradation reason.",
+      "acceptanceCriteria": [
+        "New route app/api/admin/watchdog/run/route.ts exists",
+        "Route requires super admin auth (SUPER_ADMIN_IDS check)",
+        "Route uses SupabaseWatchdogDB from D8-006",
+        "Route creates a watchdog_runs record, runs drift detection, updates run with results",
+        "Route returns JSON summary: { run_id, drifts_found, workspaces_scanned, duration_ms }",
+        "Control-plane watchdog wraps Redis/BullMQ init in try-catch",
+        "If Redis unavailable, watchdog starts in degraded mode (health checks only, no reboot queue)",
+        "Degraded watchdog reports isHealthy()=false with reason"
+      ],
+      "passes": false
     }
   ]
 }
