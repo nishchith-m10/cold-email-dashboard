@@ -81,7 +81,10 @@ function WorkflowCanvasInner({
     () => ({
       type: 'smoothstep' as const,
       animated: true,
-      style: { strokeWidth: 2 },
+      style: {
+        strokeWidth: 2,
+        stroke: 'hsl(var(--primary))',
+      },
     }),
     [],
   );
