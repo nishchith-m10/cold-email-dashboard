@@ -1,3 +1,5 @@
+const { withSentryConfig } = require('@sentry/nextjs');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -94,4 +96,11 @@ const nextConfig = {
   }),
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  // Suppress source map upload warnings in CI (no auth token)
+  silent: true,
+  
+  // Disable source map upload (free tier — no org auth token)
+  disableServerWebpackPlugin: true,
+  disableClientWebpackPlugin: true,
+});
