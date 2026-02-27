@@ -47,14 +47,40 @@ function clearExpiredCache() {
 }
 
 /**
+ * D5-005: Async, non-blocking audit log for super admin workspace access.
+ * Uses fire-and-forget pattern so the request is never delayed.
+ */
+function logSuperAdminAccess(userId: string, workspaceId: string, requestUrl?: string) {
+  // Intentionally not awaited — fire-and-forget
+  supabase
+    .from('governance_audit_log')
+    .insert({
+      actor_id: userId,
+      action: 'super_admin_access',
+      workspace_id: workspaceId,
+      metadata: { endpoint: requestUrl || 'unknown' },
+    })
+    .then(({ error }) => {
+      if (error) {
+        /* eslint-disable-next-line no-console */
+        console.error('[D5-005] Failed to log super admin access:', error.message);
+      }
+    });
+}
+
+/**
  * Check if a user has access to a workspace
+ * @param requestUrl - Optional URL string for audit logging of super admin access
  */
 export async function canAccessWorkspace(
   userId: string,
-  workspaceId: string
+  workspaceId: string,
+  requestUrl?: string,
 ): Promise<{ hasAccess: boolean; role?: string }> {
   // Super admin bypass
   if (SUPER_ADMIN_IDS.includes(userId)) {
+    // D5-005: Fire-and-forget audit log for super admin access
+    logSuperAdminAccess(userId, workspaceId, requestUrl);
     return { hasAccess: true, role: 'super_admin' };
   }
 
@@ -146,8 +172,8 @@ export async function validateWorkspaceAccess(
     );
   }
 
-  // Validate access
-  const { hasAccess, role } = await canAccessWorkspace(userId, workspaceId);
+  // Validate access (pass request URL for super admin audit logging)
+  const { hasAccess, role } = await canAccessWorkspace(userId, workspaceId, request.url);
   
   if (!hasAccess) {
     return NextResponse.json(
