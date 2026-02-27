@@ -56,6 +56,11 @@ function WorkflowCanvasInner({
 }: WorkflowCanvasProps) {
   const { fitView } = useReactFlow();
   const { theme } = useTheme();
+  
+  // Determine colorMode: check DOM for 'light' class for more reliable detection
+  const colorMode = typeof document !== 'undefined' && document.documentElement.classList.contains('light') 
+    ? 'light' 
+    : 'dark';
 
   // Fit view when nodes change (initial load / workflow switch)
   useEffect(() => {
@@ -85,10 +90,10 @@ function WorkflowCanvasInner({
       animated: true,
       style: {
         strokeWidth: 2.5,
-        stroke: theme === 'light' ? '#2563eb' : '#60a5fa',
+        stroke: colorMode === 'light' ? '#2563eb' : '#60a5fa',
       },
     }),
-    [theme],
+    [colorMode],
   );
 
   // Handle node click — forward the node to parent
@@ -133,7 +138,7 @@ function WorkflowCanvasInner({
       nodesDraggable={true}
       nodesConnectable={false}
       elementsSelectable={true}
-      colorMode={theme === 'light' ? 'light' : 'dark'}
+      colorMode={colorMode}
       fitView
       fitViewOptions={{ padding: 0.25 }}
       minZoom={0.3}
