@@ -306,3 +306,92 @@ Branch: `ralph/domain6-onboarding-wizard`
   - daily_stats is a materialized view — doesn't need is_test filter since test data never enters it
   - (supabaseAdmin as any).schema('genesis') pattern required for genesis tables not in auto-generated types
 ---
+
+## 2026-02-12 - D8-001
+- Added frozen workspace check to canAccessWorkspace() in api-workspace-guard.ts
+- CacheEntry now includes workspaceStatus field (cached with 60s TTL)
+- If workspace.status === 'frozen', returns { hasAccess: false, frozen: true }
+- Super admins bypass frozen check
+- validateWorkspaceAccess() returns 403 with 'Workspace is frozen' for frozen workspaces
+- Also updated workspace-middleware.ts withWorkspaceAuth() for consistency
+- **Files modified:** lib/api-workspace-guard.ts, lib/workspace-middleware.ts
+- **Learnings:**
+  - canAccessWorkspace return type is backward compatible — callers destructure { hasAccess, role } and ignore extra fields
+  - workspace-middleware.ts has its own withWorkspaceAuth() that also calls canAccessWorkspace — must be kept in sync
+---
+
+## 2026-02-12 - D8-002
+- Created lib/workspace-frozen-cache.ts — lightweight cached frozen check for webhook-auth contexts
+- Added isWorkspaceFrozen() check to /api/events and /api/cost-events after resolveWebhookAuth
+- Returns 403 'Workspace is frozen — events rejected' / 'cost events rejected'
+- Separate cache from access guard (ingestion routes use webhook tokens, not Clerk auth)
+- **Files created:** lib/workspace-frozen-cache.ts
+- **Files modified:** app/api/events/route.ts, app/api/cost-events/route.ts
+- **Learnings:**
+  - Event/cost routes authenticate via webhook tokens, not Clerk — need separate frozen cache
+  - invalidateFrozenCache() exported for freeze/unfreeze route to call
+---
+
+## 2026-02-12 - D8-003
+- Freeze POST now sets workspaces.webhook_token = null (immediately blocks event auth)
+- Freeze POST looks up sidecar URL from genesis.partition_registry and sends DEACTIVATE_ALL_WORKFLOWS
+- Sidecar communication is best-effort (try-catch, 10s timeout, logs warning on failure)
+- Unfreeze DELETE generates new webhook_token via crypto.randomUUID()
+- New token included in unfreeze response and logged to governance_audit_log metadata
+- Both handlers call invalidateFrozenCache() for D8-002 cache coherence
+- **Files modified:** app/api/admin/freeze-workspace/route.ts
+- **Learnings:**
+  - webhook_token is a column on the workspaces table (used by resolveWebhookAuth Strategy 1)
+  - (supabase as any).schema('genesis') pattern for partition_registry lookup
+  - AbortController with setTimeout for HTTP timeout on sidecar calls
+---
+
+## 2026-02-12 - D8-004
+- Created migration with BEFORE UPDATE OR DELETE trigger on governance_audit_log
+- Trigger function prevent_audit_modification() raises exception to block modifications
+- Uses CREATE OR REPLACE and DROP TRIGGER IF EXISTS for idempotency
+- **Files created:** supabase/migrations/20260301_domain8_audit_log_immutable.sql
+---
+
+## 2026-02-12 - D8-005
+- Extended existing Clerk webhook handler to handle session.created (login audit)
+- Added ClerkSessionEvent type, login_audit inserts for session.created, user.created, user.deleted
+- Created login_audit table migration with indexes on user_id, created_at, event_type
+- Added /api/webhooks/clerk to public routes in proxy.ts (Svix auth, not Clerk auth)
+- Graceful: login_audit inserts use try-catch in case table doesn't exist yet
+- **Files created:** supabase/migrations/20260301_domain8_login_audit.sql
+- **Files modified:** app/api/webhooks/clerk/route.ts, proxy.ts
+- **Learnings:**
+  - Clerk webhook handler already existed for user sync — extend, don't recreate
+  - svix package already installed (^1.82.0)
+  - proxy.ts has isPublicRoute matcher — webhook endpoints must be listed there
+---
+
+## 2026-02-12 - D8-006
+- Created genesis.watchdog_runs and genesis.watchdog_drifts tables with indexes
+- Implemented SupabaseWatchdogDB class implementing WatchdogDB interface
+- Drift detection methods return [] (detection logic is in StateReconciliationWatchdog, not DB layer)
+- storeDrift, updateDrift, createRun, updateRun, getRecentRuns all use genesis schema
+- Added getDriftsForRun() and getDrifts() with optional filters for querying
+- Temp ID pattern (temp-${Date.now()}) for createRun failures — skips updateRun silently
+- **Files created:** supabase/migrations/20260301_domain8_watchdog_persistence.sql, lib/genesis/phase43/supabase-watchdog-db.ts
+- **Learnings:**
+  - WatchdogDB interface has detection methods AND storage methods — DB impl focuses on storage
+  - getTypedSupabaseAdmin() + .schema('genesis') pattern for genesis tables
+  - WatchdogRunResult has many fields — map DB rows carefully with defaults
+---
+
+## 2026-02-12 - D8-007
+- Created GET /api/admin/watchdog/run — admin-only route to trigger watchdog cycle
+- Route gets all active workspaces, creates run record, checks for missing_partition drifts
+- Returns JSON summary: { run_id, drifts_found, workspaces_scanned, duration_ms }
+- Updated control-plane/src/services/watchdog.ts for Redis graceful degradation
+- Redis/BullMQ init wrapped in try-catch — degraded mode logs critical alerts instead of queuing reboots
+- isHealthy() returns false in degraded mode; getHealth() surfaces degraded_reason
+- **Files created:** app/api/admin/watchdog/run/route.ts
+- **Files modified:** control-plane/src/services/watchdog.ts
+- **Learnings:**
+  - Full drift detection requires N8nClient (external API) — admin route does DB-level checks only
+  - Control-plane watchdog executes reboot actions via BullMQ queue — without Redis, must degrade gracefully
+  - ServiceHealth type may need extending for degraded fields (cast as ServiceHealth for now)
+---

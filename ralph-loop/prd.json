@@ -15,7 +15,8 @@
         "Super admins can still access frozen workspaces (bypass frozen check)",
         "clearAllWorkspaceEntries still works to invalidate cache on freeze/unfreeze"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Committed at e3b9060"
     },
     {
       "id": "D8-002",
@@ -28,7 +29,8 @@
         "Frozen status is cached with 60s TTL to avoid per-request DB lookups",
         "Cache is separate from access guard cache (ingestion routes use webhook auth, not Clerk auth)"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Committed at 9a61d05"
     },
     {
       "id": "D8-003",
@@ -43,7 +45,8 @@
         "New token is included in the unfreeze response and logged to governance_audit_log metadata",
         "Sidecar communication failure does NOT block the freeze/unfreeze operation"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Committed at 1827f02"
     },
     {
       "id": "D8-004",
@@ -56,7 +59,8 @@
         "INSERT operations are unaffected",
         "Migration uses IF NOT EXISTS / OR REPLACE for idempotency"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Committed at c606c26"
     },
     {
       "id": "D8-005",
@@ -71,7 +75,8 @@
         "Returns 200 on success, 400 on invalid signature, 400 on unhandled event type",
         "Route is excluded from Clerk auth middleware (public webhook endpoint)"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Committed at ffdc92a"
     },
     {
       "id": "D8-006",
@@ -86,7 +91,8 @@
         "getDrifts() queries genesis.watchdog_drifts with optional filters",
         "getRecentRuns() queries genesis.watchdog_runs ordered by started_at desc"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Committed at eef84b6"
     },
     {
       "id": "D8-007",
@@ -102,7 +108,8 @@
         "If Redis unavailable, watchdog starts in degraded mode (health checks only, no reboot queue)",
         "Degraded watchdog reports isHealthy()=false with reason"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "Committed at 1285050"
     }
   ]
 }
