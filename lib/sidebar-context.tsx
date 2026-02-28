@@ -31,11 +31,9 @@ const EXPANDED_WIDTH = 200;
 const COLLAPSED_WIDTH = 48;
 
 export function SidebarProvider({ children }: SidebarProviderProps) {
-  const [mode, setModeState] = useState<SidebarMode>(() => {
-    if (typeof window === 'undefined') return 'expanded'; // SSR default
-    const saved = localStorage.getItem('sidebar_mode');
-    return (saved === 'collapsed' || saved === 'hover') ? saved : 'expanded';
-  });
+  // Always start with 'expanded' — matches the SSR default so hydration never mismatches.
+  // The useEffect below loads the real saved preference after hydration.
+  const [mode, setModeState] = useState<SidebarMode>('expanded');
   const [isHovered, setIsHovered] = useState(false);
   const [mounted, setMounted] = useState(false);
 
