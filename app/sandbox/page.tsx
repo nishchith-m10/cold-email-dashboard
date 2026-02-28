@@ -121,8 +121,23 @@ type BottomTab = 'timeline' | 'history' | 'metrics';
 /* ---------- Main page ---------- */
 
 export default function SandboxPage() {
-  const { workspaceId } = useWorkspace();
+  const { workspaceId, isSuperAdmin } = useWorkspace();
   const { canWrite } = usePermissions();
+
+  // Sandbox is restricted to super_admin only
+  if (!isSuperAdmin) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center space-y-3">
+          <AlertCircle className="h-12 w-12 text-text-secondary mx-auto" />
+          <h2 className="text-lg font-semibold text-text-primary">Access Restricted</h2>
+          <p className="text-sm text-text-secondary">
+            The Sandbox is only available to super administrators.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Campaign management — groups represent user-facing campaigns, individual
   // campaign records are sequences (Email 1, Email 2, etc.) within each group.

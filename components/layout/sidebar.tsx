@@ -44,12 +44,15 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Contacts', href: '/contacts', icon: Users },
   { label: 'Sequences', href: '/sequences', icon: Mail },
   { label: 'Onboarding', href: '/onboarding', icon: Rocket },
-  { label: 'Sandbox', href: '/sandbox', icon: SquareTerminal },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
 const ADMIN_ITEMS: NavItem[] = [
   { label: 'Admin', href: '/admin', icon: Shield, requiresAdmin: true },
+];
+
+const SUPER_ADMIN_ITEMS: NavItem[] = [
+  { label: 'Sandbox', href: '/sandbox', icon: SquareTerminal },
 ];
 
 export function Sidebar() {
@@ -194,6 +197,46 @@ export function Sidebar() {
           <>
             <div className="my-3 border-t border-border" />
             {ADMIN_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              const fullHref = `${item.href}${query}`;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={fullHref}
+                  className={cn(
+                    'flex items-center h-10 rounded-lg transition-colors',
+                    isExpanded ? 'gap-3 px-3' : 'justify-center overflow-hidden',
+                    isActive ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary hover:bg-accent-primary/5'
+                  )}
+                  title={!isExpanded ? item.label : undefined}
+                >
+                  <Icon className="h-5 w-5 flex-shrink-0" />
+                  <AnimatePresence mode="wait">
+                    {isExpanded && (
+                      <motion.span
+                        className="text-sm font-medium whitespace-nowrap will-change-transform"
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -8 }}
+                        transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
+                      >
+                        {item.label}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </Link>
+              );
+            })}
+          </>
+        )}
+
+        {/* Super Admin Section (Sandbox) */}
+        {isSuperAdmin && (
+          <>
+            <div className="my-3 border-t border-border" />
+            {SUPER_ADMIN_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               const fullHref = `${item.href}${query}`;
