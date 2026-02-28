@@ -160,7 +160,7 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
   return (
     <div className="space-y-4">
       {/* All fields in one container */}
-      <div className="border border-border rounded-lg divide-y divide-border">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
         {/* Company Website */}
         <div className="p-4">
           <label className="block text-sm font-medium text-text-primary mb-1.5">
@@ -171,7 +171,7 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
             value={website}
             onChange={(e) => { setWebsite(e.target.value); persistDraft({ website: e.target.value }); }}
             placeholder="https://acmecorp.com"
-            className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+            className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
           />
         </div>
 
@@ -186,7 +186,7 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
               value={companyName}
               onChange={(e) => { setCompanyName(e.target.value); persistDraft({ companyName: e.target.value }); }}
               placeholder="Acme Corporation"
-              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
           </div>
           <div>
@@ -198,7 +198,7 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
               value={industry}
               onChange={(e) => { setIndustry(e.target.value); persistDraft({ industry: e.target.value }); }}
               placeholder="SaaS, FinTech, Healthcare…"
-              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
           </div>
         </div>
@@ -213,7 +213,7 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
             value={logoUrl}
             onChange={(e) => { setLogoUrl(e.target.value); persistDraft({ logoUrl: e.target.value }); }}
             placeholder="https://yourcompany.com/logo.png"
-            className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+            className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
           />
           <p className="mt-1 text-xs text-text-secondary">
             Used in email signatures (if applicable)
@@ -230,7 +230,7 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
             onChange={(e) => { setDescription(e.target.value); persistDraft({ description: e.target.value }); }}
             placeholder="Describe what your company does, who you serve, and what makes you different…"
             rows={4}
-            className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all resize-none"
+            className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all resize-none"
           />
           <p className="mt-1 text-xs text-text-secondary">
             Used to personalize your outreach emails. The more detail, the better.

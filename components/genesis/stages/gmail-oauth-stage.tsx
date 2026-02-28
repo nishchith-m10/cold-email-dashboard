@@ -71,7 +71,7 @@ export function GmailOAuthStage({ workspaceId, onComplete }: StageComponentProps
 
   return (
     <div className="space-y-5">
-      <div className="border border-border rounded-lg divide-y divide-border">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
         {/* Connection Status */}
         {isConnected ? (
           <div className="p-4 bg-accent-success/5 rounded-t-lg">

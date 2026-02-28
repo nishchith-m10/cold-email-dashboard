@@ -172,7 +172,7 @@ export function RegionSelectionStage({ workspaceId, onComplete }: StageComponent
 
   return (
     <div className="space-y-5">
-      <div className="border border-border rounded-lg divide-y divide-border">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
         {/* Region Selection */}
         <div className="p-4">
           <label className="block text-sm font-semibold text-text-primary mb-3">

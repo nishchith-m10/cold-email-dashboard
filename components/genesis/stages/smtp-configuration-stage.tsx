@@ -241,7 +241,7 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
 
   return (
     <div className="space-y-5">
-      <div className="border border-border rounded-lg divide-y divide-border">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
         {/* Status Badge */}
         {isConfigured && (
           <div className="p-4 bg-accent-success/5">
@@ -266,7 +266,7 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
               value={form.smtp_host}
               onChange={(e) => handleChange('smtp_host', e.target.value)}
               placeholder="smtp.example.com"
-              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
+              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-secondary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
             />
           </div>
           <div>
@@ -316,7 +316,7 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
             value={form.smtp_username}
             onChange={(e) => handleChange('smtp_username', e.target.value)}
             placeholder="your-email@example.com or username"
-            className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
+            className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-secondary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
           />
         </div>
 
@@ -331,7 +331,7 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
               value={form.smtp_password}
               onChange={(e) => handleChange('smtp_password', e.target.value)}
               placeholder={isConfigured ? '••••••••' : 'App password or SMTP password'}
-              className="w-full h-10 px-3 pr-10 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
+              className="w-full h-10 px-3 pr-10 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-secondary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
             />
             <button
               type="button"
@@ -354,7 +354,7 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
               value={form.smtp_from_name}
               onChange={(e) => handleChange('smtp_from_name', e.target.value)}
               placeholder="John Doe"
-              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
+              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-secondary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
             />
           </div>
           <div>
@@ -366,7 +366,7 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
               value={form.smtp_from_email}
               onChange={(e) => handleChange('smtp_from_email', e.target.value)}
               placeholder="outreach@example.com"
-              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
+              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-secondary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
             />
           </div>
         </div>

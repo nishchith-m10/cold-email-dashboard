@@ -138,7 +138,7 @@ export function IgnitionStage({ workspaceId, onComplete }: StageComponentProps) 
     <div className="space-y-6">
       {!isProvisioning && !allComplete && (
         <>
-          <div className="border border-border rounded-lg divide-y divide-border">
+          <div className="bg-surface border border-border rounded-lg divide-y divide-border">
             {/* What Will Happen */}
             <div className="p-4">
               <h4 className="text-sm font-semibold text-text-primary mb-4">
