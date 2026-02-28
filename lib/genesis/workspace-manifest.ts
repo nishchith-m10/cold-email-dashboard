@@ -78,6 +78,9 @@ export interface WorkspaceManifest {
   workspace_slug: string;
   workspace_name: string;     // Raw workspace name (display name)
   company_name: string;       // Brand name for email copy
+  company_description: string; // 1-2 sentence company pitch (YOUR_COMPANY_DESCRIPTION)
+  service_descriptions: string[]; // Up to 4 service offerings (YOUR_SERVICE_*_DESCRIPTION)
+  target_industry: string;    // Target market/industry (YOUR_TARGET_INDUSTRY)
 
   // Infrastructure
   region: string;             // DO region slug, e.g. 'nyc3'
@@ -252,7 +255,7 @@ export async function buildManifestFromOnboarding(
   const { data: brandRow } = await supabaseAdmin
     .schema('genesis')
     .from('brand_vault')
-    .select('company_name, website')
+    .select('company_name, website, description, industry, products')
     .eq('workspace_id', workspaceId)
     .maybeSingle();
 
@@ -260,6 +263,11 @@ export async function buildManifestFromOnboarding(
   if (!companyName) {
     errors.push({ field: 'company_name', message: 'Not found in brand_vault or workspaces — complete the Brand Info stage' });
   }
+
+  // New placeholder fields (D-004): sourced from brand_vault
+  const companyDescription: string = brandRow?.description || '';
+  const targetIndustry: string = brandRow?.industry || '';
+  const serviceDescriptions: string[] = (brandRow?.products as string[]) || [];
 
   // ── 3. Infrastructure (region / size) ────────────────────────────────
   const { data: infraRow } = await supabaseAdmin
@@ -426,6 +434,9 @@ export async function buildManifestFromOnboarding(
     workspace_slug: wsRow.slug,
     workspace_name: wsRow.name,
     company_name: companyName,
+    company_description: companyDescription,
+    service_descriptions: serviceDescriptions,
+    target_industry: targetIndustry,
     region: regionSlug,
     droplet_size: dropletSize as WorkspaceManifest['droplet_size'],
     email_provider: emailProvider,
