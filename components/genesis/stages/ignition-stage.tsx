@@ -138,31 +138,32 @@ export function IgnitionStage({ workspaceId, onComplete }: StageComponentProps) 
     <div className="space-y-6">
       {!isProvisioning && !allComplete && (
         <>
-          {/* What Will Happen */}
-          <div className="bg-surface-elevated border border-border rounded-lg p-5">
-            <h4 className="text-sm font-semibold text-text-primary mb-4">
-              What happens next:
-            </h4>
-            
-            <ul className="space-y-3">
-              {provisioningSteps.map((step, i) => (
-                <li key={step.key} className="flex items-center gap-3 text-sm text-text-secondary">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-surface border border-border flex items-center justify-center text-xs font-bold text-text-secondary">
-                    {i + 1}
-                  </div>
-                  {step.label}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <div className="border border-border rounded-lg divide-y divide-border">
+            {/* What Will Happen */}
+            <div className="p-4">
+              <h4 className="text-sm font-semibold text-text-primary mb-4">
+                What happens next:
+              </h4>
+              <ul className="space-y-3">
+                {provisioningSteps.map((step, i) => (
+                  <li key={step.key} className="flex items-center gap-3 text-sm text-text-secondary">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-surface border border-border flex items-center justify-center text-xs font-bold text-text-secondary">
+                      {i + 1}
+                    </div>
+                    {step.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          {/* Time Estimate */}
-          <div className="bg-accent-primary/5 border border-accent-primary/20 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-sm">
-              <Zap className="h-4 w-4 text-accent-primary" />
-              <span className="font-medium text-text-primary">
-                Estimated time: ~60 seconds
-              </span>
+            {/* Time Estimate */}
+            <div className="p-4">
+              <div className="flex items-center gap-2 text-sm">
+                <Zap className="h-4 w-4 text-accent-primary" />
+                <span className="font-medium text-text-primary">
+                  Estimated time: ~60 seconds
+                </span>
+              </div>
             </div>
           </div>
 
