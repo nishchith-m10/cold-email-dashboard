@@ -10,7 +10,7 @@ import { SequenceList } from '@/components/sequences/sequence-list';
 import { SequenceDetail } from '@/components/sequences/sequence-detail';
 import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { DateRangePickerMobile } from '@/components/dashboard/date-range-picker-mobile';
-import { toISODate, daysAgo } from '@/lib/utils';
+import { cn, toISODate, daysAgo } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { SequenceListResponse, SequenceDetail as SequenceDetailType } from '@/lib/dashboard-types';
 import { Mail, ArrowLeft, Filter } from 'lucide-react';
@@ -117,13 +117,13 @@ export default function SequencesPage() {
               )}
             </AnimatePresence>
             
-            <div className="w-10 h-10 rounded-lg bg-accent-primary/10 flex items-center justify-center">
-              <Mail className="w-5 h-5 md:w-6 md:h-6 text-accent-primary" />
+            <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center">
+              <Mail className="h-4 w-4 text-accent-primary" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-text-primary">Sequences</h1>
-              <p className="text-text-secondary text-xs md:text-sm hidden sm:block">
-                Preview your email drafts
+              <h1 className="text-lg font-semibold text-text-primary">Sequences</h1>
+              <p className="text-xs text-text-secondary hidden sm:block">
+                Email sequence performance and analytics
               </p>
             </div>
           </div>
@@ -137,28 +137,38 @@ export default function SequencesPage() {
             />
             <div className="flex items-center gap-2">
               <span className="text-sm text-text-secondary">Items:</span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <select
-                      value={limit}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setLimit(value === 'all' ? 'all' : Number(value) as LimitOption);
-                      }}
-                      className="px-3 py-1.5 text-sm bg-surface-elevated border border-border-primary rounded-md text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
-                    >
-                      {LIMIT_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option === 'all' ? 'All' : option}
-                        </option>
-                      ))}
-                    </select>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>Number of sequences to display per page</p>
-                  </TooltipContent>
-                </Tooltip>
+              <TooltipProvider delayDuration={300}>
+                <div className="flex items-center gap-1">
+                  {LIMIT_OPTIONS.map((opt) => {
+                    const tooltipText =
+                      opt === 'all'
+                        ? 'Show all sequences (may be slow for large datasets)'
+                        : `Show ${opt === 1000 ? '1,000' : opt} sequences`;
+                    return (
+                      <Tooltip key={String(opt)}>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => setLimit(opt)}
+                            className={cn(
+                              'px-2.5 py-1 text-sm rounded-md transition-colors',
+                              limit === opt
+                                ? 'bg-accent-primary text-white font-medium'
+                                : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
+                            )}
+                          >
+                            {opt === 'all' ? 'All' : opt}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="bottom"
+                          className="bg-surface-elevated border border-border text-text-primary text-xs rounded-lg px-3 py-2 shadow-2xl"
+                        >
+                          <p>{tooltipText}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
               </TooltipProvider>
             </div>
           </div>
