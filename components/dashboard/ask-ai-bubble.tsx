@@ -89,7 +89,7 @@ export function AskAIBubble({ visible, onHide }: AskAIBubbleProps) {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.15 }}
-              className="fixed bottom-24 right-6 z-[200] w-72 rounded-xl bg-surface border border-border shadow-2xl p-4 space-y-3"
+              className="fixed bottom-20 right-6 z-[200] w-72 rounded-xl bg-surface border border-border shadow-2xl p-4 space-y-3"
             >
               <p className="text-sm text-text-primary font-medium">Hide AI Assistant?</p>
               <p className="text-xs text-text-secondary">
@@ -123,7 +123,7 @@ export function AskAIBubble({ visible, onHide }: AskAIBubbleProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed bottom-20 right-6 z-[198] w-[420px] max-h-[min(600px,calc(100vh-8rem))] rounded-2xl bg-surface border border-border shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-[3.5rem] right-6 z-[198] w-[420px] max-h-[min(600px,calc(100vh-8rem))] rounded-2xl bg-surface border border-border shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Popup Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-elevated/50">
@@ -158,7 +158,7 @@ export function AskAIBubble({ visible, onHide }: AskAIBubbleProps) {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 400, damping: 20, delay: 0.3 }}
         className={cn(
-          'fixed bottom-6 right-6 z-[197] h-12 w-12 rounded-full',
+          'fixed bottom-6 right-6 z-[197] h-10 w-10 rounded-full',
           'bg-accent-primary hover:bg-accent-primary/90 shadow-lg hover:shadow-xl',
           'flex items-center justify-center transition-shadow',
           'focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:ring-offset-2 focus:ring-offset-background',
@@ -177,7 +177,7 @@ export function AskAIBubble({ visible, onHide }: AskAIBubbleProps) {
               exit={{ rotate: 90, opacity: 0 }}
               transition={{ duration: 0.1 }}
             >
-              <X className="h-5 w-5 text-white" />
+              <X className="h-4 w-4 text-white" />
             </motion.div>
           ) : (
             <motion.div
@@ -187,7 +187,7 @@ export function AskAIBubble({ visible, onHide }: AskAIBubbleProps) {
               exit={{ rotate: -90, opacity: 0 }}
               transition={{ duration: 0.1 }}
             >
-              <MessageCircle className="h-5 w-5 text-white" />
+              <MessageCircle className="h-4 w-4 text-white" />
             </motion.div>
           )}
         </AnimatePresence>
