@@ -28,10 +28,10 @@ interface NavTab {
 // Simplified 5-tab navigation - no redundancy with drawer
 const tabs: NavTab[] = [
   {
-    href: '/',
+    href: '/dashboard',
     icon: LayoutDashboard,
     label: 'Home',
-    matchPath: '/',
+    matchPath: '/dashboard',
   },
   {
     href: '/analytics',

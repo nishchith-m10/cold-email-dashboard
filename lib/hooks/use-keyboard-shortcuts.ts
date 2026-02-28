@@ -47,7 +47,7 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions = {}) 
     {
       key: 'd',
       alt: true,
-      action: () => router.push('/'),
+      action: () => router.push('/dashboard'),
       description: 'Go to dashboard',
     },
     // Go to Contacts (G then C)

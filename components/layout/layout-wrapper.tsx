@@ -20,6 +20,9 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
   
   // Auth pages should render without the dashboard shell
   const isAuthPage = pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up');
+  
+  // Landing pages (/, /pricing, /demo) render without the dashboard shell
+  const isLandingPage = pathname === '/' || pathname === '/pricing' || pathname === '/demo';
 
   useEffect(() => {
     if (isAuthPage) {
@@ -28,6 +31,11 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
       document.documentElement.classList.remove('light');
     }
   }, [isAuthPage]);
+  
+  if (isLandingPage) {
+    // Landing pages render completely standalone — own layout handles Navbar + Footer
+    return <>{children}</>;
+  }
   
   if (isAuthPage) {
     // Auth pages get minimal wrapper - just the background
