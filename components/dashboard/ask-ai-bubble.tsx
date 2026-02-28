@@ -158,7 +158,7 @@ export function AskAIBubble({ visible, onHide }: AskAIBubbleProps) {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 400, damping: 20, delay: 0.3 }}
         className={cn(
-          'fixed bottom-6 right-6 z-[197] h-10 w-10 rounded-full',
+          'fixed bottom-6 right-6 z-[197] h-8 w-8 rounded-full',
           'bg-accent-primary hover:bg-accent-primary/90 shadow-lg hover:shadow-xl',
           'flex items-center justify-center transition-shadow',
           'focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:ring-offset-2 focus:ring-offset-background',
