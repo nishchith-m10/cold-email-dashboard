@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getNotificationIcon, getNotificationColor, formatTimeAgo } from '@/lib/notification-utils';
+import { CampaignQuickCreate } from '@/components/layout/campaign-quick-create';
 
 interface TopNavbarProps {
   onCommandOpen?: () => void;
@@ -107,6 +108,11 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
             >
               <Search className="h-5 w-5 text-text-secondary hover:text-text-primary transition-colors" />
             </Button>
+          )}
+
+          {/* Campaign Quick Create — between search and contributors */}
+          {!isOnboarding && (
+            <CampaignQuickCreate />
           )}
 
           {/* Share - Using UserPlus like original */}
