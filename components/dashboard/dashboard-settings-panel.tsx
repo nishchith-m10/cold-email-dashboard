@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DashboardWidget } from '@/hooks/use-dashboard-layout';
 import { cn } from '@/lib/utils';
 import { createPortal } from 'react-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 interface DashboardSettingsPanelProps {
   open: boolean;
@@ -22,6 +22,15 @@ interface DashboardSettingsPanelProps {
   onToggleWidget: (widgetId: string) => void;
   onResetLayout: () => void;
 }
+
+const WIDGET_GROUP_LABELS: Record<string, string> = {
+  metrics: 'Metrics',
+  'chart-row': 'Charts',
+  table: 'Tables',
+  ai: 'AI Tools',
+};
+
+const WIDGET_GROUP_ORDER = ['metrics', 'chart-row', 'table', 'ai'];
 
 export function DashboardSettingsPanel({
   open,
@@ -36,11 +45,34 @@ export function DashboardSettingsPanel({
     setMounted(true);
   }, []);
 
+  // Escape key handler
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      onOpenChange(false);
+    }
+  }, [onOpenChange]);
+
+  useEffect(() => {
+    if (open) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [open, handleKeyDown]);
+
   const handleReset = () => {
     if (confirm('Reset dashboard to default layout? This will clear your customizations.')) {
       onResetLayout();
     }
   };
+
+  // Group widgets by type
+  const groupedWidgets = WIDGET_GROUP_ORDER
+    .map((groupType) => ({
+      type: groupType,
+      label: WIDGET_GROUP_LABELS[groupType] || groupType,
+      items: widgets.filter((w) => w.type === groupType),
+    }))
+    .filter((group) => group.items.length > 0);
 
   if (!mounted) return null;
 
@@ -83,49 +115,51 @@ export function DashboardSettingsPanel({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-              {/* Widget Visibility */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium text-text-primary">
-                  Widget Visibility
-                </h3>
-                <p className="text-xs text-text-secondary">
-                  Toggle which widgets appear on your dashboard
-                </p>
+              {/* Widget Visibility — Grouped by type */}
+              {groupedWidgets.map((group) => (
+                <div key={group.type} className="space-y-3">
+                  <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                    {group.label}
+                  </h3>
 
-                <div className="space-y-2">
-                  {widgets.map((widget) => (
-                    <div
-                      key={widget.id}
-                      className={cn(
-                        'flex items-center gap-3 p-3 rounded-lg transition-colors',
-                        widget.canHide
-                          ? 'hover:bg-surface-elevated'
-                          : 'opacity-50 cursor-not-allowed'
-                      )}
-                    >
-                      <Checkbox
-                        checked={widget.visible}
-                        onCheckedChange={() => {
-                          if (widget.canHide) {
-                            onToggleWidget(widget.id);
-                          }
-                        }}
-                        disabled={!widget.canHide}
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-text-primary">
-                          {widget.label}
-                        </p>
-                        {!widget.canHide && (
-                          <p className="text-xs text-text-secondary">
-                            Required widget
-                          </p>
+                  <div className="space-y-1">
+                    {group.items.map((widget) => (
+                      <div
+                        key={widget.id}
+                        className={cn(
+                          'flex items-center gap-3 p-3 rounded-lg transition-colors',
+                          widget.canHide
+                            ? 'hover:bg-surface-elevated cursor-pointer'
+                            : 'opacity-50 cursor-not-allowed'
                         )}
+                        onClick={() => {
+                          if (widget.canHide) onToggleWidget(widget.id);
+                        }}
+                      >
+                        <Checkbox
+                          checked={widget.visible}
+                          onCheckedChange={() => {
+                            if (widget.canHide) {
+                              onToggleWidget(widget.id);
+                            }
+                          }}
+                          disabled={!widget.canHide}
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-text-primary">
+                            {widget.label}
+                          </p>
+                          {!widget.canHide && (
+                            <p className="text-xs text-text-secondary">
+                              Required widget
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ))}
 
               {/* Instructions */}
               <div className="p-4 rounded-lg bg-surface-elevated border border-border">
@@ -144,7 +178,7 @@ export function DashboardSettingsPanel({
               <Button
                 variant="ghost"
                 onClick={handleReset}
-                className="w-full gap-2"
+                className="w-full gap-2 text-accent-danger hover:text-accent-danger hover:bg-accent-danger/10"
               >
                 <RotateCcw className="h-4 w-4" />
                 Reset to Default Layout

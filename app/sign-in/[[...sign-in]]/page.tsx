@@ -4,6 +4,8 @@ import Image from 'next/image';
 
 export default function SignInPage() {
   return (
+    <>
+    <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.remove('light');localStorage.setItem('theme','dark');" }} />
     <div className="min-h-screen flex bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Left side - Branding (60%) - Desktop only */}
       <div className="hidden lg:flex lg:w-3/5 p-12 flex-col justify-between relative overflow-hidden border-r border-slate-800">
@@ -121,5 +123,6 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
