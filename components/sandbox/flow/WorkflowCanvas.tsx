@@ -86,6 +86,7 @@ function WorkflowCanvasInner({
   // Color palette for light/dark modes
   const colors = useMemo(() => ({
     light: {
+      bg: '#f8fafc',           // light background
       edge: '#1e40af',         // darker blue for light bg
       control: '#1f2937',      // dark gray for buttons
       controlBg: '#ffffff',    // white bg
@@ -95,6 +96,7 @@ function WorkflowCanvasInner({
       minimapNode: '#1e40af',  // darker blue for mini nodes
     },
     dark: {
+      bg: '#0a0a0b',           // dark background
       edge: '#60a5fa',         // lighter blue for dark bg
       control: '#fafafa',      // off-white for buttons
       controlBg: '#1f2937',    // dark gray bg
@@ -152,7 +154,11 @@ function WorkflowCanvasInner({
   }
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
+    <div style={{ 
+      width: '100%', 
+      height: '100%',
+      backgroundColor: currentColors.bg,
+    }}>
     <ReactFlow
       nodes={nodesWithStatus}
       edges={edges}
@@ -175,6 +181,7 @@ function WorkflowCanvasInner({
         style={{
           backgroundColor: currentColors.controlBg,
           border: `1px solid ${currentColors.controlBorder}`,
+          borderRadius: '8px',
         }}
       />
       <MiniMap
