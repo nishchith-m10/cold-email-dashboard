@@ -15,6 +15,10 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
+  // Landing / marketing pages — publicly visible
+  '/',
+  '/pricing',
+  '/demo',
   // API routes that need external access (n8n webhooks, tracking pixels)
   '/api/events',
   '/api/cost-events',
