@@ -11,9 +11,14 @@ import { SequenceDetail } from '@/components/sequences/sequence-detail';
 import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { DateRangePickerMobile } from '@/components/dashboard/date-range-picker-mobile';
 import { cn, toISODate, daysAgo } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { SequenceListResponse, SequenceDetail as SequenceDetailType } from '@/lib/dashboard-types';
-import { Mail, ArrowLeft, Filter } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Mail, ArrowLeft, Filter, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BottomSheet } from '@/components/mobile';
 
@@ -135,42 +140,42 @@ export default function SequencesPage() {
               endDate={endDate}
               onDateChange={handleDateChange}
             />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-text-secondary">Items:</span>
-              <TooltipProvider delayDuration={300}>
-                <div className="flex items-center gap-1">
-                  {LIMIT_OPTIONS.map((opt) => {
-                    const tooltipText =
-                      opt === 'all'
-                        ? 'Show all sequences (may be slow for large datasets)'
-                        : `Show ${opt === 1000 ? '1,000' : opt} sequences`;
-                    return (
-                      <Tooltip key={String(opt)}>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => setLimit(opt)}
-                            className={cn(
-                              'px-2.5 py-1 text-sm rounded-md transition-colors',
-                              limit === opt
-                                ? 'bg-accent-primary text-white font-medium'
-                                : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
-                            )}
-                          >
-                            {opt === 'all' ? 'All' : opt}
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent
-                          side="bottom"
-                          className="bg-surface-elevated border border-border text-text-primary text-xs rounded-lg px-3 py-2 shadow-2xl"
-                        >
-                          <p>{tooltipText}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  })}
-                </div>
-              </TooltipProvider>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-sm font-normal">
+                  Items
+                  {limit !== 50 && (
+                    <span className="text-text-secondary">· {limit === 'all' ? 'All' : limit}</span>
+                  )}
+                  <ChevronDown className="h-3.5 w-3.5 text-text-secondary" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="bg-surface-elevated border border-border rounded-lg shadow-2xl p-1 min-w-[210px]"
+              >
+                {LIMIT_OPTIONS.map((opt) => {
+                  const label = opt === 'all' ? 'All' : String(opt);
+                  const description =
+                    opt === 'all'
+                      ? 'Show all sequences (may be slow)'
+                      : `Show ${opt === 1000 ? '1,000' : opt} sequences`;
+                  return (
+                    <DropdownMenuItem
+                      key={String(opt)}
+                      onSelect={() => setLimit(opt)}
+                      className={cn(
+                        'flex flex-col items-start gap-0.5 py-2 cursor-pointer',
+                        limit === opt && 'text-accent-primary'
+                      )}
+                    >
+                      <span className="font-medium text-sm">{label}</span>
+                      <span className="text-xs text-text-secondary">{description}</span>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Mobile: Filter button + Date picker */}
