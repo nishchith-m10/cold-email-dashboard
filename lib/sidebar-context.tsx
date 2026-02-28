@@ -18,6 +18,7 @@ interface SidebarContextValue {
   setIsHovered: (hovered: boolean) => void;
   isExpanded: boolean; // Computed based on mode and hover
   effectiveWidth: number; // Width in pixels
+  mounted: boolean; // True after sidebar mode has been loaded from storage/server
 }
 
 const SidebarContext = createContext<SidebarContextValue | undefined>(undefined);
@@ -30,9 +31,13 @@ const EXPANDED_WIDTH = 200;
 const COLLAPSED_WIDTH = 48;
 
 export function SidebarProvider({ children }: SidebarProviderProps) {
-  const [mode, setModeState] = useState<SidebarMode>('expanded');
+  const [mode, setModeState] = useState<SidebarMode>(() => {
+    if (typeof window === 'undefined') return 'expanded'; // SSR default
+    const saved = localStorage.getItem('sidebar_mode');
+    return (saved === 'collapsed' || saved === 'hover') ? saved : 'expanded';
+  });
   const [isHovered, setIsHovered] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   // Load mode from server settings or localStorage on mount
   useEffect(() => {
@@ -44,7 +49,7 @@ export function SidebarProvider({ children }: SidebarProviderProps) {
           const data = await response.json();
           if (data.sidebar_mode && ['expanded', 'collapsed', 'hover'].includes(data.sidebar_mode)) {
             setModeState(data.sidebar_mode);
-            setIsLoading(false);
+            setMounted(true);
             return;
           }
         }
@@ -57,7 +62,7 @@ export function SidebarProvider({ children }: SidebarProviderProps) {
       if (saved && ['expanded', 'collapsed', 'hover'].includes(saved)) {
         setModeState(saved as SidebarMode);
       }
-      setIsLoading(false);
+      setMounted(true);
     };
 
     loadSidebarMode();
@@ -94,7 +99,8 @@ export function SidebarProvider({ children }: SidebarProviderProps) {
         isHovered, 
         setIsHovered,
         isExpanded,
-        effectiveWidth
+        effectiveWidth,
+        mounted
       }}
     >
       {children}
