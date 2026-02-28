@@ -10,7 +10,8 @@ import { SequenceList } from '@/components/sequences/sequence-list';
 import { SequenceDetail } from '@/components/sequences/sequence-detail';
 import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { DateRangePickerMobile } from '@/components/dashboard/date-range-picker-mobile';
-import { toISODate, daysAgo, cn } from '@/lib/utils';
+import { toISODate, daysAgo } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { SequenceListResponse, SequenceDetail as SequenceDetailType } from '@/lib/dashboard-types';
 import { Mail, ArrowLeft, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -134,25 +135,31 @@ export default function SequencesPage() {
               endDate={endDate}
               onDateChange={handleDateChange}
             />
-            <div className="flex items-center gap-2" role="group" aria-label="Items per page">
+            <div className="flex items-center gap-2">
               <span className="text-sm text-text-secondary">Items:</span>
-              <div className="flex items-center gap-1">
-                {LIMIT_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => setLimit(option)}
-                    aria-pressed={limit === option}
-                    className={cn(
-                      'px-3 py-1 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-accent-primary/50',
-                      limit === option
-                        ? 'bg-accent-primary text-white'
-                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-elevated'
-                    )}
-                  >
-                    {option === 'all' ? 'All' : option}
-                  </button>
-                ))}
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <select
+                      value={limit}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setLimit(value === 'all' ? 'all' : Number(value) as LimitOption);
+                      }}
+                      className="px-3 py-1.5 text-sm bg-surface-elevated border border-border-primary rounded-md text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
+                    >
+                      {LIMIT_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option === 'all' ? 'All' : option}
+                        </option>
+                      ))}
+                    </select>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Number of sequences to display per page</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
 
