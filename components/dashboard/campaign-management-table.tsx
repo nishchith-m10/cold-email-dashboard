@@ -465,6 +465,25 @@ export function CampaignManagementTable({
                                   {campaign.n8n_status === 'active' ? <><Pause className="mr-2 h-4 w-4" />Pause</> : <><Play className="mr-2 h-4 w-4" />Resume</>}
                                 </ContextMenuItem>
                                 <ContextMenuSeparator />
+                                <ContextMenuItem
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(campaign.id);
+                                    toast({
+                                      title: 'Copied',
+                                      description: 'Campaign ID copied to clipboard',
+                                    });
+                                  }}
+                                >
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  Copy Campaign ID
+                                  <ContextMenuShortcut>Ctrl+C</ContextMenuShortcut>
+                                </ContextMenuItem>
+                                <ContextMenuItem disabled>
+                                  <CopyPlus className="mr-2 h-4 w-4" />
+                                  Duplicate
+                                  <ContextMenuShortcut className="text-text-secondary text-[10px]">Coming Soon</ContextMenuShortcut>
+                                </ContextMenuItem>
+                                <ContextMenuSeparator />
                                 {canManage && (
                                   <ContextMenuItem
                                     destructive
