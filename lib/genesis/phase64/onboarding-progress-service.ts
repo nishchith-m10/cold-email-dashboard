@@ -114,8 +114,8 @@ export const STAGE_INFO: Record<OnboardingStage, StageInfo> = {
   },
   apify_selection: {
     stage: 'apify_selection',
-    title: 'Scraping Service',
-    description: 'Choose: BYO Apify or Managed Service',
+    title: 'Google Reviews Scraper',
+    description: 'Apify fetches 1–3 star Google Maps reviews to personalise your outreach',
     estimatedDuration: 60,
     required: false,
   },
