@@ -136,7 +136,6 @@ export function Sidebar() {
       className={cn(
         'fixed left-0 top-12 h-[calc(100vh-3rem)] border-r border-border bg-surface flex flex-col z-40',
         'hidden md:flex', // Hide on mobile, show on desktop
-        'will-change-[width]', // GPU acceleration hint
       )}
       style={{ overflow: 'visible' }} // Allow dropdown to overflow
       initial={false}
@@ -144,8 +143,8 @@ export function Sidebar() {
         width: effectiveWidth,
       }}
       transition={{ 
-        duration: 0.15,
-        ease: [0.32, 0.72, 0, 1],
+        duration: 0.2,
+        ease: [0.4, 0, 0.2, 1],
         type: 'tween'
       }}
       onMouseEnter={handleMouseEnter}
@@ -170,19 +169,14 @@ export function Sidebar() {
               title={!isExpanded ? item.label : undefined}
             >
               <Icon className="h-5 w-5 flex-shrink-0" />
-              <AnimatePresence mode="wait">
-                {isExpanded && (
-                  <motion.span
-                    className="text-sm font-medium whitespace-nowrap will-change-transform"
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -8 }}
-                    transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
-                  >
-                    {item.label}
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              {isExpanded && (
+                <span
+                  className="text-sm font-medium whitespace-nowrap transition-opacity duration-200"
+                  style={{ opacity: isExpanded ? 1 : 0 }}
+                >
+                  {item.label}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -208,19 +202,14 @@ export function Sidebar() {
                   title={!isExpanded ? item.label : undefined}
                 >
                   <Icon className="h-5 w-5 flex-shrink-0" />
-                  <AnimatePresence mode="wait">
-                    {isExpanded && (
-                      <motion.span
-                        className="text-sm font-medium whitespace-nowrap will-change-transform"
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -8 }}
-                        transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
-                      >
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
+                  {isExpanded && (
+                    <span
+                      className="text-sm font-medium whitespace-nowrap transition-opacity duration-200"
+                      style={{ opacity: isExpanded ? 1 : 0 }}
+                    >
+                      {item.label}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -247,19 +236,14 @@ export function Sidebar() {
                   title={!isExpanded ? item.label : undefined}
                 >
                   <Icon className="h-5 w-5 flex-shrink-0" />
-                  <AnimatePresence mode="wait">
-                    {isExpanded && (
-                      <motion.span
-                        className="text-sm font-medium whitespace-nowrap will-change-transform"
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -8 }}
-                        transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
-                      >
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
+                  {isExpanded && (
+                    <span
+                      className="text-sm font-medium whitespace-nowrap transition-opacity duration-200"
+                      style={{ opacity: isExpanded ? 1 : 0 }}
+                    >
+                      {item.label}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -303,19 +287,14 @@ export function Sidebar() {
             title="Sidebar control"
           >
             <SidebarIcon className="h-5 w-5 flex-shrink-0" />
-            <AnimatePresence mode="wait">
-              {isExpanded && (
-                <motion.span
-                  className="text-sm font-medium whitespace-nowrap will-change-transform"
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
-                >
-                  Sidebar control
-                </motion.span>
-              )}
-            </AnimatePresence>
+            {isExpanded && (
+              <span
+                className="text-sm font-medium whitespace-nowrap transition-opacity duration-200"
+                style={{ opacity: isExpanded ? 1 : 0 }}
+              >
+                Sidebar control
+              </span>
+            )}
           </button>
 
           {/* Mode dropdown menu */}
