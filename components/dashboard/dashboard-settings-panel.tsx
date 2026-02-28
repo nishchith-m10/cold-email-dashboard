@@ -154,6 +154,11 @@ export function DashboardSettingsPanel({
                               Required widget
                             </p>
                           )}
+                          {widget.id === 'ask-ai' && (
+                            <p className="text-xs text-text-secondary">
+                              Floating chat bubble in bottom-right corner
+                            </p>
+                          )}
                         </div>
                       </div>
                     ))}
