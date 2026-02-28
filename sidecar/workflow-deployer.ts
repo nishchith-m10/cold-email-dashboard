@@ -73,6 +73,17 @@ export interface WorkflowDeploymentRequest {
   relevance_ai_studio_id?: string;
   relevance_ai_project_id?: string;
 
+  // --- Content placeholders (D-004) ---
+  company_description?: string;
+  service_1_description?: string;
+  service_2_description?: string;
+  service_3_description?: string;
+  service_4_description?: string;
+  target_industry?: string;
+  leads_sheet_name?: string;
+  calendly_link_1?: string;
+  calendly_link_2?: string;
+
   // --- Escape hatch: any additional YOUR_* replacements ---
   extra_placeholders?: Record<string, string>;
 }
@@ -345,6 +356,17 @@ export class WorkflowDeployer {
       YOUR_RELEVANCE_AI_BASE_URL:   request.relevance_ai_base_url ?? '',
       YOUR_RELEVANCE_AI_STUDIO_ID:  request.relevance_ai_studio_id ?? '',
       YOUR_RELEVANCE_AI_PROJECT_ID: request.relevance_ai_project_id ?? '',
+
+      // Content placeholders (D-004)
+      YOUR_COMPANY_DESCRIPTION:   request.company_description ?? '',
+      YOUR_SERVICE_1_DESCRIPTION: request.service_1_description ?? '',
+      YOUR_SERVICE_2_DESCRIPTION: request.service_2_description ?? '',
+      YOUR_SERVICE_3_DESCRIPTION: request.service_3_description ?? '',
+      YOUR_SERVICE_4_DESCRIPTION: request.service_4_description ?? '',
+      YOUR_TARGET_INDUSTRY:       request.target_industry ?? '',
+      YOUR_LEADS_SHEET_NAME:      request.leads_sheet_name ?? 'Leads',
+      YOUR_CALENDLY_LINK_1:       request.calendly_link_1 ?? '',
+      YOUR_CALENDLY_LINK_2:       request.calendly_link_2 ?? '',
 
       // Merge any caller-supplied extras
       ...(request.extra_placeholders ?? {}),

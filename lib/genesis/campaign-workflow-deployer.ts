@@ -163,6 +163,45 @@ export async function deployForCampaign(
         console.warn(`[campaign-deployer] Could not fetch webhook_token for workspace ${config.workspace_id}, using global fallback`);
       }
 
+      // D-004: Fetch brand info for content placeholders
+      let companyDescription = '';
+      let serviceDescriptions: string[] = [];
+      let targetIndustry = '';
+      try {
+        const { data: brandRow } = await supabaseAdmin
+          .schema('genesis')
+          .from('brand_vault')
+          .select('description, industry, products')
+          .eq('workspace_id', config.workspace_id)
+          .maybeSingle();
+        if (brandRow) {
+          companyDescription = brandRow.description || '';
+          targetIndustry = brandRow.industry || '';
+          serviceDescriptions = (brandRow.products as string[]) || [];
+        }
+      } catch (err) {
+        console.warn(`[campaign-deployer] Could not fetch brand_vault for workspace ${config.workspace_id}`);
+      }
+
+      // D-004: Fetch calendly URL
+      let calendlyUrl = '';
+      try {
+        const { data: calendlyRow } = await supabaseAdmin
+          .schema('genesis')
+          .from('workspace_credentials')
+          .select('booking_url')
+          .eq('workspace_id', config.workspace_id)
+          .eq('credential_type', 'calendly_url')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (calendlyRow?.booking_url) {
+          calendlyUrl = calendlyRow.booking_url;
+        }
+      } catch (err) {
+        console.warn(`[campaign-deployer] Could not fetch calendly URL for workspace ${config.workspace_id}`);
+      }
+
       const variableMap: Record<string, string> = {
         YOUR_WORKSPACE_ID: config.workspace_id,
         YOUR_WORKSPACE_SLUG: config.workspace_slug,
@@ -172,6 +211,16 @@ export async function deployForCampaign(
         YOUR_CAMPAIGN_GROUP_ID: config.campaign_group_id ?? config.workspace_id,
         YOUR_LEADS_TABLE: `genesis.leads_p_${config.workspace_slug}`,
         YOUR_WEBHOOK_TOKEN: webhookToken,
+        // Content placeholders (D-004)
+        YOUR_COMPANY_DESCRIPTION:   companyDescription,
+        YOUR_SERVICE_1_DESCRIPTION: serviceDescriptions[0] ?? '',
+        YOUR_SERVICE_2_DESCRIPTION: serviceDescriptions[1] ?? '',
+        YOUR_SERVICE_3_DESCRIPTION: serviceDescriptions[2] ?? '',
+        YOUR_SERVICE_4_DESCRIPTION: serviceDescriptions[3] ?? '',
+        YOUR_TARGET_INDUSTRY:       targetIndustry,
+        YOUR_LEADS_SHEET_NAME:      'Leads',
+        YOUR_CALENDLY_LINK_1:       calendlyUrl,
+        YOUR_CALENDLY_LINK_2:       '',
       };
 
       const result = await workflowDeployer.deploy(droplet_ip, {

@@ -731,6 +731,15 @@ export class IgnitionOrchestrator {
               YOUR_SENDER_EMAIL: senderEmail,
               YOUR_TEST_EMAIL:   config.variables?.YOUR_TEST_EMAIL ?? '',
 
+              // Company/service content placeholders (D-004)
+              YOUR_COMPANY_DESCRIPTION:    manifest?.company_description ?? '',
+              YOUR_SERVICE_1_DESCRIPTION:  manifest?.service_descriptions?.[0] ?? '',
+              YOUR_SERVICE_2_DESCRIPTION:  manifest?.service_descriptions?.[1] ?? '',
+              YOUR_SERVICE_3_DESCRIPTION:  manifest?.service_descriptions?.[2] ?? '',
+              YOUR_SERVICE_4_DESCRIPTION:  manifest?.service_descriptions?.[3] ?? '',
+              YOUR_TARGET_INDUSTRY:        manifest?.target_industry ?? '',
+              YOUR_LEADS_SHEET_NAME:       config.variables?.YOUR_LEADS_SHEET_NAME ?? 'Leads',
+
               // Calendly — sourced from manifest (no || '' escape)
               YOUR_CALENDLY_LINK_1: calendlyUrl1,
               YOUR_CALENDLY_LINK_2: config.variables?.YOUR_CALENDLY_LINK_2 ?? '',
