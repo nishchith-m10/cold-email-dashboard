@@ -31,6 +31,35 @@ const SALT_LENGTH = 32;
 // ENCRYPTION SERVICE
 // ============================================
 
+/**
+ * PHASE 64 ENCRYPTION — BROWSER / CLIENT TIER ONLY
+ *
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║  SECURITY FENCE — DO NOT USE FOR SIDECAR-BOUND CREDENTIALS             ║
+ * ╠══════════════════════════════════════════════════════════════════════════╣
+ * ║  This class uses PBKDF2 (100,000 iterations + random salt per value)    ║
+ * ║  to derive AES-256-GCM keys.  It is designed for storing per-workspace  ║
+ * ║  credentials collected during the browser onboarding flow               ║
+ * ║  (genesis.workspace_credentials table).                                 ║
+ * ║                                                                          ║
+ * ║  The Sidecar uses a DIFFERENT scheme (Phase 41):                        ║
+ * ║    key = SHA-256(masterKey + workspaceId)                               ║
+ * ║    See: lib/genesis/credential-vault.ts — encryptCredential()           ║
+ * ║                                                                          ║
+ * ║  The two schemes are INCOMPATIBLE.  Data encrypted with this class      ║
+ * ║  CANNOT be decrypted by the Sidecar and vice-versa.                     ║
+ * ║                                                                          ║
+ * ║  Rules:                                                                  ║
+ * ║    ✅ Use EncryptionService (this class) for:                           ║
+ * ║         genesis.workspace_credentials (onboarding vault, DB-only)       ║
+ * ║         genesis.brand_vault (website content, DB-only)                  ║
+ * ║    ✅ Use credential-vault.ts (Phase 41) for:                           ║
+ * ║         Any credential that will be sent to / readable by the Sidecar   ║
+ * ║         genesis.operator_credentials (operator API keys)                ║
+ * ║         Anything injected into n8n workflow JSON at ignition time        ║
+ * ║    ❌ NEVER encrypt Sidecar-transit data with EncryptionService         ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ */
 export class EncryptionService {
   private masterKey: Buffer;
   private previousMasterKey: Buffer | null;

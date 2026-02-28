@@ -349,16 +349,15 @@ POSTGRES_PASSWORD=${variables.postgresPassword}
 POSTGRES_DB=n8n
 N8N_ENCRYPTION_KEY=${variables.n8nEncryptionKey}
 TIMEZONE=${variables.timezone}
-DASHBOARD_URL=${process.env.NEXT_PUBLIC_APP_URL}
+DASHBOARD_URL=${process.env.NEXT_PUBLIC_APP_URL || process.env.BASE_URL || ''}
 PROVISIONING_TOKEN=${variables.provisioningToken}
 N8N_PASSWORD=${variables.postgresPassword}
 N8N_OWNER_EMAIL=admin@${variables.workspaceSlug}.io
 SIDECAR_IMAGE=${process.env.GENESIS_SIDECAR_IMAGE || 'upshot/genesis-sidecar:latest'}
 INTERNAL_ENCRYPTION_KEY=${process.env.INTERNAL_ENCRYPTION_KEY || ''}
-RELEVANCE_AI_API_KEY=${process.env.RELEVANCE_AI_API_KEY || ''}
-APIFY_API_KEY=${process.env.APIFY_API_KEY || ''}
-GOOGLE_CSE_API_KEY=${process.env.GOOGLE_CSE_API_KEY || ''}
-GOOGLE_CSE_CX=${process.env.GOOGLE_CSE_CX || ''}
+# Operator API keys are NOT baked into this file.
+# The Sidecar reads them on-demand from genesis.operator_credentials (AES-256-GCM encrypted).
+# See lib/genesis/operator-credential-store.ts
 EOF
 
 # === PHASE 3: WRITE DOCKER-COMPOSE ===
@@ -475,6 +474,21 @@ docker compose up -d
 echo "[CLOUD-INIT] All containers started."
 echo "[CLOUD-INIT] n8n: https://\${DROPLET_IP}.sslip.io"
 echo "[CLOUD-INIT] Sidecar: http://\${DROPLET_IP}:3100"
+
+# === PHASE 6: SIGNAL DASHBOARD ===
+# POST back to the dashboard so the orchestrator's handshake step receives a
+# definitive 'cloud-init complete' signal.  The PROVISIONING_TOKEN authenticates
+# this request — the dashboard validates it before transitioning workspace state.
+DASHBOARD_URL=$(grep '^DASHBOARD_URL=' /opt/genesis/.env | cut -d= -f2-)
+if [ -n "\$DASHBOARD_URL" ]; then
+    echo "[CLOUD-INIT] Notifying dashboard at \$DASHBOARD_URL ..."
+    curl -s -o /dev/null -w "[CLOUD-INIT] Dashboard replied: %{http_code}\n" \\
+        -X POST "\$DASHBOARD_URL/api/sidecar/cloud-init-complete" \\
+        -H "Content-Type: application/json" \\
+        -H "X-Provisioning-Token: \$PROVISIONING_TOKEN" \\
+        -d "{\"workspace_id\":\"${variables.workspaceId}\",\"workspace_slug\":\"${variables.workspaceSlug}\",\"droplet_ip\":\"\$DROPLET_IP\"}" \\
+        --max-time 15 || echo "[CLOUD-INIT] Dashboard ping failed (non-fatal)"
+fi
 
 echo "[CLOUD-INIT] Cloud-Init complete."
 `;

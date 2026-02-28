@@ -13,6 +13,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { canAccessWorkspace } from '@/lib/api-workspace-guard';
 import { EncryptionService } from '@/lib/genesis/phase64/credential-vault-service';
 import { IgnitionConfigAssembler } from '@/lib/genesis/ignition-config-assembler';
+import { buildManifestFromOnboarding, persistManifest, ManifestValidationError } from '@/lib/genesis/workspace-manifest';
 
 // Orchestrator + integration imports (lazy)
 import { IgnitionOrchestrator, MockDropletFactory, MockSidecarClient, MockWorkflowDeployer } from '@/lib/genesis/ignition-orchestrator';
@@ -108,6 +109,7 @@ function buildOrchestrator() {
     dropletFactory,
     sidecarClient,
     workflowDeployer,
+    { supabaseAdmin: supabaseAdmin! },
   );
 }
 
@@ -162,6 +164,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: assembleErr.message || 'Failed to assemble ignition config' },
         { status: 400 },
+      );
+    }
+
+    // 5.5 Build + validate + persist WorkspaceManifest (Flaw-3 fix)
+    //     This guarantees sender_email, calendly_url, webhook_token, etc. are
+    //     all present before the orchestrator touches the variable map.
+    let lockedManifest;
+    try {
+      const draft = await buildManifestFromOnboarding(
+        supabaseAdmin!,
+        workspaceId,
+        'global',  // operator provides AI/scraping keys
+      );
+      lockedManifest = await persistManifest(supabaseAdmin!, draft);
+      // Attach to config so the orchestrator derives variables from it
+      config = { ...config, manifest: lockedManifest };
+    } catch (manifestErr: any) {
+      if (manifestErr instanceof ManifestValidationError) {
+        return NextResponse.json(
+          {
+            error: 'Workspace manifest validation failed',
+            field_errors: manifestErr.fieldErrors,
+          },
+          { status: 422 },
+        );
+      }
+      // Non-validation errors (DB read failures etc.): fail hard
+      console.error('[Launch] Manifest build failed:', manifestErr);
+      return NextResponse.json(
+        { error: manifestErr.message || 'Failed to build workspace manifest' },
+        { status: 500 },
       );
     }
 
