@@ -81,16 +81,7 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
             <div className="w-6 h-6 rounded-lg overflow-hidden">
               <Image src="/logo.png" alt="Logo" width={24} height={24} className="w-full h-full object-cover" />
             </div>
-            <span 
-              className="text-sm font-semibold hidden lg:block"
-              style={{
-                backgroundImage: 'var(--logo-gradient)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                color: 'transparent',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
+            <span className="text-sm font-semibold hidden lg:block text-text-primary">
               Cold Email Analytics
             </span>
           </Link>
