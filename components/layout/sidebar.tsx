@@ -61,6 +61,15 @@ export function Sidebar() {
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const menuCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previousExpandedRef = useRef(isExpanded);
+  
+  // Track if we're collapsing (for instant animation)
+  const isCollapsing = previousExpandedRef.current && !isExpanded;
+  
+  // Update ref after render
+  useEffect(() => {
+    previousExpandedRef.current = isExpanded;
+  }, [isExpanded]);
   
   // Preserve URL search params (start, end, campaign) when navigating
   const searchParams = useSearchParams();
@@ -143,7 +152,7 @@ export function Sidebar() {
         width: effectiveWidth,
       }}
       transition={{ 
-        duration: 0.2,
+        duration: isCollapsing ? 0 : 0.2,
         ease: [0.4, 0, 0.2, 1],
         type: 'tween'
       }}
@@ -171,7 +180,10 @@ export function Sidebar() {
               <Icon className="h-5 w-5 flex-shrink-0" />
               {isExpanded && (
                 <span
-                  className="text-sm font-medium whitespace-nowrap transition-opacity duration-200"
+                  className={cn(
+                    "text-sm font-medium whitespace-nowrap",
+                    isCollapsing ? "" : "transition-opacity duration-200"
+                  )}
                   style={{ opacity: isExpanded ? 1 : 0 }}
                 >
                   {item.label}
@@ -204,7 +216,10 @@ export function Sidebar() {
                   <Icon className="h-5 w-5 flex-shrink-0" />
                   {isExpanded && (
                     <span
-                      className="text-sm font-medium whitespace-nowrap transition-opacity duration-200"
+                      className={cn(
+                        "text-sm font-medium whitespace-nowrap",
+                        isCollapsing ? "" : "transition-opacity duration-200"
+                      )}
                       style={{ opacity: isExpanded ? 1 : 0 }}
                     >
                       {item.label}
@@ -238,7 +253,10 @@ export function Sidebar() {
                   <Icon className="h-5 w-5 flex-shrink-0" />
                   {isExpanded && (
                     <span
-                      className="text-sm font-medium whitespace-nowrap transition-opacity duration-200"
+                      className={cn(
+                        "text-sm font-medium whitespace-nowrap",
+                        isCollapsing ? "" : "transition-opacity duration-200"
+                      )}
                       style={{ opacity: isExpanded ? 1 : 0 }}
                     >
                       {item.label}
@@ -289,7 +307,10 @@ export function Sidebar() {
             <SidebarIcon className="h-5 w-5 flex-shrink-0" />
             {isExpanded && (
               <span
-                className="text-sm font-medium whitespace-nowrap transition-opacity duration-200"
+                className={cn(
+                  "text-sm font-medium whitespace-nowrap",
+                  isCollapsing ? "" : "transition-opacity duration-200"
+                )}
                 style={{ opacity: isExpanded ? 1 : 0 }}
               >
                 Sidebar control
