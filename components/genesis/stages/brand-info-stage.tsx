@@ -175,32 +175,32 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
           />
         </div>
 
-        {/* Company Name + Industry */}
-        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1.5">
-              Company Name <span className="text-accent-danger">*</span>
-            </label>
-            <input
-              type="text"
-              value={companyName}
-              onChange={(e) => { setCompanyName(e.target.value); persistDraft({ companyName: e.target.value }); }}
-              placeholder="Acme Corporation"
-              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1.5">
-              Industry
-            </label>
-            <input
-              type="text"
-              value={industry}
-              onChange={(e) => { setIndustry(e.target.value); persistDraft({ industry: e.target.value }); }}
-              placeholder="SaaS, FinTech, Healthcare…"
-              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
-            />
-          </div>
+        {/* Company Name */}
+        <div className="p-4">
+          <label className="block text-sm font-medium text-text-primary mb-1.5">
+            Company Name <span className="text-accent-danger">*</span>
+          </label>
+          <input
+            type="text"
+            value={companyName}
+            onChange={(e) => { setCompanyName(e.target.value); persistDraft({ companyName: e.target.value }); }}
+            placeholder="Acme Corporation"
+            className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+          />
+        </div>
+
+        {/* Industry */}
+        <div className="p-4">
+          <label className="block text-sm font-medium text-text-primary mb-1.5">
+            Industry
+          </label>
+          <input
+            type="text"
+            value={industry}
+            onChange={(e) => { setIndustry(e.target.value); persistDraft({ industry: e.target.value }); }}
+            placeholder="SaaS, FinTech, Healthcare…"
+            className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+          />
         </div>
 
         {/* Logo URL */}

@@ -414,8 +414,11 @@ export function GenesisOnboardingWizard({
                       className="absolute left-[13px] top-[28px] bottom-0 w-px"
                       style={{
                         height: 'calc(100% - 16px)',
-                        background: 'linear-gradient(to bottom, transparent, var(--border) 30%, var(--border) 70%, transparent)',
-                        opacity: 0.5,
+                        backgroundImage: 'radial-gradient(circle, var(--border) 1px, transparent 1px)',
+                        backgroundSize: '2px 6px',
+                        backgroundRepeat: 'repeat-y',
+                        backgroundPosition: 'center',
+                        opacity: 0.6,
                       }}
                     />
                   )}
@@ -602,8 +605,11 @@ export function GenesisOnboardingWizard({
                     className="absolute left-[13px] top-[28px] bottom-0 w-px"
                     style={{
                       height: 'calc(100% - 16px)',
-                      background: 'linear-gradient(to bottom, transparent, var(--border) 30%, var(--border) 70%, transparent)',
-                      opacity: 0.5,
+                      backgroundImage: 'radial-gradient(circle, var(--border) 1px, transparent 1px)',
+                      backgroundSize: '2px 6px',
+                      backgroundRepeat: 'repeat-y',
+                      backgroundPosition: 'center',
+                      opacity: 0.6,
                     }}
                   />
                 )}
