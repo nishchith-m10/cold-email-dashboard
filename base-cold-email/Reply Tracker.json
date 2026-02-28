@@ -53,7 +53,8 @@
           "id": "YOUR_CREDENTIAL_GOOGLE_SHEETS_ID",
           "name": "YOUR_NAME Sheets account"
         }
-      }
+      },
+      "disabled": true
     },
     {
       "parameters": {
@@ -513,7 +514,8 @@
           "id": "YOUR_CREDENTIAL_GOOGLE_SHEETS_ID",
           "name": "YOUR_NAME Sheets account"
         }
-      }
+      },
+      "disabled": true
     },
     {
       "parameters": {

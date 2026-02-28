@@ -14,6 +14,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSidebar } from '@/lib/sidebar-context';
 import { useWorkspace } from '@/lib/workspace-context';
+import { SystemHealthBar } from '@/components/ui/system-health-bar';
 import { 
   LayoutDashboard,
   BarChart3,
@@ -43,7 +44,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Contacts', href: '/contacts', icon: Users },
   { label: 'Sequences', href: '/sequences', icon: Mail },
   { label: 'Onboarding', href: '/onboarding', icon: Rocket },
-  { label: 'Sandbox', href: '/sandbox', icon: SquareTerminal },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -51,22 +51,18 @@ const ADMIN_ITEMS: NavItem[] = [
   { label: 'Admin', href: '/admin', icon: Shield, requiresAdmin: true },
 ];
 
+const SUPER_ADMIN_ITEMS: NavItem[] = [
+  { label: 'Sandbox', href: '/sandbox', icon: SquareTerminal },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
   const { mode, setMode, isHovered, setIsHovered, isExpanded, effectiveWidth } = useSidebar();
   const { workspace, isSuperAdmin } = useWorkspace();
+  const workspaceId = workspace?.id;
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const menuCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  // Mark component as mounted after hydration
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  
-  // Only super admins see the Admin panel link
-  const isAdmin = isSuperAdmin;
   
   // Preserve URL search params (start, end, campaign) when navigating
   const searchParams = useSearchParams();
@@ -179,12 +175,9 @@ export function Sidebar() {
               <AnimatePresence mode="wait">
                 {isExpanded && (
                   <motion.span
-                    className={cn(
-                      "text-sm font-medium whitespace-nowrap will-change-transform",
-                      !mounted && "opacity-0"
-                    )}
+                    className="text-sm font-medium whitespace-nowrap will-change-transform"
                     initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: mounted ? 1 : 0, x: 0 }}
+                    animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -8 }}
                     transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
                   >
@@ -196,8 +189,8 @@ export function Sidebar() {
           );
         })}
 
-        {/* Admin Section */}
-        {isAdmin && (
+        {/* Admin Section (Super Admin only - Clerk IDs in SUPER_ADMIN_IDS) */}
+        {isSuperAdmin && (
           <>
             <div className="my-3 border-t border-border" />
             {ADMIN_ITEMS.map((item) => {
@@ -220,12 +213,48 @@ export function Sidebar() {
                   <AnimatePresence mode="wait">
                     {isExpanded && (
                       <motion.span
-                        className={cn(
-                          "text-sm font-medium whitespace-nowrap will-change-transform",
-                          !mounted && "opacity-0"
-                        )}
+                        className="text-sm font-medium whitespace-nowrap will-change-transform"
                         initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: mounted ? 1 : 0, x: 0 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -8 }}
+                        transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
+                      >
+                        {item.label}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </Link>
+              );
+            })}
+          </>
+        )}
+
+        {/* Sandbox Section (Super Admin only - Clerk IDs in SUPER_ADMIN_IDS) */}
+        {isSuperAdmin && (
+          <>
+            {SUPER_ADMIN_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              const fullHref = `${item.href}${query}`;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={fullHref}
+                  className={cn(
+                    'flex items-center h-10 rounded-lg transition-colors',
+                    isExpanded ? 'gap-3 px-3' : 'justify-center overflow-hidden',
+                    isActive ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary hover:bg-accent-primary/5'
+                  )}
+                  title={!isExpanded ? item.label : undefined}
+                >
+                  <Icon className="h-5 w-5 flex-shrink-0" />
+                  <AnimatePresence mode="wait">
+                    {isExpanded && (
+                      <motion.span
+                        className="text-sm font-medium whitespace-nowrap will-change-transform"
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -8 }}
                         transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
                       >
@@ -242,6 +271,11 @@ export function Sidebar() {
 
       {/* Footer Section */}
       <div className="px-2 py-3 space-y-2 flex-shrink-0">
+        {/* System Health - Compact in sidebar */}
+        {workspaceId && (
+          <SystemHealthBar workspaceId={workspaceId} compact={!isExpanded} className={isExpanded ? 'w-full' : ''} />
+        )}
+
         {/* Sidebar Display Mode Selector */}
         <div className="relative" ref={modeMenuRef}>
           <button
@@ -279,12 +313,9 @@ export function Sidebar() {
             <AnimatePresence mode="wait">
               {isExpanded && (
                 <motion.span
-                  className={cn(
-                    "text-sm font-medium whitespace-nowrap will-change-transform",
-                    !mounted && "opacity-0"
-                  )}
+                  className="text-sm font-medium whitespace-nowrap will-change-transform"
                   initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: mounted ? 1 : 0, x: 0 }}
+                  animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -8 }}
                   transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
                 >

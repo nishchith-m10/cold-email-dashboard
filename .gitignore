@@ -70,3 +70,6 @@ flowchart LR.md
 # coverage artifacts
 .coverage-partx/
 lcov-report/
+
+# === n8n production workflows ===
+cold-email-system/
