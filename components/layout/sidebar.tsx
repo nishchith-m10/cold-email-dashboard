@@ -232,8 +232,8 @@ export function Sidebar() {
           </>
         )}
 
-        {/* Super Admin Section (Sandbox) */}
-        {isSuperAdmin && (
+        {/* Sandbox Section (Admin+ only) */}
+        {isAdmin && (
           <>
             {SUPER_ADMIN_ITEMS.map((item) => {
               const Icon = item.icon;
