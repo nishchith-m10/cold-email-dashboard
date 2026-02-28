@@ -32,6 +32,11 @@ interface ClerkThemeProviderProps {
 
 export function ClerkThemeProvider({ children }: ClerkThemeProviderProps) {
   const pathname = usePathname();
+  
+  // Landing pages don't need Clerk at all — render children directly so an
+  // invalid / missing publishable key doesn't break the marketing site.
+  const isLandingPage = pathname === '/' || pathname === '/pricing' || pathname === '/demo';
+  
   // Auth pages always use dark Clerk theme regardless of user's saved preference
   const isAuthPage = pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up');
 
@@ -71,6 +76,11 @@ export function ClerkThemeProvider({ children }: ClerkThemeProviderProps) {
 
     return () => observer.disconnect();
   }, [isAuthPage]);
+
+  // Landing pages skip Clerk entirely — avoids crashes from missing keys
+  if (isLandingPage) {
+    return <>{children}</>;
+  }
 
   // Build appearance based on current theme
   const appearance = {
