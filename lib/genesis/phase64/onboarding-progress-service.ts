@@ -170,7 +170,7 @@ export class OnboardingProgressService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await this.supabase
-        .from('genesis.onboarding_progress')
+        .schema('genesis').from('onboarding_progress')
         .insert({
           workspace_id: workspaceId,
           current_stage: ONBOARDING_STAGES[0],
@@ -204,7 +204,7 @@ export class OnboardingProgressService {
   }> {
     try {
       const { data, error } = await this.supabase
-        .from('genesis.onboarding_progress')
+        .schema('genesis').from('onboarding_progress')
         .select('*')
         .eq('workspace_id', workspaceId)
         .single();
@@ -278,12 +278,31 @@ export class OnboardingProgressService {
       }
       
       const result = await this.supabase
-        .from('genesis.onboarding_progress')
+        .schema('genesis').from('onboarding_progress')
         .update(updateData)
         .eq('workspace_id', workspaceId);
 
       if (result.error) {
         return { success: false, error: result.error.message };
+      }
+
+      // Clear draft for the completed stage
+      try {
+        const { data: row } = await this.supabase
+          .schema('genesis').from('onboarding_progress')
+          .select('drafts')
+          .eq('workspace_id', workspaceId)
+          .single();
+        if (row?.drafts && typeof row.drafts === 'object' && stage in row.drafts) {
+          const updatedDrafts = { ...row.drafts };
+          delete updatedDrafts[stage];
+          await this.supabase
+            .schema('genesis').from('onboarding_progress')
+            .update({ drafts: updatedDrafts })
+            .eq('workspace_id', workspaceId);
+        }
+      } catch {
+        // Non-critical — draft cleanup is best-effort
       }
 
       return {
@@ -307,7 +326,7 @@ export class OnboardingProgressService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await this.supabase
-        .from('genesis.onboarding_progress')
+        .schema('genesis').from('onboarding_progress')
         .update({
           current_stage: stage,
           updated_at: new Date().toISOString(),
@@ -387,7 +406,7 @@ export class OnboardingProgressService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await this.supabase
-        .from('genesis.onboarding_progress')
+        .schema('genesis').from('onboarding_progress')
         .update({
           current_stage: ONBOARDING_STAGES[0],
           completed_stages: [],

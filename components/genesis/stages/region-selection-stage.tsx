@@ -8,8 +8,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Globe, Zap, Check, Loader2, MapPin, ChevronRight } from 'lucide-react';
+import { Globe, Zap, Check, Loader2, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 import type { DropletRegion, DropletSize } from '@/lib/genesis/phase64/credential-vault-types';
 
@@ -106,23 +107,40 @@ export function RegionSelectionStage({ workspaceId, onComplete }: StageComponent
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load existing configuration
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'region_selection');
+
+  // Load existing configuration, fall back to draft
   useEffect(() => {
+    let cancelled = false;
+
     async function loadConfig() {
       try {
         const res = await fetch(`/api/onboarding/infrastructure?workspace_id=${workspaceId}`);
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
-          if (data.region) setSelectedRegion(data.region);
-          if (data.size) setSelectedSize(data.size);
+          if (data.region) {
+            setSelectedRegion(data.region);
+            if (data.size) setSelectedSize(data.size);
+          } else if (draft) {
+            if (draft.region) setSelectedRegion(draft.region as DropletRegion);
+            if (draft.size) setSelectedSize(draft.size as DropletSize);
+          }
         }
       } catch (err) {
         console.error('Failed to load config:', err);
+        if (!cancelled && draft) {
+          if (draft.region) setSelectedRegion(draft.region as DropletRegion);
+          if (draft.size) setSelectedSize(draft.size as DropletSize);
+        }
       }
     }
 
-    loadConfig();
-  }, [workspaceId]);
+    if (!isDraftLoading) {
+      loadConfig();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleContinue = async () => {
     setIsSaving(true);
@@ -153,18 +171,18 @@ export function RegionSelectionStage({ workspaceId, onComplete }: StageComponent
   };
 
   return (
-    <div className="space-y-6">
-      {/* Region Selection */}
-      <div>
-        <label className="block text-sm font-semibold text-text-primary mb-3">
-          Where should your automation engine run?
-        </label>
-        
-        <div className="grid gap-3">
+    <div className="space-y-5">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
+        {/* Region Selection */}
+        <div className="p-4">
+          <label className="block text-sm font-semibold text-text-primary mb-3">
+            Where should your automation engine run?
+          </label>
+          <div className="grid gap-3">
           {REGIONS.map((region) => (
             <button
               key={region.code}
-              onClick={() => setSelectedRegion(region.code)}
+              onClick={() => { setSelectedRegion(region.code); saveDraft({ region: region.code, size: selectedSize }); }}
               className={cn(
                 'relative flex items-start gap-4 p-4 rounded-lg border-2 transition-all text-left',
                 selectedRegion === region.code
@@ -205,20 +223,19 @@ export function RegionSelectionStage({ workspaceId, onComplete }: StageComponent
               </div>
             </button>
           ))}
+          </div>
         </div>
-      </div>
 
-      {/* Size Selection */}
-      <div>
-        <label className="block text-sm font-semibold text-text-primary mb-3">
-          How powerful should your engine be?
-        </label>
-        
-        <div className="grid gap-3">
+        {/* Size Selection */}
+        <div className="p-4">
+          <label className="block text-sm font-semibold text-text-primary mb-3">
+            How powerful should your engine be?
+          </label>
+          <div className="grid gap-3">
           {SIZES.map((size) => (
             <button
               key={size.tier}
-              onClick={() => setSelectedSize(size.tier)}
+              onClick={() => { setSelectedSize(size.tier); saveDraft({ region: selectedRegion, size: size.tier }); }}
               className={cn(
                 'relative flex items-start gap-4 p-4 rounded-lg border-2 transition-all text-left',
                 selectedSize === size.tier
@@ -265,11 +282,12 @@ export function RegionSelectionStage({ workspaceId, onComplete }: StageComponent
               </div>
             </button>
           ))}
-        </div>
+          </div>
 
-        <p className="mt-3 text-xs text-text-secondary text-center">
-          You can upgrade anytime without data migration
-        </p>
+          <p className="mt-3 text-xs text-text-secondary text-center">
+            You can upgrade anytime without data migration
+          </p>
+        </div>
       </div>
 
       {/* Error Message */}
@@ -279,24 +297,16 @@ export function RegionSelectionStage({ workspaceId, onComplete }: StageComponent
         </div>
       )}
 
-      {/* Continue Button */}
-      <button
-        onClick={handleContinue}
-        disabled={isSaving}
-        className="w-full flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all disabled:opacity-50"
-      >
-        {isSaving ? (
-          <>
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            Continue
-            <ChevronRight className="h-5 w-5" />
-          </>
-        )}
-      </button>
+      {/* Continue */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleContinue}
+          disabled={isSaving}
+          className="text-sm text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+        >
+          {isSaving ? 'Saving…' : 'Continue →'}
+        </button>
+      </div>
     </div>
   );
 }

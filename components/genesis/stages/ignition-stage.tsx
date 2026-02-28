@@ -7,7 +7,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Rocket, Check, Loader2, Zap, Server, Database, Globe, AlertCircle } from 'lucide-react';
+import { Check, Loader2, Zap, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
@@ -138,55 +138,40 @@ export function IgnitionStage({ workspaceId, onComplete }: StageComponentProps) 
     <div className="space-y-6">
       {!isProvisioning && !allComplete && (
         <>
-          {/* Ready to Launch */}
-          <div className="text-center py-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-accent-primary mb-4 shadow-lg shadow-accent-primary/25">
-              <Rocket className="h-10 w-10 text-white" />
+          <div className="bg-surface border border-border rounded-lg divide-y divide-border">
+            {/* What Will Happen */}
+            <div className="p-4">
+              <h4 className="text-sm font-semibold text-text-primary mb-4">
+                What happens next:
+              </h4>
+              <ul className="space-y-3">
+                {provisioningSteps.map((step, i) => (
+                  <li key={step.key} className="flex items-center gap-3 text-sm text-text-secondary">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-surface border border-border flex items-center justify-center text-xs font-bold text-text-secondary">
+                      {i + 1}
+                    </div>
+                    {step.label}
+                  </li>
+                ))}
+              </ul>
             </div>
-            
-            <h3 className="text-2xl font-bold text-text-primary mb-2">
-              Ready to Launch
-            </h3>
-            
-            <p className="text-text-secondary max-w-md mx-auto">
-              All credentials configured. Click below to provision your automation engine.
-            </p>
-          </div>
 
-          {/* What Will Happen */}
-          <div className="bg-surface-elevated border border-border rounded-lg p-5">
-            <h4 className="text-sm font-semibold text-text-primary mb-4">
-              What happens next:
-            </h4>
-            
-            <ul className="space-y-3">
-              {provisioningSteps.map((step, i) => (
-                <li key={step.key} className="flex items-center gap-3 text-sm text-text-secondary">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-surface border border-border flex items-center justify-center text-xs font-bold text-text-secondary">
-                    {i + 1}
-                  </div>
-                  {step.label}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Time Estimate */}
-          <div className="bg-accent-primary/5 border border-accent-primary/20 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-sm">
-              <Zap className="h-4 w-4 text-accent-primary" />
-              <span className="font-medium text-text-primary">
-                Estimated time: ~60 seconds
-              </span>
+            {/* Time Estimate */}
+            <div className="p-4">
+              <div className="flex items-center gap-2 text-sm">
+                <Zap className="h-4 w-4 text-accent-primary" />
+                <span className="font-medium text-text-primary">
+                  Estimated time: ~60 seconds
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Launch Button */}
           <button
             onClick={handleStartIgnition}
-            className="w-full flex items-center justify-center gap-2 h-14 bg-accent-primary text-white rounded-lg font-bold text-lg shadow-xl shadow-accent-primary/30 hover:bg-accent-primary/90 transition-all"
+            className="w-full flex items-center justify-center gap-2 h-11 bg-surface-elevated border border-border text-text-primary rounded-lg font-medium hover:border-accent-primary hover:text-accent-primary transition-all"
           >
-            <Rocket className="h-6 w-6" />
             Start Engine
           </button>
         </>

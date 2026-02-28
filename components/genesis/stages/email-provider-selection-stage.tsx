@@ -13,8 +13,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Mail, Server, Check, ChevronRight, AlertCircle, Sparkles } from 'lucide-react';
+import { Mail, Server, Check, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 import type { EmailProviderChoice } from '@/lib/genesis/phase64/credential-vault-types';
 
@@ -62,28 +63,43 @@ export function EmailProviderSelectionStage({ workspaceId, onComplete }: StageCo
   const [error, setError] = useState<string | null>(null);
   const [existingProvider, setExistingProvider] = useState<EmailProviderChoice | null>(null);
 
-  // Check for existing provider selection
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'email_provider_selection');
+
+  // Check for existing provider selection, fall back to draft
   useEffect(() => {
+    let cancelled = false;
+
     async function checkExisting() {
       try {
         const res = await fetch(`/api/workspace/email-config?workspace_id=${workspaceId}`);
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
           if (data.provider) {
             setExistingProvider(data.provider);
             setSelectedProvider(data.provider);
+          } else if (draft?.provider) {
+            setSelectedProvider(draft.provider as EmailProviderChoice);
           }
         }
       } catch (err) {
         console.error('Failed to check existing provider:', err);
+        if (!cancelled && draft?.provider) {
+          setSelectedProvider(draft.provider as EmailProviderChoice);
+        }
       }
     }
-    checkExisting();
-  }, [workspaceId]);
+
+    if (!isDraftLoading) {
+      checkExisting();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleSelect = (provider: EmailProviderChoice) => {
     setSelectedProvider(provider);
     setError(null);
+    saveDraft({ provider });
   };
 
   const handleContinue = async () => {
@@ -121,9 +137,11 @@ export function EmailProviderSelectionStage({ workspaceId, onComplete }: StageCo
   };
 
   return (
-    <div className="space-y-6">
-      {/* Provider Options */}
-      <div className="grid gap-4">
+    <div className="space-y-5">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
+        {/* Provider Options */}
+        <div className="p-4">
+          <div className="grid gap-4">
         {PROVIDER_OPTIONS.map((option) => {
           const Icon = option.icon;
           const isSelected = selectedProvider === option.id;
@@ -138,14 +156,13 @@ export function EmailProviderSelectionStage({ workspaceId, onComplete }: StageCo
                 'relative w-full text-left p-4 rounded-lg border-2 transition-all',
                 isSelected 
                   ? 'border-accent-primary bg-accent-primary/5' 
-                  : 'border-border hover:border-border-focus',
+                  : 'border-border bg-surface-elevated hover:border-border-focus',
                 isDisabled && 'opacity-50 cursor-not-allowed'
               )}
             >
               {/* Recommended Badge */}
               {option.recommended && (
-                <div className="absolute -top-2 right-4 px-2 py-0.5 bg-accent-primary text-white text-xs font-medium rounded-full flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" />
+                <div className="absolute -top-2 right-4 px-2 py-0.5 bg-accent-primary text-white text-xs font-medium rounded-full">
                   Recommended
                 </div>
               )}
@@ -205,16 +222,18 @@ export function EmailProviderSelectionStage({ workspaceId, onComplete }: StageCo
             </button>
           );
         })}
-      </div>
+          </div>
+        </div>
 
-      {/* Architecture Note */}
-      <div className="bg-accent-purple/5 border border-accent-purple/20 rounded-lg p-4">
-        <div className="flex items-start gap-2">
-          <AlertCircle className="h-4 w-4 text-accent-purple flex-shrink-0 mt-0.5" />
-          <div className="text-xs text-text-secondary">
-            <span className="font-semibold text-text-primary">Important:</span>{' '}
-            Your email provider is set per workspace. All campaigns in this workspace will use the same provider.
-            The Sidecar will automatically deploy only the workflows for your selected provider.
+        {/* Architecture Note */}
+        <div className="p-4">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-accent-purple flex-shrink-0 mt-0.5" />
+            <div className="text-xs text-text-secondary">
+              <span className="font-semibold text-text-primary">Important:</span>{' '}
+              Your email provider is set per workspace. All campaigns in this workspace will use the same provider.
+              The Sidecar will automatically deploy only the workflows for your selected provider.
+            </div>
           </div>
         </div>
       </div>
@@ -240,29 +259,16 @@ export function EmailProviderSelectionStage({ workspaceId, onComplete }: StageCo
         </div>
       )}
 
-      {/* Continue Button */}
-      <button
-        onClick={handleContinue}
-        disabled={!selectedProvider || isSaving}
-        className={cn(
-          'w-full flex items-center justify-center gap-2 h-12 rounded-lg font-semibold transition-all',
-          selectedProvider
-            ? 'bg-accent-primary text-white shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90'
-            : 'bg-surface-elevated text-text-secondary cursor-not-allowed'
-        )}
-      >
-        {isSaving ? (
-          <>
-            <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            Continue to {selectedProvider === 'gmail' ? 'Gmail OAuth' : selectedProvider === 'smtp' ? 'SMTP Configuration' : 'Next Step'}
-            <ChevronRight className="h-5 w-5" />
-          </>
-        )}
-      </button>
+      {/* Continue */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleContinue}
+          disabled={!selectedProvider || isSaving}
+          className="text-sm text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+        >
+          {isSaving ? 'Saving…' : 'Continue →'}
+        </button>
+      </div>
     </div>
   );
 }

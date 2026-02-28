@@ -12,9 +12,10 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Server, Check, ChevronRight, AlertCircle, Eye, EyeOff, Loader2, TestTube } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Check, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
 interface SMTPFormData {
@@ -52,12 +53,27 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
   const [error, setError] = useState<string | null>(null);
   const [isConfigured, setIsConfigured] = useState(false);
 
-  // Load existing configuration
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'smtp_configuration');
+
+  // Save non-secret form fields as draft
+  const persistDraft = useCallback(
+    (overrides?: Partial<SMTPFormData>) => {
+      const merged = { ...form, ...overrides };
+      // Exclude password from draft for security
+      const { smtp_password: _, ...safe } = merged;
+      saveDraft(safe);
+    },
+    [form, saveDraft],
+  );
+
+  // Load existing configuration, fall back to draft
   useEffect(() => {
+    let cancelled = false;
+
     async function loadExisting() {
       try {
         const res = await fetch(`/api/workspace/email-config?workspace_id=${workspaceId}`);
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
           if (data.provider === 'smtp' && data.smtp_host) {
             setForm({
@@ -70,28 +86,62 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
               smtp_from_email: data.from_email || '',
             });
             setIsConfigured(true);
+          } else if (draft && !cancelled) {
+            // No server data — restore from draft
+            setForm(prev => ({
+              ...prev,
+              smtp_host: (draft.smtp_host as string) || prev.smtp_host,
+              smtp_port: (draft.smtp_port as number) || prev.smtp_port,
+              smtp_username: (draft.smtp_username as string) || prev.smtp_username,
+              smtp_encryption: (draft.smtp_encryption as SMTPFormData['smtp_encryption']) || prev.smtp_encryption,
+              smtp_from_name: (draft.smtp_from_name as string) || prev.smtp_from_name,
+              smtp_from_email: (draft.smtp_from_email as string) || prev.smtp_from_email,
+            }));
           }
         }
       } catch (err) {
         console.error('Failed to load SMTP config:', err);
+        // Restore from draft on error
+        if (!cancelled && draft) {
+          setForm(prev => ({
+            ...prev,
+            smtp_host: (draft.smtp_host as string) || prev.smtp_host,
+            smtp_port: (draft.smtp_port as number) || prev.smtp_port,
+            smtp_username: (draft.smtp_username as string) || prev.smtp_username,
+            smtp_encryption: (draft.smtp_encryption as SMTPFormData['smtp_encryption']) || prev.smtp_encryption,
+            smtp_from_name: (draft.smtp_from_name as string) || prev.smtp_from_name,
+            smtp_from_email: (draft.smtp_from_email as string) || prev.smtp_from_email,
+          }));
+        }
       }
     }
-    loadExisting();
-  }, [workspaceId]);
+
+    if (!isDraftLoading) {
+      loadExisting();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleChange = (field: keyof SMTPFormData, value: string | number) => {
     setForm(prev => ({ ...prev, [field]: value }));
     setError(null);
     setTestResult(null);
+    // Draft-save non-password fields
+    if (field !== 'smtp_password') {
+      persistDraft({ [field]: value } as Partial<SMTPFormData>);
+    }
   };
 
   const handleEncryptionChange = (encryption: SMTPFormData['smtp_encryption']) => {
     const option = ENCRYPTION_OPTIONS.find(o => o.value === encryption);
+    const newPort = option?.port || form.smtp_port;
     setForm(prev => ({
       ...prev,
       smtp_encryption: encryption,
-      smtp_port: option?.port || prev.smtp_port,
+      smtp_port: newPort,
     }));
+    persistDraft({ smtp_encryption: encryption, smtp_port: newPort });
   };
 
   const validateForm = (): string | null => {
@@ -190,20 +240,21 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
   };
 
   return (
-    <div className="space-y-6">
-      {/* Status Badge */}
-      {isConfigured && (
-        <div className="p-3 bg-accent-success/10 border border-accent-success/20 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Check className="h-4 w-4 text-accent-success" />
-            <span className="text-sm text-accent-success font-medium">SMTP already configured</span>
-            <span className="text-xs text-text-secondary">- Update below or continue</span>
+    <div className="space-y-5">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
+        {/* Status Badge */}
+        {isConfigured && (
+          <div className="p-4 bg-accent-success/5">
+            <div className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-accent-success" />
+              <span className="text-sm text-accent-success font-medium">SMTP already configured</span>
+              <span className="text-xs text-text-secondary">- Update below or continue</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Form Fields */}
-      <div className="space-y-4">
+        {/* Form Fields */}
+        <div className="p-4 space-y-4">
         {/* Host & Port Row */}
         <div className="grid grid-cols-3 gap-4">
           <div className="col-span-2">
@@ -215,7 +266,7 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
               value={form.smtp_host}
               onChange={(e) => handleChange('smtp_host', e.target.value)}
               placeholder="smtp.example.com"
-              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
+              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-secondary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
             />
           </div>
           <div>
@@ -265,7 +316,7 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
             value={form.smtp_username}
             onChange={(e) => handleChange('smtp_username', e.target.value)}
             placeholder="your-email@example.com or username"
-            className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
+            className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-secondary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
           />
         </div>
 
@@ -280,7 +331,7 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
               value={form.smtp_password}
               onChange={(e) => handleChange('smtp_password', e.target.value)}
               placeholder={isConfigured ? '••••••••' : 'App password or SMTP password'}
-              className="w-full h-10 px-3 pr-10 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
+              className="w-full h-10 px-3 pr-10 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-secondary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
             />
             <button
               type="button"
@@ -303,7 +354,7 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
               value={form.smtp_from_name}
               onChange={(e) => handleChange('smtp_from_name', e.target.value)}
               placeholder="John Doe"
-              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
+              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-secondary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
             />
           </div>
           <div>
@@ -315,9 +366,35 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
               value={form.smtp_from_email}
               onChange={(e) => handleChange('smtp_from_email', e.target.value)}
               placeholder="outreach@example.com"
-              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-tertiary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
+              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-lg text-text-primary placeholder:text-text-secondary focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors"
             />
           </div>
+        </div>
+        </div>
+
+        {/* Info Box */}
+        <div className="p-4">
+          <h4 className="text-sm font-semibold text-text-primary mb-2">
+            How it works:
+          </h4>
+          <ul className="space-y-1.5 text-xs text-text-secondary">
+            <li className="flex items-start gap-2">
+              <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
+              Credentials are encrypted and stored securely
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
+              Sidecar service handles email sending via SMTP
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
+              Reply detection uses IMAP (same credentials)
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
+              Threading handled via In-Reply-To/References headers
+            </li>
+          </ul>
         </div>
       </div>
 
@@ -343,67 +420,29 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
         </div>
       )}
 
-      {/* Info Box */}
-      <div className="bg-surface-elevated border border-border rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-text-primary mb-2">
-          How it works:
-        </h4>
-        <ul className="space-y-1.5 text-xs text-text-secondary">
-          <li className="flex items-start gap-2">
-            <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
-            Credentials are encrypted and stored securely
-          </li>
-          <li className="flex items-start gap-2">
-            <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
-            Sidecar service handles email sending via SMTP
-          </li>
-          <li className="flex items-start gap-2">
-            <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
-            Reply detection uses IMAP (same credentials)
-          </li>
-          <li className="flex items-start gap-2">
-            <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
-            Threading handled via In-Reply-To/References headers
-          </li>
-        </ul>
-      </div>
-
       {/* Actions */}
-      <div className="flex gap-3">
+      <div className="flex items-center justify-between">
         <button
           onClick={handleTest}
           disabled={isTesting || isSaving}
-          className="flex-1 flex items-center justify-center gap-2 h-12 bg-surface-elevated border border-border rounded-lg font-medium text-text-primary hover:border-border-focus transition-colors disabled:opacity-50"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-surface-elevated border border-border rounded-lg text-sm font-medium text-text-primary hover:border-border-focus transition-colors disabled:opacity-50"
         >
           {isTesting ? (
             <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Testing...
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Testing…
             </>
           ) : (
-            <>
-              <TestTube className="h-5 w-5" />
-              Test Connection
-            </>
+            'Test Connection'
           )}
         </button>
 
         <button
           onClick={handleSave}
           disabled={isSaving || isTesting}
-          className="flex-1 flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all disabled:opacity-50"
+          className="text-sm text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
         >
-          {isSaving ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              {isConfigured ? 'Update & Continue' : 'Save & Continue'}
-              <ChevronRight className="h-5 w-5" />
-            </>
-          )}
+          {isSaving ? 'Saving…' : (isConfigured ? 'Update & Continue →' : 'Save & Continue →')}
         </button>
       </div>
     </div>

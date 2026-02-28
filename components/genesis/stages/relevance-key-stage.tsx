@@ -11,20 +11,14 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
-  Sparkles, 
   Loader2, 
-  ChevronRight, 
-  ExternalLink, 
   Check, 
-  AlertCircle,
-  Copy,
-  FileJson,
   Download,
-  Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
 // Relevance AI region examples
@@ -50,27 +44,53 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Load existing config
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'relevance_key');
+
+  // Save non-secret fields as draft
+  const persistDraft = useCallback(
+    (overrides?: Record<string, unknown>) => {
+      saveDraft({ baseUrl, projectId, studioId, toolImported, ...overrides });
+    },
+    [baseUrl, projectId, studioId, toolImported, saveDraft],
+  );
+
+  // Load existing config, fall back to draft
   useEffect(() => {
+    let cancelled = false;
+
     async function loadConfig() {
       try {
         const res = await fetch(`/api/onboarding/credentials?workspace_id=${workspaceId}&type=relevance_config`);
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
           if (data.config) {
             setBaseUrl(data.config.baseUrl || '');
             setProjectId(data.config.projectId || '');
             setStudioId(data.config.studioId || '');
-            // Don't load auth token for security
             setToolImported(data.config.toolImported || false);
+          } else if (draft) {
+            if (draft.baseUrl) setBaseUrl(draft.baseUrl as string);
+            if (draft.projectId) setProjectId(draft.projectId as string);
+            if (draft.studioId) setStudioId(draft.studioId as string);
+            if (draft.toolImported) setToolImported(draft.toolImported as boolean);
           }
         }
       } catch (err) {
         console.error('Failed to load Relevance config:', err);
+        if (!cancelled && draft) {
+          if (draft.baseUrl) setBaseUrl(draft.baseUrl as string);
+          if (draft.projectId) setProjectId(draft.projectId as string);
+          if (draft.studioId) setStudioId(draft.studioId as string);
+        }
       }
     }
-    loadConfig();
-  }, [workspaceId]);
+
+    if (!isDraftLoading) {
+      loadConfig();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleCopy = async (text: string, field: string) => {
     try {
@@ -174,250 +194,207 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
   const isFormValid = baseUrl && projectId && studioId && authToken && toolImported;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 rounded-lg bg-accent-purple/10">
-          <Sparkles className="h-5 w-5 text-accent-purple" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-text-primary">Relevance AI Configuration</h3>
-          <p className="text-sm text-text-secondary">
-            Configure Relevance AI for LinkedIn profile research
-          </p>
-        </div>
+    <div className="space-y-5">
+      {/* Getting Started guidance */}
+      <div className="text-sm text-text-secondary space-y-1">
+        <p>
+          Relevance AI powers LinkedIn profile research. If you don&apos;t have an account yet,{' '}
+          <a href="https://relevanceai.com" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:underline">
+            create one here
+          </a>.
+        </p>
       </div>
 
-      {/* Info Banner */}
-      <div className="p-4 bg-accent-primary/5 border border-accent-primary/20 rounded-lg">
-        <div className="flex gap-3">
-          <Info className="h-5 w-5 text-accent-primary flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-text-secondary">
-            <p className="mb-2">
-              Relevance AI powers the LinkedIn research capabilities. You&apos;ll need to:
-            </p>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>Create a Relevance AI account at <a href="https://relevanceai.com" target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:underline">relevanceai.com</a></li>
-              <li>Import the LinkedIn Research Tool (provided below)</li>
-              <li>Copy your credentials from the Relevance AI dashboard</li>
-            </ol>
-          </div>
-        </div>
-      </div>
-
-      {/* Step 1: Import Tool */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <div className="p-4 bg-surface-elevated border-b border-border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="flex items-center justify-center w-6 h-6 rounded-full bg-accent-primary text-white text-xs font-bold">1</span>
-              <span className="font-medium text-text-primary">Import LinkedIn Research Tool</span>
+      {/* Steps — unified container */}
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
+        {/* Step 1: Import the tool */}
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-text-primary">
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-accent-primary/10 text-accent-primary text-xs font-bold">1</span>
+              Import LinkedIn Research Tool
             </div>
-            {toolImported && <Check className="h-5 w-5 text-accent-success" />}
+            {toolImported && <Check className="h-4 w-4 text-accent-success" />}
           </div>
-        </div>
-        <div className="p-4 space-y-4">
-          <p className="text-sm text-text-secondary">
-            Download and import this tool into your Relevance AI account. This tool scrapes LinkedIn profiles and posts for lead research.
+          <p className="text-xs text-text-secondary mb-3">
+            Download the tool file below, then import it into your Relevance AI dashboard.
           </p>
-          
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={downloadToolFile}
-              className="flex items-center gap-2 px-4 py-2 bg-surface-elevated border border-border rounded-lg text-sm font-medium text-text-primary hover:bg-surface-hover transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-elevated border border-border rounded-md text-xs font-medium text-text-primary hover:bg-surface-hover transition-colors"
             >
-              <Download className="h-4 w-4" />
-              Download Tool (.rai)
+              <Download className="h-3.5 w-3.5" />
+              Download .rai file
             </button>
-            
             <a
               href="https://relevanceai.com/docs/tools/importing-tools"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 text-accent-primary text-sm font-medium hover:underline"
+              className="text-xs text-text-secondary hover:text-accent-primary transition-colors"
             >
-              <ExternalLink className="h-4 w-4" />
-              Import Instructions
+              Import instructions →
             </a>
           </div>
-
-          <label className="flex items-start gap-3 p-3 bg-surface-elevated rounded-lg cursor-pointer hover:bg-surface-hover transition-colors">
+          <label className="flex items-center gap-2.5 pt-3 cursor-pointer">
             <input
               type="checkbox"
               checked={toolImported}
-              onChange={(e) => setToolImported(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-border text-accent-primary focus:ring-accent-primary"
+              onChange={(e) => { setToolImported(e.target.checked); persistDraft({ toolImported: e.target.checked }); }}
+              className="h-3.5 w-3.5 rounded border-border text-accent-primary focus:ring-accent-primary"
             />
-            <div className="text-sm">
-              <span className="font-medium text-text-primary">I have imported the LinkedIn Research Tool</span>
-              <p className="text-text-secondary mt-0.5">
-                After importing, you&apos;ll see &quot;LinkedIn Research Tool&quot; in your Relevance AI tools list
-              </p>
-            </div>
+            <span className="text-xs text-text-secondary">I&apos;ve imported the tool</span>
           </label>
         </div>
-      </div>
 
-      {/* Step 2: Enter Credentials */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <div className="p-4 bg-surface-elevated border-b border-border">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-accent-primary text-white text-xs font-bold">2</span>
-            <span className="font-medium text-text-primary">Enter Your Credentials</span>
+        {/* Step 2: Credentials */}
+        <div className="p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-text-primary">
+            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-accent-primary/10 text-accent-primary text-xs font-bold">2</span>
+            Enter your credentials
           </div>
         </div>
-        <div className="p-4 space-y-4">
-          {/* Base URL */}
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-2">
-              Base URL <span className="text-accent-danger">*</span>
+
+        {/* Base URL */}
+        <div className="p-4">
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Base URL
             </label>
             <input
               type="url"
               value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
+              onChange={(e) => { setBaseUrl(e.target.value); persistDraft({ baseUrl: e.target.value }); }}
               placeholder="https://api-bcbe5a.stack.tryrelevance.com"
-              className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
-            <p className="mt-1.5 text-xs text-text-secondary">
-              Found at: Settings → API → Region Base URL
-            </p>
-            
-            {/* Region Examples */}
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <span className="text-xs text-text-secondary">Region:</span>
               {RELEVANCE_REGIONS.map((r) => (
                 <button
                   key={r.region}
-                  onClick={() => setBaseUrl(r.baseUrl)}
+                  onClick={() => { setBaseUrl(r.baseUrl); persistDraft({ baseUrl: r.baseUrl }); }}
                   className={cn(
-                    'px-2 py-1 text-xs rounded border transition-colors',
+                    'px-1.5 py-0.5 text-xs rounded transition-colors',
                     baseUrl === r.baseUrl
-                      ? 'bg-accent-primary/10 border-accent-primary text-accent-primary'
-                      : 'bg-surface-elevated border-border text-text-secondary hover:border-accent-primary/50'
+                      ? 'bg-accent-primary/10 text-accent-primary'
+                      : 'text-text-secondary hover:text-accent-primary'
                   )}
                 >
                   {r.region}
                 </button>
               ))}
             </div>
+            <p className="mt-1 text-xs text-text-tertiary">
+              Settings → API → Region Base URL
+            </p>
           </div>
 
           {/* Project ID */}
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-2">
-              Project ID <span className="text-accent-danger">*</span>
+          <div className="p-4">
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Project ID
             </label>
             <input
               type="text"
               value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
+              onChange={(e) => { setProjectId(e.target.value); persistDraft({ projectId: e.target.value }); }}
               placeholder="1c7dae110947-495a-b439-7578c53dea94"
-              className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all font-mono"
+              className="w-full px-3 py-2 rounded-md text-sm font-mono bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
-            <p className="mt-1.5 text-xs text-text-secondary">
-              Found in your browser URL: relevanceai.com/project/<strong>PROJECT_ID</strong>/...
+            <p className="mt-1 text-xs text-text-tertiary">
+              Found in your browser URL: relevanceai.com/project/<strong>PROJECT_ID</strong>/…
             </p>
           </div>
 
           {/* Studio ID */}
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-2">
-              Studio ID (Tool ID) <span className="text-accent-danger">*</span>
+          <div className="p-4">
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Studio ID (Tool ID)
             </label>
             <input
               type="text"
               value={studioId}
-              onChange={(e) => setStudioId(e.target.value)}
+              onChange={(e) => { setStudioId(e.target.value); persistDraft({ studioId: e.target.value }); }}
               placeholder="f9a70da4-2d80-4e17-ad1b-a37716c423c8"
-              className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all font-mono"
+              className="w-full px-3 py-2 rounded-md text-sm font-mono bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
-            <p className="mt-1.5 text-xs text-text-secondary">
-              Found when you open the LinkedIn Research Tool → URL contains /tool/<strong>STUDIO_ID</strong>
+            <p className="mt-1 text-xs text-text-tertiary">
+              Open the LinkedIn Research Tool → URL contains /tool/<strong>STUDIO_ID</strong>
             </p>
           </div>
 
           {/* Auth Token */}
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-2">
-              Authorization Token <span className="text-accent-danger">*</span>
+          <div className="p-4">
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Authorization Token
             </label>
             <input
               type="password"
               value={authToken}
               onChange={(e) => setAuthToken(e.target.value)}
               placeholder="Your Relevance AI API key"
-              className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
-            <p className="mt-1.5 text-xs text-text-secondary">
-              Found at: Settings → API → API Key (copy the full key)
+            <p className="mt-1 text-xs text-text-tertiary">
+              Settings → API → API Key
             </p>
           </div>
+      </div>
 
-          {/* Validate Button */}
-          <button
-            onClick={handleValidate}
-            disabled={isValidating || !baseUrl || !projectId || !studioId || !authToken}
-            className={cn(
-              'flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-medium transition-all',
-              validationStatus === 'valid'
-                ? 'bg-accent-success/10 text-accent-success border border-accent-success/30'
-                : 'bg-surface-elevated border border-border text-text-primary hover:bg-surface-hover disabled:opacity-50'
-            )}
-          >
-            {isValidating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Validating...
-              </>
-            ) : validationStatus === 'valid' ? (
-              <>
-                <Check className="h-4 w-4" />
-                Configuration Valid
-              </>
-            ) : (
-              'Validate Configuration'
-            )}
-          </button>
-        </div>
+      {/* Validate */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={handleValidate}
+          disabled={isValidating || !baseUrl || !projectId || !studioId || !authToken}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all',
+            validationStatus === 'valid'
+              ? 'bg-accent-success/10 text-accent-success'
+              : 'bg-surface-elevated border border-border text-text-primary hover:bg-surface-hover disabled:opacity-50'
+          )}
+        >
+          {isValidating ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Validating…
+            </>
+          ) : validationStatus === 'valid' ? (
+            <>
+              <Check className="h-3.5 w-3.5" />
+              Valid
+            </>
+          ) : (
+            'Validate'
+          )}
+        </button>
+
+        <a
+          href="https://relevanceai.com/docs/quickstart"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-text-secondary hover:text-accent-primary transition-colors"
+        >
+          Documentation →
+        </a>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="flex items-start gap-3 p-3 bg-accent-danger/10 border border-accent-danger/20 rounded-lg">
-          <AlertCircle className="h-5 w-5 text-accent-danger flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-accent-danger">{error}</div>
+        <div className="p-3 bg-accent-danger/10 border border-accent-danger/20 rounded-lg text-sm text-accent-danger">
+          {error}
         </div>
       )}
 
-      {/* Documentation Link */}
-      <a
-        href="https://relevanceai.com/docs/quickstart"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-2 text-sm text-text-secondary hover:text-accent-primary transition-colors"
-      >
-        <ExternalLink className="h-4 w-4" />
-        Relevance AI Documentation
-      </a>
-
-      {/* Continue Button */}
-      <button
-        onClick={handleContinue}
-        disabled={isSaving || !isFormValid}
-        className="w-full flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all disabled:opacity-50"
-      >
-        {isSaving ? (
-          <>
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            Continue
-            <ChevronRight className="h-5 w-5" />
-          </>
-        )}
-      </button>
+      {/* Continue */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleContinue}
+          disabled={isSaving || !isFormValid}
+          className="text-sm text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+        >
+          {isSaving ? 'Saving…' : 'Continue →'}
+        </button>
+      </div>
     </div>
   );
 }

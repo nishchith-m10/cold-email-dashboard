@@ -6,7 +6,6 @@
 
 'use client';
 
-import { Search } from 'lucide-react';
 import { ApiKeyInputStage } from './api-key-input-stage';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
@@ -20,7 +19,6 @@ export function GoogleCSEKeyStage(props: StageComponentProps) {
       placeholder="AIza..."
       helpText="Genesis uses Google Custom Search to enrich lead data and find relevant information about companies."
       docsUrl="https://developers.google.com/custom-search/v1/introduction"
-      icon={Search}
       extraFields={[
         {
           key: 'engineId',

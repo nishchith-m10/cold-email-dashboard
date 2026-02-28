@@ -1,0 +1,250 @@
+{
+  "project": "cold-email-dashboard",
+  "branchName": "ralph/onboarding-redesign",
+  "description": "Onboarding Redesign — Visual overhaul of the Genesis onboarding wizard. Keeps all 13 original stages. Redesigns the right-aligned vertical progress stepper to match a clean numbered-steps style (Image 2 reference: green checkmark completed, numbered circles, dashed connectors). Modernizes stage page layouts for consistency with dashboard design language. Adds form-level draft saving so partial input is preserved if a user leaves mid-step.",
+  "status": "complete",
+  "designDecisions": {
+    "referenceImageChosen": "Image 2 — Green numbered steps with dashed vertical connector",
+    "reasoning": "Image 2 is the better fit because: (1) Its minimalist numbered-step approach aligns with the existing dashboard design language — clean, flat, no heavy decorations. (2) The green checkmark for completed steps directly maps to our --accent-success (#22c55e dark / #16A34A light) token. (3) The dashed connector line between steps feels lighter and more modern than the solid connector in Image 1. (4) The muted gray for upcoming steps matches our --text-secondary token. (5) The overall aesthetic — white/clean backgrounds, subtle typography hierarchy, no heavy colored circles — is consistent with how the Settings, Contacts, and Dashboard pages are styled. Image 1's purple filled circles and heavy connector line would feel visually heavier than the rest of the app.",
+    "stepCount": "All 13 original stages are preserved. No consolidation.",
+    "stepperPosition": "Right-aligned vertical stepper (keeping current sidebar position, just redesigning the visual treatment)."
+  },
+  "currentState": {
+    "existingProgressSystem": {
+      "apiRoute": "app/api/onboarding/progress/route.ts — GET/POST for completed stage tracking",
+      "service": "lib/genesis/phase64/onboarding-progress-service.ts — OnboardingProgressService class with getProgress, completeStage, goToStage, resetProgress",
+      "database": "genesis.onboarding_progress table (workspace_id, current_stage, completed_stages[], started_at, updated_at, completed_at)",
+      "limitation": "Only tracks which stages are COMPLETED. Does NOT save partial form data within a stage. If a user fills half the Brand Info form and closes the browser, all field values are lost."
+    },
+    "stages": [
+      "region_selection", "brand_info", "email_provider_selection",
+      "gmail_oauth (conditional)", "smtp_configuration (conditional)",
+      "openai_key", "anthropic_key", "google_cse_key", "relevance_key",
+      "apify_selection", "calendly_url", "dns_setup", "ignition"
+    ]
+  },
+  "brainstorm": {
+    "part1_progressSteps": {
+      "title": "Progress Steps Redesign (Right Sidebar)",
+      "currentProblems": [
+        "Icon-filled colored squares (w-8 h-8 rounded-lg) feel heavy — filled backgrounds clash with the flat/minimal dashboard aesthetic",
+        "Each step shows an icon + title + description — visually dense for 13 items in a sidebar",
+        "No step numbering — hard to know at a glance where you are (e.g., step 5 of 11)",
+        "The current active step uses bg-accent-primary/10 border border-accent-primary/20 which is subtle but inconsistent with the reference design",
+        "Mobile progress (dot pills at bottom) gives zero context about which step the user is on",
+        "Completed steps show green filled squares — correct color but wrong shape/weight per reference"
+      ],
+      "proposedDesign": {
+        "layout": "Keep right-aligned sidebar (w-72, fixed, same position). Redesign internal visual treatment only.",
+        "stepIndicator": {
+          "completed": "Small green (accent-success) circle with white Check icon inside — matching Image 2 exactly. Circle size ~28px.",
+          "current": "Blue (accent-primary) circle with white step number inside. Same 28px size. No extra ring or pulse — per Image 2, the current step is identified by its filled blue circle + bold title text.",
+          "upcoming": "Gray muted circle (text-secondary color on surface-elevated bg, or just the number in text-secondary with a subtle border) with step number in gray. Clearly inactive."
+        },
+        "connector": "Dashed vertical line between step circles, replacing the current no-connector layout. Uses border-left: 2px dashed with color matching --border token. The dashed line runs from center of each circle to center of the next, creating a visual flow. Completed-to-completed segments stay neutral gray dashed (per Image 2).",
+        "labels": {
+          "completed": "Title in text-primary normal weight. Description in text-secondary.",
+          "current": "Title in font-semibold text-text-primary (bold to stand out). Description in text-secondary.",
+          "upcoming": "Title in text-secondary (muted). Description in text-secondary opacity-50 or hidden to reduce noise."
+        },
+        "progressHeader": "At the top of the sidebar, show 'Step X of Y' counter + a small progress bar (same as current, refined).",
+        "timeEstimate": "Below the progress bar, show 'About X min remaining' based on sum of estimatedDuration for remaining stages from STAGE_INFO.",
+        "scrollBehavior": "The sidebar already has overflow-y-auto. With 13 items the list may need scrolling. Ensure the current step is always scrolled into view.",
+        "grouping": "Optional future enhancement: group related steps with subtle dividers (Setup | Email | API Keys | Config | Launch). Not required for v1 — keep it simple with the numbered list."
+      }
+    },
+    "part2_onboardingPages": {
+      "title": "Onboarding Stage Pages Redesign",
+      "currentProblems": [
+        "Each stage renders inside a bordered card (bg-surface border border-border rounded-lg p-6) — feels like a settings form, not an onboarding experience",
+        "Stage header has a colored icon square (w-10 h-10 rounded-lg bg-accent-primary) + title + description — duplicates sidebar info",
+        "Inconsistent icons: OpenAI, Anthropic, and Relevance all use the same Sparkles icon",
+        "Full-width Continue button at the bottom of every stage is visually heavy and repetitive",
+        "No visual delight — the onboarding feels utilitarian",
+        "The thin progress bar under the navbar is barely noticeable and redundant with the sidebar"
+      ],
+      "proposedDesign": {
+        "overallLayout": {
+          "desktop": "Keep right sidebar stepper (w-72). Main content area lg:mr-72. Content centered with max-w-3xl. Remove the wrapping card border from stage content — let form fields breathe directly in the content area.",
+          "mobile": "Full-width single column. Stepper hidden. Replace bottom dot pills with a top header bar (phase name + 'Step X of Y' + slim progress bar)."
+        },
+        "headerConsistency": {
+          "approach": "Match the Settings page header pattern: h1 (text-lg font-semibold text-text-primary) + subtitle (text-xs text-text-secondary). Remove the colored icon square from the stage header entirely.",
+          "stageTitle": "Clean text-only header: title + one-line description. No icon. The sidebar stepper already shows which step you're on.",
+          "pageTitle": "A persistent 'Set up your workspace' heading at the top-left of the content area that stays visible across all stages."
+        },
+        "iconStrategy": {
+          "removeFromStageHeaders": true,
+          "removeFromStepper": true,
+          "keepInFormContent": true,
+          "reasoning": "Replace icon squares everywhere with step numbers (stepper) and clean text (headers). Keep functional icons inside form content only: Globe in URL input, Mail/Server in provider selection cards, Key icon in API key inputs."
+        },
+        "stageCategories": {
+          "selectionStages": {
+            "stages": ["region_selection", "email_provider_selection", "apify_selection"],
+            "design": "Refine existing card pickers: softer borders (border instead of border-2), gentler selection highlight (accent-primary/5 bg instead of accent-primary/10)."
+          },
+          "apiKeyStages": {
+            "stages": ["openai_key", "anthropic_key", "google_cse_key", "relevance_key"],
+            "design": "Clean single-input layout: title + description + input + 'Where do I find this?' link + Continue. No wrapping card. Optional 'Test Connection' button."
+          },
+          "formStages": {
+            "stages": ["brand_info", "smtp_configuration", "gmail_oauth", "calendly_url", "dns_setup"],
+            "design": "Standard form layout. Remove wrapping card border. Fields render directly in content area."
+          },
+          "launchStage": {
+            "stages": ["ignition"],
+            "design": "Special full-width design. Animated provisioning checklist. Celebration animation on success."
+          }
+        },
+        "continueButton": {
+          "proposed": "Right-aligned button in a consistent footer area. 'Continue' for normal steps, 'Skip' text link for optional steps, 'Launch' special style for final step. Replaces the full-width button."
+        },
+        "progressIndicators": {
+          "topBar": "Remove the thin progress bar under the navbar — redundant with sidebar stepper.",
+          "stepperProgress": "Keep the 'Step X of Y' + progress bar in the sidebar top section."
+        }
+      }
+    },
+    "part3_savedProgress": {
+      "title": "Form-Level Draft Saving",
+      "currentState": "The existing OnboardingProgressService tracks completed stages server-side. But if a user is mid-way through filling out the Brand Info form (e.g., typed company name but hasn't clicked Continue) and closes the browser, all that form data is lost. Only the currently-loaded stage components fetch their own saved data on mount (e.g., BrandInfoStage loads from /api/onboarding/brand).",
+      "gap": "Some stages (like API key stages, Calendly URL) don't pre-load existing values on mount — they start blank every time. There's no unified draft-saving mechanism.",
+      "proposedDesign": {
+        "approach": "Add a generic draft-saving system that auto-saves form field values as the user types, keyed by workspace_id + stage_name. Uses debounced saves (500ms) to avoid excessive writes. Drafts are stored server-side in a new onboarding_drafts table (or a JSON column on the existing progress table).",
+        "storage": "New API endpoint: PUT /api/onboarding/draft — saves { workspace_id, stage, data: Record<string,any> }. GET /api/onboarding/draft?workspace_id=X&stage=Y — retrieves draft for a stage.",
+        "hook": "Create a useOnboardingDraft(workspaceId, stage) hook that: (1) loads existing draft on mount, (2) provides a saveDraft(data) function, (3) auto-debounces saves, (4) returns { draft, isLoading, save }.",
+        "integration": "Each stage component uses the hook to hydrate its form state on mount and save on every field change. When the user clicks Continue and the stage completes, the draft is cleared.",
+        "existingStagesWithLoad": ["brand_info (loads from /api/onboarding/brand)", "email_provider_selection (loads from /api/workspace/email-config)", "region_selection (loads from /api/onboarding/infrastructure)"],
+        "stagesNeedingDraftSave": ["openai_key", "anthropic_key", "google_cse_key", "relevance_key", "calendly_url", "smtp_configuration", "apify_selection", "dns_setup"],
+        "resumeBanner": "When a user returns to onboarding with saved progress, show a small banner: 'Welcome back! You left off at [stage name].' with a Continue button that jumps to the first incomplete stage."
+      }
+    },
+    "additionalIdeas": [
+      "Animate transitions between steps with a subtle slide animation — already partially implemented with AnimatePresence, refine direction (exit left, enter from right)",
+      "Add a 'Save & Continue Later' button that shows a toast confirmation ('Progress saved! You can return anytime to continue.')",
+      "For API key stages, add a 'Test Connection' button that validates the key before allowing continue",
+      "Add contextual help tooltips or expandable 'Why do I need this?' sections for each API key stage",
+      "Ensure all onboarding elements look intentional in dark mode",
+      "The Ignition/Launch stage should show a real-time provisioning log",
+      "Allow non-linear navigation via the stepper (already supported, ensure UX encourages it)"
+    ]
+  },
+  "userStories": [
+    {
+      "id": "ONB-001",
+      "title": "Redesign Right-Sidebar Stepper Visual Treatment",
+      "description": "Redesign the right-sidebar stepper in GenesisOnboardingWizard to match Image 2 reference: replace icon-filled colored squares with numbered circles (completed=green check, current=blue number, upcoming=gray number), add dashed vertical connector lines between steps, refine label typography. Keep the sidebar at w-72 fixed right position. Keep all 13 stages. Add step numbers and 'About X min remaining' time estimate at top. Remove stage icons from stepper — use numbers only.",
+      "acceptanceCriteria": [
+        "Right sidebar stepper visual matches Image 2 reference design",
+        "Completed steps: green (accent-success) circle (28px) with white Check icon, title in text-primary",
+        "Current step: blue (accent-primary) circle with white step number, title in font-semibold text-primary", 
+        "Upcoming steps: gray circle with gray step number, title in text-secondary muted",
+        "Dashed vertical lines connecting step circles using border-dashed with --border color",
+        "Step descriptions: shown for completed/current, hidden or opacity-50 for upcoming",
+        "Icons removed from stepper — replaced entirely with step numbers",
+        "Progress header: 'Step X of Y' + progress bar at top of sidebar",
+        "'About X min remaining' estimate below progress bar (uses STAGE_INFO.estimatedDuration)",
+        "Current step auto-scrolled into view in the sidebar",
+        "All 13 stages still listed (conditional stages filtered as before)",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ONB-002",
+      "title": "Clean Stage Headers + Remove Top Progress Bar",
+      "description": "Remove the colored icon square (w-10 h-10 rounded-lg bg-accent-primary) from stage headers in the main content area. Replace with clean text-only headers matching the Settings page pattern: h1 (text-lg font-semibold text-text-primary) + subtitle (text-xs text-text-secondary). Remove the thin progress bar under the navbar (redundant with sidebar). Add a persistent 'Set up your workspace' heading at the top of the content area. Remove the wrapping card border (bg-surface border border-border rounded-lg p-6) from stage content — let form fields render directly.",
+      "acceptanceCriteria": [
+        "Colored icon square removed from stage header in main content area",
+        "Stage headers: h1 (text-lg font-semibold text-text-primary) + p (text-xs text-text-secondary)",
+        "Matches Settings page header styling pattern",
+        "Thin progress bar under navbar (fixed top-12) removed",
+        "Persistent 'Set up your workspace' page heading visible above stage content across all stages",
+        "Wrapping card border removed from stage content — form fields render directly in content area",
+        "Functional icons INSIDE form elements preserved (Globe in URL inputs, Mail/Server in provider cards, etc.)",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ONB-003",
+      "title": "Refine Continue Button + Stage Footer",
+      "description": "Replace the full-width Continue button at the bottom of each stage with a right-aligned button in a consistent footer area. Add a 'Skip' text link next to Continue for optional stages. Change the final step button to say 'Launch' with a distinct style. Add a 'Save & Continue Later' text link in the footer that shows a toast confirmation.",
+      "acceptanceCriteria": [
+        "Continue button is right-aligned (not full width), styled as a primary button",
+        "Back button remains left-aligned in the footer",
+        "Optional stages (apify_selection, gmail_oauth, smtp_configuration) show 'Skip' text link to the left of Continue",
+        "Final stage (ignition) button says 'Launch' with accent-success styling",
+        "'Save & Continue Later' text link in footer that saves progress and shows toast 'Progress saved!'",
+        "Footer is a consistent flex row: [Back] [spacer] [Skip?] [Save Later] [Continue/Launch]",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ONB-004",
+      "title": "Form Draft Auto-Save API + Hook",
+      "description": "Create a draft-saving system for onboarding form data. Add a new API endpoint PUT/GET /api/onboarding/draft that stores and retrieves partial form data keyed by workspace_id + stage. Store drafts as a JSONB column on the existing genesis.onboarding_progress table (add 'drafts' JSONB column, keyed by stage name). Create a useOnboardingDraft(workspaceId, stage) hook that loads draft on mount, provides a debounced saveDraft function (500ms), and returns { draft, isLoading, save }. When a stage is completed, clear its draft.",
+      "acceptanceCriteria": [
+        "PUT /api/onboarding/draft — saves { workspace_id, stage, data } to genesis.onboarding_progress.drafts JSONB column",
+        "GET /api/onboarding/draft?workspace_id=X&stage=Y — retrieves draft data for a specific stage",
+        "Database migration adds 'drafts' JSONB column (default '{}') to genesis.onboarding_progress table",
+        "hooks/use-onboarding-draft.ts exports useOnboardingDraft(workspaceId, stage) hook",
+        "Hook loads existing draft on mount via GET",
+        "Hook provides saveDraft(data) that debounces writes at 500ms",
+        "Hook returns { draft: Record<string,any> | null, isLoading, save }",
+        "POST /api/onboarding/progress clears the draft for the completed stage after marking it complete",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ONB-005",
+      "title": "Integrate Draft Saving Into Stage Components",
+      "description": "Wire the useOnboardingDraft hook into all stage components that have form inputs. On mount, hydrate form state from draft if available (falling back to existing API data loading where it exists). On every field change, call saveDraft with current form state. Stages that already load their own data (brand_info, region_selection, email_provider_selection) should prefer their API data over drafts, using the draft only as fallback for previously-unsaved fields. API key stages that currently start blank every time should now restore from draft.",
+      "acceptanceCriteria": [
+        "brand-info-stage.tsx uses useOnboardingDraft, hydrates fields from draft as fallback to API data",
+        "openai-key-stage, anthropic-key-stage, google-cse-key-stage, relevance-key-stage: restore key value from draft on mount",
+        "calendly-url-stage: restores URL from draft on mount",
+        "smtp-configuration-stage: restores SMTP config fields from draft on mount",
+        "dns-setup-stage: restores any domain input from draft on mount",
+        "All stages with inputs call saveDraft on field change (debounced)",
+        "Draft is cleared when stage completes (handled by ONB-004 API)",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ONB-006",
+      "title": "Resume Banner + Welcome Back UX",
+      "description": "When a returning user lands on the onboarding page with saved progress (some stages completed, not finished), show a 'Welcome back' banner at the top of the content area: 'Welcome back! You left off at [current stage name]. Pick up where you left off.' with a prominent Continue button. The banner auto-focuses the user on the first incomplete stage (already handled by the useEffect, but now with a visual cue). If drafts exist for the current stage, pre-fill its form automatically.",
+      "acceptanceCriteria": [
+        "Banner appears when user has >=1 completed stage and onboarding is not fully complete",
+        "Banner shows: 'Welcome back! You left off at [stage title].'",
+        "Banner has a 'Continue' button (or auto-dismisses after 5 seconds)",
+        "Banner uses a subtle bg-accent-primary/5 border-accent-primary/20 styling",
+        "Draft data pre-fills form fields on the resumed stage automatically",
+        "Banner does NOT show on first-ever visit (0 completed stages)",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "ONB-007",
+      "title": "Mobile Stepper Redesign",
+      "description": "Replace the bottom dot pills on mobile with a top header bar showing: current stage name + 'Step X of Y' + a slim progress bar. Tapping the header opens a bottom sheet (using existing BottomSheet component) with the full vertical stepper (same numbered-circle design from ONB-001) for navigation. Ensure all stage content has comfortable mobile padding and 44px minimum touch targets.",
+      "acceptanceCriteria": [
+        "Mobile top header bar: stage name + 'Step X of Y' + slim progress bar",
+        "Tapping mobile header opens BottomSheet with full vertical stepper",
+        "BottomSheet stepper uses same visual design as ONB-001 (numbered circles, dashed connectors)",
+        "Step navigation works from the BottomSheet (tap a step → navigates to it, closes sheet)",
+        "Old mobile dot pills at bottom completely removed",
+        "All form inputs have minimum 44px touch targets (h-11 or py-3)",
+        "Content has 16px horizontal padding (px-4) on mobile",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    }
+  ]
+}

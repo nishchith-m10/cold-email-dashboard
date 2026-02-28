@@ -10,8 +10,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Globe, DollarSign, Shield, ChevronRight, Loader2, Key, Eye, EyeOff, Check, Sparkles } from 'lucide-react';
+import { Globe, DollarSign, Shield, Loader2, Key, Eye, EyeOff, Check, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 import type { ApifyMode } from '@/lib/genesis/phase64/credential-vault-types';
 
@@ -24,23 +25,38 @@ export function ApifySelectionStage({ workspaceId, onComplete }: StageComponentP
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load existing selection
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'apify_selection');
+
+  // Load existing selection, fall back to draft
   useEffect(() => {
+    let cancelled = false;
+
     async function loadSelection() {
       try {
         const res = await fetch(`/api/onboarding/apify?workspace_id=${workspaceId}`);
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
-          if (data.mode) setMode(data.mode);
-          if (data.mode === 'byo' && data.validated) setIsValid(true);
+          if (data.mode) {
+            setMode(data.mode);
+            if (data.mode === 'byo' && data.validated) setIsValid(true);
+          } else if (draft) {
+            if (draft.mode) setMode(draft.mode as ApifyMode);
+          }
         }
       } catch (err) {
         console.error('Failed to load Apify selection:', err);
+        if (!cancelled && draft?.mode) {
+          setMode(draft.mode as ApifyMode);
+        }
       }
     }
 
-    loadSelection();
-  }, [workspaceId]);
+    if (!isDraftLoading) {
+      loadSelection();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleValidate = async () => {
     if (!apiToken.trim()) {
@@ -110,14 +126,17 @@ export function ApifySelectionStage({ workspaceId, onComplete }: StageComponentP
   };
 
   return (
-    <div className="space-y-6">
-      {/* Mode Selection */}
-      <div className="grid gap-4">
+    <div className="space-y-5">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
+        {/* Mode Selection */}
+        <div className="p-4">
+          <div className="grid gap-4">
         {/* BYO Option */}
         <button
           onClick={() => {
             setMode('byo');
             setIsValid(false);
+            saveDraft({ mode: 'byo' });
           }}
           className={cn(
             'relative flex items-start gap-4 p-5 rounded-lg border-2 transition-all text-left',
@@ -161,7 +180,7 @@ export function ApifySelectionStage({ workspaceId, onComplete }: StageComponentP
 
         {/* Managed Option */}
         <button
-          onClick={() => setMode('managed')}
+          onClick={() => { setMode('managed'); saveDraft({ mode: 'managed' }); }}
           className={cn(
             'relative flex items-start gap-4 p-5 rounded-lg border-2 transition-all text-left',
             mode === 'managed'
@@ -206,77 +225,71 @@ export function ApifySelectionStage({ workspaceId, onComplete }: StageComponentP
             </ul>
           </div>
         </button>
-      </div>
+          </div>
+        </div>
 
-      {/* BYO Token Input */}
-      {mode === 'byo' && (
-        <div className="space-y-4 pt-2">
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-2">
-              Apify API Token
-            </label>
-            
-            <div className="relative">
-              <input
-                type={showToken ? 'text' : 'password'}
-                value={apiToken}
-                onChange={(e) => {
-                  setApiToken(e.target.value);
-                  setIsValid(false);
-                }}
-                placeholder="apify_api_..."
-                className={cn(
-                  'w-full pl-10 pr-20 py-3 rounded-lg text-sm',
-                  'bg-surface-elevated border-2 transition-all',
-                  'text-text-primary placeholder:text-text-secondary/50',
-                  'focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary',
-                  isValid && 'border-accent-success'
+        {/* BYO Token Input */}
+        {mode === 'byo' && (
+          <div className="p-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-2">
+                Apify API Token
+              </label>
+              <div className="relative">
+                <input
+                  type={showToken ? 'text' : 'password'}
+                  value={apiToken}
+                  onChange={(e) => {
+                    setApiToken(e.target.value);
+                    setIsValid(false);
+                  }}
+                  placeholder="apify_api_..."
+                  className={cn(
+                    'w-full pl-10 pr-20 py-2 rounded-md text-sm',
+                    'bg-surface-elevated border transition-all',
+                    'text-text-primary placeholder:text-text-secondary',
+                    'focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary',
+                    isValid && 'border-accent-success'
+                  )}
+                />
+                <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
+                <button
+                  onClick={() => setShowToken(!showToken)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-surface transition-colors"
+                >
+                  {showToken ? (
+                    <EyeOff className="h-3.5 w-3.5 text-text-secondary" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5 text-text-secondary" />
+                  )}
+                </button>
+                {isValid && (
+                  <div className="absolute right-10 top-1/2 -translate-y-1/2">
+                    <Check className="h-4 w-4 text-accent-success" />
+                  </div>
                 )}
-              />
-              
-              <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-text-secondary" />
-              
+              </div>
+            </div>
+
+            {!isValid && (
               <button
-                onClick={() => setShowToken(!showToken)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded hover:bg-surface transition-colors"
+                onClick={handleValidate}
+                disabled={!apiToken.trim() || isValidating}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-surface-elevated border border-border text-text-primary hover:bg-surface-hover transition-all disabled:opacity-50"
               >
-                {showToken ? (
-                  <EyeOff className="h-4 w-4 text-text-secondary" />
+                {isValidating ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Validating…
+                  </>
                 ) : (
-                  <Eye className="h-4 w-4 text-text-secondary" />
+                  'Validate Token'
                 )}
               </button>
-              
-              {isValid && (
-                <div className="absolute right-12 top-1/2 -translate-y-1/2">
-                  <Check className="h-5 w-5 text-accent-success" />
-                </div>
-              )}
-            </div>
+            )}
           </div>
-
-          {!isValid && (
-            <button
-              onClick={handleValidate}
-              disabled={!apiToken.trim() || isValidating}
-              className="w-full flex items-center justify-center gap-2 h-11 bg-surface-elevated border-2 border-border text-text-primary rounded-lg font-medium hover:bg-accent-primary/5 hover:border-accent-primary/50 transition-all disabled:opacity-50"
-            >
-              {isValidating ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Validating...
-                </>
-              ) : (
-                <>
-                  <Check className="h-5 w-5" />
-                  Validate Token
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      )}
-
+        )}
+      </div>
       {/* Error */}
       {error && (
         <div className="p-3 bg-accent-danger/10 border border-accent-danger/20 rounded-lg text-accent-danger text-sm">
@@ -285,23 +298,15 @@ export function ApifySelectionStage({ workspaceId, onComplete }: StageComponentP
       )}
 
       {/* Continue */}
-      <button
-        onClick={handleContinue}
-        disabled={isSaving || (mode === 'byo' && !isValid)}
-        className="w-full flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all disabled:opacity-50"
-      >
-        {isSaving ? (
-          <>
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            Continue
-            <ChevronRight className="h-5 w-5" />
-          </>
-        )}
-      </button>
+      <div className="flex justify-end">
+        <button
+          onClick={handleContinue}
+          disabled={isSaving || (mode === 'byo' && !isValid)}
+          className="text-sm text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+        >
+          {isSaving ? 'Saving…' : 'Continue →'}
+        </button>
+      </div>
     </div>
   );
 }
