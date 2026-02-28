@@ -2,7 +2,7 @@
   "project": "cold-email-dashboard",
   "branchName": "ralph/onboarding-redesign",
   "description": "Onboarding Redesign — Visual overhaul of the Genesis onboarding wizard. Keeps all 13 original stages. Redesigns the right-aligned vertical progress stepper to match a clean numbered-steps style (Image 2 reference: green checkmark completed, numbered circles, dashed connectors). Modernizes stage page layouts for consistency with dashboard design language. Adds form-level draft saving so partial input is preserved if a user leaves mid-step.",
-  "status": "ready",
+  "status": "complete",
   "designDecisions": {
     "referenceImageChosen": "Image 2 — Green numbered steps with dashed vertical connector",
     "reasoning": "Image 2 is the better fit because: (1) Its minimalist numbered-step approach aligns with the existing dashboard design language — clean, flat, no heavy decorations. (2) The green checkmark for completed steps directly maps to our --accent-success (#22c55e dark / #16A34A light) token. (3) The dashed connector line between steps feels lighter and more modern than the solid connector in Image 1. (4) The muted gray for upcoming steps matches our --text-secondary token. (5) The overall aesthetic — white/clean backgrounds, subtle typography hierarchy, no heavy colored circles — is consistent with how the Settings, Contacts, and Dashboard pages are styled. Image 1's purple filled circles and heavy connector line would feel visually heavier than the rest of the app.",
@@ -149,7 +149,7 @@
         "All 13 stages still listed (conditional stages filtered as before)",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ONB-002",
@@ -165,7 +165,7 @@
         "Functional icons INSIDE form elements preserved (Globe in URL inputs, Mail/Server in provider cards, etc.)",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ONB-003",
@@ -180,7 +180,7 @@
         "Footer is a consistent flex row: [Back] [spacer] [Skip?] [Save Later] [Continue/Launch]",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ONB-004",
@@ -197,7 +197,7 @@
         "POST /api/onboarding/progress clears the draft for the completed stage after marking it complete",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ONB-005",
@@ -213,7 +213,7 @@
         "Draft is cleared when stage completes (handled by ONB-004 API)",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ONB-006",
@@ -228,7 +228,7 @@
         "Banner does NOT show on first-ever visit (0 completed stages)",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "ONB-007",
@@ -244,7 +244,7 @@
         "Content has 16px horizontal padding (px-4) on mobile",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 }
