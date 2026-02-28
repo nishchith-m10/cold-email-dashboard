@@ -7,7 +7,7 @@
  */
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, RotateCcw, Settings2 } from 'lucide-react';
+import { X, RotateCcw, Settings2, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DashboardWidget } from '@/hooks/use-dashboard-layout';
@@ -167,10 +167,11 @@ export function DashboardSettingsPanel({
               ))}
 
               {/* Instructions */}
-              <div className="p-4 rounded-lg bg-surface-elevated border border-border">
-                <h4 className="text-sm font-medium text-text-primary mb-2">
-                  💡 Tip
-                </h4>
+              <div className="p-3 rounded-lg bg-accent-warning/10 border border-border">
+                <div className="flex items-center gap-1.5 text-accent-warning mb-2">
+                  <Lightbulb className="h-3.5 w-3.5" />
+                  <span className="text-xs font-medium">Tip</span>
+                </div>
                 <p className="text-xs text-text-secondary">
                   Hover over widgets and use the drag handle (⋮⋮) to reorder them. Your
                   layout will be saved automatically.
