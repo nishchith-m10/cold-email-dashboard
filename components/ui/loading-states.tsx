@@ -162,6 +162,25 @@ export function InlineLoader({
 }
 
 /**
+ * App-level loading spinner — clean rotating arc, no container box.
+ * Used by app/loading.tsx for Next.js route segment loading.
+ */
+export function AppLoadingSpinner({ size = 40 }: { size?: number }) {
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <div
+        className="absolute inset-0 rounded-full border-2 border-border"
+      />
+      <motion.div
+        className="absolute inset-0 rounded-full border-2 border-transparent border-t-accent-primary"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 0.7, repeat: Infinity, ease: "linear" }}
+      />
+    </div>
+  );
+}
+
+/**
  * Data loading overlay (for refreshing existing data)
  */
 export function DataRefreshOverlay({ isRefreshing }: { isRefreshing: boolean }) {
