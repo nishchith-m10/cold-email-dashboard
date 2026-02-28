@@ -342,16 +342,6 @@ export function GenesisOnboardingWizard({
 
   return (
     <div className="min-h-screen pt-13">
-      {/* Simple Progress Bar under navbar */}
-      <div className="fixed top-12 left-0 right-0 z-40 h-0.5 bg-surface-elevated">
-        <motion.div
-          className="h-full bg-accent-primary"
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.3 }}
-        />
-      </div>
-
       {/* Right Sidebar — Numbered Stepper (Image 2 Reference) */}
       <div className="hidden lg:block fixed right-0 top-[49px] bottom-0 w-72 border-l border-border bg-surface overflow-y-auto">
         <div className="p-4 space-y-4">
@@ -443,21 +433,17 @@ export function GenesisOnboardingWizard({
       {/* Main Content */}
       <div className="lg:mr-72 pt-4 pb-8 px-4">
         <div className="max-w-3xl mx-auto">
-          {/* Stage Header */}
+          {/* Persistent Page Heading */}
+          <p className="text-xs text-text-secondary mb-4">Set up your workspace</p>
+
+          {/* Stage Header — Clean text-only, matches Settings page */}
           <div className="mb-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-accent-primary flex items-center justify-center">
-                <currentStage.icon className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-text-primary">
-                  {currentStage.title}
-                </h1>
-                <p className="text-sm text-text-secondary">
-                  {currentStage.description}
-                </p>
-              </div>
-            </div>
+            <h1 className="text-lg font-semibold text-text-primary">
+              {currentStage.title}
+            </h1>
+            <p className="text-xs text-text-secondary">
+              {currentStage.description}
+            </p>
           </div>
 
           {/* Stage Content */}
@@ -468,7 +454,6 @@ export function GenesisOnboardingWizard({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="bg-surface border border-border rounded-lg p-6"
             >
               <StageComponent
                 workspaceId={workspaceId}
