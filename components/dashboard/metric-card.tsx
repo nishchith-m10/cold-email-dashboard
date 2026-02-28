@@ -46,15 +46,15 @@ const iconMap = {
   'projection': CalendarClock,
 };
 
-const iconColorMap = {
-  'sends': 'text-accent-primary bg-accent-primary/10',
-  'replies': 'text-accent-success bg-accent-success/10',
-  'opt-outs': 'text-accent-danger bg-accent-danger/10',
-  'cost': 'text-accent-purple bg-accent-purple/10',
-  'bounces': 'text-accent-warning bg-accent-warning/10',
-  'clicks': 'text-orange-500 bg-orange-500/10',
-  'spend': 'text-green-500 bg-green-500/15',
-  'projection': 'text-accent-primary bg-accent-primary/10',
+const iconColorMap: Record<string, string> = {
+  'sends': 'text-accent-primary',
+  'replies': 'text-accent-success',
+  'opt-outs': 'text-accent-danger',
+  'cost': 'text-accent-purple',
+  'bounces': 'text-accent-warning',
+  'clicks': 'text-orange-500',
+  'spend': 'text-green-500',
+  'projection': 'text-accent-primary',
 };
 
 export function MetricCard({
@@ -105,92 +105,87 @@ export function MetricCard({
   if (loading) {
     return (
       <Card className={cn('relative overflow-hidden', className)}>
-        <div className="flex items-center justify-between">
-          <div className="space-y-3 flex-1">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-4 w-20" />
-          </div>
-          <Skeleton className="h-12 w-12 rounded-xl" />
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-4 w-20" />
         </div>
       </Card>
     );
   }
 
+  // Only show "vs prev" when change has a meaningful non-zero value
+  const hasChange = change !== undefined && change !== 0;
+
   return (
     <motion.div
       className="h-full"
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: delay * 0.1 }}
+      transition={{ duration: 0.15, delay: delay * 0.03 }}
     >
       <Card className={cn(
-        'relative overflow-hidden group/card hover:border-accent-primary/30 transition-all duration-300 h-full',
+        'relative overflow-hidden hover:bg-surface-elevated/30 transition-all duration-300 h-full',
         className
       )}>
-        {/* Gradient glow on hover */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-700/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300" />
-        
-        <div className="relative flex items-center justify-between">
-          <div className="space-y-1 sm:space-y-2">
-            <p className="text-xs sm:text-sm font-medium text-text-secondary">{title}</p>
-            
-            <motion.p 
-              className="text-2xl sm:text-3xl font-bold text-text-primary tracking-tight cursor-default"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: delay * 0.1 + 0.2 }}
-              title={tooltipValue}
-            >
-              {formattedValue}
-            </motion.p>
-
-            {change !== undefined && (
-              <div className="flex items-center gap-1 sm:gap-1.5">
-                {trendIsPositive && (
-                  <TrendingUp className={cn(
-                    'h-3.5 w-3.5 sm:h-4 sm:w-4',
-                    isGoodTrend ? 'text-accent-success' : 'text-accent-danger'
-                  )} />
-                )}
-                {trendIsNegative && (
-                  <TrendingDown className={cn(
-                    'h-3.5 w-3.5 sm:h-4 sm:w-4',
-                    isBadTrend ? 'text-accent-danger' : 'text-accent-success'
-                  )} />
-                )}
-                {change === 0 && (
-                  <Minus className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-text-secondary" />
-                )}
-                
-                <span className={cn(
-                  'text-xs sm:text-sm font-medium',
-                  change === 0 && 'text-text-secondary',
-                  isGoodTrend && 'text-accent-success',
-                  isBadTrend && 'text-accent-danger'
-                )}>
-                  {change > 0 ? '+' : ''}{change.toFixed(1)}{changeLabel || '%'}
-                </span>
-                
-                <span className="text-xs text-text-secondary hidden sm:inline">vs prev</span>
-              </div>
-            )}
-
-            {/* Description text (when no change indicator) */}
-            {description && change === undefined && (
-              <p className="text-xs text-text-secondary">{description}</p>
-            )}
+        <div className="space-y-1 sm:space-y-2">
+          {/* Title row — icon and title on the same horizontal axis */}
+          <div className="flex items-center gap-1.5">
+            <Icon className={cn('h-3.5 w-3.5 flex-shrink-0', iconColors)} />
+            <p className="text-xs sm:text-sm font-medium text-text-secondary truncate">{title}</p>
           </div>
 
-          <div className={cn(
-            'flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex-shrink-0',
-            iconColors
-          )}>
-            <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
-          </div>
+          <motion.p 
+            className="text-xl sm:text-2xl font-semibold text-text-primary tracking-tight cursor-default"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+              transition={{ duration: 0.2, delay: delay * 0.03 + 0.1 }}
+            title={tooltipValue}
+          >
+            {formattedValue}
+          </motion.p>
+
+          {hasChange && (
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              {trendIsPositive && (
+                <TrendingUp className={cn(
+                  'h-3.5 w-3.5',
+                  isGoodTrend ? 'text-accent-success' : 'text-accent-danger'
+                )} />
+              )}
+              {trendIsNegative && (
+                <TrendingDown className={cn(
+                  'h-3.5 w-3.5',
+                  isBadTrend ? 'text-accent-danger' : 'text-accent-success'
+                )} />
+              )}
+              
+              <span className={cn(
+                'text-xs font-medium',
+                isGoodTrend && 'text-accent-success',
+                isBadTrend && 'text-accent-danger'
+              )}>
+                {change > 0 ? '+' : ''}{change.toFixed(1)}{changeLabel || '%'}
+              </span>
+              
+              <span className="text-xs text-text-secondary hidden sm:inline">vs prev</span>
+            </div>
+          )}
+
+          {/* When change is 0 or undefined, show nothing (no "vs prev") */}
+          {change !== undefined && change === 0 && (
+            <div className="flex items-center gap-1">
+              <Minus className="h-3.5 w-3.5 text-text-secondary" />
+              <span className="text-xs font-medium text-text-secondary">0.0%</span>
+            </div>
+          )}
+
+          {/* Description text (when no change indicator) */}
+          {description && change === undefined && (
+            <p className="text-xs text-text-secondary">{description}</p>
+          )}
         </div>
       </Card>
     </motion.div>
   );
 }
-

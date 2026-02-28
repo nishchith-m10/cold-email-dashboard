@@ -116,9 +116,9 @@ export function DonutChart({
   return (
     <motion.div
       className="h-full"
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.3 }}
+      transition={{ duration: 0.15, delay: 0.05 }}
     >
       <Card className={cn('overflow-hidden h-full', className)}>
         <CardHeader className="pb-2">

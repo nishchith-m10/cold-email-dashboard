@@ -57,8 +57,8 @@ export default function SettingsPage() {
     <div className="px-4 md:container md:mx-auto py-6 md:py-8 space-y-6 pb-24 md:pb-8">
       {/* Header */}
       <div>
-        <h1 className="text-xl md:text-3xl font-bold tracking-tight">Workspace Settings</h1>
-        <p className="text-sm md:text-base text-muted-foreground mt-1">
+        <h1 className="text-xl md:text-3xl font-bold tracking-tight text-text-primary">Workspace Settings</h1>
+        <p className="text-sm md:text-base text-text-secondary mt-1">
           Manage {workspace.name || 'your workspace'} configuration
         </p>
       </div>
@@ -126,7 +126,7 @@ export default function SettingsPage() {
                   'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
                   isActive
                     ? 'border-accent-primary text-accent-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                    : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border'
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -148,7 +148,7 @@ export default function SettingsPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div>
                 <h2 className="text-lg md:text-xl font-semibold">Team Members</h2>
-                <p className="text-xs md:text-sm text-muted-foreground">
+                <p className="text-xs md:text-sm text-text-secondary">
                   Manage who has access to this workspace
                 </p>
               </div>

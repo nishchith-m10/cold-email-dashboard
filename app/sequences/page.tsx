@@ -11,6 +11,7 @@ import { SequenceDetail } from '@/components/sequences/sequence-detail';
 import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { DateRangePickerMobile } from '@/components/dashboard/date-range-picker-mobile';
 import { toISODate, daysAgo } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { SequenceListResponse, SequenceDetail as SequenceDetailType } from '@/lib/dashboard-types';
 import { Mail, ArrowLeft, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -136,20 +137,29 @@ export default function SequencesPage() {
             />
             <div className="flex items-center gap-2">
               <span className="text-sm text-text-secondary">Items:</span>
-              <select
-                value={limit}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setLimit(value === 'all' ? 'all' : Number(value) as LimitOption);
-                }}
-                className="px-3 py-1.5 text-sm bg-surface-elevated border border-border-primary rounded-md text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
-              >
-                {LIMIT_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option === 'all' ? 'All' : option}
-                  </option>
-                ))}
-              </select>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <select
+                      value={limit}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setLimit(value === 'all' ? 'all' : Number(value) as LimitOption);
+                      }}
+                      className="px-3 py-1.5 text-sm bg-surface-elevated border border-border-primary rounded-md text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
+                    >
+                      {LIMIT_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option === 'all' ? 'All' : option}
+                        </option>
+                      ))}
+                    </select>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Number of sequences to display per page</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
 
