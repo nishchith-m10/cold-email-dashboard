@@ -40,14 +40,22 @@ export function ClerkWrapper({ children, isDark, mounted }: ClerkWrapperProps) {
 
   if (!mounted) {
     return (
-      <ClerkProvider appearance={{ ...baseAppearance, baseTheme: dark }}>
+      <ClerkProvider
+        appearance={{ ...baseAppearance, baseTheme: dark }}
+        signInFallbackRedirectUrl="/dashboard"
+        signUpFallbackRedirectUrl="/dashboard"
+      >
         {children}
       </ClerkProvider>
     );
   }
 
   return (
-    <ClerkProvider appearance={appearance}>
+    <ClerkProvider
+      appearance={appearance}
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/dashboard"
+    >
       {children}
     </ClerkProvider>
   );
