@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { useWorkspace } from '@/lib/workspace-context';
 import { useNotifications } from '@/hooks/use-notifications';
+import { useTheme } from '@/hooks/use-theme';
 import { WorkspaceSwitcher } from '@/components/dashboard/workspace-switcher';
 import { SignOutTransition } from '@/components/ui/sign-out-transition';
 import { Button } from '@/components/ui/button';
@@ -41,18 +42,14 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
   const { signOut, openUserProfile } = useClerk();
   const { workspace } = useWorkspace();
   const { notifications, unreadCount, markAsRead, dismiss } = useNotifications();
+  const { theme, toggleTheme } = useTheme();
   
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   const handleSignOut = () => {
     setShowUserMenu(false);
-    // Force dark mode before showing sign-out overlay
-    document.documentElement.classList.remove('light');
-    localStorage.setItem('theme', 'dark');
-    setTheme('dark');
     setIsSigningOut(true);
     setTimeout(() => {
       signOut({ redirectUrl: '/sign-in' });
@@ -66,13 +63,6 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
   if (pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up') || pathname === '/join') {
     return null;
   }
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('light', newTheme === 'light');
-  };
 
   const markAllAsRead = () => {
     const unreadIds = notifications.filter(n => !n.read_at).map(n => n.id);
