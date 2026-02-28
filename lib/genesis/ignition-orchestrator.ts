@@ -21,6 +21,8 @@
 import fs from 'fs';
 import path from 'path';
 
+import { loadOperatorCredentials, type OperatorCredentials } from './operator-credential-store';
+
 import {
   IgnitionConfig,
   IgnitionState,
@@ -192,6 +194,8 @@ export class IgnitionOrchestrator {
   private handshakeDelayMs: number;
   private templateDir: string;
   private cancellationFlags: Map<string, boolean> = new Map();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private supabaseAdmin: any;
 
   constructor(
     stateDB: IgnitionStateDB,
@@ -200,7 +204,8 @@ export class IgnitionOrchestrator {
     dropletFactory: DropletFactory,
     sidecarClient: SidecarClient,
     workflowDeployer: WorkflowDeployer,
-    options?: { handshakeDelayMs?: number; templateDir?: string }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    options?: { handshakeDelayMs?: number; templateDir?: string; supabaseAdmin?: any }
   ) {
     this.stateDB = stateDB;
     this.credentialVault = credentialVault;
@@ -211,6 +216,7 @@ export class IgnitionOrchestrator {
     this.handshakeDelayMs = options?.handshakeDelayMs ?? 5000;
     // Default to <project-root>/base-cold-email (bundled with the app)
     this.templateDir = options?.templateDir ?? path.join(process.cwd(), 'base-cold-email');
+    this.supabaseAdmin = options?.supabaseAdmin ?? null;
   }
 
   /**
@@ -652,6 +658,27 @@ export class IgnitionOrchestrator {
               ? `http://${state.droplet_ip}:5678`
               : `https://${state.droplet_ip}.sslip.io`;
 
+            // Load operator credentials from vault (never from env for these keys)
+            let operatorCreds: OperatorCredentials = {};
+            if (this.supabaseAdmin) {
+              try {
+                operatorCreds = await loadOperatorCredentials(this.supabaseAdmin);
+              } catch (credErr) {
+                // Non-fatal at this stage — missing keys will produce empty strings
+                // and the orchestrator's guard below will catch any required missing values.
+                console.warn(
+                  '[Ignition] Could not load operator credentials from vault:',
+                  credErr instanceof Error ? credErr.message : credErr,
+                  '— run: node scripts/seed-operator-credentials.mjs'
+                );
+              }
+            } else {
+              console.warn(
+                '[Ignition] No supabaseAdmin provided — operator credentials will be empty. ' +
+                'Pass supabaseAdmin in the IgnitionOrchestrator options.'
+              );
+            }
+
             const variableMap: Record<string, string> = {
               // Workspace identity
               YOUR_WORKSPACE_ID:   config.workspace_id,
@@ -671,30 +698,27 @@ export class IgnitionOrchestrator {
               YOUR_N8N_INSTANCE_URL:         instanceBase,
               YOUR_UNSUBSCRIBE_REDIRECT_URL: `${instanceBase}/webhook/opt-out`,
 
-              // Dashboard callback URLs
+              // Dashboard callback URLs — infrastructure vars, OK in env
               YOUR_DASHBOARD_URL: process.env.NEXT_PUBLIC_APP_URL
                 || process.env.BASE_URL
                 || '',
 
               // Per-workspace webhook token (D4-001) — falls back to global env var
-              YOUR_WEBHOOK_TOKEN:           config.webhook_token
-                || process.env.DASH_WEBHOOK_TOKEN || '',
-              YOUR_RELEVANCE_AI_AUTH_TOKEN: process.env.RELEVANCE_AI_API_KEY
-                || process.env.RELEVANCE_API_KEY
-                || '',
-              YOUR_RELEVANCE_AI_BASE_URL:   process.env.RELEVANCE_AI_BASE_URL
+              YOUR_WEBHOOK_TOKEN: config.webhook_token || process.env.DASH_WEBHOOK_TOKEN || '',
+
+              // Operator API keys — read from credential vault, NOT from process.env
+              YOUR_RELEVANCE_AI_AUTH_TOKEN: operatorCreds.relevance_ai_auth_token || '',
+              YOUR_RELEVANCE_AI_BASE_URL:   operatorCreds.relevance_ai_base_url
                 || 'https://api-d7b62b.stack.tryrelevance.com',
-              YOUR_RELEVANCE_AI_PROJECT_ID: process.env.RELEVANCE_AI_PROJECT_ID
-                || process.env.RELEVANCE_API_REGION
-                || '',
-              YOUR_RELEVANCE_AI_STUDIO_ID:  process.env.RELEVANCE_AI_STUDIO_ID || '',
+              YOUR_RELEVANCE_AI_PROJECT_ID: operatorCreds.relevance_ai_project_id || '',
+              YOUR_RELEVANCE_AI_STUDIO_ID:  operatorCreds.relevance_ai_studio_id || '',
 
-              // Google Custom Search Engine
-              YOUR_GOOGLE_CSE_API_KEY: process.env.GOOGLE_CSE_API_KEY || '',
-              YOUR_GOOGLE_CSE_CX:      process.env.GOOGLE_CSE_CX || '',
+              // Google Custom Search Engine — from vault
+              YOUR_GOOGLE_CSE_API_KEY: operatorCreds.google_cse_api_key || '',
+              YOUR_GOOGLE_CSE_CX:      operatorCreds.google_cse_cx || '',
 
-              // Apify
-              YOUR_APIFY_API_TOKEN: process.env.APIFY_API_KEY || '',
+              // Apify — from vault
+              YOUR_APIFY_API_TOKEN: operatorCreds.apify_api_key || '',
 
               // Workspace-specific defaults (caller should override these via config.variables)
               YOUR_SENDER_EMAIL: '',
