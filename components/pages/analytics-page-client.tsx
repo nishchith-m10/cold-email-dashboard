@@ -108,12 +108,18 @@ export function AnalyticsPageClient() {
   }, [searchParams, router]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6 pt-4 md:pt-6">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex sm:justify-end"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-lg font-semibold text-text-primary">Analytics</h1>
+            <p className="text-xs text-text-secondary">Deep-dive into your email campaign metrics</p>
+          </div>
+        </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Calendar Date Range - Icon Only */}
           <div className="relative">
