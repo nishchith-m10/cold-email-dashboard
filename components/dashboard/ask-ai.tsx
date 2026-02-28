@@ -649,7 +649,7 @@ export function AskAI({ className, compact = false }: AskAIProps) {
                   : 'bg-surface-elevated border-border text-text-secondary hover:border-border/80'
               )}
             >
-              <span className={cn('font-medium text-center', compact ? 'text-[10px]' : 'text-xs')}>Streaming</span>
+              <span className={cn('font-medium text-center', compact ? 'text-[10px]' : 'text-xs')}>Stream Response</span>
               <div className={cn(
                 'w-10 h-5 rounded-full relative transition-colors border border-border/60',
                 useStreaming ? 'bg-accent-primary' : 'bg-surface-elevated'
