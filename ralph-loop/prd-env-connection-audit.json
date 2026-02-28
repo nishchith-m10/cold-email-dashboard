@@ -1,0 +1,324 @@
+{
+  "prd_id": "ENV-AUDIT-001",
+  "title": "Environment & Connection Audit — Pre End-to-End Provisioning",
+  "created": "2026-02-28",
+  "phase": "Post-Genesis / Pre E2E Provisioning",
+  "methodology": "RALPH Loop — Review, Analyze, Loop, Patch, Harden",
+  "summary": "Full audit of .env.local credentials and live service connections run before attempting end-to-end per-tenant DigitalOcean droplet provisioning. Identified 4 critical blockers and 27 missing/placeholder environment variables.",
+
+  "connection_results": {
+    "digitalocean_account": {
+      "status": "✅ PASS",
+      "http": 200,
+      "notes": "API token (dop_v1_e4e8...) is valid and authenticated."
+    },
+    "digitalocean_droplets": {
+      "status": "⚠️  WARN",
+      "http": 200,
+      "notes": "API responds but NO droplets are provisioned yet. End-to-end per-tenant provisioning has NOT been tested. This is the next step."
+    },
+    "digitalocean_apps": {
+      "status": "❌ CRITICAL",
+      "http": 200,
+      "notes": "No DO Apps found. The n8n deployment (n8n-deployment-hlnal.ondigitalocean.app) that was configured in N8N_BASE_URL / N8N_API_URL no longer exists. The DNS no longer resolves. n8n workflows are completely unreachable."
+    },
+    "n8n_api": {
+      "status": "❌ CRITICAL",
+      "http": 0,
+      "notes": "getaddrinfo ENOTFOUND — DNS resolution failure for n8n-deployment-hlnal.ondigitalocean.app. The DO App this domain belonged to has been destroyed. All workflow automation is broken until n8n is re-deployed."
+    },
+    "supabase_rest": {
+      "status": "❌ CRITICAL",
+      "http": 500,
+      "notes": "code 42P17: infinite recursion detected in policy for relation 'user_workspace'. An RLS (Row Level Security) policy on the user_workspace table has a circular dependency. This will 500 on most authenticated API calls that JOIN through that table."
+    }
+  },
+
+  "critical_blockers": [
+    {
+      "id": "BLOCKER-001",
+      "severity": "CRITICAL",
+      "title": "Supabase RLS Infinite Recursion on user_workspace",
+      "detail": "The user_workspace table has a self-referencing RLS policy causing infinite recursion on any query that touches it. This affects workspace membership checks across the entire app.",
+      "fix": "Review supabase/migrations for the user_workspace policy. Rewrite the policy using a security definer function or a non-recursive policy condition. Apply via Supabase dashboard SQL editor.",
+      "passes": false
+    },
+    {
+      "id": "BLOCKER-002",
+      "severity": "CRITICAL",
+      "title": "n8n Deployment Down — DNS Gone",
+      "detail": "The DigitalOcean App Platform deployment for n8n (n8n-deployment-hlnal.ondigitalocean.app) no longer exists. N8N_BASE_URL, N8N_API_URL, N8N_INSTANCE_URL all point to dead endpoints.",
+      "fix": "Re-deploy n8n on DigitalOcean App Platform or a DO Droplet. Update N8N_BASE_URL, N8N_API_URL, N8N_INSTANCE_URL, and N8N_WEBHOOK_SECRET accordingly in .env.local and Vercel env vars.",
+      "passes": false
+    },
+    {
+      "id": "BLOCKER-003",
+      "severity": "HIGH",
+      "title": "No Droplets Provisioned — E2E Per-Tenant Test Blocked",
+      "detail": "Zero DigitalOcean droplets exist. The entire Genesis per-tenant provisioning flow (Ignition Orchestrator → Droplet Factory → Sidecar Deploy) has not been executed end-to-end yet.",
+      "fix": "Once BLOCKER-001 and BLOCKER-002 are resolved, trigger the onboarding flow for a test workspace to validate: droplet creation, sidecar install, n8n workflow import, credential injection, health check.",
+      "passes": false
+    },
+    {
+      "id": "BLOCKER-004",
+      "severity": "HIGH",
+      "title": "27 Missing / Placeholder ENV Vars",
+      "detail": "Core services (AI providers, Redis, Entri DNS, Sidecar auth, Google OAuth, Apify, CSE) all have placeholder values and are non-functional.",
+      "fix": "See env_gaps section below for the full prioritized list.",
+      "passes": false
+    }
+  ],
+
+  "env_gaps": {
+    "priority_1_blocking_core": [
+      {
+        "key": "DIGITALOCEAN_TOKEN",
+        "status": "PLACEHOLDER",
+        "note": "Alias of DIGITALOCEAN_API_TOKEN — copy the real dop_v1_ token here too. Some lib files use this name instead."
+      },
+      {
+        "key": "DATABASE_URL",
+        "status": "PLACEHOLDER_PASSWORD",
+        "note": "Format: postgres://postgres:<REAL_PASSWORD>@db.vfdmdqqtuxbkkxhcwris.supabase.co:5432/postgres. Use SUPABASE_DB_PASSWORD."
+      },
+      {
+        "key": "REDIS_URL",
+        "status": "LOCALHOST_FALLBACK",
+        "note": "Currently 'redis://localhost:6379'. For production/staging, must be an Upstash Redis URL (rediss://...). Get from https://console.upstash.com/redis"
+      },
+      {
+        "key": "UPSTASH_REDIS_REST_URL",
+        "status": "PLACEHOLDER",
+        "note": "Required by BullMQ and caching. Get from Upstash console."
+      },
+      {
+        "key": "UPSTASH_REDIS_REST_TOKEN",
+        "status": "PLACEHOLDER",
+        "note": "Required by BullMQ and caching. Get from Upstash console."
+      },
+      {
+        "key": "SIDECAR_AUTH_TOKEN",
+        "status": "PLACEHOLDER",
+        "note": "Shared secret between dashboard and Genesis sidecar containers. Generate with: openssl rand -hex 32"
+      },
+      {
+        "key": "SIDECAR_HANDSHAKE_SECRET",
+        "status": "MISSING",
+        "note": "Used in sidecar handshake protocol. Generate with: openssl rand -hex 32"
+      },
+      {
+        "key": "NEXT_PUBLIC_OHIO_WORKSPACE_ID",
+        "status": "PLACEHOLDER",
+        "note": "UUID of the Ohio/legacy workspace — routes sandbox templates to cold-email-system/. Get from supabase workspace_config table or set to a real workspace UUID."
+      }
+    ],
+    "priority_2_ai_providers": [
+      {
+        "key": "OPENAI_API_KEY",
+        "status": "PLACEHOLDER",
+        "note": "Required for RAG/knowledge queries. Get from https://platform.openai.com/api-keys"
+      },
+      {
+        "key": "ANTHROPIC_API_KEY",
+        "status": "PLACEHOLDER",
+        "note": "Required for Phase 71 health monitor and AI features. Get from https://console.anthropic.com/account/keys"
+      },
+      {
+        "key": "RELEVANCE_AI_API_KEY",
+        "status": "PLACEHOLDER",
+        "note": "Required for workflow automation and scraping. Get from https://app.relevanceai.com/settings/api"
+      },
+      {
+        "key": "RELEVANCE_AI_PROJECT_ID",
+        "status": "PLACEHOLDER",
+        "note": "Project ID from Relevance AI dashboard."
+      },
+      {
+        "key": "RELEVANCE_AI_STUDIO_ID",
+        "status": "PLACEHOLDER",
+        "note": "Studio ID from Relevance AI dashboard."
+      },
+      {
+        "key": "RELEVANCE_API_KEY",
+        "status": "PLACEHOLDER",
+        "note": "Alternate key name used by phase71 health check. Keep in sync with RELEVANCE_AI_API_KEY."
+      },
+      {
+        "key": "OPENROUTER_API_KEY",
+        "status": "MISSING",
+        "note": "Not in .env.local at all. Used by ask-models API route. Get from https://openrouter.ai/keys"
+      },
+      {
+        "key": "GOOGLE_GENAI_API_KEY",
+        "status": "MISSING",
+        "note": "Not in .env.local. Used for Gemini integrations. Get from https://aistudio.google.com/app/apikey"
+      }
+    ],
+    "priority_3_scraping_search": [
+      {
+        "key": "APIFY_API_KEY",
+        "status": "PLACEHOLDER",
+        "note": "Required for LinkedIn scraping and web scraping actors. Get from https://console.apify.com/account/integrations"
+      },
+      {
+        "key": "GOOGLE_CSE_API_KEY",
+        "status": "PLACEHOLDER",
+        "note": "Required for Google Custom Search in research workflows. Get from https://console.cloud.google.com/apis/credentials"
+      },
+      {
+        "key": "GOOGLE_CSE_CX",
+        "status": "PLACEHOLDER",
+        "note": "Custom Search Engine ID. Create at https://programmablesearchengine.google.com/"
+      },
+      {
+        "key": "GOOGLE_CSE_ID",
+        "status": "PLACEHOLDER",
+        "note": "Alternate name for GOOGLE_CSE_CX — keep in sync."
+      }
+    ],
+    "priority_4_oauth_dns": [
+      {
+        "key": "GOOGLE_OAUTH_CLIENT_ID",
+        "status": "PLACEHOLDER",
+        "note": "Required for Google OAuth token rotation (Gmail, Sheets). Create OAuth 2.0 credential at https://console.cloud.google.com/apis/credentials. Redirect URI: <APP_URL>/api/oauth/callback"
+      },
+      {
+        "key": "GOOGLE_OAUTH_CLIENT_SECRET",
+        "status": "PLACEHOLDER",
+        "note": "Paired with GOOGLE_OAUTH_CLIENT_ID."
+      },
+      {
+        "key": "GMAIL_OAUTH_CLIENT_ID",
+        "status": "FAKE_PLACEHOLDER",
+        "note": "Current value contains dummy digits (1234567890). Replace with real OAuth Client ID from Google Console."
+      },
+      {
+        "key": "GMAIL_OAUTH_CLIENT_SECRET",
+        "status": "FAKE_PLACEHOLDER",
+        "note": "Current value is GOCSPX-1234567890abc... Replace with real secret."
+      },
+      {
+        "key": "ENTRI_API_KEY",
+        "status": "PLACEHOLDER",
+        "note": "Required for automatic DNS provisioning during workspace onboarding. Get from https://dashboard.entri.com/"
+      },
+      {
+        "key": "ENTRI_APP_ID",
+        "status": "PLACEHOLDER",
+        "note": "Paired with ENTRI_API_KEY."
+      }
+    ],
+    "priority_5_monitoring_alerts": [
+      {
+        "key": "NEXT_PUBLIC_SENTRY_DSN",
+        "status": "MISSING",
+        "note": "Not in .env.local at all. Required for error tracking. Create project at https://sentry.io and copy DSN."
+      },
+      {
+        "key": "SENTRY_DSN",
+        "status": "MISSING",
+        "note": "Server-side Sentry DSN. Same as NEXT_PUBLIC_SENTRY_DSN or a separate one for server traces."
+      },
+      {
+        "key": "TELEGRAM_BOT_TOKEN",
+        "status": "MISSING",
+        "note": "Not in .env.local. Used for ops alerts. Create bot via @BotFather on Telegram."
+      },
+      {
+        "key": "TELEGRAM_CHAT_ID",
+        "status": "MISSING",
+        "note": "Chat ID to send alerts to. Get from @userinfobot."
+      },
+      {
+        "key": "SVIX_TOKEN",
+        "status": "MISSING",
+        "note": "Not in .env.local. Used for webhook delivery (Svix). Get from app.svix.com"
+      },
+      {
+        "key": "SVIX_SERVER_URL",
+        "status": "MISSING",
+        "note": "Self-hosted Svix URL or leave blank for cloud Svix."
+      },
+      {
+        "key": "BLOB_READ_WRITE_TOKEN",
+        "status": "MISSING",
+        "note": "Vercel Blob storage token. Run: vercel env pull or get from Vercel dashboard → Storage."
+      },
+      {
+        "key": "CONTROL_PLANE_URL",
+        "status": "PLACEHOLDER",
+        "note": "URL of the self-hosted control-plane service (Railway or Fly.io). Required for admin health checks."
+      }
+    ]
+  },
+
+  "next_steps_ordered": [
+    "1. FIX Supabase RLS infinite recursion on user_workspace (BLOCKER-001) — use Supabase SQL editor to patch the policy",
+    "2. RE-DEPLOY n8n on DigitalOcean (BLOCKER-002) — App Platform or a Droplet, update all N8N_* env vars",
+    "3. FILL priority_1_blocking_core env vars — especially DIGITALOCEAN_TOKEN alias, REDIS_URL, SIDECAR_AUTH_TOKEN, OHIO_WORKSPACE_ID",
+    "4. FILL priority_2_ai_providers — at minimum OpenAI and Anthropic to unblock AI health checks",
+    "5. RUN end-to-end provisioning test for one workspace — trigger onboarding → verify droplet created → sidecar deployed → n8n import → credentials injected",
+    "6. FILL remaining priority_3, priority_4, priority_5 gaps iteratively as features are tested"
+  ],
+
+  "reddit_note": "No Reddit-specific env vars found in the codebase. The Reddit mention was likely referring to Apify actors (which scrape Reddit among other sources). APIFY_API_KEY is in priority_3 above.",
+
+  "stories": [
+    {
+      "id": "ENV-001",
+      "title": "Fix Supabase RLS Infinite Recursion on user_workspace",
+      "type": "bug",
+      "priority": "P0",
+      "passes": false
+    },
+    {
+      "id": "ENV-002",
+      "title": "Re-deploy n8n and update N8N_* env vars",
+      "type": "infra",
+      "priority": "P0",
+      "passes": false
+    },
+    {
+      "id": "ENV-003",
+      "title": "Fill Priority 1 core blocking env vars",
+      "type": "config",
+      "priority": "P1",
+      "passes": false
+    },
+    {
+      "id": "ENV-004",
+      "title": "Fill AI provider keys (OpenAI, Anthropic, Relevance AI)",
+      "type": "config",
+      "priority": "P1",
+      "passes": false
+    },
+    {
+      "id": "ENV-005",
+      "title": "End-to-end per-tenant droplet provisioning test run",
+      "type": "e2e",
+      "priority": "P1",
+      "passes": false
+    },
+    {
+      "id": "ENV-006",
+      "title": "Fill Apify + Google CSE scraping keys",
+      "type": "config",
+      "priority": "P2",
+      "passes": false
+    },
+    {
+      "id": "ENV-007",
+      "title": "Fill Google OAuth + Entri DNS keys",
+      "type": "config",
+      "priority": "P2",
+      "passes": false
+    },
+    {
+      "id": "ENV-008",
+      "title": "Fill monitoring keys (Sentry, Telegram, Svix, Vercel Blob)",
+      "type": "config",
+      "priority": "P3",
+      "passes": false
+    }
+  ]
+}
