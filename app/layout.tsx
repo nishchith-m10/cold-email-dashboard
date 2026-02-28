@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import './globals.css';
 import { LayoutWrapper } from '@/components/layout/layout-wrapper';
 import { ClerkThemeProvider } from '@/components/providers/clerk-theme-provider';
@@ -35,12 +36,14 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-background antialiased" suppressHydrationWarning>
-        <ClerkThemeProvider>
-          <LayoutWrapper>
-            {children}
-          </LayoutWrapper>
-          <Toaster />
-        </ClerkThemeProvider>
+        <Suspense fallback={null}>
+          <ClerkThemeProvider>
+            <LayoutWrapper>
+              {children}
+            </LayoutWrapper>
+            <Toaster />
+          </ClerkThemeProvider>
+        </Suspense>
       </body>
     </html>
   );
