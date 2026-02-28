@@ -6,7 +6,6 @@
 
 'use client';
 
-import { Sparkles } from 'lucide-react';
 import { ApiKeyInputStage } from './api-key-input-stage';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
@@ -20,7 +19,6 @@ export function AnthropicKeyStage(props: StageComponentProps) {
       placeholder="sk-ant-..."
       helpText="Your Anthropic API key is used for Claude Sonnet and Opus models. You'll be charged directly by Anthropic based on usage."
       docsUrl="https://console.anthropic.com/settings/keys"
-      icon={Sparkles}
     />
   );
 }

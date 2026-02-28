@@ -408,10 +408,10 @@ export function GenesisOnboardingWizard({
 
               return (
                 <div key={stage.stage} className="relative flex items-start gap-3">
-                  {/* Vertical dashed connector line */}
+                  {/* Vertical connector line */}
                   {!isLast && (
                     <div
-                      className="absolute left-[13px] top-[28px] bottom-0 w-0 border-l-2 border-dashed border-border"
+                      className="absolute left-[13px] top-[28px] bottom-0 w-px bg-border/40"
                       style={{ height: 'calc(100% - 16px)' }}
                     />
                   )}
@@ -592,10 +592,10 @@ export function GenesisOnboardingWizard({
 
             return (
               <div key={stage.stage} className="relative flex items-start gap-3">
-                {/* Vertical dashed connector */}
+                {/* Vertical connector */}
                 {!isLast && (
                   <div
-                    className="absolute left-[13px] top-[28px] bottom-0 w-0 border-l-2 border-dashed border-border"
+                    className="absolute left-[13px] top-[28px] bottom-0 w-px bg-border/40"
                     style={{ height: 'calc(100% - 16px)' }}
                   />
                 )}

@@ -13,7 +13,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Mail, Server, Check, ChevronRight, AlertCircle, Sparkles } from 'lucide-react';
+import { Mail, Server, Check, ChevronRight, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -160,8 +160,7 @@ export function EmailProviderSelectionStage({ workspaceId, onComplete }: StageCo
             >
               {/* Recommended Badge */}
               {option.recommended && (
-                <div className="absolute -top-2 right-4 px-2 py-0.5 bg-accent-primary text-white text-xs font-medium rounded-full flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" />
+                <div className="absolute -top-2 right-4 px-2 py-0.5 bg-accent-primary text-white text-xs font-medium rounded-full">
                   Recommended
                 </div>
               )}

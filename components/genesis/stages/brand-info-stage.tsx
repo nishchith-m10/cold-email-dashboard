@@ -7,7 +7,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Building2, Globe, Loader2, ChevronRight, Sparkles } from 'lucide-react';
+import { Loader2, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -158,113 +158,107 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Website + Auto-Scrape */}
       <div>
-        <label className="block text-sm font-medium text-text-primary mb-2">
+        <label className="block text-sm font-semibold text-text-primary mb-1.5">
           Company Website
         </label>
+        <p className="text-xs text-text-secondary mb-2">
+          Enter your website and we&apos;ll auto-fill your company details.
+        </p>
         
         <div className="flex gap-2">
-          <div className="relative flex-1">
-            <input
-              type="url"
-              value={website}
-              onChange={(e) => { setWebsite(e.target.value); persistDraft({ website: e.target.value }); }}
-              placeholder="https://acmecorp.com"
-              className="w-full pl-10 pr-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
-            />
-            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-text-secondary" />
-          </div>
+          <input
+            type="url"
+            value={website}
+            onChange={(e) => { setWebsite(e.target.value); persistDraft({ website: e.target.value }); }}
+            placeholder="https://acmecorp.com"
+            className="flex-1 px-4 py-2.5 rounded-lg text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+          />
           
           <button
             onClick={handleAutoScrape}
             disabled={!website.trim() || isAutoScraping}
-            className="px-4 py-3 bg-accent-purple/10 border-2 border-accent-purple/20 text-accent-purple rounded-lg font-medium hover:bg-accent-purple/20 transition-colors disabled:opacity-50 whitespace-nowrap"
-            title="Auto-fill from website"
+            className="px-4 py-2.5 bg-accent-primary/10 border border-accent-primary/20 text-accent-primary rounded-lg text-sm font-medium hover:bg-accent-primary/20 transition-colors disabled:opacity-50 whitespace-nowrap"
           >
             {isAutoScraping ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Sparkles className="h-5 w-5" />
+              'Auto-fill'
             )}
           </button>
         </div>
         
-        <p className="mt-2 text-xs text-text-secondary">
-          We&apos;ll auto-fill company details from your website
-        </p>
-        
         {/* Success message */}
         {scrapeSuccess && (
-          <div className="mt-3 p-3 bg-accent-success/10 border border-accent-success/20 rounded-lg text-accent-success text-sm flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
+          <div className="mt-2.5 p-3 bg-accent-success/10 border border-accent-success/20 rounded-lg text-accent-success text-sm">
             Successfully extracted brand information! Review and edit below.
           </div>
         )}
       </div>
 
-      {/* Company Name */}
-      <div>
-        <label className="block text-sm font-medium text-text-primary mb-2">
-          Company Name <span className="text-accent-danger">*</span>
-        </label>
-        
-        <input
-          type="text"
-          value={companyName}
-          onChange={(e) => { setCompanyName(e.target.value); persistDraft({ companyName: e.target.value }); }}
-          placeholder="Acme Corporation"
-          className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
-        />
+      {/* Company Name + Industry — side by side on larger screens */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-semibold text-text-primary mb-1.5">
+            Company Name <span className="text-accent-danger">*</span>
+          </label>
+          <input
+            type="text"
+            value={companyName}
+            onChange={(e) => { setCompanyName(e.target.value); persistDraft({ companyName: e.target.value }); }}
+            placeholder="Acme Corporation"
+            className="w-full px-4 py-2.5 rounded-lg text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-text-primary mb-1.5">
+            Industry
+          </label>
+          <input
+            type="text"
+            value={industry}
+            onChange={(e) => { setIndustry(e.target.value); persistDraft({ industry: e.target.value }); }}
+            placeholder="SaaS, FinTech, Healthcare…"
+            className="w-full px-4 py-2.5 rounded-lg text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+          />
+        </div>
       </div>
 
-      {/* Logo URL (Phase 65.1) */}
+      {/* Logo URL */}
       <div>
-        <label className="block text-sm font-medium text-text-primary mb-2">
-          Logo URL <span className="text-text-tertiary text-xs">(optional)</span>
+        <label className="block text-sm font-semibold text-text-primary mb-1.5">
+          Logo URL <span className="text-text-tertiary text-xs font-normal">(optional)</span>
         </label>
-        
         <input
           type="url"
           value={logoUrl}
           onChange={(e) => { setLogoUrl(e.target.value); persistDraft({ logoUrl: e.target.value }); }}
           placeholder="https://yourcompany.com/logo.png"
-          className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+          className="w-full px-4 py-2.5 rounded-lg text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
         />
-        <p className="mt-2 text-xs text-text-secondary">
+        <p className="mt-1.5 text-xs text-text-secondary">
           Used in email signatures (if applicable)
         </p>
       </div>
 
-      {/* Industry */}
-      <div>
-        <label className="block text-sm font-medium text-text-primary mb-2">
-          Industry
-        </label>
-        
-        <input
-          type="text"
-          value={industry}
-          onChange={(e) => { setIndustry(e.target.value); persistDraft({ industry: e.target.value }); }}
-          placeholder="SaaS, FinTech, Healthcare, etc."
-          className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
-        />
-      </div>
-
       {/* Description */}
       <div>
-        <label className="block text-sm font-medium text-text-primary mb-2">
+        <label className="block text-sm font-semibold text-text-primary mb-1.5">
           Company Description
         </label>
-        
         <textarea
           value={description}
           onChange={(e) => { setDescription(e.target.value); persistDraft({ description: e.target.value }); }}
-          placeholder="Describe what your company does..."
-          rows={3}
-          className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all resize-none"
+          placeholder="Describe what your company does, who you serve, and what makes you different…"
+          rows={4}
+          className="w-full px-4 py-2.5 rounded-lg text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all resize-none"
         />
+        <p className="mt-1.5 text-xs text-text-secondary">
+          Used to personalize your outreach emails. The more detail, the better.
+        </p>
       </div>
 
       {/* Error */}
@@ -278,7 +272,7 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
       <button
         onClick={handleContinue}
         disabled={isSaving || !companyName.trim()}
-        className="w-full flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 h-11 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all disabled:opacity-50"
       >
         {isSaving ? (
           <>

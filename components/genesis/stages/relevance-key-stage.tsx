@@ -13,7 +13,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  Sparkles, 
   Loader2, 
   ChevronRight, 
   ExternalLink, 
@@ -202,19 +201,6 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 rounded-lg bg-accent-purple/10">
-          <Sparkles className="h-5 w-5 text-accent-purple" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-text-primary">Relevance AI Configuration</h3>
-          <p className="text-sm text-text-secondary">
-            Configure Relevance AI for LinkedIn profile research
-          </p>
-        </div>
-      </div>
-
       {/* Info Banner */}
       <div className="p-4 bg-accent-primary/5 border border-accent-primary/20 rounded-lg">
         <div className="flex gap-3">

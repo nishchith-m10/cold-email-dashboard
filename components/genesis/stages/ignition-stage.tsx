@@ -7,7 +7,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Rocket, Check, Loader2, Zap, Server, Database, Globe, AlertCircle } from 'lucide-react';
+import { Check, Loader2, Zap, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
@@ -138,21 +138,6 @@ export function IgnitionStage({ workspaceId, onComplete }: StageComponentProps) 
     <div className="space-y-6">
       {!isProvisioning && !allComplete && (
         <>
-          {/* Ready to Launch */}
-          <div className="text-center py-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-accent-primary mb-4 shadow-lg shadow-accent-primary/25">
-              <Rocket className="h-10 w-10 text-white" />
-            </div>
-            
-            <h3 className="text-2xl font-bold text-text-primary mb-2">
-              Ready to Launch
-            </h3>
-            
-            <p className="text-text-secondary max-w-md mx-auto">
-              All credentials configured. Click below to provision your automation engine.
-            </p>
-          </div>
-
           {/* What Will Happen */}
           <div className="bg-surface-elevated border border-border rounded-lg p-5">
             <h4 className="text-sm font-semibold text-text-primary mb-4">
@@ -186,7 +171,6 @@ export function IgnitionStage({ workspaceId, onComplete }: StageComponentProps) 
             onClick={handleStartIgnition}
             className="w-full flex items-center justify-center gap-2 h-14 bg-accent-primary text-white rounded-lg font-bold text-lg shadow-xl shadow-accent-primary/30 hover:bg-accent-primary/90 transition-all"
           >
-            <Rocket className="h-6 w-6" />
             Start Engine
           </button>
         </>
