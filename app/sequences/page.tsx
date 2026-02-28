@@ -10,10 +10,15 @@ import { SequenceList } from '@/components/sequences/sequence-list';
 import { SequenceDetail } from '@/components/sequences/sequence-detail';
 import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { DateRangePickerMobile } from '@/components/dashboard/date-range-picker-mobile';
-import { toISODate, daysAgo } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn, toISODate, daysAgo } from '@/lib/utils';
 import type { SequenceListResponse, SequenceDetail as SequenceDetailType } from '@/lib/dashboard-types';
-import { Mail, ArrowLeft, Filter } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ArrowLeft, Filter, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BottomSheet } from '@/components/mobile';
 
@@ -117,13 +122,10 @@ export default function SequencesPage() {
               )}
             </AnimatePresence>
             
-            <div className="w-10 h-10 rounded-lg bg-accent-primary/10 flex items-center justify-center">
-              <Mail className="w-5 h-5 md:w-6 md:h-6 text-accent-primary" />
-            </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-text-primary">Sequences</h1>
-              <p className="text-text-secondary text-xs md:text-sm hidden sm:block">
-                Preview your email drafts
+              <h1 className="text-lg font-semibold text-text-primary">Sequences</h1>
+              <p className="text-xs text-text-secondary hidden sm:block">
+                Email sequence performance and analytics
               </p>
             </div>
           </div>
@@ -135,32 +137,35 @@ export default function SequencesPage() {
               endDate={endDate}
               onDateChange={handleDateChange}
             />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-text-secondary">Items:</span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <select
-                      value={limit}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setLimit(value === 'all' ? 'all' : Number(value) as LimitOption);
-                      }}
-                      className="px-3 py-1.5 text-sm bg-surface-elevated border border-border-primary rounded-md text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1 text-xs font-normal px-2.5">
+                  Items
+                  <span className="text-text-secondary">· {limit === 'all' ? 'All' : limit}</span>
+                  <ChevronDown className="h-3 w-3 text-text-secondary" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="bg-surface-elevated border border-border rounded-lg shadow-xl p-1 min-w-[100px]"
+              >
+                {LIMIT_OPTIONS.map((opt) => {
+                  const label = opt === 'all' ? 'All' : String(opt);
+                  return (
+                    <DropdownMenuItem
+                      key={String(opt)}
+                      onSelect={() => setLimit(opt)}
+                      className={cn(
+                        'text-xs py-1.5 cursor-pointer',
+                        limit === opt && 'text-accent-primary font-medium'
+                      )}
                     >
-                      {LIMIT_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option === 'all' ? 'All' : option}
-                        </option>
-                      ))}
-                    </select>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>Number of sequences to display per page</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
+                      {label}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Mobile: Filter button + Date picker */}

@@ -26,8 +26,7 @@ import { SenderBreakdown } from '@/components/dashboard/sender-breakdown';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   ToggleLeft,
-  ToggleRight,
-  BarChart3
+  ToggleRight
 } from 'lucide-react';
 
 export function AnalyticsPageClient() {
@@ -115,16 +114,12 @@ export function AnalyticsPageClient() {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-accent-purple" />
-            Analytics
-          </h1>
-          <div className="text-text-secondary text-sm mt-1">
-            Deep dive into your campaign performance and costs
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-lg font-semibold text-text-primary">Analytics</h1>
+            <p className="text-xs text-text-secondary">Deep-dive into your email campaign metrics</p>
           </div>
         </div>
-        
         <div className="flex items-center gap-2 flex-wrap">
           {/* Calendar Date Range - Icon Only */}
           <div className="relative">
