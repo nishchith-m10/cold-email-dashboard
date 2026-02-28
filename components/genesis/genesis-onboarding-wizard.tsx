@@ -25,9 +25,11 @@ import {
   Calendar,
   Shield,
   Rocket,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { BottomSheet } from '@/components/mobile/bottom-sheet';
 import type { OnboardingStage } from '@/lib/genesis/phase64/credential-vault-types';
 import { STAGE_INFO } from '@/lib/genesis/phase64/onboarding-progress-service';
 
@@ -182,6 +184,8 @@ export function GenesisOnboardingWizard({
   // ONB-006: Track whether this is a resumed session (user had prior progress)
   const [isResumed, setIsResumed] = useState(false);
   const [resumeBannerDismissed, setResumeBannerDismissed] = useState(false);
+  // ONB-007: Mobile stepper BottomSheet
+  const [mobileStepperOpen, setMobileStepperOpen] = useState(false);
 
   // Phase 64.B: Filter stages based on selected provider (memoized to prevent unnecessary recalculations)
   const visibleStages = useMemo(() => {
@@ -460,8 +464,8 @@ export function GenesisOnboardingWizard({
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="lg:mr-72 pt-4 pb-8 px-4">
+      {/* Main Content — extra top padding on mobile for the fixed stepper header */}
+      <div className="lg:mr-72 pt-16 lg:pt-4 pb-8 px-4">
         <div className="max-w-3xl mx-auto">
           {/* Persistent Page Heading */}
           <p className="text-xs text-text-secondary mb-4">Set up your workspace</p>
@@ -550,30 +554,90 @@ export function GenesisOnboardingWizard({
         </div>
       </div>
 
-      {/* Mobile Progress - Phase 64.B: Uses visibleStages */}
-      <div className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-        <div className="bg-surface border border-border rounded-full px-4 py-2 shadow-lg">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-1">
-              {visibleStages.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleSkipToStage(index)}
-                  className={cn(
-                    'rounded-full transition-all cursor-pointer',
-                    index === currentStageIndex && 'w-6 h-1.5 bg-accent-primary',
-                    index < currentStageIndex && 'w-1.5 h-1.5 bg-accent-success',
-                    index > currentStageIndex && 'w-1.5 h-1.5 bg-border'
-                  )}
-                />
-              ))}
+      {/* ONB-007: Mobile Stepper Header Bar */}
+      <div className="lg:hidden fixed top-[49px] left-0 right-0 z-40 bg-surface border-b border-border">
+        <button
+          onClick={() => setMobileStepperOpen(true)}
+          className="w-full px-4 py-3 flex items-center justify-between"
+        >
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-semibold text-text-primary truncate">{currentStage.title}</span>
+              <ChevronDown className="h-4 w-4 text-text-secondary flex-shrink-0" />
             </div>
-            <span className="text-xs text-text-secondary font-medium ml-1">
-              {currentStageIndex + 1}/{totalStages}
-            </span>
+            <span className="text-xs text-text-secondary">Step {currentStageIndex + 1} of {totalStages}</span>
           </div>
+          <span className="text-xs font-medium text-text-primary">{Math.round(progress)}%</span>
+        </button>
+        <div className="h-0.5 bg-surface-elevated">
+          <div
+            className="h-full bg-accent-primary transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
+
+      {/* ONB-007: Mobile Stepper BottomSheet */}
+      <BottomSheet
+        open={mobileStepperOpen}
+        onClose={() => setMobileStepperOpen(false)}
+        title="Onboarding Steps"
+      >
+        <div className="px-2 pb-4 max-h-[60vh] overflow-y-auto">
+          {visibleStages.map((stage, index) => {
+            const isCompleted = completedStages.has(stage.stage);
+            const isCurrent = index === currentStageIndex;
+            const isUpcoming = !isCompleted && !isCurrent;
+            const isLast = index === visibleStages.length - 1;
+
+            return (
+              <div key={stage.stage} className="relative flex items-start gap-3">
+                {/* Vertical dashed connector */}
+                {!isLast && (
+                  <div
+                    className="absolute left-[13px] top-[28px] bottom-0 w-0 border-l-2 border-dashed border-border"
+                    style={{ height: 'calc(100% - 16px)' }}
+                  />
+                )}
+
+                {/* Step circle */}
+                <button
+                  onClick={() => { handleSkipToStage(index); setMobileStepperOpen(false); }}
+                  className={cn(
+                    'relative z-10 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium transition-colors',
+                    isCompleted && 'bg-accent-success text-white',
+                    isCurrent && 'bg-accent-primary text-white',
+                    isUpcoming && 'bg-surface-elevated text-text-secondary border border-border'
+                  )}
+                >
+                  {isCompleted ? <Check className="h-3.5 w-3.5" /> : <span>{index + 1}</span>}
+                </button>
+
+                {/* Step label */}
+                <button
+                  onClick={() => { handleSkipToStage(index); setMobileStepperOpen(false); }}
+                  className="flex-1 min-w-0 text-left pb-5 pt-0.5"
+                >
+                  <div className={cn(
+                    'text-sm truncate',
+                    isCompleted && 'text-text-primary',
+                    isCurrent && 'font-semibold text-text-primary',
+                    isUpcoming && 'text-text-secondary'
+                  )}>
+                    {stage.title}
+                  </div>
+                  <div className={cn(
+                    'text-xs truncate mt-0.5',
+                    isUpcoming ? 'text-text-secondary/50' : 'text-text-secondary'
+                  )}>
+                    {stage.description}
+                  </div>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </BottomSheet>
     </div>
   );
 }
