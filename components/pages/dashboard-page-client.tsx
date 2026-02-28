@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { Settings2, LayoutDashboard } from 'lucide-react';
+import { Settings2 } from 'lucide-react';
 import { toISODate, daysAgo } from '@/lib/utils';
 import { CHART_COLORS } from '@/lib/constants';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
@@ -353,9 +353,6 @@ export function DashboardPageClient() {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center">
-            <LayoutDashboard className="h-4 w-4 text-accent-primary" />
-          </div>
           <div>
             <h1 className="text-lg font-semibold text-text-primary">Overview</h1>
             <p className="text-xs text-text-secondary">Campaign performance at a glance</p>

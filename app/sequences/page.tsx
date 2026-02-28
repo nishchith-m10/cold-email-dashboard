@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Mail, ArrowLeft, Filter, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Filter, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BottomSheet } from '@/components/mobile';
 
@@ -122,9 +122,6 @@ export default function SequencesPage() {
               )}
             </AnimatePresence>
             
-            <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center">
-              <Mail className="h-4 w-4 text-accent-primary" />
-            </div>
             <div>
               <h1 className="text-lg font-semibold text-text-primary">Sequences</h1>
               <p className="text-xs text-text-secondary hidden sm:block">

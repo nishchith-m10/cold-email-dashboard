@@ -10,7 +10,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, X, Mail, Building2, Clock3, Users, ArrowLeft, Filter, Upload, ChevronDown, UserPlus } from 'lucide-react';
+import { Search, Plus, X, Mail, Building2, Clock3, ArrowLeft, Filter, Upload, ChevronDown, UserPlus } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -531,9 +531,6 @@ export default function ContactsPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center">
-              <Users className="h-4 w-4 text-accent-primary" />
-            </div>
             <div>
               <h1 className="text-lg font-semibold text-text-primary">Contacts</h1>
               <p className="text-xs text-text-secondary hidden sm:block">

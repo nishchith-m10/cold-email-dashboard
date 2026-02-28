@@ -270,9 +270,6 @@ export default function SandboxPage() {
         {/* Header row */}
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center">
-              <SquareTerminal className="h-4 w-4 text-accent-primary" />
-            </div>
             <div>
               <h1 className="text-lg font-semibold text-text-primary">Sandbox</h1>
               <p className="text-xs text-text-secondary hidden sm:block">
