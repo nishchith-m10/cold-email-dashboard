@@ -157,7 +157,7 @@ function WorkflowCanvasInner({
     <div style={{ 
       width: '100%', 
       height: '100%',
-      backgroundColor: currentColors.bg,
+      ...(colorMode === 'light' ? { backgroundColor: currentColors.bg } : {}),
     }}>
     <ReactFlow
       nodes={nodesWithStatus}
@@ -178,22 +178,22 @@ function WorkflowCanvasInner({
       <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
       <Controls
         showInteractive={false}
-        style={{
+        style={colorMode === 'light' ? {
           backgroundColor: currentColors.controlBg,
           border: `1px solid ${currentColors.controlBorder}`,
           borderRadius: '8px',
-        }}
+        } : {}}
       />
       <MiniMap
         nodeStrokeWidth={3}
         zoomable
         pannable
-        style={{
+        style={colorMode === 'light' ? {
           backgroundColor: currentColors.minimap,
           border: `1px solid ${currentColors.minimapBorder}`,
           borderRadius: '4px',
-        }}
-        nodeColor={() => currentColors.minimapNode}
+        } : {}}
+        nodeColor={colorMode === 'light' ? () => currentColors.minimapNode : undefined}
       />
     </ReactFlow>
     </div>
