@@ -6,7 +6,8 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { CampaignWizard } from './campaign-wizard';
 
@@ -16,6 +17,11 @@ interface NewCampaignModalProps {
 }
 
 export function NewCampaignModal({ isOpen, onClose }: NewCampaignModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -34,9 +40,10 @@ export function NewCampaignModal({ isOpen, onClose }: NewCampaignModalProps) {
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+  if (!mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -66,6 +73,7 @@ export function NewCampaignModal({ isOpen, onClose }: NewCampaignModalProps) {
           <CampaignWizard onClose={onClose} />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

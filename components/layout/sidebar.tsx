@@ -14,7 +14,6 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSidebar } from '@/lib/sidebar-context';
 import { useWorkspace } from '@/lib/workspace-context';
-import { SystemHealthBar } from '@/components/ui/system-health-bar';
 import { 
   LayoutDashboard,
   BarChart3,
@@ -55,14 +54,19 @@ const ADMIN_ITEMS: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { mode, setMode, isHovered, setIsHovered, isExpanded, effectiveWidth } = useSidebar();
-  const { workspace, userRole, isSuperAdmin } = useWorkspace();
-  const workspaceId = workspace?.id;
+  const { workspace, isSuperAdmin } = useWorkspace();
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const menuCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Mark component as mounted after hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
-  // Include super_admin in admin check for Admin panel access
-  const isAdmin = userRole === 'owner' || userRole === 'admin' || isSuperAdmin;
+  // Only super admins see the Admin panel link
+  const isAdmin = isSuperAdmin;
   
   // Preserve URL search params (start, end, campaign) when navigating
   const searchParams = useSearchParams();
@@ -175,9 +179,12 @@ export function Sidebar() {
               <AnimatePresence mode="wait">
                 {isExpanded && (
                   <motion.span
-                    className="text-sm font-medium whitespace-nowrap will-change-transform"
+                    className={cn(
+                      "text-sm font-medium whitespace-nowrap will-change-transform",
+                      !mounted && "opacity-0"
+                    )}
                     initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    animate={{ opacity: mounted ? 1 : 0, x: 0 }}
                     exit={{ opacity: 0, x: -8 }}
                     transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
                   >
@@ -213,9 +220,12 @@ export function Sidebar() {
                   <AnimatePresence mode="wait">
                     {isExpanded && (
                       <motion.span
-                        className="text-sm font-medium whitespace-nowrap will-change-transform"
+                        className={cn(
+                          "text-sm font-medium whitespace-nowrap will-change-transform",
+                          !mounted && "opacity-0"
+                        )}
                         initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
+                        animate={{ opacity: mounted ? 1 : 0, x: 0 }}
                         exit={{ opacity: 0, x: -8 }}
                         transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
                       >
@@ -232,11 +242,6 @@ export function Sidebar() {
 
       {/* Footer Section */}
       <div className="px-2 py-3 space-y-2 flex-shrink-0">
-        {/* System Health - Compact in sidebar */}
-        {workspaceId && (
-          <SystemHealthBar workspaceId={workspaceId} compact={!isExpanded} className={isExpanded ? 'w-full' : ''} />
-        )}
-
         {/* Sidebar Display Mode Selector */}
         <div className="relative" ref={modeMenuRef}>
           <button
@@ -274,9 +279,12 @@ export function Sidebar() {
             <AnimatePresence mode="wait">
               {isExpanded && (
                 <motion.span
-                  className="text-sm font-medium whitespace-nowrap will-change-transform"
+                  className={cn(
+                    "text-sm font-medium whitespace-nowrap will-change-transform",
+                    !mounted && "opacity-0"
+                  )}
                   initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  animate={{ opacity: mounted ? 1 : 0, x: 0 }}
                   exit={{ opacity: 0, x: -8 }}
                   transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
                 >
