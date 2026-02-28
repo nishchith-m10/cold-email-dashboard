@@ -139,35 +139,28 @@ export default function SequencesPage() {
             />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-sm font-normal">
+                <Button variant="outline" size="sm" className="h-8 gap-1 text-xs font-normal px-2.5">
                   Items
-                  {limit !== 50 && (
-                    <span className="text-text-secondary">· {limit === 'all' ? 'All' : limit}</span>
-                  )}
-                  <ChevronDown className="h-3.5 w-3.5 text-text-secondary" />
+                  <span className="text-text-secondary">· {limit === 'all' ? 'All' : limit}</span>
+                  <ChevronDown className="h-3 w-3 text-text-secondary" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="bg-surface-elevated border border-border rounded-lg shadow-2xl p-1 min-w-[210px]"
+                className="bg-surface-elevated border border-border rounded-lg shadow-xl p-1 min-w-[100px]"
               >
                 {LIMIT_OPTIONS.map((opt) => {
                   const label = opt === 'all' ? 'All' : String(opt);
-                  const description =
-                    opt === 'all'
-                      ? 'Show all sequences (may be slow)'
-                      : `Show ${opt === 1000 ? '1,000' : opt} sequences`;
                   return (
                     <DropdownMenuItem
                       key={String(opt)}
                       onSelect={() => setLimit(opt)}
                       className={cn(
-                        'flex flex-col items-start gap-0.5 py-2 cursor-pointer',
-                        limit === opt && 'text-accent-primary'
+                        'text-xs py-1.5 cursor-pointer',
+                        limit === opt && 'text-accent-primary font-medium'
                       )}
                     >
-                      <span className="font-medium text-sm">{label}</span>
-                      <span className="text-xs text-text-secondary">{description}</span>
+                      {label}
                     </DropdownMenuItem>
                   );
                 })}
