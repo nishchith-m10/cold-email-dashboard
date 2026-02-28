@@ -4,11 +4,9 @@ import Image from 'next/image';
 
 export default function SignInPage() {
   return (
-    <>
-    <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.remove('light');localStorage.setItem('theme','dark');" }} />
-    <div className="min-h-screen flex bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen flex bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Left side - Branding (60%) - Desktop only */}
-      <div className="hidden lg:flex lg:w-3/5 p-12 flex-col justify-between relative overflow-hidden border-r border-slate-800">
+      <div className="hidden lg:flex lg:w-3/5 p-12 flex-col justify-between relative overflow-hidden border-r border-slate-200 dark:border-slate-800">
         {/* Subtle accent border */}
         <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-blue-500/20 to-transparent" />
         
@@ -19,8 +17,8 @@ export default function SignInPage() {
               <Image src="/logo.png" alt="Logo" width={40} height={40} className="w-full h-full object-cover" />
             </div>
             <div>
-              <span className="text-xl font-semibold text-white">Cold Email</span>
-              <span className="block text-[10px] uppercase tracking-wider font-medium text-slate-400">Analytics</span>
+              <span className="text-xl font-semibold text-slate-900 dark:text-white">Cold Email</span>
+              <span className="block text-[10px] uppercase tracking-wider font-medium text-slate-500 dark:text-slate-400">Analytics</span>
             </div>
           </div>
         </div>
@@ -28,33 +26,33 @@ export default function SignInPage() {
         {/* Main content */}
         <div className="relative z-10 space-y-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-3 leading-tight">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3 leading-tight">
               Track your outreach.
-              <span className="block bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-400 dark:to-blue-300 bg-clip-text text-transparent">
                 Scale your success.
               </span>
             </h1>
-            <p className="text-slate-400 text-base max-w-md leading-relaxed">
+            <p className="text-slate-500 dark:text-slate-400 text-base max-w-md leading-relaxed">
               Real-time analytics for cold email campaigns. Monitor performance, track costs, and optimize your outreach.
             </p>
           </div>
           
           {/* Features - Simplified list */}
           <div className="space-y-3">
-            <div className="flex items-center gap-3 text-slate-300">
-              <Mail className="w-5 h-5 text-blue-400 flex-shrink-0" />
+            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+              <Mail className="w-5 h-5 text-blue-500 dark:text-blue-400 flex-shrink-0" />
               <span className="text-sm">Track opens, clicks, and replies</span>
             </div>
-            <div className="flex items-center gap-3 text-slate-300">
-              <TrendingUp className="w-5 h-5 text-blue-400 flex-shrink-0" />
+            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+              <TrendingUp className="w-5 h-5 text-blue-500 dark:text-blue-400 flex-shrink-0" />
               <span className="text-sm">Advanced analytics and metrics</span>
             </div>
-            <div className="flex items-center gap-3 text-slate-300">
-              <Zap className="w-5 h-5 text-blue-400 flex-shrink-0" />
+            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+              <Zap className="w-5 h-5 text-blue-500 dark:text-blue-400 flex-shrink-0" />
               <span className="text-sm">Monitor LLM usage and costs</span>
             </div>
-            <div className="flex items-center gap-3 text-slate-300">
-              <BarChart3 className="w-5 h-5 text-blue-400 flex-shrink-0" />
+            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+              <BarChart3 className="w-5 h-5 text-blue-500 dark:text-blue-400 flex-shrink-0" />
               <span className="text-sm">Compare campaign performance</span>
             </div>
           </div>
@@ -62,7 +60,7 @@ export default function SignInPage() {
         
         {/* Footer */}
         <div className="relative z-10">
-          <p className="text-slate-500 text-sm">
+          <p className="text-slate-400 dark:text-slate-500 text-sm">
            Built for high-performance outreach teams
           </p>
         </div>
@@ -77,8 +75,8 @@ export default function SignInPage() {
               <Image src="/logo.png" alt="Logo" width={64} height={64} className="w-full h-full object-cover" />
             </div>
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-white">Cold Email</h1>
-              <p className="text-xs uppercase tracking-widest font-medium text-slate-400 mt-0.5">Analytics</p>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Cold Email</h1>
+              <p className="text-xs uppercase tracking-widest font-medium text-slate-500 dark:text-slate-400 mt-0.5">Analytics</p>
             </div>
           </div>
           
@@ -123,6 +121,5 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
-    </>
   );
 }
