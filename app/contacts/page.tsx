@@ -531,13 +531,13 @@ export default function ContactsPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <div className="w-10 h-10 rounded-lg bg-surface-elevated flex items-center justify-center">
-              <Users className="w-5 h-5 md:w-6 md:h-6 text-text-secondary" />
+            <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center">
+              <Users className="h-4 w-4 text-accent-primary" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-semibold text-text-primary">Contacts</h1>
-              <p className="text-xs md:text-sm text-text-secondary hidden sm:block">
-                View your leads with timeline.
+              <h1 className="text-lg font-semibold text-text-primary">Contacts</h1>
+              <p className="text-xs text-text-secondary hidden sm:block">
+                Manage and track your leads
               </p>
             </div>
           </div>
