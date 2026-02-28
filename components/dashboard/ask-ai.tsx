@@ -430,53 +430,113 @@ export function AskAI({ className, compact = false }: AskAIProps) {
             animate={{ height: isSettingsOpen ? 'auto' : 0, opacity: isSettingsOpen ? 1 : 0 }}
             className="overflow-hidden"
           >
-            <div className="pb-4 border-b border-border/40 mb-3 grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
-              {/* Left Column: Provider & Key Connection Block */}
-              <div className="h-full flex flex-col gap-3 p-4 rounded-xl bg-surface-elevated/30 border border-border/50">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 space-y-1">
-                    <label className="text-xs font-medium text-text-secondary uppercase tracking-wider block">
-                      Provider
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleProviderChange('openai')}
-                        className={cn(
-                          'px-3 py-1.5 text-xs font-medium rounded-lg transition-all',
-                          provider === 'openai'
-                            ? 'bg-accent-primary/10 text-accent-primary border border-accent-primary/20'
-                            : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
-                        )}
-                      >
-                        OpenAI
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleProviderChange('openrouter')}
-                        className={cn(
-                          'px-3.5 py-1.5 text-xs font-medium rounded-lg transition-all',
-                          provider === 'openrouter'
-                            ? 'bg-accent-primary/10 text-accent-primary border border-accent-primary/20'
-                            : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
-                        )}
-                      >
-                        OpenRouter
-                      </button>
+            <div className="p-4 space-y-4 border-b border-border/40 mb-3 w-full max-w-full">
+              {/* Group 1: Provider + Model Selection */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                {/* Left Column: Provider Selection */}
+                <div className="h-full flex flex-col space-y-3 p-4 rounded-xl bg-surface-elevated/30 border border-border/50">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-medium text-text-primary">Provider</p>
+                      <p className="text-xs text-text-secondary">Select your AI provider</p>
+                    </div>
+                    {/* Status Badge */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-elevated border border-border/50">
+                      <Shield className={cn("h-3 w-3", (provider === 'openai' ? openaiConfigured : openrouterConfigured) ? "text-green-500" : "text-text-secondary")} />
+                      <span className="text-[10px] font-medium text-text-secondary uppercase">
+                        {(provider === 'openai' ? openaiConfigured : openrouterConfigured) ? 'Secure' : 'Not Set'}
+                      </span>
                     </div>
                   </div>
-                  
-                  {/* Status Badge */}
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-elevated border border-border/50">
-                    <Shield className={cn("h-3 w-3", (provider === 'openai' ? openaiConfigured : openrouterConfigured) ? "text-green-500" : "text-text-secondary")} />
-                    <span className="text-[10px] font-medium text-text-secondary uppercase">
-                      {(provider === 'openai' ? openaiConfigured : openrouterConfigured) ? 'Secure' : 'Not Set'}
-                    </span>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleProviderChange('openai')}
+                      className={cn(
+                        'px-3 py-1.5 text-xs font-medium rounded-lg transition-all',
+                        provider === 'openai'
+                          ? 'bg-accent-primary/10 text-accent-primary border border-accent-primary/20'
+                          : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
+                      )}
+                    >
+                      OpenAI
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleProviderChange('openrouter')}
+                      className={cn(
+                        'px-3.5 py-1.5 text-xs font-medium rounded-lg transition-all',
+                        provider === 'openrouter'
+                          ? 'bg-accent-primary/10 text-accent-primary border border-accent-primary/20'
+                          : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
+                      )}
+                    >
+                      OpenRouter
+                    </button>
                   </div>
                 </div>
 
-                {/* Key Input Area */}
+                {/* Right Column: Model Selection */}
+                <div className="h-full flex flex-col space-y-3 p-4 rounded-xl bg-surface-elevated/30 border border-border/50">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-medium text-text-primary">Model</p>
+                      <p className="text-xs text-text-secondary">Choose or enter a model</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => fetchModels(keyDraft ? { headerKey: keyDraft.trim() } : undefined)}
+                      disabled={modelsLoading}
+                      className="h-5 px-1.5 text-[10px] text-text-secondary hover:text-accent-primary"
+                    >
+                      {modelsLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Refresh List'}
+                    </Button>
+                  </div>
+                  <select
+                    value={model}
+                    onChange={(e) => {
+                      setModel(e.target.value);
+                      setCustomModel('');
+                    }}
+                    className={cn(
+                      'w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-xs',
+                      'text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary'
+                    )}
+                    disabled={modelsLoading}
+                  >
+                    {(models.length ? models : [provider === 'openai' ? 'gpt-4o' : 'openrouter/auto']).map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={customModel}
+                    onChange={(e) => {
+                      setCustomModel(e.target.value);
+                      setModel('');
+                    }}
+                    placeholder="Or type custom model ID..."
+                    className={cn(
+                      'w-full rounded-lg border border-border/50 bg-surface-elevated/50 px-3 py-1.5 text-xs',
+                      'text-text-primary placeholder:text-text-secondary/40',
+                      'focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary',
+                      'transition-all'
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-border/50 pt-3">
+                {/* Group 2: API Key Input */}
                 <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-medium text-text-primary">API Key</p>
+                      <p className="text-xs text-text-secondary">Enter your {provider === 'openai' ? 'OpenAI' : 'OpenRouter'} API key</p>
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <input
                       type="password"
@@ -513,63 +573,6 @@ export function AskAI({ className, compact = false }: AskAIProps) {
                   {saveMessage && <div className="text-xs text-accent-primary pl-1">{saveMessage}</div>}
                   <p className="text-[10px] text-text-secondary/70 pl-1">Your key is encrypted at rest and never shared.</p>
                 </div>
-              </div>
-
-              {/* Right Column: Model only */}
-              <div className="h-full flex flex-col gap-3 p-4 rounded-xl bg-surface-elevated/30 border border-border/50">
-                {/* Model Selection */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                      Model
-                    </label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => fetchModels(keyDraft ? { headerKey: keyDraft.trim() } : undefined)}
-                      disabled={modelsLoading}
-                      className="h-5 px-1.5 text-[10px] text-text-secondary hover:text-accent-primary"
-                    >
-                      {modelsLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Refresh List'}
-                    </Button>
-                  </div>
-                  <select
-                    value={model}
-                    onChange={(e) => {
-                      setModel(e.target.value);
-                      setCustomModel('');
-                    }}
-                    className={cn(
-                      'w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-xs',
-                      'text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary'
-                    )}
-                    disabled={modelsLoading}
-                  >
-                    {(models.length ? models : [provider === 'openai' ? 'gpt-4o' : 'openrouter/auto']).map((m) => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                  
-                  {/* Custom Model Input */}
-                  <div className="pt-1">
-                    <input
-                      type="text"
-                      value={customModel}
-                      onChange={(e) => {
-                        setCustomModel(e.target.value);
-                        setModel('');
-                      }}
-                      placeholder="Or type custom model ID..."
-                      className={cn(
-                        'w-full rounded-lg border border-border/50 bg-surface-elevated/50 px-3 py-1.5 text-xs',
-                        'text-text-primary placeholder:text-text-secondary/40',
-                        'focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary',
-                        'transition-all'
-                      )}
-                    />
-                  </div>
-                </div>
-
               </div>
             </div>
           </motion.div>
