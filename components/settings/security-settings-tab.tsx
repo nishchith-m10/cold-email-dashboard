@@ -3,270 +3,540 @@
 /**
  * Security Settings Tab
  * 
- * API keys, webhooks, and security configuration
+ * Account security, password management, 2FA, session management,
+ * and security activity log.
  */
 
-import { useState } from 'react';
-import { useUser, useSessionList } from '@clerk/nextjs';
+import { useState, useCallback, useEffect } from 'react';
+import { useUser, useSessionList, useSession } from '@clerk/nextjs';
 import { usePermission } from '@/components/ui/permission-gate';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { FormField } from '@/components/ui/form-field';
-import { Plus, Copy, Trash2, Key, Webhook, Shield, Check, CheckCircle2 } from 'lucide-react';
+import {
+  Shield,
+  CheckCircle2,
+  XCircle,
+  Lock,
+  Mail,
+  Monitor,
+  Eye,
+  EyeOff,
+  Loader2,
+  Activity,
+  Globe,
+  Clock,
+  Key,
+} from 'lucide-react';
 import { TwoFactorModal } from './two-factor-modal';
 import { ActiveSessionsModal } from './active-sessions-modal';
+import { formatDistanceToNow } from 'date-fns';
+import { useWorkspace } from '@/lib/workspace-context';
+
+interface StoredCredential {
+  id: string;
+  type: string;
+  label: string;
+  status: string;
+  validatedAt: string | null;
+  createdAt: string;
+  maskedHint?: string;
+}
 
 export function SecuritySettingsTab() {
   const { user } = useUser();
   const { sessions } = useSessionList();
+  const { session: currentSession } = useSession();
+  const { workspace } = useWorkspace();
   const canManage = usePermission('manage');
-  const [copied, setCopied] = useState<string | null>(null);
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [showSessionsModal, setShowSessionsModal] = useState(false);
-  
-  // Check if user has 2FA enabled
+
+  // Password change state
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwMessage, setPwMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Credential vault state
+  const [credentials, setCredentials] = useState<StoredCredential[]>([]);
+  const [credentialsLoading, setCredentialsLoading] = useState(true);
+  const [revealedValues, setRevealedValues] = useState<Record<string, string>>({});
+  const [revealingId, setRevealingId] = useState<string | null>(null);
+
+  // Security activity state
+  const [auditActivity, setAuditActivity] = useState<
+    Array<{ id: string; timestamp: string; event: string; ipAddress?: string; country?: string; city?: string; success: boolean }>
+  >([]);
+  const [activityLoading, setActivityLoading] = useState(true);
+
+  // Fetch audit activity on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/security/activity?limit=10');
+        if (res.ok) {
+          const json = await res.json();
+          if (!cancelled && json.data) {
+            setAuditActivity(json.data);
+          }
+        }
+      } catch {
+        // Silently degrade — activity section will show Clerk sessions only
+      } finally {
+        if (!cancelled) setActivityLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Fetch stored credentials
+  useEffect(() => {
+    if (!workspace?.id) {
+      setCredentialsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/security/credentials?workspace_id=${workspace.id}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (!cancelled && json.data) {
+            setCredentials(json.data);
+          }
+        }
+      } catch {
+        // Silently degrade
+      } finally {
+        if (!cancelled) setCredentialsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [workspace?.id]);
+
+  // Reveal a credential value
+  const handleReveal = useCallback(async (credentialId: string) => {
+    if (revealedValues[credentialId]) {
+      // Toggle hide
+      setRevealedValues((prev) => {
+        const next = { ...prev };
+        delete next[credentialId];
+        return next;
+      });
+      return;
+    }
+
+    if (!workspace?.id) return;
+    setRevealingId(credentialId);
+
+    try {
+      const res = await fetch('/api/security/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace_id: workspace.id, credential_id: credentialId }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.value) {
+          setRevealedValues((prev) => ({ ...prev, [credentialId]: json.value }));
+          // Auto-hide after 30 seconds
+          setTimeout(() => {
+            setRevealedValues((prev) => {
+              const next = { ...prev };
+              delete next[credentialId];
+              return next;
+            });
+          }, 30_000);
+        }
+      }
+    } catch {
+      // Silently degrade
+    } finally {
+      setRevealingId(null);
+    }
+  }, [workspace?.id, revealedValues]);
+
+  // Derived state
   const has2FAEnabled = user?.twoFactorEnabled || false;
-  
-  // Get active session count
   const activeSessionCount = sessions?.length || 0;
+  const primaryEmail = user?.emailAddresses?.find(
+    (e) => e.id === user.primaryEmailAddressId
+  );
+  const emailVerified = primaryEmail?.verification?.status === 'verified';
+  const hasPassword = user?.passwordEnabled || false;
 
-  // Mock API keys data (in real implementation, this would come from API)
-  const [apiKeys] = useState([
-    {
-      id: '1',
-      name: 'Production API Key',
-      masked: 'sk_live_••••••••••••1234',
-      full: 'sk_live_example_key_not_real_placeholder_1234567890',
-      created_at: '2024-01-15',
-    },
-  ]);
+  const handlePasswordChange = useCallback(async () => {
+    if (!user) return;
 
-  const handleCopy = (value: string, id: string) => {
-    navigator.clipboard.writeText(value);
-    setCopied(id);
-    setTimeout(() => setCopied(null), 2000);
-  };
+    if (newPassword !== confirmPassword) {
+      setPwMessage({ type: 'error', text: 'Passwords do not match' });
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPwMessage({ type: 'error', text: 'Password must be at least 8 characters' });
+      return;
+    }
+
+    setPwLoading(true);
+    setPwMessage(null);
+
+    try {
+      await user.updatePassword({
+        currentPassword,
+        newPassword,
+      });
+      setPwMessage({ type: 'success', text: 'Password updated successfully' });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPasswordForm(false);
+    } catch (err: any) {
+      const msg = err?.errors?.[0]?.longMessage || err?.message || 'Failed to update password';
+      setPwMessage({ type: 'error', text: msg });
+    } finally {
+      setPwLoading(false);
+    }
+  }, [user, currentPassword, newPassword, confirmPassword]);
 
   return (
     <div className="space-y-6">
-      {/* API Keys Card */}
+      {/* Single unified card — matches General Settings pattern */}
       <div className="rounded-lg border border-border bg-surface p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-accent-primary/10 flex items-center justify-center">
-              <Key className="h-5 w-5 text-accent-primary" />
+        <div className="space-y-5">
+
+          {/* Email Verification */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Mail className="h-4 w-4 text-text-secondary shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-text-primary">
+                  Email Address
+                </p>
+                <p className="text-xs text-text-secondary mt-0.5">
+                  {primaryEmail?.emailAddress || 'No email found'}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-text-primary">API Keys</h3>
-              <p className="text-sm text-text-secondary">Manage API keys for programmatic access</p>
-            </div>
+            {emailVerified ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-accent-success/10 text-accent-success">
+                <CheckCircle2 className="h-3 w-3" />
+                Verified
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-accent-warning/10 text-accent-warning">
+                <XCircle className="h-3 w-3" />
+                Unverified
+              </span>
+            )}
           </div>
-          {canManage && (
-            <Button variant="default" size="sm" className="gap-2" disabled>
-              <Plus className="h-4 w-4" />
-              Generate New Key
-            </Button>
-          )}
-        </div>
 
-        {apiKeys.length === 0 ? (
-          <div className="text-center py-8 text-text-secondary">
-            <Key className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>No API keys generated yet</p>
-            <p className="text-xs mt-1">Generate a key to get started</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="px-4 py-2 text-left text-xs font-medium text-text-secondary uppercase">
-                    Name
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-text-secondary uppercase">
-                    API Key
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-text-secondary uppercase">
-                    Created
-                  </th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-text-secondary uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {apiKeys.map((key) => (
-                  <tr key={key.id} className="hover:bg-surface-elevated">
-                    <td className="px-4 py-3 text-sm text-text-primary font-medium">
-                      {key.name}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <code className="text-xs text-text-secondary bg-surface-elevated px-2 py-1 rounded">
-                          {key.masked}
-                        </code>
-                        <button
-                          onClick={() => handleCopy(key.full, key.id)}
-                          className="p-1 hover:bg-surface-elevated rounded transition-colors"
-                          title="Copy full key"
-                        >
-                          {copied === key.id ? (
-                            <Check className="h-4 w-4 text-accent-success" />
-                          ) : (
-                            <Copy className="h-4 w-4 text-text-secondary" />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-text-secondary">
-                      {key.created_at}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {canManage && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-accent-danger hover:text-accent-danger hover:bg-accent-danger/10"
-                          disabled
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+          <div className="border-t border-border" />
 
-        <div className="mt-4 p-3 rounded-lg bg-accent-warning/10 border border-accent-warning/20">
-          <p className="text-xs text-text-secondary">
-            <strong className="text-text-primary">Note:</strong> API key generation and
-            management is currently in development. This is a preview of the UI.
-          </p>
-        </div>
-      </div>
-
-      {/* Webhooks Card */}
-      <div className="rounded-lg border border-border bg-surface p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-10 w-10 rounded-lg bg-accent-purple/10 flex items-center justify-center">
-            <Webhook className="h-5 w-5 text-accent-purple" />
-          </div>
+          {/* Password Management */}
           <div>
-            <h3 className="text-lg font-semibold text-text-primary">Webhooks</h3>
-            <p className="text-sm text-text-secondary">Configure webhooks to receive real-time event notifications</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <FormField
-            label="Webhook URL"
-            description="HTTPS endpoint to receive webhook events"
-          >
-            <div className="flex gap-2">
-              <Input
-                placeholder="https://example.com/webhook"
-                disabled={!canManage}
-              />
-              <Button variant="ghost" disabled>
-                Test
-              </Button>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Lock className="h-4 w-4 text-text-secondary shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-text-primary">
+                    Password
+                  </p>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    {hasPassword
+                      ? 'Manage your account password'
+                      : 'No password set — using social login'}
+                  </p>
+                </div>
+              </div>
+              {hasPassword && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowPasswordForm(!showPasswordForm);
+                    setPwMessage(null);
+                  }}
+                >
+                  {showPasswordForm ? 'Cancel' : 'Change'}
+                </Button>
+              )}
             </div>
-          </FormField>
 
-          <FormField
-            label="Event Types"
-            description="Select which events trigger webhooks"
-          >
-            <div className="space-y-2">
-              {['Campaign Created', 'Email Sent', 'Reply Received', 'Opt-Out'].map((event) => (
-                <label key={event} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    disabled={!canManage}
-                    className="rounded border-border text-accent-primary focus:ring-accent-primary disabled:opacity-50"
+            {showPasswordForm && (
+              <div className="mt-3 ml-7 space-y-3 max-w-sm">
+                <div className="relative">
+                  <Input
+                    type={showCurrentPw ? 'text' : 'password'}
+                    placeholder="Current password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="pr-9"
                   />
-                  <span className="text-text-primary">{event}</span>
-                </label>
-              ))}
-            </div>
-          </FormField>
-        </div>
-
-        <div className="mt-4 p-3 rounded-lg bg-accent-primary/10 border border-accent-primary/20">
-          <p className="text-xs text-text-secondary">
-            <strong className="text-text-primary">Coming Soon:</strong> Webhook
-            functionality will be available in a future update.
-          </p>
-        </div>
-      </div>
-
-      {/* Security Options Card */}
-      <div className="rounded-lg border border-border bg-surface p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-10 w-10 rounded-lg bg-accent-success/10 flex items-center justify-center">
-            <Shield className="h-5 w-5 text-accent-success" />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPw(!showCurrentPw)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <div className="relative">
+                  <Input
+                    type={showNewPw ? 'text' : 'password'}
+                    placeholder="New password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="pr-9"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPw(!showNewPw)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors"
+                  >
+                    {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <Input
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+                {pwMessage && (
+                  <p className={`text-xs ${pwMessage.type === 'success' ? 'text-accent-success' : 'text-accent-danger'}`}>
+                    {pwMessage.text}
+                  </p>
+                )}
+                <Button
+                  size="sm"
+                  onClick={handlePasswordChange}
+                  disabled={pwLoading || !currentPassword || !newPassword || !confirmPassword}
+                  className="gap-2"
+                >
+                  {pwLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  Update Password
+                </Button>
+              </div>
+            )}
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-text-primary">Security Options</h3>
-            <p className="text-sm text-text-secondary">Additional security features and session management</p>
-          </div>
-        </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-lg bg-surface-elevated">
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
+          <div className="border-t border-border" />
+
+          {/* Two-Factor Authentication */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="h-4 w-4 text-text-secondary shrink-0" />
+              <div>
                 <p className="text-sm font-medium text-text-primary">
                   Two-Factor Authentication
                 </p>
-                {has2FAEnabled && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-accent-success/10 text-accent-success">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Enabled
-                  </span>
-                )}
+                <p className="text-xs text-text-secondary mt-0.5">
+                  Add an extra layer of security to your account
+                </p>
               </div>
-              <p className="text-xs text-text-secondary mt-1">
-                Add an extra layer of security to your account
-              </p>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setShow2FAModal(true)}
-            >
-              {has2FAEnabled ? 'Manage' : 'Enable'}
-            </Button>
+            <div className="flex items-center gap-2">
+              {has2FAEnabled && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-accent-success/10 text-accent-success">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Enabled
+                </span>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShow2FAModal(true)}
+              >
+                {has2FAEnabled ? 'Manage' : 'Enable'}
+              </Button>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-lg bg-surface-elevated">
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
+          <div className="border-t border-border" />
+
+          {/* Active Sessions */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Monitor className="h-4 w-4 text-text-secondary shrink-0" />
+              <div>
                 <p className="text-sm font-medium text-text-primary">
                   Active Sessions
                 </p>
-                {activeSessionCount > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-accent-primary/10 text-accent-primary">
-                    {activeSessionCount} {activeSessionCount === 1 ? 'session' : 'sessions'}
-                  </span>
-                )}
+                <p className="text-xs text-text-secondary mt-0.5">
+                  View and manage active login sessions
+                </p>
               </div>
-              <p className="text-xs text-text-secondary mt-1">
-                View and manage active login sessions
-              </p>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setShowSessionsModal(true)}
-            >
-              Manage
-            </Button>
+            <div className="flex items-center gap-2">
+              {activeSessionCount > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-accent-primary/10 text-accent-primary">
+                  {activeSessionCount} {activeSessionCount === 1 ? 'session' : 'sessions'}
+                </span>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSessionsModal(true)}
+              >
+                Manage
+              </Button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Security Activity Log */}
+      <div className="rounded-lg border border-border bg-surface p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Activity className="h-4 w-4 text-text-secondary" />
+          <h3 className="text-sm font-semibold text-text-primary">Recent Activity</h3>
+        </div>
+
+        {activityLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-text-secondary" />
+          </div>
+        ) : (
+          <div className="space-y-0 divide-y divide-border">
+            {/* Audit log events (from genesis.audit_log) */}
+            {auditActivity.map((entry) => (
+              <div key={entry.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`h-1.5 w-1.5 rounded-full shrink-0 ${entry.success ? 'bg-accent-success' : 'bg-accent-danger'}`} />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-text-primary capitalize truncate">
+                      {entry.event}
+                    </p>
+                    {(entry.city || entry.country || entry.ipAddress) && (
+                      <p className="text-[11px] text-text-secondary flex items-center gap-1 mt-0.5">
+                        <Globe className="h-3 w-3 shrink-0" />
+                        {[entry.city, entry.country].filter(Boolean).join(', ') || entry.ipAddress}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <span className="text-[11px] text-text-secondary shrink-0 ml-3 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {formatDistanceToNow(new Date(entry.timestamp), { addSuffix: true })}
+                </span>
+              </div>
+            ))}
+
+            {/* Clerk active sessions as activity entries */}
+            {(sessions || []).map((s: any) => {
+              const isCurrent = s.id === currentSession?.id;
+              const location = [s.latestActivity?.city, s.latestActivity?.country]
+                .filter(Boolean)
+                .join(', ');
+
+              return (
+                <div key={`session-${s.id}`} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`h-1.5 w-1.5 rounded-full shrink-0 ${isCurrent ? 'bg-accent-primary' : 'bg-accent-success'}`} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-text-primary truncate">
+                        {isCurrent ? 'Current session' : 'Active session'}
+                        {s.latestActivity?.browserName && ` — ${s.latestActivity.browserName}`}
+                      </p>
+                      {location && (
+                        <p className="text-[11px] text-text-secondary flex items-center gap-1 mt-0.5">
+                          <Globe className="h-3 w-3 shrink-0" />
+                          {location}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-text-secondary shrink-0 ml-3 flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {s.lastActiveAt
+                      ? formatDistanceToNow(new Date(s.lastActiveAt), { addSuffix: true })
+                      : 'just now'}
+                  </span>
+                </div>
+              );
+            })}
+
+            {auditActivity.length === 0 && (!sessions || sessions.length === 0) && (
+              <p className="text-xs text-text-secondary py-4 text-center">
+                No recent activity
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Stored Credentials */}
+      <div className="rounded-lg border border-border bg-surface p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Key className="h-4 w-4 text-text-secondary" />
+          <div>
+            <h3 className="text-sm font-semibold text-text-primary">Stored Credentials</h3>
+            <p className="text-xs text-text-secondary mt-0.5">
+              Encrypted credentials entered during onboarding
+            </p>
           </div>
         </div>
+
+        {credentialsLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-text-secondary" />
+          </div>
+        ) : credentials.length === 0 ? (
+          <p className="text-xs text-text-secondary py-4 text-center">
+            No stored credentials found
+          </p>
+        ) : (
+          <div className="space-y-0 divide-y divide-border">
+            {credentials.map((cred) => {
+              const isRevealed = !!revealedValues[cred.id];
+              const isRevealing = revealingId === cred.id;
+
+              return (
+                <div key={cred.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-medium text-text-primary">{cred.label}</p>
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                        cred.status === 'valid'
+                          ? 'bg-accent-success/10 text-accent-success'
+                          : cred.status === 'expired'
+                            ? 'bg-accent-warning/10 text-accent-warning'
+                            : 'bg-text-secondary/10 text-text-secondary'
+                      }`}>
+                        {cred.status === 'valid' ? 'Active' : cred.status}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-text-secondary mt-0.5 font-mono">
+                      {isRevealed
+                        ? revealedValues[cred.id]
+                        : cred.maskedHint || '••••••••••••'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleReveal(cred.id)}
+                    disabled={isRevealing}
+                    className="p-1.5 rounded hover:bg-surface-elevated transition-colors text-text-secondary hover:text-text-primary disabled:opacity-50 shrink-0 ml-3"
+                    title={isRevealed ? 'Hide value' : 'Reveal value'}
+                  >
+                    {isRevealing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : isRevealed ? (
+                      <EyeOff className="h-3.5 w-3.5" />
+                    ) : (
+                      <Eye className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Permission Message */}

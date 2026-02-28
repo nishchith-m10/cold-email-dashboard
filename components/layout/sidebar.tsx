@@ -167,7 +167,7 @@ export function Sidebar() {
               className={cn(
                 'flex items-center h-10 rounded-lg transition-colors',
                 isExpanded ? 'gap-3 px-3' : 'justify-center overflow-hidden',
-                isActive ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:text-text-primary hover:bg-accent-primary/5'
+                isActive ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary hover:bg-accent-primary/5'
               )}
               title={!isExpanded ? item.label : undefined}
             >
@@ -205,7 +205,7 @@ export function Sidebar() {
                   className={cn(
                     'flex items-center h-10 rounded-lg transition-colors',
                     isExpanded ? 'gap-3 px-3' : 'justify-center overflow-hidden',
-                    isActive ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:text-text-primary hover:bg-accent-primary/5'
+                    isActive ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary hover:bg-accent-primary/5'
                   )}
                   title={!isExpanded ? item.label : undefined}
                 >

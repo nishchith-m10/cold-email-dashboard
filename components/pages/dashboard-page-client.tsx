@@ -23,7 +23,7 @@ import { TimeSeriesChart } from '@/components/dashboard/time-series-chart';
 import { CampaignTable } from '@/components/dashboard/campaign-table';
 import { CampaignCardStack } from '@/components/dashboard/campaign-card-stack';
 import { DateRangePickerMobile } from '@/components/dashboard/date-range-picker-mobile';
-import { AskAI } from '@/components/dashboard/ask-ai';
+import { AskAIBubble } from '@/components/dashboard/ask-ai-bubble';
 import { StepBreakdown } from '@/components/dashboard/step-breakdown';
 import { DailySendsChart } from '@/components/dashboard/daily-sends-chart';
 import { CampaignManagementTable } from '@/components/dashboard/campaign-management-table';
@@ -341,7 +341,7 @@ export function DashboardPageClient() {
         );
 
       case 'ask-ai':
-        return <AskAI />;
+        return null; // Ask AI is now a floating bubble, not a widget
 
       default:
         return null;
@@ -432,6 +432,12 @@ export function DashboardPageClient() {
         widgets={widgets}
         onToggleWidget={toggleWidget}
         onResetLayout={resetLayout}
+      />
+
+      {/* Floating AI Assistant Bubble */}
+      <AskAIBubble
+        visible={widgets.find(w => w.id === 'ask-ai')?.visible ?? true}
+        onHide={() => toggleWidget('ask-ai')}
       />
     </div>
   );

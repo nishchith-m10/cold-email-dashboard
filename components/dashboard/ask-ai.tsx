@@ -11,6 +11,7 @@ import DOMPurify from 'dompurify';
 
 interface AskAIProps {
   className?: string;
+  compact?: boolean;
 }
 
 const SUGGESTIONS = [
@@ -20,7 +21,7 @@ const SUGGESTIONS = [
   'Which campaign performs best?',
 ];
 
-export function AskAI({ className }: AskAIProps) {
+export function AskAI({ className, compact = false }: AskAIProps) {
   const [question, setQuestion] = useState('');
   const [lastQuestion, setLastQuestion] = useState(''); // Track the asked question
   const [answer, setAnswer] = useState('');
@@ -29,7 +30,7 @@ export function AskAI({ className }: AskAIProps) {
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [openaiKey, setOpenaiKey] = useState('');
   const [openrouterKey, setOpenrouterKey] = useState('');
-  const [useStreaming, setUseStreaming] = useState(false);
+  const [useStreaming, setUseStreaming] = useState(true);
   const [provider, setProvider] = useState<'openai' | 'openrouter'>('openai');
   const [statusLoading, setStatusLoading] = useState(false);
   const [openaiConfigured, setOpenaiConfigured] = useState(false);
@@ -223,8 +224,8 @@ export function AskAI({ className }: AskAIProps) {
     inputRef.current?.focus();
 
     // Load streaming preference and provider
-    const savedStream = localStorage.getItem('ask_ai_streaming') === 'true';
-    setUseStreaming(savedStream);
+    const savedStream = localStorage.getItem('ask_ai_streaming');
+    setUseStreaming(savedStream === null ? true : savedStream === 'true');
     const savedProvider = (localStorage.getItem('ask_ai_provider') as 'openai' | 'openrouter') || 'openai';
     setProvider(savedProvider);
 
@@ -377,36 +378,51 @@ export function AskAI({ className }: AskAIProps) {
     }
   }, [answer]);
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.15, delay: 0.08 }}
-    >
-      <Card ref={cardRef} className={cn('overflow-hidden', className)}>
-        <CardContent className="p-6 space-y-5">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center h-8 w-8 rounded-lg overflow-hidden">
-                <Image src="/logo.png" alt="AI" width={32} height={32} className="w-full h-full object-cover" />
-                <Sparkles className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-text-primary">Ask AI</h3>
-                <p className="text-xs text-text-secondary">Natural language insights</p>
-              </div>
+  const renderContent = () => (
+    <div className={cn(compact ? 'p-4 space-y-3' : 'p-6 space-y-5')}>
+      {/* Header — only in non-compact (widget) mode */}
+      {!compact && (
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center h-8 w-8 rounded-lg overflow-hidden">
+              <Image src="/logo.png" alt="AI" width={32} height={32} className="w-full h-full object-cover" />
+              <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-2 text-text-secondary hover:text-text-primary hover:bg-surface-elevated/80 px-2"
-              onClick={handleConfigureToggle}
-            >
-              <span className="text-xs font-medium">Configure</span>
-              <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", isSettingsOpen && "rotate-180")} />
-            </Button>
+            <div>
+              <h3 className="text-sm font-semibold text-text-primary">Ask AI</h3>
+              <p className="text-xs text-text-secondary">Natural language insights</p>
+            </div>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-2 text-text-secondary hover:text-text-primary hover:bg-surface-elevated/80 px-2"
+            onClick={handleConfigureToggle}
+          >
+            <span className="text-xs font-medium">Configure</span>
+            <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", isSettingsOpen && "rotate-180")} />
+          </Button>
+        </div>
+      )}
+
+      {/* Compact header — Configure toggle only */}
+      {compact && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-text-secondary">
+            <Shield className="h-3 w-3" />
+            <span>Using {provider === 'openai' ? 'OpenAI' : 'OpenRouter'} ({customModel || model || 'Default'})</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 gap-1 text-text-secondary hover:text-text-primary px-1.5"
+            onClick={handleConfigureToggle}
+          >
+            <span className="text-[10px] font-medium">Configure</span>
+            <ChevronDown className={cn("h-3 w-3 transition-transform duration-300", isSettingsOpen && "rotate-180")} />
+          </Button>
+        </div>
+      )}
 
           <motion.div
             ref={configRef}
@@ -559,8 +575,8 @@ export function AskAI({ className }: AskAIProps) {
           </motion.div>
           <div ref={layoutEndRef} />
 
-          {/* Compact Status Indicator (when settings are closed) */}
-          {!isSettingsOpen && (
+          {/* Compact Status Indicator (when settings are closed) — non-compact only */}
+          {!compact && !isSettingsOpen && (
             <div className="mb-2 flex items-center gap-2 text-xs text-text-secondary px-1">
               <Shield className="h-3 w-3" />
               <span>Using {provider === 'openai' ? 'OpenAI' : 'OpenRouter'} ({customModel || model || 'Default'})</span>
@@ -569,7 +585,10 @@ export function AskAI({ className }: AskAIProps) {
           )}
 
           {/* Input + Preferences inline */}
-          <div className="grid grid-cols-1 md:grid-cols-[9fr_1fr] gap-3 items-stretch">
+          <div className={cn(
+            'items-stretch',
+            compact ? 'flex flex-col gap-2' : 'grid grid-cols-1 md:grid-cols-[9fr_1fr] gap-3'
+          )}>
             <div className="relative w-full">
               <input
                 ref={inputRef}
@@ -582,8 +601,9 @@ export function AskAI({ className }: AskAIProps) {
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about your metrics..."
                 className={cn(
-                  'w-full rounded-xl border border-border bg-surface-elevated px-4 py-3 pr-12 h-full',
-                  'text-sm text-text-primary placeholder:text-text-secondary/50',
+                  'w-full rounded-xl border border-border bg-surface-elevated pr-12',
+                  compact ? 'px-3 py-2 text-sm' : 'px-4 py-3 h-full text-sm',
+                  'text-text-primary placeholder:text-text-secondary/50',
                   'focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-accent-primary',
                   'transition-all duration-200'
                 )}
@@ -618,13 +638,14 @@ export function AskAI({ className }: AskAIProps) {
               type="button"
               onClick={() => handleStreamingToggle(!useStreaming)}
               className={cn(
-                'flex items-center justify-center gap-2 w-full h-full px-3 py-3 rounded-lg border transition-all',
+                'flex items-center gap-2 rounded-lg border transition-all',
+                compact ? 'justify-start px-2.5 py-1.5' : 'justify-center w-full h-full px-3 py-3',
                 useStreaming
                   ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
                   : 'bg-surface-elevated border-border text-text-secondary hover:border-border/80'
               )}
             >
-              <span className="text-xs font-medium text-center">Stream Response</span>
+              <span className={cn('font-medium text-center', compact ? 'text-[10px]' : 'text-xs')}>Stream</span>
               <div className={cn(
                 'w-10 h-5 rounded-full relative transition-colors border border-border/60',
                 useStreaming ? 'bg-accent-primary' : 'bg-surface-elevated'
@@ -748,6 +769,24 @@ export function AskAI({ className }: AskAIProps) {
               </div>
             )}
           </AnimatePresence>
+    </div>
+  );
+
+  // Compact mode: just render content directly (bubble/popup provides the chrome)
+  if (compact) {
+    return renderContent();
+  }
+
+  // Full mode: Card wrapper with entrance animation
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.15, delay: 0.08 }}
+    >
+      <Card ref={cardRef} className={cn('overflow-hidden', className)}>
+        <CardContent>
+          {renderContent()}
         </CardContent>
       </Card>
     </motion.div>
