@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getNotificationIcon, getNotificationColor, formatTimeAgo } from '@/lib/notification-utils';
+import { CampaignQuickCreate } from '@/components/layout/campaign-quick-create';
 
 interface TopNavbarProps {
   onCommandOpen?: () => void;
@@ -81,16 +82,7 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
             <div className="w-6 h-6 rounded-lg overflow-hidden">
               <Image src="/logo.png" alt="Logo" width={24} height={24} className="w-full h-full object-cover" />
             </div>
-            <span 
-              className="text-sm font-semibold hidden lg:block"
-              style={{
-                backgroundImage: 'var(--logo-gradient)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                color: 'transparent',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
+            <span className="text-sm font-semibold hidden lg:block text-text-primary">
               Cold Email Analytics
             </span>
           </Link>
@@ -116,6 +108,11 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
             >
               <Search className="h-5 w-5 text-text-secondary hover:text-text-primary transition-colors" />
             </Button>
+          )}
+
+          {/* Campaign Quick Create — between search and contributors */}
+          {!isOnboarding && (
+            <CampaignQuickCreate />
           )}
 
           {/* Share - Using UserPlus like original */}

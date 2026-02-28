@@ -60,6 +60,12 @@ export function Sidebar() {
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const menuCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Mark component as mounted after hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Include super_admin in admin check for Admin panel access
   const isAdmin = userRole === 'owner' || userRole === 'admin' || isSuperAdmin;
@@ -175,9 +181,12 @@ export function Sidebar() {
               <AnimatePresence mode="wait">
                 {isExpanded && (
                   <motion.span
-                    className="text-sm font-medium whitespace-nowrap will-change-transform"
+                    className={cn(
+                      "text-sm font-medium whitespace-nowrap will-change-transform",
+                      !mounted && "opacity-0"
+                    )}
                     initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    animate={{ opacity: mounted ? 1 : 0, x: 0 }}
                     exit={{ opacity: 0, x: -8 }}
                     transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
                   >
@@ -213,9 +222,12 @@ export function Sidebar() {
                   <AnimatePresence mode="wait">
                     {isExpanded && (
                       <motion.span
-                        className="text-sm font-medium whitespace-nowrap will-change-transform"
+                        className={cn(
+                          "text-sm font-medium whitespace-nowrap will-change-transform",
+                          !mounted && "opacity-0"
+                        )}
                         initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
+                        animate={{ opacity: mounted ? 1 : 0, x: 0 }}
                         exit={{ opacity: 0, x: -8 }}
                         transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
                       >
@@ -274,9 +286,12 @@ export function Sidebar() {
             <AnimatePresence mode="wait">
               {isExpanded && (
                 <motion.span
-                  className="text-sm font-medium whitespace-nowrap will-change-transform"
+                  className={cn(
+                    "text-sm font-medium whitespace-nowrap will-change-transform",
+                    !mounted && "opacity-0"
+                  )}
                   initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  animate={{ opacity: mounted ? 1 : 0, x: 0 }}
                   exit={{ opacity: 0, x: -8 }}
                   transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
                 >
