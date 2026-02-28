@@ -7,7 +7,6 @@ import {
   Cell,
   ResponsiveContainer,
   Tooltip,
-  Legend,
 } from 'recharts';
 import type { TooltipContentProps } from 'recharts/types/component/Tooltip';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
@@ -142,7 +141,7 @@ export function DonutChart({
               </div>
             </div>
           ) : (
-            <div className="relative h-64">
+            <div className="relative h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -167,13 +166,12 @@ export function DonutChart({
                     ))}
                   </Pie>
                   <Tooltip content={(props: TooltipContentProps<ValueType, NameType>) => <CustomTooltip {...props} valueFormatter={formatter} currency={currency} />} />
-                  <Legend content={<CustomLegend />} />
                 </PieChart>
               </ResponsiveContainer>
               
-              {/* Center label with tooltip for precise value */}
+              {/* Center label — perfectly centered since no Legend inside chart */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="text-center -mt-8" title={formatCurrencyUtil(total, currency, { maximumFractionDigits: 4 })}>
+                <div className="text-center" title={formatCurrencyUtil(total, currency, { maximumFractionDigits: 4 })}>
                   <p className="text-2xl font-bold text-text-primary cursor-default">
                     {formatCurrency(total)}
                   </p>
@@ -181,6 +179,8 @@ export function DonutChart({
                 </div>
               </div>
             </div>
+            {/* Legend rendered outside chart so pie cy=50% stays true center */}
+            <CustomLegend payload={chartData.map(d => ({ value: d.name, color: d.fill }))} />
           )}
         </CardContent>
       </Card>
