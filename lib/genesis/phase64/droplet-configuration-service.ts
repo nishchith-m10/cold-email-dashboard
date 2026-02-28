@@ -221,7 +221,7 @@ export class DropletConfigurationService {
       }
 
       const result = await this.supabase
-        .from('genesis.workspace_infrastructure')
+        .schema('genesis').from('workspace_infrastructure')
         .upsert({
           workspace_id: workspaceId,
           region,
@@ -256,7 +256,7 @@ export class DropletConfigurationService {
   }> {
     try {
       const { data, error } = await this.supabase
-        .from('genesis.workspace_infrastructure')
+        .schema('genesis').from('workspace_infrastructure')
         .select('*')
         .eq('workspace_id', workspaceId)
         .single();
@@ -308,7 +308,7 @@ export class DropletConfigurationService {
       }
 
       const result = await this.supabase
-        .from('genesis.workspace_infrastructure')
+        .schema('genesis').from('workspace_infrastructure')
         .update({
           size: newSize,
           updated_at: new Date().toISOString(),

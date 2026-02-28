@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { data, error } = await supabaseAdmin
-      .from('genesis.onboarding_progress')
+      .schema('genesis').from('onboarding_progress')
       .select('drafts')
       .eq('workspace_id', workspaceId)
       .single();
@@ -87,7 +87,7 @@ export async function PUT(req: NextRequest) {
 
     // First, get current drafts
     const { data: row, error: fetchError } = await supabaseAdmin
-      .from('genesis.onboarding_progress')
+      .schema('genesis').from('onboarding_progress')
       .select('drafts')
       .eq('workspace_id', workspace_id)
       .single();
@@ -106,7 +106,7 @@ export async function PUT(req: NextRequest) {
     if (fetchError?.code === 'PGRST116') {
       // Row doesn't exist — insert with draft
       const { error: insertError } = await supabaseAdmin
-        .from('genesis.onboarding_progress')
+        .schema('genesis').from('onboarding_progress')
         .insert({
           workspace_id,
           current_stage: stage,
@@ -126,7 +126,7 @@ export async function PUT(req: NextRequest) {
     } else {
       // Row exists — update drafts column
       const { error: updateError } = await supabaseAdmin
-        .from('genesis.onboarding_progress')
+        .schema('genesis').from('onboarding_progress')
         .update({
           drafts: updatedDrafts,
           updated_at: new Date().toISOString(),
