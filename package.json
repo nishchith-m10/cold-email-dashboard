@@ -1,7 +1,7 @@
 {
   "name": "cold-email-dashboard-starter",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "scripts": {
     "dev": "next dev",
     "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
