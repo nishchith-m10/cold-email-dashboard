@@ -56,11 +56,14 @@ export default function SettingsPage() {
   return (
     <div className="px-4 md:container md:mx-auto py-6 md:py-8 space-y-6 pb-24 md:pb-8">
       {/* Header */}
-      <div>
-        <h1 className="text-xl md:text-3xl font-bold tracking-tight text-text-primary">Workspace Settings</h1>
-        <p className="text-sm md:text-base text-text-secondary mt-1">
-          Manage {workspace.name || 'your workspace'} configuration
-        </p>
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center">
+          <Settings className="h-4 w-4 text-accent-primary" />
+        </div>
+        <div>
+          <h1 className="text-lg font-semibold text-text-primary">Settings</h1>
+          <p className="text-xs text-text-secondary">Manage workspace and account preferences</p>
+        </div>
       </div>
 
       {/* Mobile: Tab Picker Button */}
