@@ -14,7 +14,6 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSidebar } from '@/lib/sidebar-context';
 import { useWorkspace } from '@/lib/workspace-context';
-import { SystemHealthBar } from '@/components/ui/system-health-bar';
 import { 
   LayoutDashboard,
   BarChart3,
@@ -55,8 +54,7 @@ const ADMIN_ITEMS: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { mode, setMode, isHovered, setIsHovered, isExpanded, effectiveWidth } = useSidebar();
-  const { workspace, userRole, isSuperAdmin } = useWorkspace();
-  const workspaceId = workspace?.id;
+  const { workspace, isSuperAdmin } = useWorkspace();
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const menuCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -67,8 +65,8 @@ export function Sidebar() {
     setMounted(true);
   }, []);
   
-  // Include super_admin in admin check for Admin panel access
-  const isAdmin = userRole === 'owner' || userRole === 'admin' || isSuperAdmin;
+  // Only super admins see the Admin panel link
+  const isAdmin = isSuperAdmin;
   
   // Preserve URL search params (start, end, campaign) when navigating
   const searchParams = useSearchParams();
@@ -244,11 +242,6 @@ export function Sidebar() {
 
       {/* Footer Section */}
       <div className="px-2 py-3 space-y-2 flex-shrink-0">
-        {/* System Health - Compact in sidebar */}
-        {workspaceId && (
-          <SystemHealthBar workspaceId={workspaceId} compact={!isExpanded} className={isExpanded ? 'w-full' : ''} />
-        )}
-
         {/* Sidebar Display Mode Selector */}
         <div className="relative" ref={modeMenuRef}>
           <button
