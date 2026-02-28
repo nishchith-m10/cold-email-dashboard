@@ -6,13 +6,14 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChevronLeft, 
   Check, 
   Loader2,
+  Clock,
   Globe,
   Building2,
   Mail,
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { OnboardingStage } from '@/lib/genesis/phase64/credential-vault-types';
+import { STAGE_INFO } from '@/lib/genesis/phase64/onboarding-progress-service';
 
 // Stage components
 import { RegionSelectionStage } from './stages/region-selection-stage';
@@ -196,6 +198,23 @@ export function GenesisOnboardingWizard({
   const StageComponent = currentStage.component;
   const progress = ((currentStageIndex + 1) / totalStages) * 100;
 
+  // Ref for auto-scrolling current step into view
+  const stepRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const setStepRef = useCallback((stage: string, el: HTMLButtonElement | null) => {
+    if (el) stepRefs.current.set(stage, el);
+    else stepRefs.current.delete(stage);
+  }, []);
+
+  // Compute estimated time remaining (sum of remaining stages' estimatedDuration)
+  const estimatedMinutesRemaining = useMemo(() => {
+    let totalSeconds = 0;
+    for (let i = currentStageIndex; i < visibleStages.length; i++) {
+      const info = STAGE_INFO[visibleStages[i].stage];
+      if (info) totalSeconds += info.estimatedDuration;
+    }
+    return Math.max(1, Math.ceil(totalSeconds / 60));
+  }, [currentStageIndex, visibleStages]);
+
   // Load progress and provider selection
   useEffect(() => {
     const loadProgress = async () => {
@@ -244,6 +263,14 @@ export function GenesisOnboardingWizard({
       setCurrentStageIndex(visibleStages.length - 1);
     }
   }, [visibleStages.length, currentStageIndex]);
+
+  // Auto-scroll current step into view in the sidebar
+  useEffect(() => {
+    if (currentStage) {
+      const el = stepRefs.current.get(currentStage.stage);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [currentStageIndex, currentStage]);
 
   const handleStageComplete = async () => {
     const newCompleted = new Set(completedStages);
@@ -325,68 +352,88 @@ export function GenesisOnboardingWizard({
         />
       </div>
 
-      {/* Right Sidebar - Clean */}
+      {/* Right Sidebar — Numbered Stepper (Image 2 Reference) */}
       <div className="hidden lg:block fixed right-0 top-[49px] bottom-0 w-72 border-l border-border bg-surface overflow-y-auto">
         <div className="p-4 space-y-4">
-          {/* Progress */}
+          {/* Progress Header */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-text-secondary">Progress</span>
-              <span className="text-text-primary font-medium">{currentStageIndex + 1} of {totalStages}</span>
+              <span className="text-text-secondary font-medium">Step {currentStageIndex + 1} of {totalStages}</span>
+              <span className="text-text-primary font-medium">{Math.round(progress)}%</span>
             </div>
             <div className="h-1 bg-surface-elevated rounded-full overflow-hidden">
               <div
-                className="h-full bg-accent-primary transition-all duration-300"
+                className="h-full bg-accent-primary transition-all duration-300 rounded-full"
                 style={{ width: `${progress}%` }}
               />
             </div>
+            {/* Time Estimate */}
+            <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+              <Clock className="h-3 w-3" />
+              <span>About {estimatedMinutesRemaining} min remaining</span>
+            </div>
           </div>
 
-          {/* Stage List - Phase 64.B: Uses visibleStages for conditional rendering */}
-          <div className="space-y-1">
+          {/* Step List — Numbered circles with dashed connectors */}
+          <div className="relative">
             {visibleStages.map((stage, index) => {
-              const Icon = stage.icon;
               const isCompleted = completedStages.has(stage.stage);
               const isCurrent = index === currentStageIndex;
+              const isUpcoming = !isCompleted && !isCurrent;
+              const isLast = index === visibleStages.length - 1;
 
               return (
-                <button
-                  key={stage.stage}
-                  onClick={() => handleSkipToStage(index)}
-                  className={cn(
-                    'w-full flex items-center gap-3 p-2.5 rounded-lg transition-colors text-left',
-                    isCurrent && 'bg-accent-primary/10 border border-accent-primary/20',
-                    !isCurrent && 'hover:bg-surface-elevated'
+                <div key={stage.stage} className="relative flex items-start gap-3">
+                  {/* Vertical dashed connector line */}
+                  {!isLast && (
+                    <div
+                      className="absolute left-[13px] top-[28px] bottom-0 w-0 border-l-2 border-dashed border-border"
+                      style={{ height: 'calc(100% - 16px)' }}
+                    />
                   )}
-                >
-                  <div
+
+                  {/* Step circle */}
+                  <button
+                    ref={(el) => setStepRef(stage.stage, el)}
+                    onClick={() => handleSkipToStage(index)}
                     className={cn(
-                      'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+                      'relative z-10 w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-medium transition-colors',
                       isCompleted && 'bg-accent-success text-white',
                       isCurrent && 'bg-accent-primary text-white',
-                      !isCompleted && !isCurrent && 'bg-surface-elevated text-text-secondary'
+                      isUpcoming && 'bg-surface-elevated text-text-secondary border border-border'
                     )}
                   >
                     {isCompleted ? (
-                      <Check className="h-4 w-4" />
+                      <Check className="h-3.5 w-3.5" />
                     ) : (
-                      <Icon className="h-4 w-4" />
+                      <span>{index + 1}</span>
                     )}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
+                  </button>
+
+                  {/* Step label */}
+                  <button
+                    onClick={() => handleSkipToStage(index)}
+                    className={cn(
+                      'flex-1 min-w-0 text-left pb-5 pt-0.5',
+                      'transition-colors'
+                    )}
+                  >
                     <div className={cn(
-                      'text-sm font-medium truncate',
-                      isCurrent && 'text-accent-primary',
-                      !isCurrent && 'text-text-primary'
+                      'text-sm truncate',
+                      isCompleted && 'text-text-primary',
+                      isCurrent && 'font-semibold text-text-primary',
+                      isUpcoming && 'text-text-secondary'
                     )}>
                       {stage.title}
                     </div>
-                    <div className="text-xs text-text-secondary truncate">
+                    <div className={cn(
+                      'text-xs truncate mt-0.5',
+                      isUpcoming ? 'text-text-secondary/50' : 'text-text-secondary'
+                    )}>
                       {stage.description}
                     </div>
-                  </div>
-                </button>
+                  </button>
+                </div>
               );
             })}
           </div>
