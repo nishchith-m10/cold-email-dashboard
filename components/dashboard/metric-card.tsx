@@ -120,9 +120,9 @@ export function MetricCard({
   return (
     <motion.div
       className="h-full"
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: delay * 0.1 }}
+      transition={{ duration: 0.15, delay: delay * 0.03 }}
     >
       <Card className={cn(
         'relative overflow-hidden hover:bg-surface-elevated/30 transition-all duration-300 h-full',
@@ -139,7 +139,7 @@ export function MetricCard({
             className="text-xl sm:text-2xl font-semibold text-text-primary tracking-tight cursor-default"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: delay * 0.1 + 0.2 }}
+              transition={{ duration: 0.2, delay: delay * 0.03 + 0.1 }}
             title={tooltipValue}
           >
             {formattedValue}

@@ -226,9 +226,9 @@ export function Header({ onCommandOpen, onShareOpen }: HeaderProps) {
   return (
     <>
     <motion.header
-      initial={{ opacity: 0, y: -20 }}
+      initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+      transition={{ duration: 0.15 }}
       className="sticky top-0 z-40 bg-background/80 backdrop-blur-lg border-b border-border shadow-sm hidden md:block"
     >
       <div className="max-w-[1600px] mx-auto px-6">

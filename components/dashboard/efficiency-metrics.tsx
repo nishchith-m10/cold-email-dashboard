@@ -103,9 +103,9 @@ function EfficiencyMetricsComponent({
   return (
     <motion.div
       className="h-full"
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.3 }}
+      transition={{ duration: 0.15, delay: 0.05 }}
     >
       <Card className={cn('overflow-hidden h-full flex flex-col', className)}>
         <CardHeader className="pb-3">
@@ -120,7 +120,7 @@ function EfficiencyMetricsComponent({
                 key={metric.label}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.03 }}
                 className="relative rounded-xl border border-border bg-surface-elevated/50 p-3 flex flex-row items-center group"
               >
                 {/* Icon on Left */}
