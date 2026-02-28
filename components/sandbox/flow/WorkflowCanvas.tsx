@@ -9,7 +9,7 @@
  * @module components/sandbox/flow/WorkflowCanvas
  */
 
-import { memo, useCallback, useEffect, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useTheme } from '@/hooks/use-theme';
 import {
   ReactFlow,
@@ -57,10 +57,30 @@ function WorkflowCanvasInner({
   const { fitView } = useReactFlow();
   const { theme } = useTheme();
   
-  // Determine colorMode: check DOM for 'light' class for more reliable detection
-  const colorMode = typeof document !== 'undefined' && document.documentElement.classList.contains('light') 
-    ? 'light' 
-    : 'dark';
+  // Track colorMode as state so it updates when DOM class changes
+  const [colorMode, setColorMode] = useState<'light' | 'dark'>('dark');
+
+  // Listen for theme changes on the html element
+  useEffect(() => {
+    // Set initial value
+    const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light');
+    setColorMode(isLight ? 'light' : 'dark');
+
+    // Listen for class changes
+    const observer = new MutationObserver(() => {
+      const isLight = document.documentElement.classList.contains('light');
+      setColorMode(isLight ? 'light' : 'dark');
+    });
+
+    if (typeof document !== 'undefined') {
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   // Fit view when nodes change (initial load / workflow switch)
   useEffect(() => {
@@ -157,7 +177,7 @@ function WorkflowCanvasInner({
     <div style={{ 
       width: '100%', 
       height: '100%',
-      ...(colorMode === 'light' ? { backgroundColor: currentColors.bg } : {}),
+      backgroundColor: currentColors.bg,
     }}>
     <ReactFlow
       nodes={nodesWithStatus}
@@ -178,22 +198,22 @@ function WorkflowCanvasInner({
       <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
       <Controls
         showInteractive={false}
-        style={colorMode === 'light' ? {
+        style={{
           backgroundColor: currentColors.controlBg,
           border: `1px solid ${currentColors.controlBorder}`,
           borderRadius: '8px',
-        } : {}}
+        }}
       />
       <MiniMap
         nodeStrokeWidth={3}
         zoomable
         pannable
-        style={colorMode === 'light' ? {
+        style={{
           backgroundColor: currentColors.minimap,
           border: `1px solid ${currentColors.minimapBorder}`,
           borderRadius: '4px',
-        } : {}}
-        nodeColor={colorMode === 'light' ? () => currentColors.minimapNode : undefined}
+        }}
+        nodeColor={() => currentColors.minimapNode}
       />
     </ReactFlow>
     </div>
