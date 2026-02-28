@@ -1,8 +1,8 @@
 /**
  * SignOutTransition - Loading overlay during sign out
  * 
- * Shows a smooth transition animation when the user signs out
- * to prevent the jarring static screen experience.
+ * Shows a smooth transition animation when the user signs out.
+ * Always dark-themed since the sign-in page is always dark.
  */
 
 'use client';

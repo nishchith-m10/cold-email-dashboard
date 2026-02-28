@@ -23,7 +23,7 @@ import { TimeSeriesChart } from '@/components/dashboard/time-series-chart';
 import { CampaignTable } from '@/components/dashboard/campaign-table';
 import { CampaignCardStack } from '@/components/dashboard/campaign-card-stack';
 import { DateRangePickerMobile } from '@/components/dashboard/date-range-picker-mobile';
-import { AskAI } from '@/components/dashboard/ask-ai';
+import { AskAIBubble } from '@/components/dashboard/ask-ai-bubble';
 import { StepBreakdown } from '@/components/dashboard/step-breakdown';
 import { DailySendsChart } from '@/components/dashboard/daily-sends-chart';
 import { CampaignManagementTable } from '@/components/dashboard/campaign-management-table';
@@ -211,7 +211,7 @@ export function DashboardPageClient() {
 
       case 'step-breakdown':
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             <StepBreakdown
               steps={steps}
               dailySends={dailySends}
@@ -242,7 +242,7 @@ export function DashboardPageClient() {
             icon={<BarChart3 className="h-5 w-5" />}
             defaultCollapsed={true}
           >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch pt-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start pt-4">
               <TimeSeriesChart
                 title="Email Sends Over Time"
                 subtitle={dateRangeDisplay}
@@ -260,7 +260,7 @@ export function DashboardPageClient() {
                 loading={optOutRateLoading}
                 type="line"
                 valueFormatter={(v) => `${v}%`}
-                height={300}
+                height={280}
                 className="h-full"
               />
             </div>
@@ -275,7 +275,7 @@ export function DashboardPageClient() {
             icon={<TrendingUp className="h-5 w-5" />}
             defaultCollapsed={true}
           >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch pt-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start pt-4">
               <TimeSeriesChart
                 title="Click Rate Over Time"
                 subtitle={dateRangeDisplay}
@@ -284,7 +284,7 @@ export function DashboardPageClient() {
                 loading={clickRateLoading}
                 type="line"
                 valueFormatter={(v) => `${v}%`}
-                height={300}
+                height={280}
                 className="h-full"
               />
               <TimeSeriesChart
@@ -295,7 +295,7 @@ export function DashboardPageClient() {
                 loading={replyRateLoading}
                 type="line"
                 valueFormatter={(v) => `${v}%`}
-                height={300}
+                height={280}
                 className="h-full"
               />
             </div>
@@ -341,7 +341,7 @@ export function DashboardPageClient() {
         );
 
       case 'ask-ai':
-        return <AskAI />;
+        return null; // Ask AI is now a floating bubble, not a widget
 
       default:
         return null;
@@ -391,6 +391,10 @@ export function DashboardPageClient() {
       </motion.div>
 
       {/* Draggable Widgets */}
+      {/* TODO(session-4): Task 4.6 — Drag handles should be always-visible with opacity-30 group-hover:opacity-100.
+         The drag handle lives in components/dashboard/dashboard-widget.tsx (line ~52: opacity-0 group-hover:opacity-100).
+         That file is owned by Session 1 (frozen). Change needed: opacity-0 → opacity-30.
+         Flagged as cross-session observation for post-merge application. */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -428,6 +432,12 @@ export function DashboardPageClient() {
         widgets={widgets}
         onToggleWidget={toggleWidget}
         onResetLayout={resetLayout}
+      />
+
+      {/* Floating AI Assistant Bubble */}
+      <AskAIBubble
+        visible={widgets.find(w => w.id === 'ask-ai')?.visible ?? true}
+        onHide={() => toggleWidget('ask-ai')}
       />
     </div>
   );

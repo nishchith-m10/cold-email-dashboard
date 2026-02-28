@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
 import { ClientShell } from './client-shell';
 import { UserSyncProvider } from '@/components/providers/user-sync-provider';
 
@@ -19,6 +20,14 @@ export function LayoutWrapper({ children }: LayoutWrapperProps) {
   
   // Auth pages should render without the dashboard shell
   const isAuthPage = pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up');
+
+  useEffect(() => {
+    if (isAuthPage) {
+      // Auth pages are ALWAYS dark — force it on every client-side navigation
+      // without touching localStorage so the user's dashboard preference is preserved
+      document.documentElement.classList.remove('light');
+    }
+  }, [isAuthPage]);
   
   if (isAuthPage) {
     // Auth pages get minimal wrapper - just the background

@@ -348,19 +348,15 @@ export function GenesisOnboardingWizard({
               const Icon = stage.icon;
               const isCompleted = completedStages.has(stage.stage);
               const isCurrent = index === currentStageIndex;
-              // Allow clicking on: any completed stage (to go back), current stage, or next uncompleted stage
-              const isAccessible = isCompleted || isCurrent || index === currentStageIndex + 1;
 
               return (
                 <button
                   key={stage.stage}
                   onClick={() => handleSkipToStage(index)}
-                  disabled={!isAccessible}
                   className={cn(
                     'w-full flex items-center gap-3 p-2.5 rounded-lg transition-colors text-left',
                     isCurrent && 'bg-accent-primary/10 border border-accent-primary/20',
-                    isCompleted && !isCurrent && 'hover:bg-surface-elevated',
-                    !isAccessible && 'opacity-40 cursor-not-allowed'
+                    !isCurrent && 'hover:bg-surface-elevated'
                   )}
                 >
                   <div
@@ -464,10 +460,11 @@ export function GenesisOnboardingWizard({
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
               {visibleStages.map((_, index) => (
-                <div
+                <button
                   key={index}
+                  onClick={() => handleSkipToStage(index)}
                   className={cn(
-                    'rounded-full transition-all',
+                    'rounded-full transition-all cursor-pointer',
                     index === currentStageIndex && 'w-6 h-1.5 bg-accent-primary',
                     index < currentStageIndex && 'w-1.5 h-1.5 bg-accent-success',
                     index > currentStageIndex && 'w-1.5 h-1.5 bg-border'

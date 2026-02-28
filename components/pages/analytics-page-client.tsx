@@ -166,7 +166,7 @@ export function AnalyticsPageClient() {
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <MetricCard
           title="Total Cost"
           value={costData?.total.cost_usd ?? 0}
@@ -199,35 +199,40 @@ export function AnalyticsPageClient() {
         />
         <motion.div
           className="h-full"
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
+          transition={{ duration: 0.15, delay: 0.3 * 0.03 }}
         >
-          <Card className="relative overflow-hidden h-full p-4">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-text-secondary">Efficiency Unit</p>
-                <p className="text-xs text-text-secondary">
-                  {efficiencyMode === 'cpl' ? 'Cost per lead (Email 1 reach)' : 'Cost per 1k sends'}
+          <Card className="relative overflow-hidden hover:bg-surface-elevated/30 transition-all duration-300 h-full">
+            <div className="space-y-1 sm:space-y-2">
+              {/* Title row — toggle icon + title, matching MetricCard */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setEfficiencyMode((prev) => (prev === 'cpl' ? 'cpm' : 'cpl'))}
+                  className="flex-shrink-0 text-accent-purple hover:text-accent-primary transition-colors"
+                  title={`Switch to ${efficiencyMode === 'cpl' ? 'CPM' : 'CPL'}`}
+                >
+                  {efficiencyMode === 'cpl' ? <ToggleLeft className="h-3.5 w-3.5" /> : <ToggleRight className="h-3.5 w-3.5" />}
+                </button>
+                <p className="text-xs sm:text-sm font-medium text-text-secondary truncate">
+                  {efficiencyMode === 'cpl' ? 'Cost Per Lead' : 'CPM (per 1k)'}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setEfficiencyMode((prev) => (prev === 'cpl' ? 'cpm' : 'cpl'))}
-                className="flex items-center gap-1 text-xs px-2 py-1 rounded-md border border-border hover:border-accent-primary/60 hover:text-accent-primary transition-colors"
+
+              <motion.p
+                className="text-xl sm:text-2xl font-semibold text-text-primary tracking-tight"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2, delay: 0.3 * 0.03 + 0.1 }}
               >
-                {efficiencyMode === 'cpl' ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />}
-                <span>{efficiencyMode.toUpperCase()}</span>
-              </button>
+                {formatCurrency(efficiencyValue)}
+              </motion.p>
+
+              <p className="text-xs text-text-secondary">
+                {efficiencyMode === 'cpl' ? 'Cost per lead (Email 1 reach)' : 'Cost per 1k sends'}
+              </p>
             </div>
-            <motion.p
-              className="mt-4 text-3xl font-bold text-text-primary tracking-tight"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4 }}
-            >
-              {formatCurrency(efficiencyValue)}
-            </motion.p>
           </Card>
         </motion.div>
         <MetricCard

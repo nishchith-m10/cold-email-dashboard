@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Search, RefreshCw, AlertCircle, Pencil, Pause, Play, Trash2, BarChart3, ChevronDown, ChevronRight, Layers } from 'lucide-react';
+import { Search, RefreshCw, AlertCircle, Pencil, Pause, Play, Trash2, BarChart3, ChevronDown, ChevronRight, Layers, Copy, CopyPlus } from 'lucide-react';
 import { useCampaigns } from '@/hooks/use-campaigns';
 import { useCampaignGroups } from '@/hooks/use-campaign-groups';
 import { CampaignToggle } from './campaign-toggle';
@@ -465,6 +465,25 @@ export function CampaignManagementTable({
                                   {campaign.n8n_status === 'active' ? <><Pause className="mr-2 h-4 w-4" />Pause</> : <><Play className="mr-2 h-4 w-4" />Resume</>}
                                 </ContextMenuItem>
                                 <ContextMenuSeparator />
+                                <ContextMenuItem
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(campaign.id);
+                                    toast({
+                                      title: 'Copied',
+                                      description: 'Campaign ID copied to clipboard',
+                                    });
+                                  }}
+                                >
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  Copy Campaign ID
+                                  <ContextMenuShortcut>Ctrl+C</ContextMenuShortcut>
+                                </ContextMenuItem>
+                                <ContextMenuItem disabled>
+                                  <CopyPlus className="mr-2 h-4 w-4" />
+                                  Duplicate
+                                  <ContextMenuShortcut className="text-text-secondary text-[10px]">Coming Soon</ContextMenuShortcut>
+                                </ContextMenuItem>
+                                <ContextMenuSeparator />
                                 {canManage && (
                                   <ContextMenuItem
                                     destructive
@@ -577,6 +596,27 @@ export function CampaignManagementTable({
                           Rename
                           <ContextMenuShortcut>F2</ContextMenuShortcut>
                         </ContextMenuItem>
+                        <ContextMenuItem
+                          onClick={() => {
+                            navigator.clipboard.writeText(campaign.id);
+                            toast({
+                              title: 'Copied',
+                              description: 'Campaign ID copied to clipboard',
+                            });
+                          }}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy Campaign ID
+                          <ContextMenuShortcut>Ctrl+C</ContextMenuShortcut>
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                          disabled
+                        >
+                          <CopyPlus className="mr-2 h-4 w-4" />
+                          Duplicate
+                          <ContextMenuShortcut className="text-text-secondary text-[10px]">Coming Soon</ContextMenuShortcut>
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
                         <ContextMenuItem
                           onClick={() => window.open(`/campaigns/${campaign.id}`, '_blank')}
                         >

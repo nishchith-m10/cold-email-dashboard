@@ -103,9 +103,9 @@ function EfficiencyMetricsComponent({
   return (
     <motion.div
       className="h-full"
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.3 }}
+      transition={{ duration: 0.15, delay: 0.05 }}
     >
       <Card className={cn('overflow-hidden h-full flex flex-col', className)}>
         <CardHeader className="pb-3">
@@ -114,27 +114,27 @@ function EfficiencyMetricsComponent({
         
         <CardContent className="flex-1 flex flex-col">
           {/* Vertical stack layout - Command Panel style */}
-          <div className="flex flex-col gap-4 h-full">
+          <div className="flex flex-col gap-3 h-full">
             {metrics.map((metric, index) => (
               <motion.div
                 key={metric.label}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="relative flex-1 rounded-xl border border-border bg-surface-elevated/50 p-4 flex flex-row items-center group"
+                transition={{ delay: index * 0.03 }}
+                className="relative rounded-xl border border-border bg-surface-elevated/50 p-3 flex flex-row items-center group"
               >
                 {/* Icon on Left */}
                 <div className={cn(
-                  'h-12 w-12 rounded-lg flex items-center justify-center shrink-0',
+                  'h-10 w-10 rounded-lg flex items-center justify-center shrink-0',
                   metric.valueColor === 'text-accent-success' && 'bg-accent-success/10',
                   metric.valueColor === 'text-accent-primary' && 'bg-accent-primary/10',
                   metric.valueColor === 'text-text-primary' && 'bg-surface-elevated'
                 )}>
-                  <metric.icon className={cn('h-6 w-6', metric.valueColor)} />
+                  <metric.icon className={cn('h-5 w-5', metric.valueColor)} />
                 </div>
                 
                 {/* Text on Right */}
-                <div className="ml-4 flex flex-col items-start flex-1">
+                <div className="ml-3 flex flex-col items-start flex-1">
                   <div className="flex items-center gap-2">
                     <motion.p
                       layout
@@ -146,7 +146,7 @@ function EfficiencyMetricsComponent({
                       <button
                         type="button"
                         onClick={() => setEfficiencyMode(prev => prev === 'cpl' ? 'cpm' : 'cpl')}
-                        className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border border-border hover:border-accent-primary/60 hover:text-accent-primary transition-colors"
+                        className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border border-border hover:bg-surface-elevated transition-colors"
                       >
                         {efficiencyMode === 'cpl' ? <ToggleLeft className="h-3.5 w-3.5" /> : <ToggleRight className="h-3.5 w-3.5" />}
                         <span className="uppercase">{efficiencyMode}</span>
@@ -165,7 +165,7 @@ function EfficiencyMetricsComponent({
                       </div>
                     )}
                   </div>
-                  <p className={cn('text-xl font-bold', metric.valueColor)}>
+                  <p className={cn('text-lg font-bold', metric.valueColor)}>
                     {metric.value}
                   </p>
                   <p className="text-xs text-text-secondary">

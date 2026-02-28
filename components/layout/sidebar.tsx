@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /**
  * Vertical Sidebar Navigation
@@ -121,11 +121,10 @@ export function Sidebar() {
 
   const handleMouseLeave = () => {
     if (mode === 'hover') {
-      // Minimal delay for instant feel
       hoverTimeoutRef.current = setTimeout(() => {
         setIsHovered(false);
         hoverTimeoutRef.current = null;
-      }, 100);
+      }, 50);
     }
   };
 
@@ -147,8 +146,8 @@ export function Sidebar() {
         width: effectiveWidth,
       }}
       transition={{ 
-        duration: 0.3,
-        ease: [0.32, 0.72, 0, 1], // Smoother custom easing
+        duration: 0.15,
+        ease: [0.32, 0.72, 0, 1],
         type: 'tween'
       }}
       onMouseEnter={handleMouseEnter}
@@ -168,7 +167,7 @@ export function Sidebar() {
               className={cn(
                 'flex items-center h-10 rounded-lg transition-colors',
                 isExpanded ? 'gap-3 px-3' : 'justify-center overflow-hidden',
-                isActive ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:text-text-primary hover:bg-accent-primary/5'
+                isActive ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary hover:bg-accent-primary/5'
               )}
               title={!isExpanded ? item.label : undefined}
             >
@@ -180,7 +179,7 @@ export function Sidebar() {
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -8 }}
-                    transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+                    transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
                   >
                     {item.label}
                   </motion.span>
@@ -206,7 +205,7 @@ export function Sidebar() {
                   className={cn(
                     'flex items-center h-10 rounded-lg transition-colors',
                     isExpanded ? 'gap-3 px-3' : 'justify-center overflow-hidden',
-                    isActive ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:text-text-primary hover:bg-accent-primary/5'
+                    isActive ? 'text-accent-primary' : 'text-text-secondary hover:text-text-primary hover:bg-accent-primary/5'
                   )}
                   title={!isExpanded ? item.label : undefined}
                 >
@@ -218,7 +217,7 @@ export function Sidebar() {
                         initial={{ opacity: 0, x: -8 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -8 }}
-                        transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+                        transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
                       >
                         {item.label}
                       </motion.span>
@@ -279,7 +278,7 @@ export function Sidebar() {
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+                  transition={{ duration: 0.08, ease: [0.32, 0.72, 0, 1] }}
                 >
                   Sidebar control
                 </motion.span>
@@ -294,7 +293,7 @@ export function Sidebar() {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+                transition={{ duration: 0.12, ease: [0.32, 0.72, 0, 1] }}
                 className={cn(
                   'fixed bg-surface border border-border rounded-lg shadow-2xl overflow-hidden z-[100]',
                   isExpanded ? 'w-[200px]' : 'w-48'

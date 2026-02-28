@@ -3,6 +3,7 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { dark } from '@clerk/themes';
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 // Base appearance that works for both themes
 const baseAppearance = {
@@ -30,18 +31,28 @@ interface ClerkThemeProviderProps {
 }
 
 export function ClerkThemeProvider({ children }: ClerkThemeProviderProps) {
+  const pathname = usePathname();
+  // Auth pages always use dark Clerk theme regardless of user's saved preference
+  const isAuthPage = pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up');
+
   const [isDark, setIsDark] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    
-    // Check initial theme
+
+    // Auth pages are always dark — no observer needed
+    if (isAuthPage) {
+      setIsDark(true);
+      return;
+    }
+
+    // Check initial theme for dashboard pages
     const checkTheme = () => {
       const isLightMode = document.documentElement.classList.contains('light');
       setIsDark(!isLightMode);
     };
-    
+
     checkTheme();
 
     // Watch for theme changes via MutationObserver
@@ -59,7 +70,7 @@ export function ClerkThemeProvider({ children }: ClerkThemeProviderProps) {
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [isAuthPage]);
 
   // Build appearance based on current theme
   const appearance = {

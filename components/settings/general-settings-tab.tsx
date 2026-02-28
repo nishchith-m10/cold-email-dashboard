@@ -78,7 +78,7 @@ export function GeneralSettingsTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-[var(--text-secondary)]" />
+        <Loader2 className="h-6 w-6 animate-spin text-text-secondary" />
       </div>
     );
   }
@@ -86,11 +86,11 @@ export function GeneralSettingsTab() {
   return (
     <div className="space-y-6">
       {/* Two-column settings container */}
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-[24px]">
-        <div className="flex items-stretch gap-[32px]">
+      <div className="rounded-lg border border-border bg-surface p-6">
+        <div className="grid grid-cols-1 md:grid-cols-[5fr_1px_6fr] gap-6">
 
-          {/* Left column — 45% — Workspace fields */}
-          <div className="flex flex-col justify-start gap-[16px]" style={{ width: '45%' }}>
+          {/* Left column — Workspace fields */}
+          <div className="flex flex-col justify-start gap-4">
             <FormField
               label="Workspace Name"
               description="The display name for your workspace"
@@ -110,25 +110,17 @@ export function GeneralSettingsTab() {
               <Input
                 value={workspace?.slug || 'N/A'}
                 disabled
-                className="bg-[var(--surface-elevated)] cursor-not-allowed"
+                className="bg-surface-elevated cursor-not-allowed"
               />
             </FormField>
           </div>
 
-          {/* Vertical divider — 1px, 80% height, vertically centered */}
-          <div className="flex items-center">
-            <div
-              style={{
-                width: '1px',
-                height: '80%',
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              }}
-            />
-          </div>
+          {/* Vertical divider */}
+          <div className="hidden md:block w-px bg-border self-stretch" />
 
-          {/* Right column — 55% — Dashboard Preferences */}
-          <div className="flex flex-col justify-start pl-[24px]" style={{ width: '55%' }}>
-            <div className="flex flex-col items-start gap-[16px]">
+          {/* Right column — Dashboard Preferences */}
+          <div className="flex flex-col justify-start">
+            <div className="flex flex-col items-start gap-4">
               <FormField
                 label="Default Timezone"
                 description="Timezone used for displaying dates and times"
@@ -151,10 +143,10 @@ export function GeneralSettingsTab() {
                       className="justify-start gap-1.5 h-8 px-2.5 text-xs"
                       disabled={!canWrite}
                     >
-                      <Calendar className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+                      <Calendar className="h-3.5 w-3.5 text-text-secondary" />
                       <span>{dateFormat === 'US' ? 'US Format (MM/DD/YYYY)' : 'EU Format (DD/MM/YYYY)'}</span>
                       <ChevronDown className={cn(
-                        'h-3.5 w-3.5 text-[var(--text-secondary)] transition-transform',
+                        'h-3.5 w-3.5 text-text-secondary transition-transform',
                         isDateFormatOpen && 'rotate-180'
                       )} />
                     </Button>
@@ -165,9 +157,9 @@ export function GeneralSettingsTab() {
                       sideOffset={8}
                       align="start"
                     >
-                      <div className="rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-[#141416] p-2 min-w-[180px]">
+                      <div className="rounded-xl border border-border bg-surface shadow-lg p-2 min-w-[180px]">
                         <div className="px-2 py-1.5 mb-1">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
                             Date Format
                           </p>
                         </div>
@@ -182,10 +174,10 @@ export function GeneralSettingsTab() {
                               setIsDateFormatOpen(false);
                             }}
                             className={cn(
-                              'w-full rounded-md px-2 py-1.5 text-left text-xs transition',
+                              'w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors',
                               option.value === dateFormat
-                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+                                ? 'bg-accent-primary/10 text-accent-primary'
+                                : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                             )}
                           >
                             {option.label}
@@ -208,10 +200,10 @@ export function GeneralSettingsTab() {
                       className="justify-start gap-1.5 h-8 px-2.5 text-xs"
                       disabled={!canWrite}
                     >
-                      <DollarSign className="h-3.5 w-3.5 text-[var(--text-secondary)]" />
+                      <DollarSign className="h-3.5 w-3.5 text-text-secondary" />
                       <span>{{ USD: 'USD ($)', EUR: 'EUR (€)', GBP: 'GBP (£)', JPY: 'JPY (¥)' }[currency]}</span>
                       <ChevronDown className={cn(
-                        'h-3.5 w-3.5 text-[var(--text-secondary)] transition-transform',
+                        'h-3.5 w-3.5 text-text-secondary transition-transform',
                         isCurrencyOpen && 'rotate-180'
                       )} />
                     </Button>
@@ -222,9 +214,9 @@ export function GeneralSettingsTab() {
                       sideOffset={8}
                       align="start"
                     >
-                      <div className="rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-[#141416] p-2 min-w-[140px]">
+                      <div className="rounded-xl border border-border bg-surface shadow-lg p-2 min-w-[140px]">
                         <div className="px-2 py-1.5 mb-1">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
                             Currency
                           </p>
                         </div>
@@ -241,10 +233,10 @@ export function GeneralSettingsTab() {
                               setIsCurrencyOpen(false);
                             }}
                             className={cn(
-                              'w-full rounded-md px-2 py-1.5 text-left text-xs transition',
+                              'w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors',
                               option.value === currency
-                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+                                ? 'bg-accent-primary/10 text-accent-primary'
+                                : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
                             )}
                           >
                             {option.label}
@@ -265,9 +257,10 @@ export function GeneralSettingsTab() {
       {canWrite && (
         <div className="flex items-center justify-end gap-4">
           {saveMessage && (
-            <div className={`text-sm font-medium ${
-              saveMessage.type === 'success' ? 'text-green-600' : 'text-red-600'
-            }`}>
+            <div className={cn(
+              'text-sm font-medium',
+              saveMessage.type === 'success' ? 'text-accent-success' : 'text-accent-danger'
+            )}>
               {saveMessage.text}
             </div>
           )}
