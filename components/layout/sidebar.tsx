@@ -235,7 +235,6 @@ export function Sidebar() {
         {/* Super Admin Section (Sandbox) */}
         {isSuperAdmin && (
           <>
-            <div className="my-3 border-t border-border" />
             {SUPER_ADMIN_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
