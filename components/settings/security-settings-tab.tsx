@@ -50,16 +50,16 @@ export function SecuritySettingsTab() {
   return (
     <div className="space-y-6">
       {/* API Keys Card */}
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
+      <div className="rounded-lg border border-border bg-surface p-6">
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
-              <Key className="h-5 w-5" />
-              API Keys
-            </h3>
-            <p className="text-sm text-[var(--text-secondary)] mt-1">
-              Manage API keys for programmatic access to your workspace
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-accent-primary/10 flex items-center justify-center">
+              <Key className="h-5 w-5 text-accent-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-text-primary">API Keys</h3>
+              <p className="text-sm text-text-secondary">Manage API keys for programmatic access</p>
+            </div>
           </div>
           {canManage && (
             <Button variant="default" size="sm" className="gap-2" disabled>
@@ -70,7 +70,7 @@ export function SecuritySettingsTab() {
         </div>
 
         {apiKeys.length === 0 ? (
-          <div className="text-center py-8 text-[var(--text-secondary)]">
+          <div className="text-center py-8 text-text-secondary">
             <Key className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p>No API keys generated yet</p>
             <p className="text-xs mt-1">Generate a key to get started</p>
@@ -79,46 +79,46 @@ export function SecuritySettingsTab() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[var(--border)]">
-                  <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)] uppercase">
+                <tr className="border-b border-border">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-text-secondary uppercase">
                     Name
                   </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)] uppercase">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-text-secondary uppercase">
                     API Key
                   </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-[var(--text-secondary)] uppercase">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-text-secondary uppercase">
                     Created
                   </th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-[var(--text-secondary)] uppercase">
+                  <th className="px-4 py-2 text-right text-xs font-medium text-text-secondary uppercase">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border)]">
+              <tbody className="divide-y divide-border">
                 {apiKeys.map((key) => (
-                  <tr key={key.id} className="hover:bg-[var(--surface-elevated)]">
-                    <td className="px-4 py-3 text-sm text-[var(--text-primary)] font-medium">
+                  <tr key={key.id} className="hover:bg-surface-elevated">
+                    <td className="px-4 py-3 text-sm text-text-primary font-medium">
                       {key.name}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <code className="text-xs text-[var(--text-secondary)] bg-[var(--surface-elevated)] px-2 py-1 rounded">
+                        <code className="text-xs text-text-secondary bg-surface-elevated px-2 py-1 rounded">
                           {key.masked}
                         </code>
                         <button
                           onClick={() => handleCopy(key.full, key.id)}
-                          className="p-1 hover:bg-[var(--surface-elevated)] rounded transition-colors"
+                          className="p-1 hover:bg-surface-elevated rounded transition-colors"
                           title="Copy full key"
                         >
                           {copied === key.id ? (
-                            <Check className="h-4 w-4 text-green-500" />
+                            <Check className="h-4 w-4 text-accent-success" />
                           ) : (
-                            <Copy className="h-4 w-4 text-[var(--text-secondary)]" />
+                            <Copy className="h-4 w-4 text-text-secondary" />
                           )}
                         </button>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+                    <td className="px-4 py-3 text-sm text-text-secondary">
                       {key.created_at}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -126,7 +126,7 @@ export function SecuritySettingsTab() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-accent-danger hover:text-accent-danger hover:bg-accent-danger/10"
                           disabled
                         >
                           <Trash2 className="h-4 w-4" />
@@ -140,24 +140,24 @@ export function SecuritySettingsTab() {
           </div>
         )}
 
-        <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-          <p className="text-xs text-[var(--text-secondary)]">
-            <strong className="text-[var(--text-primary)]">Note:</strong> API key generation and
+        <div className="mt-4 p-3 rounded-lg bg-accent-warning/10 border border-accent-warning/20">
+          <p className="text-xs text-text-secondary">
+            <strong className="text-text-primary">Note:</strong> API key generation and
             management is currently in development. This is a preview of the UI.
           </p>
         </div>
       </div>
 
       {/* Webhooks Card */}
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
-            <Webhook className="h-5 w-5" />
-            Webhooks
-          </h3>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">
-            Configure webhooks to receive real-time event notifications
-          </p>
+      <div className="rounded-lg border border-border bg-surface p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-10 w-10 rounded-lg bg-accent-purple/10 flex items-center justify-center">
+            <Webhook className="h-5 w-5 text-accent-purple" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-text-primary">Webhooks</h3>
+            <p className="text-sm text-text-secondary">Configure webhooks to receive real-time event notifications</p>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -186,50 +186,50 @@ export function SecuritySettingsTab() {
                   <input
                     type="checkbox"
                     disabled={!canManage}
-                    className="rounded border-[var(--border)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)] disabled:opacity-50"
+                    className="rounded border-border text-accent-primary focus:ring-accent-primary disabled:opacity-50"
                   />
-                  <span className="text-[var(--text-primary)]">{event}</span>
+                  <span className="text-text-primary">{event}</span>
                 </label>
               ))}
             </div>
           </FormField>
         </div>
 
-        <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-          <p className="text-xs text-[var(--text-secondary)]">
-            <strong className="text-[var(--text-primary)]">Coming Soon:</strong> Webhook
+        <div className="mt-4 p-3 rounded-lg bg-accent-primary/10 border border-accent-primary/20">
+          <p className="text-xs text-text-secondary">
+            <strong className="text-text-primary">Coming Soon:</strong> Webhook
             functionality will be available in a future update.
           </p>
         </div>
       </div>
 
       {/* Security Options Card */}
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Security Options
-          </h3>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">
-            Additional security features and session management
-          </p>
+      <div className="rounded-lg border border-border bg-surface p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-10 w-10 rounded-lg bg-accent-success/10 flex items-center justify-center">
+            <Shield className="h-5 w-5 text-accent-success" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-text-primary">Security Options</h3>
+            <p className="text-sm text-text-secondary">Additional security features and session management</p>
+          </div>
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-lg bg-[var(--surface-elevated)]">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-surface-elevated">
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-[var(--text-primary)]">
+                <p className="text-sm font-medium text-text-primary">
                   Two-Factor Authentication
                 </p>
                 {has2FAEnabled && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-accent-success/10 text-accent-success">
                     <CheckCircle2 className="h-3 w-3" />
                     Enabled
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
+              <p className="text-xs text-text-secondary mt-1">
                 Add an extra layer of security to your account
               </p>
             </div>
@@ -242,19 +242,19 @@ export function SecuritySettingsTab() {
             </Button>
           </div>
 
-          <div className="flex items-center justify-between p-4 rounded-lg bg-[var(--surface-elevated)]">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-surface-elevated">
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-[var(--text-primary)]">
+                <p className="text-sm font-medium text-text-primary">
                   Active Sessions
                 </p>
                 {activeSessionCount > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-accent-primary/10 text-accent-primary">
                     {activeSessionCount} {activeSessionCount === 1 ? 'session' : 'sessions'}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-[var(--text-secondary)] mt-1">
+              <p className="text-xs text-text-secondary mt-1">
                 View and manage active login sessions
               </p>
             </div>
