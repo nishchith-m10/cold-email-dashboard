@@ -1,0 +1,87 @@
+{
+  "_id": "1c7dae110947-495a-b439-7578c53dea94_-_f9a70da4-2d80-4e17-ad1b-a37716c423c8_-_latest",
+  "creator_first_name": "kamexa",
+  "creator_last_name": "Team",
+  "creator_user_id": "1745b7b3-e01f-40f7-ae34-b3c1a63fb23c",
+  "description": "",
+  "insert_date_": "2025-02-12T11:27:33.443Z",
+  "output_schema": {},
+  "params_schema": {
+    "properties": {
+      "linkedin_url": {
+        "type": "string",
+        "order": 1,
+        "title": "LinkedIn URL",
+        "metadata": {},
+        "description": "LinkedIn URL of profile"
+      },
+      "last_x_days": {
+        "type": "number",
+        "min": 0,
+        "value": 0,
+        "order": 3,
+        "title": "Interval for Post Retrieval",
+        "description": "Last X Days",
+        "metadata": {}
+      }
+    },
+    "required": [
+      "linkedin_url",
+      "last_x_days"
+    ],
+    "type": "object"
+  },
+  "project": "1c7dae110947-495a-b439-7578c53dea94",
+  "public": false,
+  "state_mapping": {
+    "linkedin_url": "params.linkedin_url",
+    "linkedin": "steps.linkedin.output",
+    "last_x_days": "params.last_x_days",
+    "last_30_days_posts": "steps.last_30_days_posts.output",
+    "linkedin_profile_details": "steps.linkedin_profile_details.output"
+  },
+  "studio_id": "f9a70da4-2d80-4e17-ad1b-a37716c423c8",
+  "title": "LinkedIn Research Tool",
+  "transformations": {
+    "steps": [
+      {
+        "transformation": "get_linkedin_profile",
+        "name": "linkedin",
+        "params": {
+          "method": "Get User Posts",
+          "url": "{{linkedin_url}}"
+        },
+        "display_name": "Get LinkedIn Posts"
+      },
+      {
+        "transformation": "python_code_transformation",
+        "name": "last_30_days_posts",
+        "params": {
+          "code": "import re\nfrom datetime import datetime, timedelta\nfrom typing import List, Dict, Any\n\ndef extract_poster(url):\n    return re.search(r'linkedin\\.com/(?:company|in)/([^/?]+)', url).group(1)\n\ndef parse_repost(post) -> Dict[str, Any]:\n    clean_post = {\n        'original_post': post.get('text'),\n        'posted': post.get('posted').split(' ')[0],\n        'post_id': post.get('urn')\n    }\n    if post.get('article_title'):\n        clean_post['shared_article_title'] = post['article_title']\n    if post.get('article_subtitle'):\n        clean_post['shared_article_subtitle'] = post['article_subtitle']\n    clean_post['user_comment'] = post.get('resharer_comment')\n    clean_post['user_posted'] = post.get('posted').split(' ')[0]\n    \n    return clean_post\n\ndef parse_post(post) -> Dict[str, Any]:\n    clean_post = {\n        'user_post': post.get('text'),\n        'posted': post.get('posted').split(' ')[0],\n        'post_id': post.get('urn')\n    }\n    if post.get('article_title'):\n        clean_post['shared_article_title'] = post['article_title']\n    if post.get('article_subtitle'):\n        clean_post['shared_article_subtitle'] = post['article_subtitle']\n    return clean_post\n\ndef parse_linkedin_posts(posts: List[Dict[str, Any]], input_url: str, days: int) -> Dict[str, list]:\n    result = {\n        'user_original_posts': [],\n        'user_replies': []\n    }\n    cutoff_date = datetime.now() - timedelta(days=days)\n    for post in posts:\n        post_date = datetime.strptime(post.get('posted').split(' ')[0], '%Y-%m-%d')\n        if post_date < cutoff_date:\n            continue\n        \n        poster = (post.get('poster_linkedin_url') or \n              (post.get('poster') or {}).get('linkedin_url'))\n        is_original_poster = (input_url in poster) or (poster in input_url)\n        is_reshared = post.get('reshared', False)\n        is_commented = post.get('resharer_comment', None) is not None\n\n        if is_original_poster:\n            # This is an original post by the user\n            result['user_original_posts'].append(parse_post(post))\n        elif not is_original_poster and is_reshared and is_commented:\n            # This is a repost by the user with a comment\n            result['user_replies'].append(parse_repost(post))\n\n    # Sort both arrays by date (newest first)\n    result['user_original_posts'].sort(\n        key=lambda x: datetime.strptime(x['posted'], '%Y-%m-%d'),\n        reverse=True\n    )\n    result['user_replies'].sort(\n        key=lambda x: datetime.strptime(x['user_posted'], '%Y-%m-%d'),\n        reverse=True\n    )\n    return result\n\nresults = parse_linkedin_posts(linkedin['data'], params['linkedin_url'], params['last_x_days'])\n\nif params.get('include_reposts', None):\n    return results\nreturn results['user_original_posts']"
+        },
+        "display_name": "Filter Posts - Last 30 Days"
+      },
+      {
+        "transformation": "get_linkedin_profile",
+        "name": "linkedin_profile_details",
+        "params": {
+          "method": "Get User Profile",
+          "url": "{{linkedin_url}}"
+        },
+        "display_name": "Get a LinkedIn Profile"
+      }
+    ],
+    "output": {
+      "linkedin_profile_details_data": "{{linkedin_profile_details.data}}",
+      "last_30_days_posts_transformed": "{{last_30_days_posts.transformed}}",
+      "linkedin_url": "{{linkedin_url}}"
+    }
+  },
+  "update_date_": "2025-02-12T11:55:13.029Z",
+  "version": "latest",
+  "machine_user_id": "b2bb5daf-76c3-4607-9bb9-5160578aa942",
+  "metadata": {
+    "last_run_date": "2025-03-26T08:13:41.495Z"
+  },
+  "params": {}
+}
