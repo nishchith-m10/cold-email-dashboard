@@ -13,8 +13,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Check, ChevronRight, Loader2, AlertCircle, Shield, ExternalLink } from 'lucide-react';
+import { Check, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
 interface ValidationResult {
@@ -36,24 +37,37 @@ export function CalendlyUrlStage({ workspaceId, onComplete }: StageComponentProp
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Load existing booking URL
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'calendly_url');
+
+  // Load existing booking URL, fall back to draft
   useEffect(() => {
+    let cancelled = false;
+
     async function loadBookingUrl() {
       try {
         const res = await fetch(`/api/onboarding/credentials?workspace_id=${workspaceId}&type=calendly_url`);
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
           if (data.value) {
             setBookingUrl(data.value);
+          } else if (draft?.bookingUrl) {
+            setBookingUrl(draft.bookingUrl as string);
           }
         }
       } catch (err) {
         console.error('Failed to load booking URL:', err);
+        if (!cancelled && draft?.bookingUrl) {
+          setBookingUrl(draft.bookingUrl as string);
+        }
       }
     }
 
-    loadBookingUrl();
-  }, [workspaceId]);
+    if (!isDraftLoading) {
+      loadBookingUrl();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleValidate = async () => {
     if (!bookingUrl.trim()) {
@@ -125,48 +139,79 @@ export function CalendlyUrlStage({ workspaceId, onComplete }: StageComponentProp
   };
 
   return (
-    <div className="space-y-6">
-      {/* Input Section */}
-      <div>
-        <label className="block text-sm font-medium text-text-primary mb-2">
-          Booking Link <span className="text-accent-danger">*</span>
-        </label>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <input
-              type="url"
-              value={bookingUrl}
-              onChange={(e) => {
-                setBookingUrl(e.target.value);
-                setValidationResult(null);
-                setError(null);
-              }}
-              placeholder="https://calendly.com/your-name/30min"
-              className="w-full pl-10 pr-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
-            />
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-text-secondary" />
+    <div className="space-y-5">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
+        {/* Input Section */}
+        <div className="p-4">
+          <label className="block text-sm font-medium text-text-primary mb-2">
+            Booking Link <span className="text-accent-danger">*</span>
+          </label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <input
+                type="url"
+                value={bookingUrl}
+                onChange={(e) => {
+                  setBookingUrl(e.target.value);
+                  setValidationResult(null);
+                  setError(null);
+                  saveDraft({ bookingUrl: e.target.value });
+                }}
+                placeholder="https://calendly.com/your-name/30min"
+                className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+              />
+            </div>
+            <button
+              onClick={handleValidate}
+              disabled={isValidating || !bookingUrl.trim()}
+              className="px-3 py-2 bg-surface-elevated border border-border hover:border-border-focus text-text-primary rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {isValidating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Validate'
+              )}
+            </button>
           </div>
-          <button
-            onClick={handleValidate}
-            disabled={isValidating || !bookingUrl.trim()}
-            className="px-4 py-3 bg-surface-elevated border-2 border-border hover:border-border-focus text-text-primary rounded-lg font-medium transition-colors disabled:opacity-50"
-          >
-            {isValidating ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Shield className="h-5 w-5" />
-            )}
-          </button>
+          <p className="mt-1.5 text-xs text-text-secondary">
+            We&apos;ll validate your booking link to ensure it&apos;s working properly
+          </p>
         </div>
-        <p className="mt-2 text-xs text-text-secondary">
-          We&apos;ll validate your booking link to ensure it&apos;s working properly
-        </p>
+
+        {/* Supported Platforms */}
+        <div className="p-4">
+          <h4 className="text-sm font-semibold text-text-primary mb-2">
+            Supported Booking Platforms:
+          </h4>
+          <ul className="space-y-1.5 text-xs text-text-secondary">
+            <li className="flex items-center gap-2">
+              <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0" />
+              Calendly (calendly.com)
+            </li>
+            <li className="flex items-center gap-2">
+              <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0" />
+              Cal.com (cal.com)
+            </li>
+            <li className="flex items-center gap-2">
+              <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0" />
+              SavvyCal (savvycal.com)
+            </li>
+            <li className="flex items-center gap-2">
+              <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0" />
+              Chili Piper (chilipiper.com)
+            </li>
+            <li className="flex items-center gap-2">
+              <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0" />
+              Custom booking systems
+            </li>
+          </ul>
+        </div>
       </div>
 
       {/* Validation Result */}
       {validationResult && (
         <div className={cn(
-          'p-4 rounded-lg border-2',
+          'p-4 rounded-lg border',
           validationResult.valid
             ? 'bg-accent-success/10 border-accent-success/20'
             : 'bg-accent-danger/10 border-accent-danger/20'
@@ -244,53 +289,16 @@ export function CalendlyUrlStage({ workspaceId, onComplete }: StageComponentProp
         </div>
       )}
 
-      {/* Info Box */}
-      <div className="bg-surface-elevated border-2 border-border rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-text-primary mb-2">
-          Supported Booking Platforms:
-        </h4>
-        <ul className="space-y-1.5 text-xs text-text-secondary">
-          <li className="flex items-center gap-2">
-            <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0" />
-            Calendly (calendly.com)
-          </li>
-          <li className="flex items-center gap-2">
-            <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0" />
-            Cal.com (cal.com)
-          </li>
-          <li className="flex items-center gap-2">
-            <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0" />
-            SavvyCal (savvycal.com)
-          </li>
-          <li className="flex items-center gap-2">
-            <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0" />
-            Chili Piper (chilipiper.com)
-          </li>
-          <li className="flex items-center gap-2">
-            <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0" />
-            Custom booking systems
-          </li>
-        </ul>
+      {/* Continue */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleContinue}
+          disabled={isSaving}
+          className="text-sm text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+        >
+          {isSaving ? 'Saving…' : 'Continue →'}
+        </button>
       </div>
-
-      {/* Continue Button */}
-      <button
-        onClick={handleContinue}
-        disabled={isSaving}
-        className="w-full flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all disabled:opacity-50"
-      >
-        {isSaving ? (
-          <>
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            Continue
-            <ChevronRight className="h-5 w-5" />
-          </>
-        )}
-      </button>
     </div>
   );
 }

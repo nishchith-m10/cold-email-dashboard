@@ -6,7 +6,6 @@
 
 'use client';
 
-import { Sparkles } from 'lucide-react';
 import { ApiKeyInputStage } from './api-key-input-stage';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
@@ -20,7 +19,6 @@ export function OpenAIKeyStage(props: StageComponentProps) {
       placeholder="sk-..."
       helpText="Your OpenAI API key is used for GPT-4 and GPT-3.5 email generation. You'll be charged directly by OpenAI based on usage."
       docsUrl="https://platform.openai.com/api-keys"
-      icon={Sparkles}
     />
   );
 }

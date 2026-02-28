@@ -413,3 +413,16 @@ Branch: ralph/infra-free-tier-hardening
 - contacts table never created — search route already handled this gracefully with as any cast
 - tsvector GENERATED ALWAYS AS + GIN index is the idiomatic Postgres FTS approach for simple single-column search
 ---
+
+## Onboarding Redesign (branch: ralph/onboarding-redesign)
+- **ONB-001** (7c43c89): Redesigned right-sidebar stepper — numbered circles, dashed connectors, time estimate, removed icons
+- **ONB-002** (65aff01): Clean text-only stage headers matching Settings page, removed top progress bar, removed card border
+- **ONB-003** (b7e0b24): Refined navigation footer — Skip for optional stages, Save & Continue Later with toast, right-aligned layout
+- **ONB-004** (dd44770): Form draft auto-save system — migration (drafts JSONB column), API route (GET/PUT), useOnboardingDraft hook, draft clearing on stage completion
+- **ONB-005** (f95686e): Integrated useOnboardingDraft into 9 stage components (brand-info, api-key-input, smtp-configuration, calendly-url, relevance-key, apify-selection, dns-setup, region-selection, email-provider-selection)
+- **ONB-006** (4088820): Resume banner — "Welcome back! You left off at [stage]." for returning users with prior progress
+- **ONB-007** (ec61443): Mobile stepper — replaced bottom dot pills with top header bar (stage name + Step X/Y + progress bar) and BottomSheet with full stepper
+- **PRD**: ralph-loop/prd-onboarding-redesign.json — all 7 stories pass
+- **Files created**: app/api/onboarding/draft/route.ts, hooks/use-onboarding-draft.ts, supabase/migrations/20260228_add_onboarding_drafts.sql
+- **Files modified**: genesis-onboarding-wizard.tsx, onboarding-progress-service.ts, + 9 stage components
+---
