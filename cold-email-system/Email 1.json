@@ -1247,17 +1247,17 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "1bu356F6CrJ653Gy3DhetSZhBymXJUpAGucxJgreaze8",
+          "value": "YOUR_GOOGLE_SHEET_ID",
           "mode": "list",
-          "cachedResultName": "California Leads - Real Estate - Scraper City",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bu356F6CrJ653Gy3DhetSZhBymXJUpAGucxJgreaze8/edit?usp=drivesdk"
+          "cachedResultName": "YOUR_LEADS_SHEET_NAME",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
           "cachedResultName": "California",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bu356F6CrJ653Gy3DhetSZhBymXJUpAGucxJgreaze8/edit#gid=0"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1829,7 +1829,8 @@
           "id": "YOUR_CREDENTIAL_GOOGLE_SHEETS_ID",
           "name": "Nishchith Sheets account"
         }
-      }
+      },
+      "disabled": true
     },
     {
       "parameters": {
@@ -2484,7 +2485,8 @@
           "id": "YOUR_CREDENTIAL_GOOGLE_SHEETS_ID",
           "name": "Nishchith Sheets account"
         }
-      }
+      },
+      "disabled": true
     }
   ],
   "pinData": {},

@@ -1067,7 +1067,7 @@
           "parameters": [
             {
               "name": "x-webhook-token",
-              "value": "92945e64e422ac9350e7ff85aea5c219177f8f8685a05d44d1dd2c19a83bf307"
+              "value": "YOUR_WEBHOOK_TOKEN"
             },
             {
               "name": "Content-Type",
