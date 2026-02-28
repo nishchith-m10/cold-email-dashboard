@@ -58,14 +58,11 @@ const SUPER_ADMIN_ITEMS: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { mode, setMode, isHovered, setIsHovered, isExpanded, effectiveWidth } = useSidebar();
-  const { workspace, userRole } = useWorkspace();
+  const { workspace, isSuperAdmin } = useWorkspace();
   const workspaceId = workspace?.id;
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const menuCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Admin check for Admin panel and Sandbox access
-  const isAdmin = userRole === 'owner' || userRole === 'admin' || userRole === 'super_admin';
   
   // Preserve URL search params (start, end, campaign) when navigating
   const searchParams = useSearchParams();
@@ -192,8 +189,8 @@ export function Sidebar() {
           );
         })}
 
-        {/* Admin Section */}
-        {isAdmin && (
+        {/* Admin Section (Super Admin only - Clerk IDs in SUPER_ADMIN_IDS) */}
+        {isSuperAdmin && (
           <>
             <div className="my-3 border-t border-border" />
             {ADMIN_ITEMS.map((item) => {
@@ -232,8 +229,8 @@ export function Sidebar() {
           </>
         )}
 
-        {/* Sandbox Section (Admin+ only) */}
-        {isAdmin && (
+        {/* Sandbox Section (Super Admin only - Clerk IDs in SUPER_ADMIN_IDS) */}
+        {isSuperAdmin && (
           <>
             {SUPER_ADMIN_ITEMS.map((item) => {
               const Icon = item.icon;
