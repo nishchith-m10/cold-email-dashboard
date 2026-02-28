@@ -16,7 +16,7 @@ import { IgnitionConfigAssembler } from '@/lib/genesis/ignition-config-assembler
 import { buildManifestFromOnboarding, persistManifest, ManifestValidationError } from '@/lib/genesis/workspace-manifest';
 
 // Orchestrator + integration imports (lazy)
-import { IgnitionOrchestrator, MockDropletFactory, MockSidecarClient, MockWorkflowDeployer, HttpWorkflowDeployer } from '@/lib/genesis/ignition-orchestrator';
+import { IgnitionOrchestrator, HttpWorkflowDeployer } from '@/lib/genesis/ignition-orchestrator';
 import { DropletFactoryAdapter, DeferredHttpSidecarClient } from '@/lib/genesis/integration-adapters';
 import { SupabaseIgnitionStateDB } from '@/lib/genesis/supabase-ignition-state-db';
 import { SupabasePartitionManager } from '@/lib/genesis/supabase-partition-manager';
@@ -43,23 +43,38 @@ function getAssembler(): IgnitionConfigAssembler | { error: string } {
 }
 
 /**
+ * Validate that all required infrastructure env vars are present.
+ * Returns an array of missing var names — empty means all good.
+ */
+function checkRequiredEnvVars(): string[] {
+  const required: Array<{ key: string; label: string }> = [
+    { key: 'DO_API_TOKEN', label: 'DigitalOcean API token — required for droplet provisioning' },
+    { key: 'GENESIS_JWT_PRIVATE_KEY', label: 'JWT private key — required for sidecar communication' },
+    { key: 'CREDENTIAL_MASTER_KEY', label: 'Credential master key — required for credential encryption' },
+    { key: 'NEXT_PUBLIC_SUPABASE_URL', label: 'Supabase URL — required for database operations' },
+    { key: 'SUPABASE_SERVICE_ROLE_KEY', label: 'Supabase service role key — required for admin operations' },
+  ];
+
+  return required
+    .filter(({ key }) => !process.env[key])
+    .map(({ key, label }) => `${key}: ${label}`);
+}
+
+/**
  * Build the IgnitionOrchestrator wiring.
  *
- * Uses real implementations when env vars are present, otherwise falls back to
- * mocks so the launch flow can be tested end-to-end without DO credentials.
- *
- * Real implementations are wired when:
- *   - DO_API_TOKEN is set → real DropletFactoryAdapter (DigitalOcean API)
- *   - GENESIS_JWT_PRIVATE_KEY is set → real DeferredHttpSidecarClient + HttpWorkflowDeployer
+ * All integrations use REAL implementations — no mock fallbacks.
+ * If a required env var is missing, the caller should reject the request
+ * via checkRequiredEnvVars() before reaching this function.
  */
-function buildOrchestrator(workspaceId?: string) {
-  const masterKey = process.env.ENCRYPTION_MASTER_KEY || process.env.DASH_WEBHOOK_TOKEN || 'dev-master-key-32-chars-minimum!!';
+function buildOrchestrator(workspaceId: string) {
+  const masterKey = process.env.CREDENTIAL_MASTER_KEY!;
   const admin = supabaseAdmin!;
 
-  // State DB — always use Supabase (uses getTypedSupabaseAdmin internally)
+  // State DB — always use Supabase
   const stateDB = new SupabaseIgnitionStateDB();
 
-  // Partition manager (uses getTypedSupabaseAdmin internally)
+  // Partition manager
   const partitionManager = new SupabasePartitionManager();
 
   // Credential vault
@@ -98,34 +113,10 @@ function buildOrchestrator(workspaceId?: string) {
     },
   });
 
-  // Droplet factory — real when DO_API_TOKEN is present
-  const hasDoToken = !!process.env.DO_API_TOKEN;
-  const dropletFactory = hasDoToken
-    ? new DropletFactoryAdapter()
-    : new MockDropletFactory();
-
-  if (hasDoToken) {
-    console.log('[Launch] Using REAL DropletFactory (DO_API_TOKEN present)');
-  } else {
-    console.warn('[Launch] Using MockDropletFactory — set DO_API_TOKEN for real provisioning');
-  }
-
-  // Sidecar client — real when JWT private key is present
-  const hasJwtKey = !!process.env.GENESIS_JWT_PRIVATE_KEY;
-  const sidecarClient = hasJwtKey && workspaceId
-    ? new DeferredHttpSidecarClient(workspaceId)
-    : new MockSidecarClient();
-
-  if (hasJwtKey) {
-    console.log('[Launch] Using REAL HttpSidecarClient (GENESIS_JWT_PRIVATE_KEY present)');
-  } else {
-    console.warn('[Launch] Using MockSidecarClient — set GENESIS_JWT_PRIVATE_KEY for real sidecar comms');
-  }
-
-  // Workflow deployer — real when sidecar client is real (it just wraps sidecar)
-  const workflowDeployer = hasJwtKey && workspaceId
-    ? new HttpWorkflowDeployer(sidecarClient)
-    : new MockWorkflowDeployer();
+  // Real integrations — no fallbacks
+  const dropletFactory = new DropletFactoryAdapter();
+  const sidecarClient = new DeferredHttpSidecarClient(workspaceId);
+  const workflowDeployer = new HttpWorkflowDeployer(sidecarClient);
 
   return new IgnitionOrchestrator(
     stateDB,
@@ -223,7 +214,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 6. Build orchestrator & ignite
+    // 6. Pre-flight: verify all infrastructure env vars are set
+    const missingVars = checkRequiredEnvVars();
+    if (missingVars.length > 0) {
+      console.error('[Launch] Missing required env vars:', missingVars);
+      return NextResponse.json(
+        {
+          error: 'Infrastructure not fully configured — cannot launch ignition',
+          missing: missingVars,
+        },
+        { status: 503 },
+      );
+    }
+
+    // 7. Build orchestrator & ignite
     const orchestrator = buildOrchestrator(workspaceId);
     const result = await orchestrator.ignite(config);
 
