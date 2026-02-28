@@ -34,36 +34,63 @@ export function IgnitionStage({ workspaceId, onComplete }: StageComponentProps) 
     setError(null);
 
     try {
-      // Call ignition API
-      const res = await fetch('/api/campaigns/provision', {
+      // Call the onboarding launch API — builds manifest, validates, then ignites
+      const res = await fetch('/api/onboarding/launch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspaceId,
-          fromOnboarding: true,
-        }),
+        body: JSON.stringify({ workspaceId }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const data = await res.json();
+        // 422 = manifest validation failure (shows field-level errors)
+        if (res.status === 422 && data.field_errors) {
+          const summary = (data.field_errors as Array<{field: string; message: string}>)
+            .map(e => `${e.field}: ${e.message}`)
+            .join('\n');
+          throw new Error(`Some onboarding steps need attention:\n${summary}`);
+        }
         throw new Error(data.error || 'Provisioning failed');
       }
 
-      const data = await res.json();
-      setCampaignId(data.campaignId);
-
-      // Poll for provisioning status
-      pollProvisioningStatus(data.campaignId);
+      // Launch route runs synchronously — result is in the response
+      if (data.success) {
+        updateStepStatus('droplet', 'complete');
+        updateStepStatus('database', 'complete');
+        updateStepStatus('credentials', 'complete');
+        updateStepStatus('workflows', 'complete');
+        updateStepStatus('handshake', 'complete');
+        setTimeout(() => {
+          setIsProvisioning(false);
+          onComplete();
+        }, 1200);
+      } else {
+        // Ignition ran but failed — fall through to polling for partial state
+        setCampaignId(workspaceId);
+        pollProvisioningStatus(workspaceId);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Provisioning failed');
       setIsProvisioning(false);
     }
   };
 
-  const pollProvisioningStatus = async (id: string) => {
+  // Step-status map derived from IgnitionStatus machine states
+  const STEP_MAP: Record<string, Array<{ key: string; s: ProvisioningStep['status'] }>> = {
+    partition_creating:    [{ key: 'database',    s: 'in_progress' }],
+    droplet_provisioning:  [{ key: 'droplet',     s: 'in_progress' }],
+    handshake_pending:     [{ key: 'droplet',     s: 'complete'    }, { key: 'handshake', s: 'in_progress' }],
+    credentials_injecting: [{ key: 'droplet',     s: 'complete'    }, { key: 'database', s: 'complete'    }, { key: 'credentials', s: 'in_progress' }],
+    workflows_deploying:   [{ key: 'droplet',     s: 'complete'    }, { key: 'database', s: 'complete'    }, { key: 'credentials', s: 'complete'     }, { key: 'workflows', s: 'in_progress' }],
+    activating:            [{ key: 'droplet',     s: 'complete'    }, { key: 'database', s: 'complete'    }, { key: 'credentials', s: 'complete'     }, { key: 'workflows', s: 'complete'    }, { key: 'handshake', s: 'in_progress' }],
+    active:                [{ key: 'droplet',     s: 'complete'    }, { key: 'database', s: 'complete'    }, { key: 'credentials', s: 'complete'     }, { key: 'workflows', s: 'complete'    }, { key: 'handshake', s: 'complete' }],
+  };
+
+  const pollProvisioningStatus = (id: string) => {
     const pollInterval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/campaigns/${id}/provision-status`);
+        const res = await fetch(`/api/onboarding/ignition-status?workspace_id=${id}`);
         if (!res.ok) {
           clearInterval(pollInterval);
           setError('Failed to check provisioning status');
@@ -72,29 +99,22 @@ export function IgnitionStage({ workspaceId, onComplete }: StageComponentProps) 
         }
 
         const data = await res.json();
+        const status: string = data.status ?? 'not_started';
 
-        // Update steps based on status
-        if (data.dropletCreated) {
-          updateStepStatus('droplet', 'complete');
+        // Apply step states from the map
+        const updates = STEP_MAP[status];
+        if (updates) {
+          updates.forEach(({ key, s }) => updateStepStatus(key, s));
         }
-        if (data.partitionCreated) {
-          updateStepStatus('database', 'complete');
-        }
-        if (data.credentialsInjected) {
-          updateStepStatus('credentials', 'complete');
-        }
-        if (data.workflowsDeployed) {
-          updateStepStatus('workflows', 'complete');
-        }
-        if (data.handshakeComplete) {
-          updateStepStatus('handshake', 'complete');
+
+        // Terminal states
+        if (status === 'active') {
           clearInterval(pollInterval);
-          
-          // Wait a moment then complete
-          setTimeout(() => {
-            setIsProvisioning(false);
-            onComplete();
-          }, 1500);
+          setTimeout(() => { setIsProvisioning(false); onComplete(); }, 1200);
+        } else if (status === 'failed') {
+          clearInterval(pollInterval);
+          setError(data.error_message || 'Provisioning failed');
+          setIsProvisioning(false);
         }
       } catch (err) {
         clearInterval(pollInterval);

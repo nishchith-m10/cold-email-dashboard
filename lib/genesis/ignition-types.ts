@@ -139,6 +139,20 @@ export interface IgnitionConfig {
   // Falls back to process.env.DASH_WEBHOOK_TOKEN if not provided.
   webhook_token?: string;
 
+  /**
+   * WorkspaceManifest — the validated, immutable config snapshot.
+   *
+   * When present the orchestrator derives workspace-specific variables
+   * (sender email, calendly URL, company name, webhook token, etc.) directly
+   * from the manifest rather than using the `|| ''` fallbacks.
+   *
+   * Build + validate before calling ignite():
+   *   const manifest = await buildManifestFromOnboarding(supabaseAdmin, workspaceId);
+   *   const locked   = await persistManifest(supabaseAdmin, manifest);
+   *   await orchestrator.ignite({ ...config, manifest: locked });
+   */
+  manifest?: import('./workspace-manifest').WorkspaceManifest;
+
   // Workflow selection
   workflow_templates?: string[];  // Defaults to all templates
   
