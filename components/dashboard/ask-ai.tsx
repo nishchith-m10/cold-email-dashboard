@@ -379,9 +379,9 @@ export function AskAI({ className }: AskAIProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.5 }}
+      transition={{ duration: 0.15, delay: 0.08 }}
     >
       <Card ref={cardRef} className={cn('overflow-hidden', className)}>
         <CardContent className="p-6 space-y-5">
