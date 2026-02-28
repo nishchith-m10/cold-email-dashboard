@@ -44,25 +44,25 @@ export function NewCampaignModal({ isOpen, onClose }: NewCampaignModalProps) {
       />
       
       {/* Modal */}
-      <div className="relative bg-surface-elevated rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto border border-border">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
+      <div className="relative bg-surface-elevated rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col border border-border">
+        {/* Header — sticky, non-scrollable */}
+        <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
           <div>
             <h2 className="text-xl font-semibold">Create New Campaign</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <p className="text-sm text-text-secondary mt-0.5">
               Set up a new email campaign
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-muted rounded-lg transition-colors"
+            className="p-2 hover:bg-surface-elevated rounded-lg transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
         
-        {/* Wizard */}
-        <div className="p-6">
+        {/* Wizard — scrollable content area */}
+        <div className="p-6 overflow-y-auto">
           <CampaignWizard onClose={onClose} />
         </div>
       </div>
