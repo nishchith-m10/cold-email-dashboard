@@ -153,17 +153,17 @@ export function DateRangePicker({
           sideOffset={8}
           align="end"
         >
-          <div className="flex rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-[#141416]">
+          <div className="flex rounded-xl border border-border bg-surface shadow-lg">
             {/* Presets Sidebar */}
-            <div className="w-28 border-r border-slate-200 p-2 dark:border-slate-700">
-              <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            <div className="w-28 border-r border-border p-2">
+              <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
                 Quick Select
               </p>
               {presets.map(preset => (
                 <button
                   key={preset.days}
                   onClick={() => handlePreset(preset.days)}
-                  className="w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                  className="w-full rounded-md px-2 py-1.5 text-left text-xs text-text-secondary transition hover:bg-surface-elevated hover:text-text-primary"
                 >
                   {preset.label}
                 </button>
@@ -177,17 +177,17 @@ export function DateRangePicker({
                 <button
                   type="button"
                   onClick={goToPrevMonth}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-text-secondary transition hover:bg-surface-elevated"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                <span className="text-sm font-semibold text-text-primary">
                   {format(currentMonth, 'MMMM yyyy')}
                 </span>
                 <button
                   type="button"
                   onClick={goToNextMonth}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-text-secondary transition hover:bg-surface-elevated"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -198,7 +198,7 @@ export function DateRangePicker({
                 {WEEKDAYS.map(day => (
                   <span 
                     key={day} 
-                    className="py-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400"
+                    className="py-1 text-[11px] font-semibold text-text-secondary"
                   >
                     {day}
                   </span>
@@ -228,22 +228,22 @@ export function DateRangePicker({
                       onClick={() => handleDayClick(day)}
                       className={cn(
                         'relative flex h-8 w-8 items-center justify-center text-sm font-medium transition',
-                        // Base styles - darker text for better contrast
-                        'text-slate-900 dark:text-slate-200',
+                        // Base styles
+                        'text-text-primary',
                         // Hover (when not selected)
-                        !isStart && !isEnd && !inRange && 'hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full',
+                        !isStart && !isEnd && !inRange && 'hover:bg-surface-elevated rounded-full',
                         // In range (middle)
-                        inRange && !isStart && !isEnd && 'bg-blue-100 text-blue-900 dark:bg-blue-500/20 dark:text-slate-200',
+                        inRange && !isStart && !isEnd && 'bg-accent-primary/20 text-text-primary',
                         // Range start
-                        isStart && 'bg-blue-600 text-white rounded-l-full',
+                        isStart && 'bg-accent-primary text-white rounded-l-full',
                         isStart && !isEnd && 'rounded-r-none',
                         isStart && isEnd && 'rounded-full',
                         // Range end
-                        isEnd && !isStart && 'bg-blue-600 text-white rounded-r-full rounded-l-none',
+                        isEnd && !isStart && 'bg-accent-primary text-white rounded-r-full rounded-l-none',
                         // Today indicator
-                        isToday && !isStart && !isEnd && 'font-bold text-blue-700 dark:text-blue-400',
+                        isToday && !isStart && !isEnd && 'font-bold text-accent-primary',
                         // Disabled
-                        disabled && 'text-slate-400 dark:text-slate-600 cursor-not-allowed hover:bg-transparent'
+                        disabled && 'text-text-secondary/40 cursor-not-allowed hover:bg-transparent'
                       )}
                     >
                       {format(day, 'd')}
@@ -254,8 +254,8 @@ export function DateRangePicker({
 
               {/* Selected Range Footer */}
               {rangeStart && rangeEnd && (
-                <div className="mt-3 border-t border-slate-200 pt-2 text-center dark:border-slate-700">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                <div className="mt-3 border-t border-border pt-2 text-center">
+                  <p className="text-xs text-text-secondary">
                     {isSameDay(rangeStart, rangeEnd)
                       ? format(rangeStart, 'EEEE, MMM d, yyyy')
                       : `${format(rangeStart, 'MMM d')} → ${format(rangeEnd, 'MMM d, yyyy')}`

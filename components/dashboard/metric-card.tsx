@@ -111,7 +111,7 @@ export function MetricCard({
             <Skeleton className="h-8 w-32" />
             <Skeleton className="h-4 w-20" />
           </div>
-          <Skeleton className="h-12 w-12 rounded-xl" />
+          <Skeleton className="h-10 w-10 rounded-xl" />
         </div>
       </Card>
     );
@@ -125,18 +125,15 @@ export function MetricCard({
       transition={{ duration: 0.4, delay: delay * 0.1 }}
     >
       <Card className={cn(
-        'relative overflow-hidden group/card hover:border-accent-primary/30 transition-all duration-300 h-full',
+        'relative overflow-hidden hover:bg-surface-elevated/30 transition-all duration-300 h-full',
         className
       )}>
-        {/* Gradient glow on hover */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-700/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300" />
-        
-        <div className="relative flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <div className="space-y-1 sm:space-y-2">
             <p className="text-xs sm:text-sm font-medium text-text-secondary">{title}</p>
             
             <motion.p 
-              className="text-2xl sm:text-3xl font-bold text-text-primary tracking-tight cursor-default"
+              className="text-xl sm:text-2xl font-semibold text-text-primary tracking-tight cursor-default"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: delay * 0.1 + 0.2 }}
@@ -183,10 +180,10 @@ export function MetricCard({
           </div>
 
           <div className={cn(
-            'flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex-shrink-0',
+            'flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-xl flex-shrink-0',
             iconColors
           )}>
-            <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
         </div>
       </Card>
