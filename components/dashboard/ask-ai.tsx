@@ -637,6 +637,7 @@ export function AskAI({ className, compact = false }: AskAIProps) {
             <button
               type="button"
               onClick={() => handleStreamingToggle(!useStreaming)}
+              title="Get responses token-by-token as they generate"
               className={cn(
                 'flex items-center gap-2 rounded-lg border transition-all',
                 compact ? 'justify-start px-2.5 py-1.5' : 'justify-center w-full h-full px-3 py-3',
@@ -645,7 +646,7 @@ export function AskAI({ className, compact = false }: AskAIProps) {
                   : 'bg-surface-elevated border-border text-text-secondary hover:border-border/80'
               )}
             >
-              <span className={cn('font-medium text-center', compact ? 'text-[10px]' : 'text-xs')}>Stream</span>
+              <span className={cn('font-medium text-center', compact ? 'text-[10px]' : 'text-xs')}>Streaming</span>
               <div className={cn(
                 'w-10 h-5 rounded-full relative transition-colors border border-border/60',
                 useStreaming ? 'bg-accent-primary' : 'bg-surface-elevated'
