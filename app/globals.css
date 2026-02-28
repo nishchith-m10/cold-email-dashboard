@@ -1,5 +1,8 @@
 @import '@xyflow/react/dist/style.css';
 
+/* React Flow (xyflow) base styles — must precede @tailwind directives */
+@import '@xyflow/react/dist/style.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -76,6 +79,18 @@
   }
   
   /* ============================================================
+     THEME TRANSITION — smooth 200ms background/border animation
+     ============================================================ */
+  body {
+    transition: background-color 200ms ease-in-out, color 200ms ease-in-out;
+  }
+  
+  header, aside, nav, main,
+  .bg-surface, .bg-background, .bg-surface-elevated, .bg-card {
+    transition: background-color 200ms ease-in-out, border-color 200ms ease-in-out;
+  }
+
+  /* ============================================================
      LIGHT MODE OVERRIDES - Comprehensive
      ============================================================ */
   html.light body {
@@ -98,6 +113,11 @@
   
   html.light .bg-surface-elevated {
     background-color: #F1F5F9 !important;
+  }
+  
+  /* Sidebar active item highlight — stronger in light mode for visibility */
+  html.light .bg-accent-primary\/10 {
+    background-color: rgba(37, 99, 235, 0.15) !important;
   }
   
   /* Border colors */

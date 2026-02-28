@@ -57,7 +57,7 @@ export function SystemHealthBar({ workspaceId, className, compact = false }: Sys
     return (
       <div className={cn(
         'flex items-center gap-1.5',
-        compact ? 'px-2 py-1' : 'px-3 py-1.5 bg-surface-elevated rounded-md',
+        compact ? 'px-2 py-1' : 'px-3 py-1.5',
         className
       )}>
         <div className="h-2 w-2 bg-gray-400 rounded-full animate-pulse" />
@@ -73,7 +73,7 @@ export function SystemHealthBar({ workspaceId, className, compact = false }: Sys
     <div 
       className={cn(
         'flex items-center transition-all group/health',
-        compact ? 'justify-center h-10 w-full' : 'gap-2 px-3 py-1.5 bg-surface-elevated rounded-md',
+        compact ? 'justify-center h-10 w-full' : 'gap-2 px-3 py-1.5',
         className
       )}
       title={compact ? config.label : undefined}
@@ -81,7 +81,7 @@ export function SystemHealthBar({ workspaceId, className, compact = false }: Sys
       <Icon 
         className={cn(
           'flex-shrink-0',
-          compact ? 'h-5 w-5' : 'h-4 w-4',
+          compact ? 'h-4 w-4' : 'h-4 w-4',
           health.status === 'live' && 'text-green-500',
           health.status === 'syncing' && 'text-text-secondary animate-spin',
           health.status === 'stale' && 'text-text-secondary',
@@ -90,7 +90,7 @@ export function SystemHealthBar({ workspaceId, className, compact = false }: Sys
       />
 
       {!compact && (
-        <span className="text-xs font-medium">{config.label}</span>
+        <span className="text-xs font-medium text-text-primary">{config.label}</span>
       )}
 
       {health.errorMessage && !compact && (
