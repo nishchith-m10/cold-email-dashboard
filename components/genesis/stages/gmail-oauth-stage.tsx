@@ -7,7 +7,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Check, Loader2, AlertCircle, ChevronRight } from 'lucide-react';
+import { Check, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
@@ -138,13 +138,14 @@ export function GmailOAuthStage({ workspaceId, onComplete }: StageComponentProps
 
       {/* Action Button */}
       {isConnected ? (
-        <button
-          onClick={handleContinue}
-          className="w-full flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all"
-        >
-          Continue
-          <ChevronRight className="h-5 w-5" />
-        </button>
+        <div className="flex justify-end">
+          <button
+            onClick={handleContinue}
+            className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+          >
+            Continue →
+          </button>
+        </div>
       ) : (
         <button
           onClick={handleConnect}

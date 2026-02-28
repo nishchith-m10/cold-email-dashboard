@@ -13,7 +13,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Check, ChevronRight, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
+import { Check, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -287,24 +287,16 @@ export function CalendlyUrlStage({ workspaceId, onComplete }: StageComponentProp
         </ul>
       </div>
 
-      {/* Continue Button */}
-      <button
-        onClick={handleContinue}
-        disabled={isSaving}
-        className="w-full flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all disabled:opacity-50"
-      >
-        {isSaving ? (
-          <>
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            Continue
-            <ChevronRight className="h-5 w-5" />
-          </>
-        )}
-      </button>
+      {/* Continue */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleContinue}
+          disabled={isSaving}
+          className="text-sm text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+        >
+          {isSaving ? 'Saving…' : 'Continue →'}
+        </button>
+      </div>
     </div>
   );
 }

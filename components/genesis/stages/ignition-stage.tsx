@@ -169,7 +169,7 @@ export function IgnitionStage({ workspaceId, onComplete }: StageComponentProps) 
           {/* Launch Button */}
           <button
             onClick={handleStartIgnition}
-            className="w-full flex items-center justify-center gap-2 h-14 bg-accent-primary text-white rounded-lg font-bold text-lg shadow-xl shadow-accent-primary/30 hover:bg-accent-primary/90 transition-all"
+            className="w-full flex items-center justify-center gap-2 h-11 bg-surface-elevated border border-border text-text-primary rounded-lg font-medium hover:border-accent-primary hover:text-accent-primary transition-all"
           >
             Start Engine
           </button>

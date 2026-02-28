@@ -8,7 +8,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Check, Loader2, AlertCircle, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { Check, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -161,94 +161,74 @@ export function ApiKeyInputStage({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Help Text */}
-      {helpText && (
-        <div className="bg-surface-elevated border border-border rounded-lg p-4">
-          <p className="text-sm text-text-secondary">
-            {helpText}
-          </p>
-          {docsUrl && (
-            <a
-              href={docsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-accent-primary hover:underline mt-2 inline-block"
-            >
-              View documentation →
-            </a>
-          )}
-        </div>
-      )}
-
-      {/* API Key Input */}
-      <div>
-        <label className="block text-sm font-medium text-text-primary mb-2">
-          API Key
-        </label>
-        
-        <div className="relative">
-          <input
-            type={showKey ? 'text' : 'password'}
-            value={apiKey}
-            onChange={(e) => {
-              setApiKey(e.target.value);
-              setIsValid(false);
-              setValidationError(null);
-            }}
-            placeholder={placeholder}
-            className={cn(
-              'w-full px-4 pr-20 py-3 rounded-lg text-sm',
-              'bg-surface-elevated border border-border transition-all',
-              'text-text-primary placeholder:text-text-secondary/50',
-              'focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary',
-              isValid && 'border-accent-success',
-              validationError && 'border-accent-danger'
-            )}
-            disabled={isValid}
-          />
-          
-          <button
-            onClick={() => setShowKey(!showKey)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded hover:bg-surface transition-colors"
-            title={showKey ? 'Hide' : 'Show'}
-          >
-            {showKey ? (
-              <EyeOff className="h-4 w-4 text-text-secondary" />
-            ) : (
-              <Eye className="h-4 w-4 text-text-secondary" />
-            )}
-          </button>
-          
-          {isValid && (
-            <div className="absolute right-12 top-1/2 -translate-y-1/2">
-              <Check className="h-5 w-5 text-accent-success" />
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Extra Fields */}
-      {extraFields?.map((field) => (
-        <div key={field.key}>
-          <label className="block text-sm font-medium text-text-primary mb-2">
-            {field.label}
-            {field.required && <span className="text-accent-danger ml-1">*</span>}
+    <div className="space-y-5">
+      {/* Fields container */}
+      <div className="border border-border rounded-lg divide-y divide-border">
+        {/* API Key Input */}
+        <div className="p-4">
+          <label className="block text-sm font-medium text-text-primary mb-1">
+            API Key
           </label>
-          
-          <input
-            type="text"
-            value={extraValues[field.key] || ''}
-            onChange={(e) => {
-              const updated = { ...extraValues, [field.key]: e.target.value };
-              setExtraValues(updated);
-              persistDraft({ extraValues: updated });
-            }}
-            placeholder={field.placeholder}
-            className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
-          />
+          <div className="relative">
+            <input
+              type={showKey ? 'text' : 'password'}
+              value={apiKey}
+              onChange={(e) => {
+                setApiKey(e.target.value);
+                setIsValid(false);
+                setValidationError(null);
+              }}
+              placeholder={placeholder}
+              className={cn(
+                'w-full px-3 pr-16 py-2 rounded-md text-sm',
+                'bg-surface-elevated border border-border transition-all',
+                'text-text-primary placeholder:text-text-secondary/50',
+                'focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary',
+                isValid && 'border-accent-success',
+                validationError && 'border-accent-danger'
+              )}
+              disabled={isValid}
+            />
+            <button
+              onClick={() => setShowKey(!showKey)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-surface transition-colors"
+              title={showKey ? 'Hide' : 'Show'}
+            >
+              {showKey ? (
+                <EyeOff className="h-3.5 w-3.5 text-text-secondary" />
+              ) : (
+                <Eye className="h-3.5 w-3.5 text-text-secondary" />
+              )}
+            </button>
+            {isValid && (
+              <div className="absolute right-10 top-1/2 -translate-y-1/2">
+                <Check className="h-4 w-4 text-accent-success" />
+              </div>
+            )}
+          </div>
         </div>
-      ))}
+
+        {/* Extra Fields */}
+        {extraFields?.map((field) => (
+          <div key={field.key} className="p-4">
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              {field.label}
+              {field.required && <span className="text-accent-danger ml-1">*</span>}
+            </label>
+            <input
+              type="text"
+              value={extraValues[field.key] || ''}
+              onChange={(e) => {
+                const updated = { ...extraValues, [field.key]: e.target.value };
+                setExtraValues(updated);
+                persistDraft({ extraValues: updated });
+              }}
+              placeholder={field.placeholder}
+              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+            />
+          </div>
+        ))}
+      </div>
 
       {/* Validation Error */}
       {validationError && (
@@ -258,46 +238,60 @@ export function ApiKeyInputStage({
         </div>
       )}
 
-      {/* Validate Button */}
-      {!isValid && (
-        <button
-          onClick={handleValidate}
-          disabled={!apiKey.trim() || isValidating}
-          className="w-full flex items-center justify-center gap-2 h-11 bg-surface-elevated border border-border text-text-primary rounded-lg font-medium hover:bg-accent-primary/5 hover:border-accent-primary/50 transition-all disabled:opacity-50"
-        >
-          {isValidating ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Validating...
-            </>
-          ) : (
-            <>
-              <Check className="h-5 w-5" />
-              Validate API Key
-            </>
-          )}
-        </button>
+      {/* Validate + Docs on same row */}
+      <div className="flex items-center justify-between">
+        {!isValid ? (
+          <button
+            onClick={handleValidate}
+            disabled={!apiKey.trim() || isValidating}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-surface-elevated border border-border text-text-primary hover:bg-surface-hover transition-all disabled:opacity-50"
+          >
+            {isValidating ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Validating…
+              </>
+            ) : (
+              'Validate'
+            )}
+          </button>
+        ) : (
+          <span className="flex items-center gap-1.5 text-xs text-accent-success">
+            <Check className="h-3.5 w-3.5" />
+            Valid
+          </span>
+        )}
+
+        {docsUrl && (
+          <a
+            href={docsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-text-secondary hover:text-accent-primary transition-colors"
+          >
+            View documentation →
+          </a>
+        )}
+      </div>
+
+      {/* Help text below */}
+      {helpText && (
+        <p className="text-xs text-text-tertiary">
+          {helpText}
+        </p>
       )}
 
-      {/* Continue Button */}
+      {/* Continue */}
       {isValid && (
-        <button
-          onClick={handleContinue}
-          disabled={isSaving}
-          className="w-full flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all disabled:opacity-50"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              Continue
-              <ChevronRight className="h-5 w-5" />
-            </>
-          )}
-        </button>
+        <div className="flex justify-end">
+          <button
+            onClick={handleContinue}
+            disabled={isSaving}
+            className="text-sm text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+          >
+            {isSaving ? 'Saving…' : 'Continue →'}
+          </button>
+        </div>
       )}
     </div>
   );

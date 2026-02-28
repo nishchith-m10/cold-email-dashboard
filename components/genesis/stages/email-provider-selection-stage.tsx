@@ -13,7 +13,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Mail, Server, Check, ChevronRight, AlertCircle } from 'lucide-react';
+import { Mail, Server, Check, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -255,29 +255,16 @@ export function EmailProviderSelectionStage({ workspaceId, onComplete }: StageCo
         </div>
       )}
 
-      {/* Continue Button */}
-      <button
-        onClick={handleContinue}
-        disabled={!selectedProvider || isSaving}
-        className={cn(
-          'w-full flex items-center justify-center gap-2 h-12 rounded-lg font-semibold transition-all',
-          selectedProvider
-            ? 'bg-accent-primary text-white shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90'
-            : 'bg-surface-elevated text-text-secondary cursor-not-allowed'
-        )}
-      >
-        {isSaving ? (
-          <>
-            <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            Continue to {selectedProvider === 'gmail' ? 'Gmail OAuth' : selectedProvider === 'smtp' ? 'SMTP Configuration' : 'Next Step'}
-            <ChevronRight className="h-5 w-5" />
-          </>
-        )}
-      </button>
+      {/* Continue */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleContinue}
+          disabled={!selectedProvider || isSaving}
+          className="text-sm text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+        >
+          {isSaving ? 'Saving…' : 'Continue →'}
+        </button>
+      </div>
     </div>
   );
 }

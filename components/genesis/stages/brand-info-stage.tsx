@@ -7,7 +7,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, ChevronRight } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -158,107 +158,84 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
   };
 
   return (
-    <div className="space-y-5">
-      {/* Website + Auto-Scrape */}
-      <div>
-        <label className="block text-sm font-semibold text-text-primary mb-1.5">
-          Company Website
-        </label>
-        <p className="text-xs text-text-secondary mb-2">
-          Enter your website and we&apos;ll auto-fill your company details.
-        </p>
-        
-        <div className="flex gap-2">
+    <div className="space-y-4">
+      {/* All fields in one container */}
+      <div className="border border-border rounded-lg divide-y divide-border">
+        {/* Company Website */}
+        <div className="p-4">
+          <label className="block text-sm font-medium text-text-primary mb-1.5">
+            Company Website
+          </label>
           <input
             type="url"
             value={website}
             onChange={(e) => { setWebsite(e.target.value); persistDraft({ website: e.target.value }); }}
             placeholder="https://acmecorp.com"
-            className="flex-1 px-4 py-2.5 rounded-lg text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+            className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
           />
-          
-          <button
-            onClick={handleAutoScrape}
-            disabled={!website.trim() || isAutoScraping}
-            className="px-4 py-2.5 bg-accent-primary/10 border border-accent-primary/20 text-accent-primary rounded-lg text-sm font-medium hover:bg-accent-primary/20 transition-colors disabled:opacity-50 whitespace-nowrap"
-          >
-            {isAutoScraping ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              'Auto-fill'
-            )}
-          </button>
         </div>
-        
-        {/* Success message */}
-        {scrapeSuccess && (
-          <div className="mt-2.5 p-3 bg-accent-success/10 border border-accent-success/20 rounded-lg text-accent-success text-sm">
-            Successfully extracted brand information! Review and edit below.
+
+        {/* Company Name + Industry */}
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1.5">
+              Company Name <span className="text-accent-danger">*</span>
+            </label>
+            <input
+              type="text"
+              value={companyName}
+              onChange={(e) => { setCompanyName(e.target.value); persistDraft({ companyName: e.target.value }); }}
+              placeholder="Acme Corporation"
+              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+            />
           </div>
-        )}
-      </div>
-
-      {/* Company Name + Industry — side by side on larger screens */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-semibold text-text-primary mb-1.5">
-            Company Name <span className="text-accent-danger">*</span>
-          </label>
-          <input
-            type="text"
-            value={companyName}
-            onChange={(e) => { setCompanyName(e.target.value); persistDraft({ companyName: e.target.value }); }}
-            placeholder="Acme Corporation"
-            className="w-full px-4 py-2.5 rounded-lg text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
-          />
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1.5">
+              Industry
+            </label>
+            <input
+              type="text"
+              value={industry}
+              onChange={(e) => { setIndustry(e.target.value); persistDraft({ industry: e.target.value }); }}
+              placeholder="SaaS, FinTech, Healthcare…"
+              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+            />
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-text-primary mb-1.5">
-            Industry
+        {/* Logo URL */}
+        <div className="p-4">
+          <label className="block text-sm font-medium text-text-primary mb-1.5">
+            Logo URL <span className="text-text-tertiary text-xs font-normal">(optional)</span>
           </label>
           <input
-            type="text"
-            value={industry}
-            onChange={(e) => { setIndustry(e.target.value); persistDraft({ industry: e.target.value }); }}
-            placeholder="SaaS, FinTech, Healthcare…"
-            className="w-full px-4 py-2.5 rounded-lg text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+            type="url"
+            value={logoUrl}
+            onChange={(e) => { setLogoUrl(e.target.value); persistDraft({ logoUrl: e.target.value }); }}
+            placeholder="https://yourcompany.com/logo.png"
+            className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
           />
+          <p className="mt-1 text-xs text-text-secondary">
+            Used in email signatures (if applicable)
+          </p>
         </div>
-      </div>
 
-      {/* Logo URL */}
-      <div>
-        <label className="block text-sm font-semibold text-text-primary mb-1.5">
-          Logo URL <span className="text-text-tertiary text-xs font-normal">(optional)</span>
-        </label>
-        <input
-          type="url"
-          value={logoUrl}
-          onChange={(e) => { setLogoUrl(e.target.value); persistDraft({ logoUrl: e.target.value }); }}
-          placeholder="https://yourcompany.com/logo.png"
-          className="w-full px-4 py-2.5 rounded-lg text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
-        />
-        <p className="mt-1.5 text-xs text-text-secondary">
-          Used in email signatures (if applicable)
-        </p>
-      </div>
-
-      {/* Description */}
-      <div>
-        <label className="block text-sm font-semibold text-text-primary mb-1.5">
-          Company Description
-        </label>
-        <textarea
-          value={description}
-          onChange={(e) => { setDescription(e.target.value); persistDraft({ description: e.target.value }); }}
-          placeholder="Describe what your company does, who you serve, and what makes you different…"
-          rows={4}
-          className="w-full px-4 py-2.5 rounded-lg text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all resize-none"
-        />
-        <p className="mt-1.5 text-xs text-text-secondary">
-          Used to personalize your outreach emails. The more detail, the better.
-        </p>
+        {/* Description */}
+        <div className="p-4">
+          <label className="block text-sm font-medium text-text-primary mb-1.5">
+            Company Description
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => { setDescription(e.target.value); persistDraft({ description: e.target.value }); }}
+            placeholder="Describe what your company does, who you serve, and what makes you different…"
+            rows={4}
+            className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all resize-none"
+          />
+          <p className="mt-1 text-xs text-text-secondary">
+            Used to personalize your outreach emails. The more detail, the better.
+          </p>
+        </div>
       </div>
 
       {/* Error */}
@@ -269,23 +246,15 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
       )}
 
       {/* Continue */}
-      <button
-        onClick={handleContinue}
-        disabled={isSaving || !companyName.trim()}
-        className="w-full flex items-center justify-center gap-2 h-11 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all disabled:opacity-50"
-      >
-        {isSaving ? (
-          <>
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            Continue
-            <ChevronRight className="h-5 w-5" />
-          </>
-        )}
-      </button>
+      <div className="flex justify-end">
+        <button
+          onClick={handleContinue}
+          disabled={isSaving || !companyName.trim()}
+          className="text-sm text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+        >
+          {isSaving ? 'Saving…' : 'Continue →'}
+        </button>
+      </div>
     </div>
   );
 }

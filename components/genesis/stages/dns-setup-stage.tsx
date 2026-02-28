@@ -9,7 +9,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, Check, Loader2, ChevronRight, AlertTriangle, ExternalLink, Copy, Sparkles, RefreshCw } from 'lucide-react';
+import { Shield, Check, Loader2, AlertTriangle, ExternalLink, Copy, Sparkles, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -412,13 +412,14 @@ export function DNSSetupStage({ workspaceId, onComplete }: StageComponentProps) 
         </div>
 
         {verificationResult?.allValid && (
-          <button
-            onClick={onComplete}
-            className="w-full flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all"
-          >
-            Continue
-            <ChevronRight className="h-5 w-5" />
-          </button>
+          <div className="flex justify-end">
+            <button
+              onClick={onComplete}
+              className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+            >
+              Continue →
+            </button>
+          </div>
         )}
       </div>
     );
