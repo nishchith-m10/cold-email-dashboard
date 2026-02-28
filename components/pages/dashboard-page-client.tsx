@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { Plus, Settings2 } from 'lucide-react';
+import { Settings2, LayoutDashboard } from 'lucide-react';
 import { toISODate, daysAgo } from '@/lib/utils';
 import { CHART_COLORS } from '@/lib/constants';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
@@ -29,9 +29,7 @@ import { DailySendsChart } from '@/components/dashboard/daily-sends-chart';
 import { CampaignManagementTable } from '@/components/dashboard/campaign-management-table';
 import { CampaignManagementCardStack } from '@/components/dashboard/campaign-management-card-stack';
 import { MobileCollapsibleWidget } from '@/components/dashboard/mobile-collapsible-widget';
-import { NewCampaignModal } from '@/components/campaigns/new-campaign-modal';
 import { CompactControls } from '@/components/dashboard/compact-controls';
-import { PermissionGate } from '@/components/ui/permission-gate';
 import { BarChart3, TrendingUp } from 'lucide-react';
 
 export function DashboardPageClient() {
@@ -48,7 +46,6 @@ export function DashboardPageClient() {
   
   // Local UI state (doesn't need URL persistence)
   const [selectedDate, setSelectedDate] = useState<string | undefined>();
-  const [showNewCampaignModal, setShowNewCampaignModal] = useState(false);
   const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
 
   // Dashboard layout customization
@@ -355,11 +352,14 @@ export function DashboardPageClient() {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary">Dashboard</h1>
-          <p className="text-text-secondary text-sm mt-1 hidden sm:block">
-            Track your cold email campaign performance
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center">
+            <LayoutDashboard className="h-4 w-4 text-accent-primary" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold text-text-primary">Overview</h1>
+            <p className="text-xs text-text-secondary">Campaign performance at a glance</p>
+          </div>
         </div>
         
         {/* Compact Icon Controls - Desktop */}
@@ -372,7 +372,9 @@ export function DashboardPageClient() {
             selectedGroupId={selectedGroupId}
             onGroupChange={handleGroupChange}
             campaignGroupsLoading={campaignGroupsLoading}
-            onNewCampaign={() => setShowNewCampaignModal(true)}
+            // TODO(P2-session-2): Campaign creation moved to top-navbar (P2.1.3). CompactControls
+            // still requires onNewCampaign prop — make it optional once P2.1 merges.
+            onNewCampaign={() => {}}
             timezone={timezone}
             onTimezoneChange={setTimezone}
             onSettingsOpen={() => setSettingsPanelOpen(true)}
@@ -416,14 +418,6 @@ export function DashboardPageClient() {
           </div>
         </SortableContext>
       </DndContext>
-
-      {/* New Campaign Modal — write-gated: viewers cannot trigger creation */}
-      <PermissionGate requires="write">
-        <NewCampaignModal
-          isOpen={showNewCampaignModal}
-          onClose={() => setShowNewCampaignModal(false)}
-        />
-      </PermissionGate>
 
       {/* Dashboard Settings Panel */}
       <DashboardSettingsPanel
