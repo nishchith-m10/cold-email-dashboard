@@ -141,6 +141,7 @@ export function DonutChart({
               </div>
             </div>
           ) : (
+            <>
             <div className="relative h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -181,6 +182,7 @@ export function DonutChart({
             </div>
             {/* Legend rendered outside chart so pie cy=50% stays true center */}
             <CustomLegend payload={chartData.map(d => ({ value: d.name, color: d.fill }))} />
+            </>
           )}
         </CardContent>
       </Card>
