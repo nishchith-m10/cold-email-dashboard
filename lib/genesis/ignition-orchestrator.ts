@@ -21,6 +21,9 @@
 import fs from 'fs';
 import path from 'path';
 
+import { loadOperatorCredentials, type OperatorCredentials } from './operator-credential-store';
+import { getSenderEmail, type WorkspaceManifest } from './workspace-manifest';
+
 import {
   IgnitionConfig,
   IgnitionState,
@@ -192,6 +195,8 @@ export class IgnitionOrchestrator {
   private handshakeDelayMs: number;
   private templateDir: string;
   private cancellationFlags: Map<string, boolean> = new Map();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private supabaseAdmin: any;
 
   constructor(
     stateDB: IgnitionStateDB,
@@ -200,7 +205,8 @@ export class IgnitionOrchestrator {
     dropletFactory: DropletFactory,
     sidecarClient: SidecarClient,
     workflowDeployer: WorkflowDeployer,
-    options?: { handshakeDelayMs?: number; templateDir?: string }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    options?: { handshakeDelayMs?: number; templateDir?: string; supabaseAdmin?: any }
   ) {
     this.stateDB = stateDB;
     this.credentialVault = credentialVault;
@@ -211,6 +217,7 @@ export class IgnitionOrchestrator {
     this.handshakeDelayMs = options?.handshakeDelayMs ?? 5000;
     // Default to <project-root>/base-cold-email (bundled with the app)
     this.templateDir = options?.templateDir ?? path.join(process.cwd(), 'base-cold-email');
+    this.supabaseAdmin = options?.supabaseAdmin ?? null;
   }
 
   /**
@@ -652,57 +659,87 @@ export class IgnitionOrchestrator {
               ? `http://${state.droplet_ip}:5678`
               : `https://${state.droplet_ip}.sslip.io`;
 
+            // Load operator credentials from vault (never from env for these keys)
+            let operatorCreds: OperatorCredentials = {};
+            if (this.supabaseAdmin) {
+              try {
+                operatorCreds = await loadOperatorCredentials(this.supabaseAdmin);
+              } catch (credErr) {
+                // Non-fatal at this stage — missing keys will produce empty strings
+                // and the orchestrator's guard below will catch any required missing values.
+                console.warn(
+                  '[Ignition] Could not load operator credentials from vault:',
+                  credErr instanceof Error ? credErr.message : credErr,
+                  '— run: node scripts/seed-operator-credentials.mjs'
+                );
+              }
+            } else {
+              console.warn(
+                '[Ignition] No supabaseAdmin provided — operator credentials will be empty. ' +
+                'Pass supabaseAdmin in the IgnitionOrchestrator options.'
+              );
+            }
+
+            // ── Manifest-derived values (no || '' fallbacks when manifest present) ──
+            const manifest: WorkspaceManifest | undefined = config.manifest;
+            const senderEmail = manifest
+              ? getSenderEmail(manifest)
+              : (config.variables?.YOUR_SENDER_EMAIL ?? '');
+            const companyName = manifest?.company_name ?? config.workspace_name;
+            const calendlyUrl1 = manifest?.calendly_url ?? (config.variables?.YOUR_CALENDLY_LINK_1 ?? '');
+            const webhookToken = manifest?.webhook_token
+              || config.webhook_token
+              || process.env.DASH_WEBHOOK_TOKEN
+              || '';
+
             const variableMap: Record<string, string> = {
               // Workspace identity
               YOUR_WORKSPACE_ID:   config.workspace_id,
-              YOUR_WORKSPACE_SLUG: config.workspace_slug,
-              YOUR_WORKSPACE_NAME: config.workspace_name,
-              YOUR_COMPANY_NAME:   config.workspace_name, // overridable via config.variables
-              YOUR_NAME:           config.workspace_name, // used in n8n credential display names
+              YOUR_WORKSPACE_SLUG: manifest?.workspace_slug ?? config.workspace_slug,
+              YOUR_WORKSPACE_NAME: manifest?.workspace_name ?? config.workspace_name,
+              YOUR_COMPANY_NAME:   companyName,
+              YOUR_NAME:           companyName, // used in n8n credential display names
 
               // Campaign group — used to tag events and attribute LLM costs per campaign
               YOUR_CAMPAIGN_GROUP_ID:   config.campaign_group_id ?? config.workspace_id,
-              YOUR_CAMPAIGN_NAME:       config.campaign_group_name ?? config.workspace_name,
+              YOUR_CAMPAIGN_NAME:       config.campaign_group_name ?? companyName,
 
               // Database routing — resolves to this tenant's Supabase partition
-              YOUR_LEADS_TABLE: `genesis.leads_p_${config.workspace_slug}`,
+              YOUR_LEADS_TABLE: `genesis.leads_p_${manifest?.workspace_slug ?? config.workspace_slug}`,
 
               // Per-droplet / instance URLs
               YOUR_N8N_INSTANCE_URL:         instanceBase,
               YOUR_UNSUBSCRIBE_REDIRECT_URL: `${instanceBase}/webhook/opt-out`,
 
-              // Dashboard callback URLs
+              // Dashboard callback URLs — infrastructure vars, OK in env
               YOUR_DASHBOARD_URL: process.env.NEXT_PUBLIC_APP_URL
                 || process.env.BASE_URL
                 || '',
 
-              // Per-workspace webhook token (D4-001) — falls back to global env var
-              YOUR_WEBHOOK_TOKEN:           config.webhook_token
-                || process.env.DASH_WEBHOOK_TOKEN || '',
-              YOUR_RELEVANCE_AI_AUTH_TOKEN: process.env.RELEVANCE_AI_API_KEY
-                || process.env.RELEVANCE_API_KEY
-                || '',
-              YOUR_RELEVANCE_AI_BASE_URL:   process.env.RELEVANCE_AI_BASE_URL
+              // Per-workspace webhook token (D4-001) — manifest > config > env
+              YOUR_WEBHOOK_TOKEN: webhookToken,
+
+              // Operator API keys — read from credential vault, NOT from process.env
+              YOUR_RELEVANCE_AI_AUTH_TOKEN: operatorCreds.relevance_ai_auth_token || '',
+              YOUR_RELEVANCE_AI_BASE_URL:   operatorCreds.relevance_ai_base_url
                 || 'https://api-d7b62b.stack.tryrelevance.com',
-              YOUR_RELEVANCE_AI_PROJECT_ID: process.env.RELEVANCE_AI_PROJECT_ID
-                || process.env.RELEVANCE_API_REGION
-                || '',
-              YOUR_RELEVANCE_AI_STUDIO_ID:  process.env.RELEVANCE_AI_STUDIO_ID || '',
+              YOUR_RELEVANCE_AI_PROJECT_ID: operatorCreds.relevance_ai_project_id || '',
+              YOUR_RELEVANCE_AI_STUDIO_ID:  operatorCreds.relevance_ai_studio_id || '',
 
-              // Google Custom Search Engine
-              YOUR_GOOGLE_CSE_API_KEY: process.env.GOOGLE_CSE_API_KEY || '',
-              YOUR_GOOGLE_CSE_CX:      process.env.GOOGLE_CSE_CX || '',
+              // Google Custom Search Engine — from vault
+              YOUR_GOOGLE_CSE_API_KEY: operatorCreds.google_cse_api_key || '',
+              YOUR_GOOGLE_CSE_CX:      operatorCreds.google_cse_cx || '',
 
-              // Apify
-              YOUR_APIFY_API_TOKEN: process.env.APIFY_API_KEY || '',
+              // Apify — from vault
+              YOUR_APIFY_API_TOKEN: operatorCreds.apify_api_key || '',
 
-              // Workspace-specific defaults (caller should override these via config.variables)
-              YOUR_SENDER_EMAIL: '',
-              YOUR_TEST_EMAIL:   '',
+              // Sender email — required; sourced from manifest (no || '' escape)
+              YOUR_SENDER_EMAIL: senderEmail,
+              YOUR_TEST_EMAIL:   config.variables?.YOUR_TEST_EMAIL ?? '',
 
-              // Calendly links — workspace-specific, must be passed via config.variables
-              YOUR_CALENDLY_LINK_1: '',
-              YOUR_CALENDLY_LINK_2: '',
+              // Calendly — sourced from manifest (no || '' escape)
+              YOUR_CALENDLY_LINK_1: calendlyUrl1,
+              YOUR_CALENDLY_LINK_2: config.variables?.YOUR_CALENDLY_LINK_2 ?? '',
 
               // Caller overrides — MUST come last (highest priority)
               ...config.variables,
@@ -721,10 +758,15 @@ export class IgnitionOrchestrator {
             }
 
             // Guard: sender email is required for all email workflows
+            // When a manifest is provided this is guaranteed non-empty by validateManifest().
+            // Without a manifest, callers must supply it via config.variables.
             if (!variableMap.YOUR_SENDER_EMAIL) {
               throw new IgnitionError(
-                'YOUR_SENDER_EMAIL must be provided in config.variables. ' +
-                'Pass the workspace Gmail/SMTP address before calling ignite().',
+                'YOUR_SENDER_EMAIL is missing. ' +
+                (config.manifest
+                  ? 'The manifest passed validation but sender_email resolved empty — this is a bug.'
+                  : 'Build a WorkspaceManifest via buildManifestFromOnboarding() or pass YOUR_SENDER_EMAIL in config.variables.'
+                ),
                 'workflows_deploying',
                 config.workspace_id
               );
