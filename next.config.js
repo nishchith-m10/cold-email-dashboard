@@ -10,12 +10,16 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   
-  // Allow external images (Clerk)
+  // Allow external images (Clerk + Framer CDN)
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'img.clerk.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'framerusercontent.com',
       },
     ],
   },
