@@ -146,7 +146,7 @@ function EfficiencyMetricsComponent({
                       <button
                         type="button"
                         onClick={() => setEfficiencyMode(prev => prev === 'cpl' ? 'cpm' : 'cpl')}
-                        className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border border-border hover:border-accent-primary/60 hover:text-accent-primary transition-colors"
+                        className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border border-border hover:border-accent-primary hover:bg-accent-primary/10 hover:text-accent-primary transition-colors"
                       >
                         {efficiencyMode === 'cpl' ? <ToggleLeft className="h-3.5 w-3.5" /> : <ToggleRight className="h-3.5 w-3.5" />}
                         <span className="uppercase">{efficiencyMode}</span>
