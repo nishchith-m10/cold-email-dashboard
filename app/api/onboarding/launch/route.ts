@@ -48,7 +48,7 @@ function getAssembler(): IgnitionConfigAssembler | { error: string } {
  */
 function checkRequiredEnvVars(): string[] {
   const required: Array<{ key: string; label: string }> = [
-    { key: 'DO_API_TOKEN', label: 'DigitalOcean API token — required for droplet provisioning' },
+    { key: 'INTERNAL_ENCRYPTION_KEY', label: 'Internal encryption key — required for DO token decryption and credential operations' },
     { key: 'GENESIS_JWT_PRIVATE_KEY', label: 'JWT private key — required for sidecar communication' },
     { key: 'CREDENTIAL_MASTER_KEY', label: 'Credential master key — required for credential encryption' },
     { key: 'NEXT_PUBLIC_SUPABASE_URL', label: 'Supabase URL — required for database operations' },
