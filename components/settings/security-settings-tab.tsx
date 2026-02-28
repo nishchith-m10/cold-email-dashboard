@@ -3,12 +3,12 @@
 /**
  * Security Settings Tab
  * 
- * Account security, password management, 2FA, and session management.
- * Matches the clean single-card design of General Settings.
+ * Account security, password management, 2FA, session management,
+ * and security activity log.
  */
 
-import { useState, useCallback } from 'react';
-import { useUser, useSessionList } from '@clerk/nextjs';
+import { useState, useCallback, useEffect } from 'react';
+import { useUser, useSessionList, useSession } from '@clerk/nextjs';
 import { usePermission } from '@/components/ui/permission-gate';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,13 +22,18 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  Activity,
+  Globe,
+  Clock,
 } from 'lucide-react';
 import { TwoFactorModal } from './two-factor-modal';
 import { ActiveSessionsModal } from './active-sessions-modal';
+import { formatDistanceToNow } from 'date-fns';
 
 export function SecuritySettingsTab() {
   const { user } = useUser();
   const { sessions } = useSessionList();
+  const { session: currentSession } = useSession();
   const canManage = usePermission('manage');
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [showSessionsModal, setShowSessionsModal] = useState(false);
@@ -42,6 +47,33 @@ export function SecuritySettingsTab() {
   const [showNewPw, setShowNewPw] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
   const [pwMessage, setPwMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Security activity state
+  const [auditActivity, setAuditActivity] = useState<
+    Array<{ id: string; timestamp: string; event: string; ipAddress?: string; country?: string; city?: string; success: boolean }>
+  >([]);
+  const [activityLoading, setActivityLoading] = useState(true);
+
+  // Fetch audit activity on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/security/activity?limit=10');
+        if (res.ok) {
+          const json = await res.json();
+          if (!cancelled && json.data) {
+            setAuditActivity(json.data);
+          }
+        }
+      } catch {
+        // Silently degrade — activity section will show Clerk sessions only
+      } finally {
+        if (!cancelled) setActivityLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Derived state
   const has2FAEnabled = user?.twoFactorEnabled || false;
@@ -271,6 +303,86 @@ export function SecuritySettingsTab() {
           </div>
 
         </div>
+      </div>
+
+      {/* Security Activity Log */}
+      <div className="rounded-lg border border-border bg-surface p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Activity className="h-4 w-4 text-text-secondary" />
+          <h3 className="text-sm font-semibold text-text-primary">Recent Activity</h3>
+        </div>
+
+        {activityLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-text-secondary" />
+          </div>
+        ) : (
+          <div className="space-y-0 divide-y divide-border">
+            {/* Audit log events (from genesis.audit_log) */}
+            {auditActivity.map((entry) => (
+              <div key={entry.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`h-1.5 w-1.5 rounded-full shrink-0 ${entry.success ? 'bg-accent-success' : 'bg-accent-danger'}`} />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-text-primary capitalize truncate">
+                      {entry.event}
+                    </p>
+                    {(entry.city || entry.country || entry.ipAddress) && (
+                      <p className="text-[11px] text-text-secondary flex items-center gap-1 mt-0.5">
+                        <Globe className="h-3 w-3 shrink-0" />
+                        {[entry.city, entry.country].filter(Boolean).join(', ') || entry.ipAddress}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <span className="text-[11px] text-text-secondary shrink-0 ml-3 flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {formatDistanceToNow(new Date(entry.timestamp), { addSuffix: true })}
+                </span>
+              </div>
+            ))}
+
+            {/* Clerk active sessions as activity entries */}
+            {(sessions || []).map((s: any) => {
+              const isCurrent = s.id === currentSession?.id;
+              const location = [s.latestActivity?.city, s.latestActivity?.country]
+                .filter(Boolean)
+                .join(', ');
+
+              return (
+                <div key={`session-${s.id}`} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`h-1.5 w-1.5 rounded-full shrink-0 ${isCurrent ? 'bg-accent-primary' : 'bg-accent-success'}`} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-text-primary truncate">
+                        {isCurrent ? 'Current session' : 'Active session'}
+                        {s.latestActivity?.browserName && ` — ${s.latestActivity.browserName}`}
+                      </p>
+                      {location && (
+                        <p className="text-[11px] text-text-secondary flex items-center gap-1 mt-0.5">
+                          <Globe className="h-3 w-3 shrink-0" />
+                          {location}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-text-secondary shrink-0 ml-3 flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {s.lastActiveAt
+                      ? formatDistanceToNow(new Date(s.lastActiveAt), { addSuffix: true })
+                      : 'just now'}
+                  </span>
+                </div>
+              );
+            })}
+
+            {auditActivity.length === 0 && (!sessions || sessions.length === 0) && (
+              <p className="text-xs text-text-secondary py-4 text-center">
+                No recent activity
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Permission Message */}
