@@ -14,7 +14,6 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSidebar } from '@/lib/sidebar-context';
 import { useWorkspace } from '@/lib/workspace-context';
-import { SystemHealthBar } from '@/components/ui/system-health-bar';
 import { 
   LayoutDashboard,
   BarChart3,
@@ -59,7 +58,6 @@ export function Sidebar() {
   const pathname = usePathname();
   const { mode, setMode, isHovered, setIsHovered, isExpanded, effectiveWidth } = useSidebar();
   const { workspace, isSuperAdmin } = useWorkspace();
-  const workspaceId = workspace?.id;
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const menuCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -271,11 +269,6 @@ export function Sidebar() {
 
       {/* Footer Section */}
       <div className="px-2 py-3 space-y-2 flex-shrink-0">
-        {/* System Health - Compact in sidebar */}
-        {workspaceId && (
-          <SystemHealthBar workspaceId={workspaceId} compact={!isExpanded} className={isExpanded ? 'w-full' : ''} />
-        )}
-
         {/* Sidebar Display Mode Selector */}
         <div className="relative" ref={modeMenuRef}>
           <button
