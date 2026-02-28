@@ -127,9 +127,9 @@ const STAGE_METADATA: StageMetadata[] = [
   },
   {
     stage: 'apify_selection',
-    title: 'Scraping',
+    title: 'Google Reviews',
     icon: Shield,
-    description: 'Apify configuration',
+    description: 'Google Maps reviews scraper',
     component: ApifySelectionStage,
   },
   {

@@ -1,7 +1,10 @@
 /**
  * PHASE 64: Apify Selection Stage
- * 
- * Stage 8: Choose between BYO Apify or Managed Service.
+ *
+ * Stage 8: Configure Apify for the Google Maps Reviews Scraper.
+ * Apify is used exclusively to fetch 1-3 star Google Maps reviews
+ * for target companies — this personalises email outreach, not B2B lead sourcing.
+ * Actor: compass~google-maps-reviews-scraper
  */
 
 'use client';
@@ -137,12 +140,12 @@ export function ApifySelectionStage({ workspaceId, onComplete }: StageComponentP
               Bring Your Own Apify Account
             </div>
             <div className="text-sm text-text-secondary mb-3">
-              Use your existing Apify subscription
+              Use your existing Apify account for Google Reviews scraping
             </div>
             <ul className="space-y-1.5 text-xs text-text-secondary">
               <li className="flex items-center gap-2">
                 <Shield className="h-3 w-3 text-accent-success" />
-                You manage your own Apify subscription
+                Fetches 1–3 star Google Maps reviews per prospect
               </li>
               <li className="flex items-center gap-2">
                 <DollarSign className="h-3 w-3 text-accent-success" />
@@ -185,12 +188,12 @@ export function ApifySelectionStage({ workspaceId, onComplete }: StageComponentP
               </span>
             </div>
             <div className="text-sm text-text-secondary mb-3">
-              Pay $0.02 per scrape from your Genesis Wallet
+              Pay per Google Reviews scrape from your Genesis Wallet
             </div>
             <ul className="space-y-1.5 text-xs text-text-secondary">
               <li className="flex items-center gap-2">
                 <Sparkles className="h-3 w-3 text-accent-purple" />
-                No Apify account needed
+                No Apify account needed — we run it for you
               </li>
               <li className="flex items-center gap-2">
                 <Shield className="h-3 w-3 text-accent-purple" />

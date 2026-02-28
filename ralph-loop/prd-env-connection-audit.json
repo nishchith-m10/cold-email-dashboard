@@ -63,7 +63,7 @@
       "id": "BLOCKER-004",
       "severity": "HIGH",
       "title": "27 Missing / Placeholder ENV Vars",
-      "detail": "Core services (AI providers, Redis, Entri DNS, Sidecar auth, Google OAuth, Apify, CSE) all have placeholder values and are non-functional.",
+      "detail": "Core services (AI providers, Redis, Entri DNS, Sidecar auth, Google OAuth, Apify Google Maps Reviews scraper, CSE) all have placeholder values and are non-functional.",
       "fix": "See env_gaps section below for the full prioritized list.",
       "passes": false
     }
@@ -156,24 +156,34 @@
     ],
     "priority_3_scraping_search": [
       {
-        "key": "APIFY_API_KEY",
+        "key": "APIFY_API_TOKEN (not APIFY_API_KEY)",
         "status": "PLACEHOLDER",
-        "note": "Required for LinkedIn scraping and web scraping actors. Get from https://console.apify.com/account/integrations"
+        "purpose": "NARROW: Google Maps Reviews Scraper ONLY",
+        "note": "Used exclusively for the Apify actor 'compass~google-maps-reviews-scraper' inside n8n. Both Email Preparation and Research Report call: https://api.apify.com/v2/acts/compass~google-maps-reviews-scraper/run-sync-get-dataset-items?token=YOUR_APIFY_API_TOKEN. This scrapes 1-3 star Google business reviews for the target company. This is NOT a B2B lead scraper — there is no connection between this dashboard and any external B2B scraper. The Apify token is injected into the n8n workflow template as a node-level credential, not used directly by the Next.js app. Env var name in template: YOUR_APIFY_API_TOKEN.",
+        "onboarding_label": "Apify API Token — required to fetch Google Maps reviews for lead research",
+        "get_from": "https://console.apify.com/account/integrations"
+      },
+      {
+        "key": "RELEVANCE_AI_AUTH_TOKEN",
+        "status": "MISSING_FROM_ENV_LOCAL",
+        "purpose": "Bearer token for Relevance AI LinkedIn scraping in n8n nodes",
+        "note": "Distinct from RELEVANCE_AI_API_KEY. Used as Authorization: Bearer header in 'Scrape Profiles + Posts - Relevance AI' node in both Email Preparation and Research Report. Injected into n8n workflow as YOUR_RELEVANCE_AI_AUTH_TOKEN. Must be added to .env.local and Vercel env vars alongside the existing RELEVANCE_AI_API_KEY.",
+        "get_from": "https://app.relevanceai.com/settings/api — copy the full auth token (format: <region>:<project>:<key>)"
       },
       {
         "key": "GOOGLE_CSE_API_KEY",
         "status": "PLACEHOLDER",
-        "note": "Required for Google Custom Search in research workflows. Get from https://console.cloud.google.com/apis/credentials"
+        "note": "Required for Google Custom Search in Email Preparation and Research Report workflows. Template placeholder: YOUR_GOOGLE_CSE_API_KEY. Get from https://console.cloud.google.com/apis/credentials"
       },
       {
         "key": "GOOGLE_CSE_CX",
         "status": "PLACEHOLDER",
-        "note": "Custom Search Engine ID. Create at https://programmablesearchengine.google.com/"
+        "note": "Custom Search Engine ID. Template placeholder: YOUR_GOOGLE_CSE_CX. Create at https://programmablesearchengine.google.com/"
       },
       {
         "key": "GOOGLE_CSE_ID",
         "status": "PLACEHOLDER",
-        "note": "Alternate name for GOOGLE_CSE_CX — keep in sync."
+        "note": "Alternate name for GOOGLE_CSE_CX used by phase71 health check — keep in sync with GOOGLE_CSE_CX value."
       }
     ],
     "priority_4_oauth_dns": [
@@ -261,7 +271,7 @@
     "6. FILL remaining priority_3, priority_4, priority_5 gaps iteratively as features are tested"
   ],
 
-  "reddit_note": "No Reddit-specific env vars found in the codebase. The Reddit mention was likely referring to Apify actors (which scrape Reddit among other sources). APIFY_API_KEY is in priority_3 above.",
+  "reddit_note": "No Reddit-specific env vars found in the codebase. Apify in this system is NOT for B2B lead scraping and has no connection to any external lead scraper. It is used exclusively within n8n for the 'compass~google-maps-reviews-scraper' actor to fetch 1-3 star Google Maps reviews for target companies during the Email Preparation and Research Report workflows. The token name in n8n templates is YOUR_APIFY_API_TOKEN. A separate RELEVANCE_AI_AUTH_TOKEN (Bearer token) is also required for n8n's Relevance AI LinkedIn scraping nodes — this is distinct from RELEVANCE_AI_API_KEY.",
 
   "stories": [
     {
@@ -301,7 +311,7 @@
     },
     {
       "id": "ENV-006",
-      "title": "Fill Apify + Google CSE scraping keys",
+      "title": "Fill APIFY_API_TOKEN (Google Maps Reviews), RELEVANCE_AI_AUTH_TOKEN, and Google CSE keys",
       "type": "config",
       "priority": "P2",
       "passes": false

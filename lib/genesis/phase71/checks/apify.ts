@@ -1,12 +1,17 @@
 /**
  * GENESIS PHASE 71: APIFY HEALTH CHECK
+ *
+ * Apify is used exclusively for the Google Maps Reviews Scraper
+ * (compass~google-maps-reviews-scraper actor) inside n8n workflows.
+ * It fetches 1-3 star Google Maps reviews for target companies to
+ * personalise outreach. This is NOT a B2B lead scraper.
  */
 
 import { HealthCheck, HealthCheckResult } from '../types';
 
 export const apifyHealthCheck: HealthCheck = {
   id: 'apify',
-  name: 'Apify',
+  name: 'Apify (Google Maps Reviews)',
   category: 'integration',
   criticalLevel: 'high',
   fixPath: '/settings/api-keys#apify',
@@ -21,7 +26,7 @@ export const apifyHealthCheck: HealthCheck = {
       return {
         status: 'error',
         error: 'Apify API key not configured',
-        message: 'Add APIFY_API_KEY to environment variables',
+        message: 'Add APIFY_API_KEY to environment variables (used for Google Maps Reviews scraper in n8n)',
         checkedAt: new Date().toISOString(),
       };
     }
