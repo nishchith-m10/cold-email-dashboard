@@ -25,15 +25,28 @@ import {
   Activity,
   Globe,
   Clock,
+  Key,
 } from 'lucide-react';
 import { TwoFactorModal } from './two-factor-modal';
 import { ActiveSessionsModal } from './active-sessions-modal';
 import { formatDistanceToNow } from 'date-fns';
+import { useWorkspace } from '@/lib/workspace-context';
+
+interface StoredCredential {
+  id: string;
+  type: string;
+  label: string;
+  status: string;
+  validatedAt: string | null;
+  createdAt: string;
+  maskedHint?: string;
+}
 
 export function SecuritySettingsTab() {
   const { user } = useUser();
   const { sessions } = useSessionList();
   const { session: currentSession } = useSession();
+  const { workspace } = useWorkspace();
   const canManage = usePermission('manage');
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [showSessionsModal, setShowSessionsModal] = useState(false);
@@ -47,6 +60,12 @@ export function SecuritySettingsTab() {
   const [showNewPw, setShowNewPw] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
   const [pwMessage, setPwMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Credential vault state
+  const [credentials, setCredentials] = useState<StoredCredential[]>([]);
+  const [credentialsLoading, setCredentialsLoading] = useState(true);
+  const [revealedValues, setRevealedValues] = useState<Record<string, string>>({});
+  const [revealingId, setRevealingId] = useState<string | null>(null);
 
   // Security activity state
   const [auditActivity, setAuditActivity] = useState<
@@ -74,6 +93,73 @@ export function SecuritySettingsTab() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Fetch stored credentials
+  useEffect(() => {
+    if (!workspace?.id) {
+      setCredentialsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/security/credentials?workspace_id=${workspace.id}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (!cancelled && json.data) {
+            setCredentials(json.data);
+          }
+        }
+      } catch {
+        // Silently degrade
+      } finally {
+        if (!cancelled) setCredentialsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [workspace?.id]);
+
+  // Reveal a credential value
+  const handleReveal = useCallback(async (credentialId: string) => {
+    if (revealedValues[credentialId]) {
+      // Toggle hide
+      setRevealedValues((prev) => {
+        const next = { ...prev };
+        delete next[credentialId];
+        return next;
+      });
+      return;
+    }
+
+    if (!workspace?.id) return;
+    setRevealingId(credentialId);
+
+    try {
+      const res = await fetch('/api/security/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace_id: workspace.id, credential_id: credentialId }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.value) {
+          setRevealedValues((prev) => ({ ...prev, [credentialId]: json.value }));
+          // Auto-hide after 30 seconds
+          setTimeout(() => {
+            setRevealedValues((prev) => {
+              const next = { ...prev };
+              delete next[credentialId];
+              return next;
+            });
+          }, 30_000);
+        }
+      }
+    } catch {
+      // Silently degrade
+    } finally {
+      setRevealingId(null);
+    }
+  }, [workspace?.id, revealedValues]);
 
   // Derived state
   const has2FAEnabled = user?.twoFactorEnabled || false;
@@ -381,6 +467,74 @@ export function SecuritySettingsTab() {
                 No recent activity
               </p>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* Stored Credentials */}
+      <div className="rounded-lg border border-border bg-surface p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Key className="h-4 w-4 text-text-secondary" />
+          <div>
+            <h3 className="text-sm font-semibold text-text-primary">Stored Credentials</h3>
+            <p className="text-xs text-text-secondary mt-0.5">
+              Encrypted credentials entered during onboarding
+            </p>
+          </div>
+        </div>
+
+        {credentialsLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-text-secondary" />
+          </div>
+        ) : credentials.length === 0 ? (
+          <p className="text-xs text-text-secondary py-4 text-center">
+            No stored credentials found
+          </p>
+        ) : (
+          <div className="space-y-0 divide-y divide-border">
+            {credentials.map((cred) => {
+              const isRevealed = !!revealedValues[cred.id];
+              const isRevealing = revealingId === cred.id;
+
+              return (
+                <div key={cred.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-medium text-text-primary">{cred.label}</p>
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                        cred.status === 'valid'
+                          ? 'bg-accent-success/10 text-accent-success'
+                          : cred.status === 'expired'
+                            ? 'bg-accent-warning/10 text-accent-warning'
+                            : 'bg-text-secondary/10 text-text-secondary'
+                      }`}>
+                        {cred.status === 'valid' ? 'Active' : cred.status}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-text-secondary mt-0.5 font-mono">
+                      {isRevealed
+                        ? revealedValues[cred.id]
+                        : cred.maskedHint || '••••••••••••'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleReveal(cred.id)}
+                    disabled={isRevealing}
+                    className="p-1.5 rounded hover:bg-surface-elevated transition-colors text-text-secondary hover:text-text-primary disabled:opacity-50 shrink-0 ml-3"
+                    title={isRevealed ? 'Hide value' : 'Reveal value'}
+                  >
+                    {isRevealing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : isRevealed ? (
+                      <EyeOff className="h-3.5 w-3.5" />
+                    ) : (
+                      <Eye className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
