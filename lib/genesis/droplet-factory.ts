@@ -465,9 +465,19 @@ CADDY_EOF
 
 echo "[CLOUD-INIT] Caddyfile written."
 
-# === PHASE 5: LAUNCH CONTAINERS ===
+# === PHASE 5: AUTHENTICATE GHCR & LAUNCH CONTAINERS ===
 
 cd /opt/genesis
+
+# Authenticate with GitHub Container Registry (private package)
+GHCR_TOKEN="${process.env.GHCR_READ_TOKEN || ''}"
+if [ -n "$GHCR_TOKEN" ]; then
+    echo "$GHCR_TOKEN" | docker login ghcr.io -u genesis-reader --password-stdin
+    echo "[CLOUD-INIT] GHCR authenticated."
+else
+    echo "[CLOUD-INIT] WARNING: GHCR_READ_TOKEN not set — pull may fail for private images."
+fi
+
 docker compose pull
 docker compose up -d
 

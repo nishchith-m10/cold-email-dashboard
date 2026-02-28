@@ -53,6 +53,7 @@ function checkRequiredEnvVars(): string[] {
     { key: 'CREDENTIAL_MASTER_KEY', label: 'Credential master key — required for credential encryption' },
     { key: 'NEXT_PUBLIC_SUPABASE_URL', label: 'Supabase URL — required for database operations' },
     { key: 'SUPABASE_SERVICE_ROLE_KEY', label: 'Supabase service role key — required for admin operations' },
+    { key: 'GHCR_READ_TOKEN', label: 'GitHub Container Registry read token — required for private sidecar image pull on droplets' },
   ];
 
   return required
