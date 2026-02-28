@@ -13,7 +13,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Check, ChevronRight, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Check, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -419,40 +419,28 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3">
+      <div className="flex items-center justify-between">
         <button
           onClick={handleTest}
           disabled={isTesting || isSaving}
-          className="flex-1 flex items-center justify-center gap-2 h-12 bg-surface-elevated border border-border rounded-lg font-medium text-text-primary hover:border-border-focus transition-colors disabled:opacity-50"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-surface-elevated border border-border rounded-lg text-sm font-medium text-text-primary hover:border-border-focus transition-colors disabled:opacity-50"
         >
           {isTesting ? (
             <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Testing...
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Testing…
             </>
           ) : (
-            <>
-              Test Connection
-            </>
+            'Test Connection'
           )}
         </button>
 
         <button
           onClick={handleSave}
           disabled={isSaving || isTesting}
-          className="flex-1 flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all disabled:opacity-50"
+          className="text-sm text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
         >
-          {isSaving ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              {isConfigured ? 'Update & Continue' : 'Save & Continue'}
-              <ChevronRight className="h-5 w-5" />
-            </>
-          )}
+          {isSaving ? 'Saving…' : (isConfigured ? 'Update & Continue →' : 'Save & Continue →')}
         </button>
       </div>
     </div>

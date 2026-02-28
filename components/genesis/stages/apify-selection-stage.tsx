@@ -10,7 +10,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Globe, DollarSign, Shield, ChevronRight, Loader2, Key, Eye, EyeOff, Check, Sparkles } from 'lucide-react';
+import { Globe, DollarSign, Shield, Loader2, Key, Eye, EyeOff, Check, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -302,23 +302,15 @@ export function ApifySelectionStage({ workspaceId, onComplete }: StageComponentP
       )}
 
       {/* Continue */}
-      <button
-        onClick={handleContinue}
-        disabled={isSaving || (mode === 'byo' && !isValid)}
-        className="w-full flex items-center justify-center gap-2 h-12 bg-accent-primary text-white rounded-lg font-semibold shadow-lg shadow-accent-primary/25 hover:bg-accent-primary/90 transition-all disabled:opacity-50"
-      >
-        {isSaving ? (
-          <>
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Saving...
-          </>
-        ) : (
-          <>
-            Continue
-            <ChevronRight className="h-5 w-5" />
-          </>
-        )}
-      </button>
+      <div className="flex justify-end">
+        <button
+          onClick={handleContinue}
+          disabled={isSaving || (mode === 'byo' && !isValid)}
+          className="text-sm text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+        >
+          {isSaving ? 'Saving…' : 'Continue →'}
+        </button>
+      </div>
     </div>
   );
 }

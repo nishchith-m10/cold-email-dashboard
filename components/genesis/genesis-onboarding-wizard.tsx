@@ -411,8 +411,12 @@ export function GenesisOnboardingWizard({
                   {/* Vertical connector line */}
                   {!isLast && (
                     <div
-                      className="absolute left-[13px] top-[28px] bottom-0 w-px bg-border/40"
-                      style={{ height: 'calc(100% - 16px)' }}
+                      className="absolute left-[13px] top-[28px] bottom-0 w-px"
+                      style={{
+                        height: 'calc(100% - 16px)',
+                        background: 'linear-gradient(to bottom, transparent, var(--border) 30%, var(--border) 70%, transparent)',
+                        opacity: 0.5,
+                      }}
                     />
                   )}
 
@@ -595,8 +599,12 @@ export function GenesisOnboardingWizard({
                 {/* Vertical connector */}
                 {!isLast && (
                   <div
-                    className="absolute left-[13px] top-[28px] bottom-0 w-px bg-border/40"
-                    style={{ height: 'calc(100% - 16px)' }}
+                    className="absolute left-[13px] top-[28px] bottom-0 w-px"
+                    style={{
+                      height: 'calc(100% - 16px)',
+                      background: 'linear-gradient(to bottom, transparent, var(--border) 30%, var(--border) 70%, transparent)',
+                      opacity: 0.5,
+                    }}
                   />
                 )}
 
