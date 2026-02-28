@@ -64,6 +64,7 @@ docs/archive/
 
 # === Local planning (optional) ===
 plans/
+!docs/plans/
 flowchart LR.md
 
 # coverage artifacts
