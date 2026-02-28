@@ -16,7 +16,8 @@ import { IgnitionConfigAssembler } from '@/lib/genesis/ignition-config-assembler
 import { buildManifestFromOnboarding, persistManifest, ManifestValidationError } from '@/lib/genesis/workspace-manifest';
 
 // Orchestrator + integration imports (lazy)
-import { IgnitionOrchestrator, MockDropletFactory, MockSidecarClient, MockWorkflowDeployer } from '@/lib/genesis/ignition-orchestrator';
+import { IgnitionOrchestrator, MockDropletFactory, MockSidecarClient, MockWorkflowDeployer, HttpWorkflowDeployer } from '@/lib/genesis/ignition-orchestrator';
+import { DropletFactoryAdapter, DeferredHttpSidecarClient } from '@/lib/genesis/integration-adapters';
 import { SupabaseIgnitionStateDB } from '@/lib/genesis/supabase-ignition-state-db';
 import { SupabasePartitionManager } from '@/lib/genesis/supabase-partition-manager';
 import { CredentialVault } from '@/lib/genesis/credential-vault';
@@ -46,8 +47,12 @@ function getAssembler(): IgnitionConfigAssembler | { error: string } {
  *
  * Uses real implementations when env vars are present, otherwise falls back to
  * mocks so the launch flow can be tested end-to-end without DO credentials.
+ *
+ * Real implementations are wired when:
+ *   - DO_API_TOKEN is set → real DropletFactoryAdapter (DigitalOcean API)
+ *   - GENESIS_JWT_PRIVATE_KEY is set → real DeferredHttpSidecarClient + HttpWorkflowDeployer
  */
-function buildOrchestrator() {
+function buildOrchestrator(workspaceId?: string) {
   const masterKey = process.env.ENCRYPTION_MASTER_KEY || process.env.DASH_WEBHOOK_TOKEN || 'dev-master-key-32-chars-minimum!!';
   const admin = supabaseAdmin!;
 
@@ -93,14 +98,34 @@ function buildOrchestrator() {
     },
   });
 
-  // Droplet factory — mock for now (real requires DO API token)
-  const dropletFactory = new MockDropletFactory();
+  // Droplet factory — real when DO_API_TOKEN is present
+  const hasDoToken = !!process.env.DO_API_TOKEN;
+  const dropletFactory = hasDoToken
+    ? new DropletFactoryAdapter()
+    : new MockDropletFactory();
 
-  // Sidecar client — mock for now (real requires workspace/droplet context)
-  const sidecarClient = new MockSidecarClient();
+  if (hasDoToken) {
+    console.log('[Launch] Using REAL DropletFactory (DO_API_TOKEN present)');
+  } else {
+    console.warn('[Launch] Using MockDropletFactory — set DO_API_TOKEN for real provisioning');
+  }
 
-  // Workflow deployer — mock for now (no real n8n API client yet)
-  const workflowDeployer = new MockWorkflowDeployer();
+  // Sidecar client — real when JWT private key is present
+  const hasJwtKey = !!process.env.GENESIS_JWT_PRIVATE_KEY;
+  const sidecarClient = hasJwtKey && workspaceId
+    ? new DeferredHttpSidecarClient(workspaceId)
+    : new MockSidecarClient();
+
+  if (hasJwtKey) {
+    console.log('[Launch] Using REAL HttpSidecarClient (GENESIS_JWT_PRIVATE_KEY present)');
+  } else {
+    console.warn('[Launch] Using MockSidecarClient — set GENESIS_JWT_PRIVATE_KEY for real sidecar comms');
+  }
+
+  // Workflow deployer — real when sidecar client is real (it just wraps sidecar)
+  const workflowDeployer = hasJwtKey && workspaceId
+    ? new HttpWorkflowDeployer(sidecarClient)
+    : new MockWorkflowDeployer();
 
   return new IgnitionOrchestrator(
     stateDB,
@@ -199,7 +224,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. Build orchestrator & ignite
-    const orchestrator = buildOrchestrator();
+    const orchestrator = buildOrchestrator(workspaceId);
     const result = await orchestrator.ignite(config);
 
     return NextResponse.json({
