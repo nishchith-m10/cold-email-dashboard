@@ -1,16 +1,17 @@
 /**
- * ADMIN: Droplet Provisioning Test (Day 4)
+ * ADMIN: DigitalOcean Connectivity Test (Day 4)
  *
- * POST /api/admin/droplet-test    — Provision a test droplet and run verification
- * GET  /api/admin/droplet-test    — Check status of a provisioned test droplet
- * DELETE /api/admin/droplet-test  — Tear down a test droplet
+ * POST /api/admin/droplet-test    — Test DO API connectivity (NO droplet creation)
+ * GET  /api/admin/droplet-test    — Check fleet status
+ * DELETE /api/admin/droplet-test  — Tear down a droplet (for emergencies)
  *
- * Runs the full provisioning pipeline:
- *   1. Verify DO account exists in genesis.do_accounts
- *   2. Provision droplet via DropletFactory
- *   3. Wait for cloud-init completion (poll droplet status)
- *   4. Verify sidecar health check responds
- *   5. Report back all results
+ * Runs connectivity verification ONLY — zero credit spend:
+ *   1. Verify env vars are configured
+ *   2. Verify DO account exists in genesis.do_accounts
+ *   3. Decrypt and validate token format
+ *   4. Test DO API connectivity (/v2/account)
+ *   5. Verify account limits and available regions
+ *   6. Validate DropletFactory can select an account
  *
  * Auth: Super Admin only
  */
@@ -60,8 +61,6 @@ async function requireSuperAdmin(): Promise<
 
 interface TestDropletPayload {
   region?: string;            // Default: first available from do_accounts
-  workspace_slug?: string;    // Default: "beta-test-{timestamp}"
-  skip_sidecar_check?: boolean; // Skip waiting for sidecar (cloud-init takes ~3-5 min)
 }
 
 export async function POST(req: NextRequest) {
@@ -127,12 +126,12 @@ export async function POST(req: NextRequest) {
     if (!accounts || accounts.length === 0) {
       logStep('do_accounts_check', 'fail', {
         error: 'No active DO accounts registered.',
-        hint: 'POST /api/admin/do-accounts to register one first.',
+        hint: 'Run: npx tsx scripts/seed-do-account.ts',
       });
       return NextResponse.json(
         {
           error: 'No DO accounts registered in genesis.do_accounts. ' +
-            'Register one via POST /api/admin/do-accounts first.',
+            'Run scripts/seed-do-account.ts to seed one first.',
           results,
         },
         { status: 422, headers: API_HEADERS },
@@ -157,25 +156,31 @@ export async function POST(req: NextRequest) {
       account_id: matchedAccount.account_id,
       region: matchedAccount.region,
       capacity: `${matchedAccount.current_droplets}/${matchedAccount.max_droplets}`,
+      all_accounts: accounts.map((a: any) => ({
+        account_id: a.account_id,
+        region: a.region,
+        capacity: `${a.current_droplets}/${a.max_droplets}`,
+      })),
     });
 
     // ── Step 3: Verify token decryption works ─────────────
+    let decryptedToken: string;
     try {
-      const { data: decryptedToken, error: decryptErr } = await (supabase.schema('genesis') as any)
+      const { data: token, error: decryptErr } = await (supabase.schema('genesis') as any)
         .rpc('decrypt_do_token', { p_account_id: matchedAccount.account_id });
 
-      if (decryptErr || !decryptedToken) {
+      if (decryptErr || !token) {
         throw new Error(decryptErr?.message || 'decrypt_do_token returned null');
       }
 
-      // Validate token format without logging it
-      if (!decryptedToken.startsWith('dop_v1_')) {
+      if (!token.startsWith('dop_v1_')) {
         throw new Error('Decrypted token has unexpected format (not dop_v1_...)');
       }
 
+      decryptedToken = token;
       logStep('token_decrypt', 'pass', {
         token_format: 'dop_v1_***',
-        token_length: decryptedToken.length,
+        token_length: token.length,
       });
     } catch (err: any) {
       logStep('token_decrypt', 'fail', { error: err.message });
@@ -186,10 +191,8 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Step 4: Validate DO API connectivity ──────────────
+    let doAccountInfo: any;
     try {
-      const { data: decryptedToken } = await (supabase.schema('genesis') as any)
-        .rpc('decrypt_do_token', { p_account_id: matchedAccount.account_id });
-
       const resp = await fetch('https://api.digitalocean.com/v2/account', {
         headers: { Authorization: `Bearer ${decryptedToken}` },
       });
@@ -198,11 +201,12 @@ export async function POST(req: NextRequest) {
         throw new Error(`DO API returned ${resp.status}`);
       }
 
-      const doAccount = await resp.json();
+      doAccountInfo = await resp.json();
       logStep('do_api_connectivity', 'pass', {
-        email: doAccount.account?.email,
-        droplet_limit: doAccount.account?.droplet_limit,
-        status: doAccount.account?.status,
+        email: doAccountInfo.account?.email,
+        droplet_limit: doAccountInfo.account?.droplet_limit,
+        status: doAccountInfo.account?.status,
+        uuid: doAccountInfo.account?.uuid,
       });
     } catch (err: any) {
       logStep('do_api_connectivity', 'fail', { error: err.message });
@@ -212,179 +216,112 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Step 5: Provision test droplet ────────────────────
-    const testSlug = body.workspace_slug || `beta-test-${Date.now()}`;
-    // Generate a deterministic workspace ID for testing
-    const testWorkspaceId = crypto.randomUUID();
-
-    let dropletResult: any;
+    // ── Step 5: Check available regions and sizes ─────────
+    // This is a READ-ONLY call — no credits spent
     try {
-      const { DropletFactory } = await import('@/lib/genesis/droplet-factory');
-      const factory = new DropletFactory();
+      const [regionsResp, sizesResp] = await Promise.all([
+        fetch('https://api.digitalocean.com/v2/regions', {
+          headers: { Authorization: `Bearer ${decryptedToken}` },
+        }),
+        fetch('https://api.digitalocean.com/v2/sizes?per_page=5', {
+          headers: { Authorization: `Bearer ${decryptedToken}` },
+        }),
+      ]);
 
-      dropletResult = await factory.provisionDroplet({
-        workspaceId: testWorkspaceId,
-        workspaceSlug: testSlug,
-        region: targetRegion,
-        sizeSlug: 's-1vcpu-1gb',
-      });
+      const regionsData = regionsResp.ok ? await regionsResp.json() : null;
+      const sizesData = sizesResp.ok ? await sizesResp.json() : null;
 
-      if (!dropletResult.success) {
-        throw new Error(dropletResult.error || 'Provisioning returned success=false');
-      }
+      const availableRegions = regionsData?.regions
+        ?.filter((r: any) => r.available)
+        ?.map((r: any) => ({ slug: r.slug, name: r.name })) || [];
 
-      logStep('droplet_provision', 'pass', {
-        droplet_id: dropletResult.dropletId,
-        ip_address: dropletResult.ipAddress,
-        sslip_domain: dropletResult.sslipDomain,
-        account_used: dropletResult.accountUsed,
+      const targetRegionAvailable = availableRegions.some(
+        (r: any) => r.slug === targetRegion,
+      );
+
+      const availableSizes = sizesData?.sizes
+        ?.filter((s: any) => s.available && s.regions?.includes(targetRegion))
+        ?.slice(0, 5)
+        ?.map((s: any) => ({
+          slug: s.slug,
+          vcpus: s.vcpus,
+          memory_mb: s.memory,
+          price_monthly: s.price_monthly,
+        })) || [];
+
+      logStep('region_and_sizing', targetRegionAvailable ? 'pass' : 'fail', {
+        target_region: targetRegion,
+        target_region_available: targetRegionAvailable,
+        total_available_regions: availableRegions.length,
+        matching_sizes: availableSizes,
       });
     } catch (err: any) {
-      logStep('droplet_provision', 'fail', { error: err.message });
-      return NextResponse.json(
-        { error: 'Droplet provisioning failed', results },
-        { status: 500, headers: API_HEADERS },
-      );
+      logStep('region_and_sizing', 'fail', { error: err.message });
     }
 
-    // ── Step 6: Poll droplet until active ─────────────────
-    const dropletIp = dropletResult.ipAddress;
-    const dropletId = dropletResult.dropletId;
-
+    // ── Step 6: Verify account capacity and limits ────────
     try {
-      const { data: decryptedToken } = await (supabase.schema('genesis') as any)
-        .rpc('decrypt_do_token', { p_account_id: matchedAccount.account_id });
+      const currentDroplets = matchedAccount.current_droplets || 0;
+      const maxDroplets = matchedAccount.max_droplets || 25;
+      const doLimit = doAccountInfo?.account?.droplet_limit || 25;
 
-      let attempts = 0;
-      const maxAttempts = 30; // 30 × 10s = 5 minutes max
-      let dropletActive = false;
+      // Check DO's actual limit vs our configured limit
+      const effectiveLimit = Math.min(maxDroplets, doLimit);
+      const remainingCapacity = effectiveLimit - currentDroplets;
 
-      while (attempts < maxAttempts) {
-        const resp = await fetch(`https://api.digitalocean.com/v2/droplets/${dropletId}`, {
-          headers: { Authorization: `Bearer ${decryptedToken}` },
-        });
+      logStep('capacity_check', remainingCapacity > 0 ? 'pass' : 'fail', {
+        current_droplets: currentDroplets,
+        configured_limit: maxDroplets,
+        do_account_limit: doLimit,
+        effective_limit: effectiveLimit,
+        remaining_capacity: remainingCapacity,
+        can_provision: remainingCapacity > 0,
+      });
+    } catch (err: any) {
+      logStep('capacity_check', 'fail', { error: err.message });
+    }
 
-        if (resp.ok) {
-          const { droplet } = await resp.json();
-          if (droplet.status === 'active') {
-            dropletActive = true;
-            // Re-read IP in case it was assigned late
-            const pubNet = droplet.networks?.v4?.find((n: any) => n.type === 'public');
-            if (pubNet) {
-              dropletResult.ipAddress = pubNet.ip_address;
-            }
-            break;
-          }
-        }
+    // ── Step 7: Verify existing droplets (read-only) ──────
+    try {
+      const resp = await fetch('https://api.digitalocean.com/v2/droplets?per_page=1', {
+        headers: { Authorization: `Bearer ${decryptedToken}` },
+      });
 
-        attempts++;
-        await new Promise(r => setTimeout(r, 10000));
-      }
-
-      if (!dropletActive) {
-        logStep('droplet_active_wait', 'fail', {
-          attempts,
-          hint: 'Droplet did not reach "active" status within 5 minutes',
+      if (resp.ok) {
+        const { meta } = await resp.json();
+        logStep('existing_droplets_check', 'pass', {
+          total_existing_droplets: meta?.total || 0,
+          note: 'Read-only check — no droplets created or modified',
         });
       } else {
-        logStep('droplet_active_wait', 'pass', {
-          attempts,
-          elapsed_s: attempts * 10,
-          ip_address: dropletResult.ipAddress,
+        logStep('existing_droplets_check', 'fail', {
+          error: `DO API returned ${resp.status}`,
         });
       }
     } catch (err: any) {
-      logStep('droplet_active_wait', 'fail', { error: err.message });
-    }
-
-    // ── Step 7: Wait for cloud-init + sidecar health ──────
-    if (!body.skip_sidecar_check) {
-      const sidecarUrl = `http://${dropletResult.ipAddress}:3100/health`;
-      let sidecarUp = false;
-      let sidecarAttempts = 0;
-      const maxSidecarAttempts = 60; // 60 × 10s = 10 minutes (cloud-init takes time)
-
-      while (sidecarAttempts < maxSidecarAttempts && !sidecarUp) {
-        try {
-          const resp = await fetch(sidecarUrl, {
-            signal: AbortSignal.timeout(5000),
-          });
-          if (resp.ok) {
-            sidecarUp = true;
-            const health = await resp.json().catch(() => ({}));
-            logStep('sidecar_health', 'pass', {
-              url: sidecarUrl,
-              attempts: sidecarAttempts,
-              elapsed_s: sidecarAttempts * 10,
-              response: health,
-            });
-          }
-        } catch {
-          // Expected: sidecar not ready yet
-        }
-        if (!sidecarUp) {
-          sidecarAttempts++;
-          await new Promise(r => setTimeout(r, 10000));
-        }
-      }
-
-      if (!sidecarUp) {
-        logStep('sidecar_health', 'fail', {
-          url: sidecarUrl,
-          attempts: sidecarAttempts,
-          hint: 'Sidecar did not respond within 10 minutes. Check cloud-init via SSH.',
-        });
-      }
-
-      // ── Step 8: Check n8n via HTTPS (Caddy) ──────────────
-      if (sidecarUp) {
-        const n8nDomain = `${dropletResult.ipAddress}.sslip.io`;
-        try {
-          const resp = await fetch(`https://${n8nDomain}/healthz`, {
-            signal: AbortSignal.timeout(10000),
-          });
-          logStep('n8n_https', resp.ok ? 'pass' : 'fail', {
-            url: `https://${n8nDomain}/healthz`,
-            status: resp.status,
-          });
-        } catch (err: any) {
-          logStep('n8n_https', 'fail', {
-            url: `https://${n8nDomain}/healthz`,
-            error: err.message,
-            hint: 'Caddy may still be obtaining SSL cert. Try again in a minute.',
-          });
-        }
-      }
-    } else {
-      logStep('sidecar_health', 'skip', {
-        reason: 'skip_sidecar_check=true — cloud-init takes 3-5 min. ' +
-          'Use GET /api/admin/droplet-test?droplet_id=X to check later.',
-      });
+      logStep('existing_droplets_check', 'fail', { error: err.message });
     }
 
     // ── Summary ───────────────────────────────────────────
     results.timings.total_ms = Date.now() - startTime;
-    results.droplet = {
-      droplet_id: dropletId,
-      ip_address: dropletResult.ipAddress,
-      sslip_domain: dropletResult.sslipDomain || `${dropletResult.ipAddress}.sslip.io`,
-      workspace_id: testWorkspaceId,
-      workspace_slug: testSlug,
-      region: targetRegion,
-      account_id: matchedAccount.account_id,
-    };
 
     const allPassed = results.steps.every((s: any) => s.status !== 'fail');
+    const passCount = results.steps.filter((s: any) => s.status === 'pass').length;
+    const totalSteps = results.steps.length;
 
     return NextResponse.json(
       {
         success: allPassed,
         message: allPassed
-          ? 'Test droplet provisioned successfully!'
-          : 'Some verification steps failed — see results for details.',
+          ? `All ${passCount}/${totalSteps} connectivity checks passed. ` +
+            'DO API is reachable and account is healthy. ' +
+            'No droplets were created — zero credits spent.'
+          : 'Some connectivity checks failed — see results for details.',
         results,
+        note: 'This endpoint tests connectivity ONLY. ' +
+          'Droplets are created when beta users click "Start Engine" during onboarding.',
       },
-      { status: allPassed ? 201 : 207, headers: API_HEADERS },
+      { status: allPassed ? 200 : 207, headers: API_HEADERS },
     );
   } catch (err) {
     console.error('[DropletTest] Error:', err);
