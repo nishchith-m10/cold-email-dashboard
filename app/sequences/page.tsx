@@ -117,13 +117,13 @@ export default function SequencesPage() {
               )}
             </AnimatePresence>
             
-            <div className="w-10 h-10 rounded-lg bg-accent-primary/10 flex items-center justify-center">
-              <Mail className="w-5 h-5 md:w-6 md:h-6 text-accent-primary" />
+            <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center">
+              <Mail className="h-4 w-4 text-accent-primary" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-text-primary">Sequences</h1>
-              <p className="text-text-secondary text-xs md:text-sm hidden sm:block">
-                Preview your email drafts
+              <h1 className="text-lg font-semibold text-text-primary">Sequences</h1>
+              <p className="text-xs text-text-secondary hidden sm:block">
+                Email sequence performance and analytics
               </p>
             </div>
           </div>
