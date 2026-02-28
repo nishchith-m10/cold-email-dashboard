@@ -206,7 +206,7 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
       </div>
 
       {/* Steps — unified container */}
-      <div className="border border-border rounded-lg divide-y divide-border">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
         {/* Step 1: Import the tool */}
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
@@ -265,7 +265,7 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
               value={baseUrl}
               onChange={(e) => { setBaseUrl(e.target.value); persistDraft({ baseUrl: e.target.value }); }}
               placeholder="https://api-bcbe5a.stack.tryrelevance.com"
-              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
             <div className="mt-1.5 flex items-center gap-1.5">
               <span className="text-xs text-text-secondary">Region:</span>
@@ -299,7 +299,7 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
               value={projectId}
               onChange={(e) => { setProjectId(e.target.value); persistDraft({ projectId: e.target.value }); }}
               placeholder="1c7dae110947-495a-b439-7578c53dea94"
-              className="w-full px-3 py-2 rounded-md text-sm font-mono bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+              className="w-full px-3 py-2 rounded-md text-sm font-mono bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
             <p className="mt-1 text-xs text-text-tertiary">
               Found in your browser URL: relevanceai.com/project/<strong>PROJECT_ID</strong>/…
@@ -316,7 +316,7 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
               value={studioId}
               onChange={(e) => { setStudioId(e.target.value); persistDraft({ studioId: e.target.value }); }}
               placeholder="f9a70da4-2d80-4e17-ad1b-a37716c423c8"
-              className="w-full px-3 py-2 rounded-md text-sm font-mono bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+              className="w-full px-3 py-2 rounded-md text-sm font-mono bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
             <p className="mt-1 text-xs text-text-tertiary">
               Open the LinkedIn Research Tool → URL contains /tool/<strong>STUDIO_ID</strong>
@@ -333,7 +333,7 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
               value={authToken}
               onChange={(e) => setAuthToken(e.target.value)}
               placeholder="Your Relevance AI API key"
-              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
             <p className="mt-1 text-xs text-text-tertiary">
               Settings → API → API Key

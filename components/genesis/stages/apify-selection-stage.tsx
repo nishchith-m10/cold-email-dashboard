@@ -127,7 +127,7 @@ export function ApifySelectionStage({ workspaceId, onComplete }: StageComponentP
 
   return (
     <div className="space-y-5">
-      <div className="border border-border rounded-lg divide-y divide-border">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
         {/* Mode Selection */}
         <div className="p-4">
           <div className="grid gap-4">
@@ -247,7 +247,7 @@ export function ApifySelectionStage({ workspaceId, onComplete }: StageComponentP
                   className={cn(
                     'w-full pl-10 pr-20 py-2 rounded-md text-sm',
                     'bg-surface-elevated border transition-all',
-                    'text-text-primary placeholder:text-text-secondary/50',
+                    'text-text-primary placeholder:text-text-secondary',
                     'focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary',
                     isValid && 'border-accent-success'
                   )}

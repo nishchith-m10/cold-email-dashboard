@@ -163,7 +163,7 @@ export function ApiKeyInputStage({
   return (
     <div className="space-y-5">
       {/* Fields container */}
-      <div className="border border-border rounded-lg divide-y divide-border">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
         {/* API Key Input */}
         <div className="p-4">
           <label className="block text-sm font-medium text-text-primary mb-1">
@@ -182,7 +182,7 @@ export function ApiKeyInputStage({
               className={cn(
                 'w-full px-3 pr-16 py-2 rounded-md text-sm',
                 'bg-surface-elevated border border-border transition-all',
-                'text-text-primary placeholder:text-text-secondary/50',
+                'text-text-primary placeholder:text-text-secondary',
                 'focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary',
                 isValid && 'border-accent-success',
                 validationError && 'border-accent-danger'
@@ -224,7 +224,7 @@ export function ApiKeyInputStage({
                 persistDraft({ extraValues: updated });
               }}
               placeholder={field.placeholder}
-              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+              className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
           </div>
         ))}

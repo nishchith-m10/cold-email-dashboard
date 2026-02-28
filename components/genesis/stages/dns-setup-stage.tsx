@@ -155,7 +155,7 @@ export function DNSSetupStage({ workspaceId, onComplete }: StageComponentProps) 
   if (setupMode === 'choose') {
     return (
       <div className="space-y-5">
-        <div className="border border-border rounded-lg divide-y divide-border">
+        <div className="bg-surface border border-border rounded-lg divide-y divide-border">
           {/* Explanation */}
           <div className="p-4">
             <div className="flex items-start gap-3">
@@ -176,7 +176,7 @@ export function DNSSetupStage({ workspaceId, onComplete }: StageComponentProps) 
               value={domain}
               onChange={(e) => { setDomain(e.target.value); saveDraft({ domain: e.target.value }); }}
               placeholder="example.com"
-              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-md text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+              className="w-full h-10 px-3 bg-surface-elevated border border-border rounded-md text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
             <p className="mt-1.5 text-xs text-text-secondary">
               The domain you send emails from (usually your website domain)
@@ -257,7 +257,7 @@ export function DNSSetupStage({ workspaceId, onComplete }: StageComponentProps) 
   if (setupMode === 'manual') {
     return (
       <div className="space-y-5">
-        <div className="border border-border rounded-lg divide-y divide-border">
+        <div className="bg-surface border border-border rounded-lg divide-y divide-border">
           {/* Instructions */}
           <div className="p-4">
             <h4 className="text-sm font-semibold text-text-primary mb-2">

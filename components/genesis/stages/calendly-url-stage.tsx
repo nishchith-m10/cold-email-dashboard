@@ -140,7 +140,7 @@ export function CalendlyUrlStage({ workspaceId, onComplete }: StageComponentProp
 
   return (
     <div className="space-y-5">
-      <div className="border border-border rounded-lg divide-y divide-border">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
         {/* Input Section */}
         <div className="p-4">
           <label className="block text-sm font-medium text-text-primary mb-2">
@@ -158,7 +158,7 @@ export function CalendlyUrlStage({ workspaceId, onComplete }: StageComponentProp
                   saveDraft({ bookingUrl: e.target.value });
                 }}
                 placeholder="https://calendly.com/your-name/30min"
-                className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+                className="w-full px-3 py-2 rounded-md text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
               />
             </div>
             <button

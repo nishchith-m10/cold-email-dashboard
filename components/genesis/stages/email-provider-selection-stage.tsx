@@ -138,7 +138,7 @@ export function EmailProviderSelectionStage({ workspaceId, onComplete }: StageCo
 
   return (
     <div className="space-y-5">
-      <div className="border border-border rounded-lg divide-y divide-border">
+      <div className="bg-surface border border-border rounded-lg divide-y divide-border">
         {/* Provider Options */}
         <div className="p-4">
           <div className="grid gap-4">
