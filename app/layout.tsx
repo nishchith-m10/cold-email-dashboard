@@ -24,7 +24,7 @@ export default function RootLayout({
         {/* Blocking theme script — prevents flash of wrong theme on load */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=window.location.pathname;var isAuth=p.startsWith('/sign-in')||p.startsWith('/sign-up');if(isAuth){document.documentElement.className='dark';return}var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.className='light'}else{document.documentElement.className='dark'}}catch(e){document.documentElement.className='dark'}})()`,
+            __html: `(function(){try{var p=window.location.pathname;var isAuth=p.startsWith('/sign-in')||p.startsWith('/sign-up');if(isAuth){document.documentElement.className='dark';return}var isLanding=p==='/'||p==='/pricing'||p==='/demo';if(isLanding){document.documentElement.className='light';return}var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.className='light'}else{document.documentElement.className='dark'}}catch(e){document.documentElement.className='dark'}})()`,
           }}
         />
         {/* Google Fonts - Inter & JetBrains Mono */}

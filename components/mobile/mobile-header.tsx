@@ -56,7 +56,7 @@ export function MobileHeader({
         </motion.button>
 
         {/* Logo - Links to home like desktop */}
-        <Link href="/" className="flex items-center gap-2 group">
+        <Link href="/dashboard" className="flex items-center gap-2 group">
           <div className="w-7 h-7 rounded-lg overflow-hidden shadow-lg">
             <Image src="/logo.png" alt="Logo" width={28} height={28} className="w-full h-full object-cover" />
           </div>
