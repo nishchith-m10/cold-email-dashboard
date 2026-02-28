@@ -482,13 +482,7 @@ export class IgnitionOrchestrator {
               // Sidecar not ready yet — continue polling
             }
 
-            this.emitEvent({
-              type: 'step_progress',
-              workspace_id: config.workspace_id,
-              step: 'handshake_pending',
-              message: `Waiting for Sidecar... (${Math.round((Date.now() - started) / 1000)}s)`,
-            });
-
+            // Progress tracked internally; step_started/step_completed emitted by executeStep
             await this.sleep(pollIntervalMs);
           }
 
