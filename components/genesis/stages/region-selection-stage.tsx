@@ -171,14 +171,14 @@ export function RegionSelectionStage({ workspaceId, onComplete }: StageComponent
   };
 
   return (
-    <div className="space-y-6">
-      {/* Region Selection */}
-      <div>
-        <label className="block text-sm font-semibold text-text-primary mb-3">
-          Where should your automation engine run?
-        </label>
-        
-        <div className="grid gap-3">
+    <div className="space-y-5">
+      <div className="border border-border rounded-lg divide-y divide-border">
+        {/* Region Selection */}
+        <div className="p-4">
+          <label className="block text-sm font-semibold text-text-primary mb-3">
+            Where should your automation engine run?
+          </label>
+          <div className="grid gap-3">
           {REGIONS.map((region) => (
             <button
               key={region.code}
@@ -223,16 +223,15 @@ export function RegionSelectionStage({ workspaceId, onComplete }: StageComponent
               </div>
             </button>
           ))}
+          </div>
         </div>
-      </div>
 
-      {/* Size Selection */}
-      <div>
-        <label className="block text-sm font-semibold text-text-primary mb-3">
-          How powerful should your engine be?
-        </label>
-        
-        <div className="grid gap-3">
+        {/* Size Selection */}
+        <div className="p-4">
+          <label className="block text-sm font-semibold text-text-primary mb-3">
+            How powerful should your engine be?
+          </label>
+          <div className="grid gap-3">
           {SIZES.map((size) => (
             <button
               key={size.tier}
@@ -283,11 +282,12 @@ export function RegionSelectionStage({ workspaceId, onComplete }: StageComponent
               </div>
             </button>
           ))}
-        </div>
+          </div>
 
-        <p className="mt-3 text-xs text-text-secondary text-center">
-          You can upgrade anytime without data migration
-        </p>
+          <p className="mt-3 text-xs text-text-secondary text-center">
+            You can upgrade anytime without data migration
+          </p>
+        </div>
       </div>
 
       {/* Error Message */}

@@ -240,20 +240,21 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
   };
 
   return (
-    <div className="space-y-6">
-      {/* Status Badge */}
-      {isConfigured && (
-        <div className="p-3 bg-accent-success/10 border border-accent-success/20 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Check className="h-4 w-4 text-accent-success" />
-            <span className="text-sm text-accent-success font-medium">SMTP already configured</span>
-            <span className="text-xs text-text-secondary">- Update below or continue</span>
+    <div className="space-y-5">
+      <div className="border border-border rounded-lg divide-y divide-border">
+        {/* Status Badge */}
+        {isConfigured && (
+          <div className="p-4 bg-accent-success/5">
+            <div className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-accent-success" />
+              <span className="text-sm text-accent-success font-medium">SMTP already configured</span>
+              <span className="text-xs text-text-secondary">- Update below or continue</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Form Fields */}
-      <div className="space-y-4">
+        {/* Form Fields */}
+        <div className="p-4 space-y-4">
         {/* Host & Port Row */}
         <div className="grid grid-cols-3 gap-4">
           <div className="col-span-2">
@@ -369,6 +370,32 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
             />
           </div>
         </div>
+        </div>
+
+        {/* Info Box */}
+        <div className="p-4">
+          <h4 className="text-sm font-semibold text-text-primary mb-2">
+            How it works:
+          </h4>
+          <ul className="space-y-1.5 text-xs text-text-secondary">
+            <li className="flex items-start gap-2">
+              <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
+              Credentials are encrypted and stored securely
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
+              Sidecar service handles email sending via SMTP
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
+              Reply detection uses IMAP (same credentials)
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
+              Threading handled via In-Reply-To/References headers
+            </li>
+          </ul>
+        </div>
       </div>
 
       {/* Test Result */}
@@ -392,31 +419,6 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
           {error}
         </div>
       )}
-
-      {/* Info Box */}
-      <div className="bg-surface-elevated border border-border rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-text-primary mb-2">
-          How it works:
-        </h4>
-        <ul className="space-y-1.5 text-xs text-text-secondary">
-          <li className="flex items-start gap-2">
-            <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
-            Credentials are encrypted and stored securely
-          </li>
-          <li className="flex items-start gap-2">
-            <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
-            Sidecar service handles email sending via SMTP
-          </li>
-          <li className="flex items-start gap-2">
-            <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
-            Reply detection uses IMAP (same credentials)
-          </li>
-          <li className="flex items-start gap-2">
-            <Check className="h-3.5 w-3.5 text-accent-success flex-shrink-0 mt-0.5" />
-            Threading handled via In-Reply-To/References headers
-          </li>
-        </ul>
-      </div>
 
       {/* Actions */}
       <div className="flex items-center justify-between">

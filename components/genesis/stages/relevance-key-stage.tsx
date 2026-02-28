@@ -205,17 +205,18 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
         </p>
       </div>
 
-      {/* Step 1: Import the tool */}
-      <div className="border border-border rounded-lg">
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm font-medium text-text-primary">
-            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-accent-primary/10 text-accent-primary text-xs font-bold">1</span>
-            Import LinkedIn Research Tool
+      {/* Steps — unified container */}
+      <div className="border border-border rounded-lg divide-y divide-border">
+        {/* Step 1: Import the tool */}
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-text-primary">
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-accent-primary/10 text-accent-primary text-xs font-bold">1</span>
+              Import LinkedIn Research Tool
+            </div>
+            {toolImported && <Check className="h-4 w-4 text-accent-success" />}
           </div>
-          {toolImported && <Check className="h-4 w-4 text-accent-success" />}
-        </div>
-        <div className="p-4 space-y-3">
-          <p className="text-xs text-text-secondary">
+          <p className="text-xs text-text-secondary mb-3">
             Download the tool file below, then import it into your Relevance AI dashboard.
           </p>
           <div className="flex flex-wrap items-center gap-3">
@@ -235,7 +236,7 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
               Import instructions →
             </a>
           </div>
-          <label className="flex items-center gap-2.5 pt-1 cursor-pointer">
+          <label className="flex items-center gap-2.5 pt-3 cursor-pointer">
             <input
               type="checkbox"
               checked={toolImported}
@@ -245,19 +246,17 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
             <span className="text-xs text-text-secondary">I&apos;ve imported the tool</span>
           </label>
         </div>
-      </div>
 
-      {/* Step 2: Credentials — all in one container */}
-      <div className="border border-border rounded-lg">
-        <div className="px-4 py-3 border-b border-border">
+        {/* Step 2: Credentials */}
+        <div className="p-4">
           <div className="flex items-center gap-2 text-sm font-medium text-text-primary">
             <span className="flex items-center justify-center w-5 h-5 rounded-full bg-accent-primary/10 text-accent-primary text-xs font-bold">2</span>
             Enter your credentials
           </div>
         </div>
-        <div className="divide-y divide-border">
-          {/* Base URL */}
-          <div className="p-4">
+
+        {/* Base URL */}
+        <div className="p-4">
             <label className="block text-sm font-medium text-text-primary mb-1">
               Base URL
             </label>
@@ -340,7 +339,6 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
               Settings → API → API Key
             </p>
           </div>
-        </div>
       </div>
 
       {/* Validate */}

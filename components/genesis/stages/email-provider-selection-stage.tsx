@@ -137,9 +137,11 @@ export function EmailProviderSelectionStage({ workspaceId, onComplete }: StageCo
   };
 
   return (
-    <div className="space-y-6">
-      {/* Provider Options */}
-      <div className="grid gap-4">
+    <div className="space-y-5">
+      <div className="border border-border rounded-lg divide-y divide-border">
+        {/* Provider Options */}
+        <div className="p-4">
+          <div className="grid gap-4">
         {PROVIDER_OPTIONS.map((option) => {
           const Icon = option.icon;
           const isSelected = selectedProvider === option.id;
@@ -220,16 +222,18 @@ export function EmailProviderSelectionStage({ workspaceId, onComplete }: StageCo
             </button>
           );
         })}
-      </div>
+          </div>
+        </div>
 
-      {/* Architecture Note */}
-      <div className="bg-accent-purple/5 border border-accent-purple/20 rounded-lg p-4">
-        <div className="flex items-start gap-2">
-          <AlertCircle className="h-4 w-4 text-accent-purple flex-shrink-0 mt-0.5" />
-          <div className="text-xs text-text-secondary">
-            <span className="font-semibold text-text-primary">Important:</span>{' '}
-            Your email provider is set per workspace. All campaigns in this workspace will use the same provider.
-            The Sidecar will automatically deploy only the workflows for your selected provider.
+        {/* Architecture Note */}
+        <div className="p-4">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-accent-purple flex-shrink-0 mt-0.5" />
+            <div className="text-xs text-text-secondary">
+              <span className="font-semibold text-text-primary">Important:</span>{' '}
+              Your email provider is set per workspace. All campaigns in this workspace will use the same provider.
+              The Sidecar will automatically deploy only the workflows for your selected provider.
+            </div>
           </div>
         </div>
       </div>
