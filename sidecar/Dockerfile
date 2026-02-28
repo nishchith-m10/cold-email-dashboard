@@ -9,18 +9,20 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install ALL dependencies (dev + prod) for the build
+RUN npm ci
 
 # Copy source code
 COPY *.ts ./
 COPY tsconfig.json ./
 
-# Install dev dependencies and build
-RUN npm install typescript ts-node @types/node @types/express @types/uuid
+# Build TypeScript → dist/
 RUN npm run build
+
+# Prune dev dependencies so we only carry production deps forward
+RUN npm prune --production
 
 # Stage 2: Production
 FROM node:18-alpine
@@ -35,13 +37,13 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./
 
-# Create non-root user
+# Create non-root user with docker-socket access
+# GID 999 is conventionally used for the docker group on the host;
+# we create a matching group so the mounted /var/run/docker.sock is writable.
 RUN addgroup -g 1001 -S sidecar && \
-    adduser -u 1001 -S sidecar -G sidecar
-
-# Give sidecar user access to docker socket (mounted at runtime)
-RUN addgroup -g 999 docker && \
-    adduser sidecar docker
+    adduser -u 1001 -S sidecar -G sidecar && \
+    addgroup -g 999 -S docker 2>/dev/null || true && \
+    addgroup sidecar docker 2>/dev/null || true
 
 USER sidecar
 
