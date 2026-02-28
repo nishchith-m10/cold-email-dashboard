@@ -49,6 +49,10 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
 
   const handleSignOut = () => {
     setShowUserMenu(false);
+    // Force dark mode before showing sign-out overlay
+    document.documentElement.classList.remove('light');
+    localStorage.setItem('theme', 'dark');
+    setTheme('dark');
     setIsSigningOut(true);
     setTimeout(() => {
       signOut({ redirectUrl: '/sign-in' });
@@ -235,14 +239,15 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
           <div className="relative">
             <Button
               variant="ghost"
-              className="h-8 w-8 rounded-full overflow-hidden p-0"
+              size="icon"
+              className="flex items-center justify-center"
               onClick={() => setShowUserMenu(!showUserMenu)}
             >
               {user?.imageUrl ? (
-                <img src={user.imageUrl} alt="Profile" className="w-full h-full object-cover" />
+                <img src={user.imageUrl} alt="Profile" className="h-6 w-6 rounded-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-                  <UserIcon className="h-4 w-4 text-white" />
+                <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                  <UserIcon className="h-3.5 w-3.5 text-white" />
                 </div>
               )}
             </Button>
