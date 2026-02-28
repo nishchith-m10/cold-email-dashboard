@@ -179,6 +179,9 @@ export function GenesisOnboardingWizard({
   const [isLoading, setIsLoading] = useState(true);
   // Phase 64.B: Track selected email provider for conditional stages
   const [selectedProvider, setSelectedProvider] = useState<EmailProviderChoice | null>(null);
+  // ONB-006: Track whether this is a resumed session (user had prior progress)
+  const [isResumed, setIsResumed] = useState(false);
+  const [resumeBannerDismissed, setResumeBannerDismissed] = useState(false);
 
   // Phase 64.B: Filter stages based on selected provider (memoized to prevent unnecessary recalculations)
   const visibleStages = useMemo(() => {
@@ -235,6 +238,10 @@ export function GenesisOnboardingWizard({
           const data = await res.json();
           const completed = new Set<OnboardingStage>(data.completed_stages || []);
           setCompletedStages(completed);
+          // ONB-006: If user had prior progress, mark as resumed
+          if (completed.size > 0) {
+            setIsResumed(true);
+          }
         }
       } catch (err) {
         console.error('Failed to load progress:', err);
@@ -458,6 +465,23 @@ export function GenesisOnboardingWizard({
         <div className="max-w-3xl mx-auto">
           {/* Persistent Page Heading */}
           <p className="text-xs text-text-secondary mb-4">Set up your workspace</p>
+
+          {/* ONB-006: Resume Banner */}
+          {isResumed && !resumeBannerDismissed && (
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-accent-primary/5 border border-accent-primary/20 px-4 py-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm text-text-primary">
+                  Welcome back! You left off at <span className="font-semibold">{currentStage.title}</span>.
+                </span>
+              </div>
+              <button
+                onClick={() => setResumeBannerDismissed(true)}
+                className="flex-shrink-0 text-xs text-text-secondary hover:text-text-primary transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
 
           {/* Stage Header — Clean text-only, matches Settings page */}
           <div className="mb-6">
