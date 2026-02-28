@@ -232,7 +232,7 @@ export function Sidebar() {
       </nav>
 
       {/* Footer Section */}
-      <div className="border-t border-border/50 px-2 py-3 space-y-2 flex-shrink-0">
+      <div className="px-2 py-3 space-y-2 flex-shrink-0">
         {/* System Health - Compact in sidebar */}
         {workspaceId && (
           <SystemHealthBar workspaceId={workspaceId} compact={!isExpanded} className={isExpanded ? 'w-full' : ''} />

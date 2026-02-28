@@ -57,7 +57,7 @@ export function SystemHealthBar({ workspaceId, className, compact = false }: Sys
     return (
       <div className={cn(
         'flex items-center gap-1.5',
-        compact ? 'px-2 py-1' : 'px-3 py-1.5 bg-surface-elevated rounded-md',
+        compact ? 'px-2 py-1' : 'px-3 py-1.5',
         className
       )}>
         <div className="h-2 w-2 bg-gray-400 rounded-full animate-pulse" />
@@ -73,7 +73,7 @@ export function SystemHealthBar({ workspaceId, className, compact = false }: Sys
     <div 
       className={cn(
         'flex items-center transition-all group/health',
-        compact ? 'justify-center h-10 w-full' : 'gap-2 px-3 py-1.5 bg-surface-elevated rounded-md',
+        compact ? 'justify-center h-10 w-full' : 'gap-2 px-3 py-1.5',
         className
       )}
       title={compact ? config.label : undefined}
