@@ -22,6 +22,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { loadOperatorCredentials, type OperatorCredentials } from './operator-credential-store';
+import { getSenderEmail, type WorkspaceManifest } from './workspace-manifest';
 
 import {
   IgnitionConfig,
@@ -679,20 +680,32 @@ export class IgnitionOrchestrator {
               );
             }
 
+            // ── Manifest-derived values (no || '' fallbacks when manifest present) ──
+            const manifest: WorkspaceManifest | undefined = config.manifest;
+            const senderEmail = manifest
+              ? getSenderEmail(manifest)
+              : (config.variables?.YOUR_SENDER_EMAIL ?? '');
+            const companyName = manifest?.company_name ?? config.workspace_name;
+            const calendlyUrl1 = manifest?.calendly_url ?? (config.variables?.YOUR_CALENDLY_LINK_1 ?? '');
+            const webhookToken = manifest?.webhook_token
+              || config.webhook_token
+              || process.env.DASH_WEBHOOK_TOKEN
+              || '';
+
             const variableMap: Record<string, string> = {
               // Workspace identity
               YOUR_WORKSPACE_ID:   config.workspace_id,
-              YOUR_WORKSPACE_SLUG: config.workspace_slug,
-              YOUR_WORKSPACE_NAME: config.workspace_name,
-              YOUR_COMPANY_NAME:   config.workspace_name, // overridable via config.variables
-              YOUR_NAME:           config.workspace_name, // used in n8n credential display names
+              YOUR_WORKSPACE_SLUG: manifest?.workspace_slug ?? config.workspace_slug,
+              YOUR_WORKSPACE_NAME: manifest?.workspace_name ?? config.workspace_name,
+              YOUR_COMPANY_NAME:   companyName,
+              YOUR_NAME:           companyName, // used in n8n credential display names
 
               // Campaign group — used to tag events and attribute LLM costs per campaign
               YOUR_CAMPAIGN_GROUP_ID:   config.campaign_group_id ?? config.workspace_id,
-              YOUR_CAMPAIGN_NAME:       config.campaign_group_name ?? config.workspace_name,
+              YOUR_CAMPAIGN_NAME:       config.campaign_group_name ?? companyName,
 
               // Database routing — resolves to this tenant's Supabase partition
-              YOUR_LEADS_TABLE: `genesis.leads_p_${config.workspace_slug}`,
+              YOUR_LEADS_TABLE: `genesis.leads_p_${manifest?.workspace_slug ?? config.workspace_slug}`,
 
               // Per-droplet / instance URLs
               YOUR_N8N_INSTANCE_URL:         instanceBase,
@@ -703,8 +716,8 @@ export class IgnitionOrchestrator {
                 || process.env.BASE_URL
                 || '',
 
-              // Per-workspace webhook token (D4-001) — falls back to global env var
-              YOUR_WEBHOOK_TOKEN: config.webhook_token || process.env.DASH_WEBHOOK_TOKEN || '',
+              // Per-workspace webhook token (D4-001) — manifest > config > env
+              YOUR_WEBHOOK_TOKEN: webhookToken,
 
               // Operator API keys — read from credential vault, NOT from process.env
               YOUR_RELEVANCE_AI_AUTH_TOKEN: operatorCreds.relevance_ai_auth_token || '',
@@ -720,13 +733,13 @@ export class IgnitionOrchestrator {
               // Apify — from vault
               YOUR_APIFY_API_TOKEN: operatorCreds.apify_api_key || '',
 
-              // Workspace-specific defaults (caller should override these via config.variables)
-              YOUR_SENDER_EMAIL: '',
-              YOUR_TEST_EMAIL:   '',
+              // Sender email — required; sourced from manifest (no || '' escape)
+              YOUR_SENDER_EMAIL: senderEmail,
+              YOUR_TEST_EMAIL:   config.variables?.YOUR_TEST_EMAIL ?? '',
 
-              // Calendly links — workspace-specific, must be passed via config.variables
-              YOUR_CALENDLY_LINK_1: '',
-              YOUR_CALENDLY_LINK_2: '',
+              // Calendly — sourced from manifest (no || '' escape)
+              YOUR_CALENDLY_LINK_1: calendlyUrl1,
+              YOUR_CALENDLY_LINK_2: config.variables?.YOUR_CALENDLY_LINK_2 ?? '',
 
               // Caller overrides — MUST come last (highest priority)
               ...config.variables,
@@ -745,10 +758,15 @@ export class IgnitionOrchestrator {
             }
 
             // Guard: sender email is required for all email workflows
+            // When a manifest is provided this is guaranteed non-empty by validateManifest().
+            // Without a manifest, callers must supply it via config.variables.
             if (!variableMap.YOUR_SENDER_EMAIL) {
               throw new IgnitionError(
-                'YOUR_SENDER_EMAIL must be provided in config.variables. ' +
-                'Pass the workspace Gmail/SMTP address before calling ignite().',
+                'YOUR_SENDER_EMAIL is missing. ' +
+                (config.manifest
+                  ? 'The manifest passed validation but sender_email resolved empty — this is a bug.'
+                  : 'Build a WorkspaceManifest via buildManifestFromOnboarding() or pass YOUR_SENDER_EMAIL in config.variables.'
+                ),
                 'workflows_deploying',
                 config.workspace_id
               );
