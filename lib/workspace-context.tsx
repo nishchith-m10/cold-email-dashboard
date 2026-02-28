@@ -96,7 +96,14 @@ export function WorkspaceProvider({
   const [workspace, setWorkspaceState] = useState<Workspace>(initialWorkspace);
   const [workspaces, setWorkspacesState] = useState<Workspace[]>([initialWorkspace]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  // Initialize isSuperAdmin from localStorage for instant display
+  const [isSuperAdmin, setIsSuperAdmin] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('is_super_admin');
+      return cached === 'true';
+    }
+    return false;
+  });
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
@@ -117,6 +124,7 @@ export function WorkspaceProvider({
         setNeedsOnboarding(true);
         setWorkspacesState([]);
         setIsSuperAdmin(false);
+        localStorage.removeItem('is_super_admin');
       } else if (data.workspaces && data.workspaces.length > 0) {
         setNeedsOnboarding(false);
         setWorkspacesState(data.workspaces);
@@ -138,7 +146,14 @@ export function WorkspaceProvider({
           localStorage.setItem('current_workspace_id', data.workspaces[0].id);
         }
         
-        setIsSuperAdmin(data.isSuperAdmin || false);
+        const isSuperAdminValue = data.isSuperAdmin || false;
+        setIsSuperAdmin(isSuperAdminValue);
+        // Cache isSuperAdmin for instant display on next load
+        if (isSuperAdminValue) {
+          localStorage.setItem('is_super_admin', 'true');
+        } else {
+          localStorage.removeItem('is_super_admin');
+        }
       }
     } catch (error) {
       console.error('Failed to fetch workspaces:', error);
