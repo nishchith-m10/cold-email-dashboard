@@ -27,6 +27,7 @@ import {
   Rocket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 import type { OnboardingStage } from '@/lib/genesis/phase64/credential-vault-types';
 import { STAGE_INFO } from '@/lib/genesis/phase64/onboarding-progress-service';
 
@@ -332,6 +333,28 @@ export function GenesisOnboardingWizard({
     setCurrentStageIndex(index);
   };
 
+  // Save progress and show confirmation toast
+  const handleSaveAndContinueLater = async () => {
+    try {
+      // Progress is already saved incrementally; just confirm to user
+      toast({
+        title: 'Progress saved!',
+        description: 'You can return anytime to continue where you left off.',
+      });
+    } catch {
+      toast({
+        title: 'Could not save progress',
+        description: 'Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Determine if current stage is optional (not required)
+  const isCurrentStageOptional = !STAGE_INFO[currentStage.stage]?.required;
+  // Determine if we're on the final stage
+  const isFinalStage = currentStageIndex === totalStages - 1;
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -463,8 +486,9 @@ export function GenesisOnboardingWizard({
             </motion.div>
           </AnimatePresence>
 
-          {/* Navigation */}
-          <div className="mt-4 flex items-center justify-between">
+          {/* Navigation Footer */}
+          <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+            {/* Left: Back button */}
             <button
               onClick={handleBack}
               disabled={currentStageIndex === 0}
@@ -479,8 +503,24 @@ export function GenesisOnboardingWizard({
               Back
             </button>
 
-            <div className="text-xs text-text-secondary">
-              Step {currentStageIndex + 1} of {totalStages}
+            {/* Right: Skip / Save Later / Continue|Launch */}
+            <div className="flex items-center gap-3">
+              {isCurrentStageOptional && (
+                <button
+                  onClick={handleStageComplete}
+                  className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+                >
+                  Skip
+                </button>
+              )}
+              <button
+                onClick={handleSaveAndContinueLater}
+                className="text-sm text-text-secondary hover:text-text-primary transition-colors hidden sm:inline-flex"
+              >
+                Save &amp; continue later
+              </button>
+              {/* The Continue/Launch button is rendered by each stage component's onComplete call.
+                  This area intentionally doesn't duplicate it — stages own their own submit buttons. */}
             </div>
           </div>
         </div>
