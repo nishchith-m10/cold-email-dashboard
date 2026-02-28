@@ -7,7 +7,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Mail, Check, Loader2, AlertCircle, ChevronRight } from 'lucide-react';
+import { Check, Loader2, AlertCircle, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
@@ -90,17 +90,9 @@ export function GmailOAuthStage({ workspaceId, onComplete }: StageComponentProps
           </div>
         </div>
       ) : (
-        <div className="text-center py-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-surface-elevated border-2 border-dashed border-border mb-4">
-            <Mail className="h-8 w-8 text-text-secondary" />
-          </div>
-          
-          <h3 className="text-lg font-semibold text-text-primary mb-2">
-            Connect Your Gmail Account
-          </h3>
-          
-          <p className="text-sm text-text-secondary max-w-md mx-auto">
-            Genesis will securely handle the OAuth flow. You&apos;ll be redirected to Google to grant access.
+        <div className="p-4 bg-surface-elevated border border-border rounded-lg">
+          <p className="text-sm text-text-secondary">
+            You&apos;ll be securely redirected to Google to grant access. Genesis handles the OAuth flow for you.
           </p>
         </div>
       )}
@@ -166,7 +158,6 @@ export function GmailOAuthStage({ workspaceId, onComplete }: StageComponentProps
             </>
           ) : (
             <>
-              <Mail className="h-5 w-5" />
               Connect with Google
             </>
           )}

@@ -8,7 +8,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Check, Loader2, AlertCircle, ChevronRight, Eye, EyeOff, Key } from 'lucide-react';
+import { Check, Loader2, AlertCircle, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -21,6 +21,7 @@ interface ApiKeyInputStageProps extends StageComponentProps {
   placeholder: string;
   helpText?: string;
   docsUrl?: string;
+  /** @deprecated icon no longer rendered — wizard provides the header */
   icon?: React.ComponentType<{ className?: string }>;
   extraFields?: Array<{
     key: string;
@@ -38,7 +39,7 @@ export function ApiKeyInputStage({
   placeholder,
   helpText,
   docsUrl,
-  icon: Icon = Key,
+  icon: _Icon,
   extraFields,
   onComplete,
 }: ApiKeyInputStageProps) {
@@ -161,19 +162,6 @@ export function ApiKeyInputStage({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-accent-primary/10 mb-3">
-          <Icon className="h-6 w-6 text-accent-primary" />
-        </div>
-        <h3 className="text-xl font-semibold text-text-primary mb-2">
-          {title}
-        </h3>
-        <p className="text-sm text-text-secondary">
-          {description}
-        </p>
-      </div>
-
       {/* Help Text */}
       {helpText && (
         <div className="bg-surface-elevated border border-border rounded-lg p-4">
@@ -210,8 +198,8 @@ export function ApiKeyInputStage({
             }}
             placeholder={placeholder}
             className={cn(
-              'w-full pl-10 pr-20 py-3 rounded-lg text-sm',
-              'bg-surface-elevated border-2 transition-all',
+              'w-full px-4 pr-20 py-3 rounded-lg text-sm',
+              'bg-surface-elevated border border-border transition-all',
               'text-text-primary placeholder:text-text-secondary/50',
               'focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary',
               isValid && 'border-accent-success',
@@ -219,8 +207,6 @@ export function ApiKeyInputStage({
             )}
             disabled={isValid}
           />
-          
-          <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-text-secondary" />
           
           <button
             onClick={() => setShowKey(!showKey)}
@@ -259,7 +245,7 @@ export function ApiKeyInputStage({
               persistDraft({ extraValues: updated });
             }}
             placeholder={field.placeholder}
-            className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+            className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
           />
         </div>
       ))}
@@ -277,7 +263,7 @@ export function ApiKeyInputStage({
         <button
           onClick={handleValidate}
           disabled={!apiKey.trim() || isValidating}
-          className="w-full flex items-center justify-center gap-2 h-11 bg-surface-elevated border-2 border-border text-text-primary rounded-lg font-medium hover:bg-accent-primary/5 hover:border-accent-primary/50 transition-all disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2 h-11 bg-surface-elevated border border-border text-text-primary rounded-lg font-medium hover:bg-accent-primary/5 hover:border-accent-primary/50 transition-all disabled:opacity-50"
         >
           {isValidating ? (
             <>

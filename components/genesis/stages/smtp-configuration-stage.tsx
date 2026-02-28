@@ -13,7 +13,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Server, Check, ChevronRight, AlertCircle, Eye, EyeOff, Loader2, TestTube } from 'lucide-react';
+import { Check, ChevronRight, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -432,7 +432,6 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
             </>
           ) : (
             <>
-              <TestTube className="h-5 w-5" />
               Test Connection
             </>
           )}

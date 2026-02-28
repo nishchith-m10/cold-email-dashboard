@@ -13,7 +13,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Check, ChevronRight, Loader2, AlertCircle, Shield, ExternalLink } from 'lucide-react';
+import { Check, ChevronRight, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -157,19 +157,18 @@ export function CalendlyUrlStage({ workspaceId, onComplete }: StageComponentProp
                 saveDraft({ bookingUrl: e.target.value });
               }}
               placeholder="https://calendly.com/your-name/30min"
-              className="w-full pl-10 pr-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
+              className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-text-secondary" />
           </div>
           <button
             onClick={handleValidate}
             disabled={isValidating || !bookingUrl.trim()}
-            className="px-4 py-3 bg-surface-elevated border-2 border-border hover:border-border-focus text-text-primary rounded-lg font-medium transition-colors disabled:opacity-50"
+            className="px-4 py-3 bg-surface-elevated border border-border hover:border-border-focus text-text-primary rounded-lg font-medium transition-colors disabled:opacity-50"
           >
             {isValidating ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              <Shield className="h-5 w-5" />
+              'Validate'
             )}
           </button>
         </div>
@@ -181,7 +180,7 @@ export function CalendlyUrlStage({ workspaceId, onComplete }: StageComponentProp
       {/* Validation Result */}
       {validationResult && (
         <div className={cn(
-          'p-4 rounded-lg border-2',
+          'p-4 rounded-lg border',
           validationResult.valid
             ? 'bg-accent-success/10 border-accent-success/20'
             : 'bg-accent-danger/10 border-accent-danger/20'
@@ -260,7 +259,7 @@ export function CalendlyUrlStage({ workspaceId, onComplete }: StageComponentProp
       )}
 
       {/* Info Box */}
-      <div className="bg-surface-elevated border-2 border-border rounded-lg p-4">
+      <div className="bg-surface-elevated border border-border rounded-lg p-4">
         <h4 className="text-sm font-semibold text-text-primary mb-2">
           Supported Booking Platforms:
         </h4>
