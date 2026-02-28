@@ -42,10 +42,10 @@ export const AUTH_CONFIG = {
   ],
   
   // Default redirect after sign in
-  afterSignInUrl: '/',
+  afterSignInUrl: '/dashboard',
   
   // Default redirect after sign up
-  afterSignUpUrl: '/',
+  afterSignUpUrl: '/dashboard',
 };
 
 // ============================================
