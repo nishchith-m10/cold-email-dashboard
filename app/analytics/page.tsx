@@ -2,17 +2,12 @@
 
 import { AnalyticsPageClient } from '@/components/pages/analytics-page-client';
 import { Suspense } from 'react';
-import { BarChart3 } from 'lucide-react';
-
 export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       {/* Canonical panel header */}
       <div className="px-4 md:px-6 pt-6">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center">
-            <BarChart3 className="h-4 w-4 text-accent-primary" />
-          </div>
           <div>
             <h1 className="text-lg font-semibold text-text-primary">Analytics</h1>
             <p className="text-xs text-text-secondary">Deep-dive into your email campaign metrics</p>
