@@ -10,7 +10,14 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Plus, X, Mail, Building2, Clock3, Users, ArrowLeft, Filter, Upload } from 'lucide-react';
+import { Search, Plus, X, Mail, Building2, Clock3, Users, ArrowLeft, Filter, Upload, ChevronDown, UserPlus } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -551,18 +558,26 @@ export default function ContactsPage() {
               endDate={endDate}
               onDateChange={handleDateChange}
             />
-            <Button
-              variant="outline"
-              onClick={() => setShowCsvImport(true)}
-              className="h-8 px-3 text-xs gap-1.5"
-            >
-              <Upload className="h-3.5 w-3.5" />
-              Import CSV
-            </Button>
-            <Button onClick={() => setShowAdd(true)} className="h-8 px-3 text-xs gap-1.5">
-              <Plus className="h-3.5 w-3.5" />
-              Add Lead
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="h-8 px-3 text-xs gap-1.5">
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Add Lead
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-surface-elevated border-border rounded-xl shadow-2xl w-48">
+                <DropdownMenuItem onClick={() => setShowAdd(true)} className="flex items-center gap-2 text-sm">
+                  <UserPlus className="h-4 w-4" />
+                  Add Manually
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuItem onClick={() => setShowCsvImport(true)} className="flex items-center gap-2 text-sm">
+                  <Upload className="h-4 w-4" />
+                  Import from CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Mobile Controls */}
@@ -581,17 +596,24 @@ export default function ContactsPage() {
               endDate={endDate}
               onDateChange={handleDateChange}
             />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowCsvImport(true)}
-              className="h-10 w-10"
-            >
-              <Upload className="h-5 w-5" />
-            </Button>
-            <Button onClick={() => setShowAdd(true)} size="icon" className="h-10 w-10">
-              <Plus className="h-5 w-5" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" className="h-10 w-10">
+                  <UserPlus className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-surface-elevated border-border rounded-xl shadow-2xl w-48">
+                <DropdownMenuItem onClick={() => setShowAdd(true)} className="flex items-center gap-2 text-sm">
+                  <UserPlus className="h-4 w-4" />
+                  Add Manually
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuItem onClick={() => setShowCsvImport(true)} className="flex items-center gap-2 text-sm">
+                  <Upload className="h-4 w-4" />
+                  Import from CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
