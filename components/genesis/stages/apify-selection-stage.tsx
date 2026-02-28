@@ -12,6 +12,7 @@
 import { useState, useEffect } from 'react';
 import { Globe, DollarSign, Shield, ChevronRight, Loader2, Key, Eye, EyeOff, Check, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 import type { ApifyMode } from '@/lib/genesis/phase64/credential-vault-types';
 
@@ -24,23 +25,38 @@ export function ApifySelectionStage({ workspaceId, onComplete }: StageComponentP
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load existing selection
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'apify_selection');
+
+  // Load existing selection, fall back to draft
   useEffect(() => {
+    let cancelled = false;
+
     async function loadSelection() {
       try {
         const res = await fetch(`/api/onboarding/apify?workspace_id=${workspaceId}`);
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
-          if (data.mode) setMode(data.mode);
-          if (data.mode === 'byo' && data.validated) setIsValid(true);
+          if (data.mode) {
+            setMode(data.mode);
+            if (data.mode === 'byo' && data.validated) setIsValid(true);
+          } else if (draft) {
+            if (draft.mode) setMode(draft.mode as ApifyMode);
+          }
         }
       } catch (err) {
         console.error('Failed to load Apify selection:', err);
+        if (!cancelled && draft?.mode) {
+          setMode(draft.mode as ApifyMode);
+        }
       }
     }
 
-    loadSelection();
-  }, [workspaceId]);
+    if (!isDraftLoading) {
+      loadSelection();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleValidate = async () => {
     if (!apiToken.trim()) {
@@ -118,6 +134,7 @@ export function ApifySelectionStage({ workspaceId, onComplete }: StageComponentP
           onClick={() => {
             setMode('byo');
             setIsValid(false);
+            saveDraft({ mode: 'byo' });
           }}
           className={cn(
             'relative flex items-start gap-4 p-5 rounded-lg border-2 transition-all text-left',
@@ -161,7 +178,7 @@ export function ApifySelectionStage({ workspaceId, onComplete }: StageComponentP
 
         {/* Managed Option */}
         <button
-          onClick={() => setMode('managed')}
+          onClick={() => { setMode('managed'); saveDraft({ mode: 'managed' }); }}
           className={cn(
             'relative flex items-start gap-4 p-5 rounded-lg border-2 transition-all text-left',
             mode === 'managed'

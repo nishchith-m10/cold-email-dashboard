@@ -15,6 +15,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Check, ChevronRight, Loader2, AlertCircle, Shield, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
 interface ValidationResult {
@@ -36,24 +37,37 @@ export function CalendlyUrlStage({ workspaceId, onComplete }: StageComponentProp
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Load existing booking URL
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'calendly_url');
+
+  // Load existing booking URL, fall back to draft
   useEffect(() => {
+    let cancelled = false;
+
     async function loadBookingUrl() {
       try {
         const res = await fetch(`/api/onboarding/credentials?workspace_id=${workspaceId}&type=calendly_url`);
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
           if (data.value) {
             setBookingUrl(data.value);
+          } else if (draft?.bookingUrl) {
+            setBookingUrl(draft.bookingUrl as string);
           }
         }
       } catch (err) {
         console.error('Failed to load booking URL:', err);
+        if (!cancelled && draft?.bookingUrl) {
+          setBookingUrl(draft.bookingUrl as string);
+        }
       }
     }
 
-    loadBookingUrl();
-  }, [workspaceId]);
+    if (!isDraftLoading) {
+      loadBookingUrl();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleValidate = async () => {
     if (!bookingUrl.trim()) {
@@ -140,6 +154,7 @@ export function CalendlyUrlStage({ workspaceId, onComplete }: StageComponentProp
                 setBookingUrl(e.target.value);
                 setValidationResult(null);
                 setError(null);
+                saveDraft({ bookingUrl: e.target.value });
               }}
               placeholder="https://calendly.com/your-name/30min"
               className="w-full pl-10 pr-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"

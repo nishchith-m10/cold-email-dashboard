@@ -12,9 +12,10 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Server, Check, ChevronRight, AlertCircle, Eye, EyeOff, Loader2, TestTube } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
 interface SMTPFormData {
@@ -52,12 +53,27 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
   const [error, setError] = useState<string | null>(null);
   const [isConfigured, setIsConfigured] = useState(false);
 
-  // Load existing configuration
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'smtp_configuration');
+
+  // Save non-secret form fields as draft
+  const persistDraft = useCallback(
+    (overrides?: Partial<SMTPFormData>) => {
+      const merged = { ...form, ...overrides };
+      // Exclude password from draft for security
+      const { smtp_password: _, ...safe } = merged;
+      saveDraft(safe);
+    },
+    [form, saveDraft],
+  );
+
+  // Load existing configuration, fall back to draft
   useEffect(() => {
+    let cancelled = false;
+
     async function loadExisting() {
       try {
         const res = await fetch(`/api/workspace/email-config?workspace_id=${workspaceId}`);
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
           if (data.provider === 'smtp' && data.smtp_host) {
             setForm({
@@ -70,28 +86,62 @@ export function SMTPConfigurationStage({ workspaceId, onComplete }: StageCompone
               smtp_from_email: data.from_email || '',
             });
             setIsConfigured(true);
+          } else if (draft && !cancelled) {
+            // No server data — restore from draft
+            setForm(prev => ({
+              ...prev,
+              smtp_host: (draft.smtp_host as string) || prev.smtp_host,
+              smtp_port: (draft.smtp_port as number) || prev.smtp_port,
+              smtp_username: (draft.smtp_username as string) || prev.smtp_username,
+              smtp_encryption: (draft.smtp_encryption as SMTPFormData['smtp_encryption']) || prev.smtp_encryption,
+              smtp_from_name: (draft.smtp_from_name as string) || prev.smtp_from_name,
+              smtp_from_email: (draft.smtp_from_email as string) || prev.smtp_from_email,
+            }));
           }
         }
       } catch (err) {
         console.error('Failed to load SMTP config:', err);
+        // Restore from draft on error
+        if (!cancelled && draft) {
+          setForm(prev => ({
+            ...prev,
+            smtp_host: (draft.smtp_host as string) || prev.smtp_host,
+            smtp_port: (draft.smtp_port as number) || prev.smtp_port,
+            smtp_username: (draft.smtp_username as string) || prev.smtp_username,
+            smtp_encryption: (draft.smtp_encryption as SMTPFormData['smtp_encryption']) || prev.smtp_encryption,
+            smtp_from_name: (draft.smtp_from_name as string) || prev.smtp_from_name,
+            smtp_from_email: (draft.smtp_from_email as string) || prev.smtp_from_email,
+          }));
+        }
       }
     }
-    loadExisting();
-  }, [workspaceId]);
+
+    if (!isDraftLoading) {
+      loadExisting();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleChange = (field: keyof SMTPFormData, value: string | number) => {
     setForm(prev => ({ ...prev, [field]: value }));
     setError(null);
     setTestResult(null);
+    // Draft-save non-password fields
+    if (field !== 'smtp_password') {
+      persistDraft({ [field]: value } as Partial<SMTPFormData>);
+    }
   };
 
   const handleEncryptionChange = (encryption: SMTPFormData['smtp_encryption']) => {
     const option = ENCRYPTION_OPTIONS.find(o => o.value === encryption);
+    const newPort = option?.port || form.smtp_port;
     setForm(prev => ({
       ...prev,
       smtp_encryption: encryption,
-      smtp_port: option?.port || prev.smtp_port,
+      smtp_port: newPort,
     }));
+    persistDraft({ smtp_encryption: encryption, smtp_port: newPort });
   };
 
   const validateForm = (): string | null => {

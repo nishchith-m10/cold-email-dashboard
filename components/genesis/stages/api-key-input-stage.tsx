@@ -7,9 +7,10 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Check, Loader2, AlertCircle, ChevronRight, Eye, EyeOff, Key } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 import type { CredentialType } from '@/lib/genesis/phase64/credential-vault-types';
 
@@ -48,6 +49,25 @@ export function ApiKeyInputStage({
   const [isValid, setIsValid] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, credentialType);
+
+  // Restore from draft (only non-secret extra fields)
+  useEffect(() => {
+    if (!isDraftLoading && draft && !isValid) {
+      if (draft.extraValues && typeof draft.extraValues === 'object') {
+        setExtraValues(draft.extraValues as Record<string, string>);
+      }
+    }
+  }, [isDraftLoading, draft, isValid]);
+
+  // Auto-save extra fields on change (skip the API key itself for security)
+  const persistDraft = useCallback(
+    (overrides?: Record<string, unknown>) => {
+      saveDraft({ extraValues, ...overrides });
+    },
+    [extraValues, saveDraft],
+  );
 
   // Check if credential already exists
   useEffect(() => {
@@ -233,9 +253,11 @@ export function ApiKeyInputStage({
           <input
             type="text"
             value={extraValues[field.key] || ''}
-            onChange={(e) =>
-              setExtraValues({ ...extraValues, [field.key]: e.target.value })
-            }
+            onChange={(e) => {
+              const updated = { ...extraValues, [field.key]: e.target.value };
+              setExtraValues(updated);
+              persistDraft({ extraValues: updated });
+            }}
             placeholder={field.placeholder}
             className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
           />
