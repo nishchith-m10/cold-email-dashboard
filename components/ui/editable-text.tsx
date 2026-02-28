@@ -108,7 +108,7 @@ export function EditableText({
   return (
     <div 
       className={cn(
-        "group flex items-center gap-2 rounded px-1 -ml-1 border border-transparent transition-colors hover:border-border/50 cursor-pointer",
+        "group flex items-center gap-2 rounded px-1 -ml-1 transition-colors hover:bg-surface-elevated/50 cursor-pointer",
         disabled && "pointer-events-none opacity-70",
         className
       )}
