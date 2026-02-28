@@ -204,7 +204,7 @@ export class CredentialVaultService {
       const expiresAt = new Date(Date.now() + tokens.expiresIn * 1000);
       
       const { data, error } = await this.supabase
-        .from('genesis.workspace_credentials')
+        .schema('genesis').from('workspace_credentials')
         .insert({
           workspace_id: workspaceId,
           credential_type: type,
@@ -246,7 +246,7 @@ export class CredentialVaultService {
       const encryptedKey = this.encryption.encrypt(apiKey, workspaceId);
       
       const { data, error } = await this.supabase
-        .from('genesis.workspace_credentials')
+        .schema('genesis').from('workspace_credentials')
         .insert({
           workspace_id: workspaceId,
           credential_type: type,
@@ -280,7 +280,7 @@ export class CredentialVaultService {
   ): Promise<{ success: boolean; credentialId?: string; error?: string }> {
     try {
       const { data, error } = await this.supabase
-        .from('genesis.workspace_credentials')
+        .schema('genesis').from('workspace_credentials')
         .insert({
           workspace_id: workspaceId,
           credential_type: 'calendly_url',
@@ -324,7 +324,7 @@ export class CredentialVaultService {
       
       // Store as metadata (encrypted token in api_key field for consistency)
       const { data, error } = await this.supabase
-        .from('genesis.workspace_credentials')
+        .schema('genesis').from('workspace_credentials')
         .upsert({
           workspace_id: workspaceId,
           credential_type: 'relevance_config',
@@ -375,7 +375,7 @@ export class CredentialVaultService {
   }> {
     try {
       const { data, error } = await this.supabase
-        .from('genesis.workspace_credentials')
+        .schema('genesis').from('workspace_credentials')
         .select('*')
         .eq('workspace_id', workspaceId)
         .eq('credential_type', 'relevance_config')
@@ -424,7 +424,7 @@ export class CredentialVaultService {
   ): Promise<{ success: boolean; credential?: Credential; error?: string }> {
     try {
       const result = await this.supabase
-        .from('genesis.workspace_credentials')
+        .schema('genesis').from('workspace_credentials')
         .select('*')
         .eq('workspace_id', workspaceId)
         .eq('credential_type', type)
@@ -462,7 +462,7 @@ export class CredentialVaultService {
   ): Promise<{ success: boolean; credentials?: Credential[]; error?: string }> {
     try {
       const result = await this.supabase
-        .from('genesis.workspace_credentials')
+        .schema('genesis').from('workspace_credentials')
         .select('*')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
@@ -514,7 +514,7 @@ export class CredentialVaultService {
       }
       
       const result = await this.supabase
-        .from('genesis.workspace_credentials')
+        .schema('genesis').from('workspace_credentials')
         .update(updateData)
         .eq('id', credentialId);
       
@@ -558,7 +558,7 @@ export class CredentialVaultService {
       }
       
       const result = await this.supabase
-        .from('genesis.workspace_credentials')
+        .schema('genesis').from('workspace_credentials')
         .update(updateData)
         .eq('id', credentialId);
       
@@ -587,7 +587,7 @@ export class CredentialVaultService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await this.supabase
-        .from('genesis.workspace_credentials')
+        .schema('genesis').from('workspace_credentials')
         .delete()
         .eq('id', credentialId);
       
@@ -629,7 +629,7 @@ export class CredentialVaultService {
     try {
       // Fetch all raw credential rows
       const result = await this.supabase
-        .from('genesis.workspace_credentials')
+        .schema('genesis').from('workspace_credentials')
         .select('*')
         .eq('workspace_id', workspaceId);
 
@@ -659,7 +659,7 @@ export class CredentialVaultService {
 
           if (Object.keys(updates).length > 0) {
             const { error: updateError } = await this.supabase
-              .from('genesis.workspace_credentials')
+              .schema('genesis').from('workspace_credentials')
               .update(updates)
               .eq('id', row.id);
 

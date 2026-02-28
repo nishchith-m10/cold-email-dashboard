@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     // Try to get existing selection from genesis.workspace_apify_config
     const result = await (supabaseAdmin as any)
-      .from('genesis.workspace_apify_config')
+      .schema('genesis').from('workspace_apify_config')
       .select('mode, validated')
       .eq('workspace_id', workspaceId)
       .single();

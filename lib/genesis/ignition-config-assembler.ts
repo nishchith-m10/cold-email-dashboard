@@ -338,7 +338,7 @@ export class IgnitionConfigAssembler {
     // Check if a sender email was stored in brand data or directly
     try {
       const { data } = await this.supabase
-        .from('genesis.brand_vault')
+        .schema('genesis').from('brand_vault')
         .select('website')
         .eq('workspace_id', workspaceId)
         .single();

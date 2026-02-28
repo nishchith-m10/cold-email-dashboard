@@ -45,7 +45,7 @@ export class BrandVaultService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await this.supabase
-        .from('genesis.brand_vault')
+        .schema('genesis').from('brand_vault')
         .upsert({
           workspace_id: workspaceId,
           company_name: brandData.companyName,
@@ -92,7 +92,7 @@ export class BrandVaultService {
   }> {
     try {
       const { data, error } = await this.supabase
-        .from('genesis.brand_vault')
+        .schema('genesis').from('brand_vault')
         .select('*')
         .eq('workspace_id', workspaceId)
         .single();
@@ -211,7 +211,7 @@ export class BrandVaultService {
       if (updates.products !== undefined) updateData.products = updates.products;
 
       const result = await this.supabase
-        .from('genesis.brand_vault')
+        .schema('genesis').from('brand_vault')
         .update(updateData)
         .eq('workspace_id', workspaceId);
 
@@ -240,7 +240,7 @@ export class BrandVaultService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await this.supabase
-        .from('genesis.brand_vault')
+        .schema('genesis').from('brand_vault')
         .delete()
         .eq('workspace_id', workspaceId);
 
