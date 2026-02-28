@@ -3,26 +3,35 @@
  * 
  * Shows a smooth transition animation when the user signs out
  * to prevent the jarring static screen experience.
+ * Theme-aware: matches current dark/light mode.
  */
 
 'use client';
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { useTheme } from '@/hooks/use-theme';
 
 interface SignOutTransitionProps {
   isVisible: boolean;
 }
 
 export function SignOutTransition({ isVisible }: SignOutTransitionProps) {
+  const { theme } = useTheme();
   if (!isVisible) return null;
+
+  const isLight = theme === 'light';
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center ${
+        isLight
+          ? 'bg-gradient-to-br from-slate-100 via-white to-slate-100'
+          : 'bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950'
+      }`}
     >
       {/* Animated Logo */}
       <motion.div
@@ -41,8 +50,8 @@ export function SignOutTransition({ isVisible }: SignOutTransitionProps) {
           transition={{ delay: 0.2 }}
           className="text-center"
         >
-          <h2 className="text-xl md:text-2xl font-bold text-white mb-1">Signing out...</h2>
-          <p className="text-sm text-slate-400">See you next time!</p>
+          <h2 className={`text-xl md:text-2xl font-bold mb-1 ${isLight ? 'text-slate-900' : 'text-white'}`}>Signing out...</h2>
+          <p className={`text-sm ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>See you next time!</p>
         </motion.div>
 
         {/* Loading spinner */}
@@ -52,7 +61,9 @@ export function SignOutTransition({ isVisible }: SignOutTransitionProps) {
           transition={{ delay: 0.4 }}
           className="mt-8"
         >
-          <div className="w-8 h-8 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
+          <div className={`w-8 h-8 border-2 rounded-full animate-spin ${
+            isLight ? 'border-slate-300 border-t-blue-600' : 'border-slate-600 border-t-blue-500'
+          }`} />
         </motion.div>
       </motion.div>
     </motion.div>
