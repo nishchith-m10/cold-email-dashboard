@@ -4,9 +4,9 @@ import { AnalyticsPageClient } from '@/components/pages/analytics-page-client';
 import { Suspense } from 'react';
 export default function AnalyticsPage() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       {/* Canonical panel header */}
-      <div className="px-4 md:px-6 pt-6">
+      <div className="px-4 md:px-6 pt-4">
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-lg font-semibold text-text-primary">Analytics</h1>

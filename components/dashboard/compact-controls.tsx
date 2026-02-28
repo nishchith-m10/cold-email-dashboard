@@ -120,7 +120,6 @@ export function CompactControls({
       {/* Settings - Icon Only (optional) */}
       {showSettings && onSettingsOpen && (
         <>
-          <div key="settings-divider" className="h-5 w-px bg-border mx-1" />
           <Button
             key="settings-button"
             variant="outline"
