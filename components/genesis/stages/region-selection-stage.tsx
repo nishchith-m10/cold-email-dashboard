@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Globe, Zap, Check, Loader2, MapPin, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 import type { DropletRegion, DropletSize } from '@/lib/genesis/phase64/credential-vault-types';
 
@@ -106,23 +107,40 @@ export function RegionSelectionStage({ workspaceId, onComplete }: StageComponent
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load existing configuration
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'region_selection');
+
+  // Load existing configuration, fall back to draft
   useEffect(() => {
+    let cancelled = false;
+
     async function loadConfig() {
       try {
         const res = await fetch(`/api/onboarding/infrastructure?workspace_id=${workspaceId}`);
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
-          if (data.region) setSelectedRegion(data.region);
-          if (data.size) setSelectedSize(data.size);
+          if (data.region) {
+            setSelectedRegion(data.region);
+            if (data.size) setSelectedSize(data.size);
+          } else if (draft) {
+            if (draft.region) setSelectedRegion(draft.region as DropletRegion);
+            if (draft.size) setSelectedSize(draft.size as DropletSize);
+          }
         }
       } catch (err) {
         console.error('Failed to load config:', err);
+        if (!cancelled && draft) {
+          if (draft.region) setSelectedRegion(draft.region as DropletRegion);
+          if (draft.size) setSelectedSize(draft.size as DropletSize);
+        }
       }
     }
 
-    loadConfig();
-  }, [workspaceId]);
+    if (!isDraftLoading) {
+      loadConfig();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleContinue = async () => {
     setIsSaving(true);
@@ -164,7 +182,7 @@ export function RegionSelectionStage({ workspaceId, onComplete }: StageComponent
           {REGIONS.map((region) => (
             <button
               key={region.code}
-              onClick={() => setSelectedRegion(region.code)}
+              onClick={() => { setSelectedRegion(region.code); saveDraft({ region: region.code, size: selectedSize }); }}
               className={cn(
                 'relative flex items-start gap-4 p-4 rounded-lg border-2 transition-all text-left',
                 selectedRegion === region.code
@@ -218,7 +236,7 @@ export function RegionSelectionStage({ workspaceId, onComplete }: StageComponent
           {SIZES.map((size) => (
             <button
               key={size.tier}
-              onClick={() => setSelectedSize(size.tier)}
+              onClick={() => { setSelectedSize(size.tier); saveDraft({ region: selectedRegion, size: size.tier }); }}
               className={cn(
                 'relative flex items-start gap-4 p-4 rounded-lg border-2 transition-all text-left',
                 selectedSize === size.tier

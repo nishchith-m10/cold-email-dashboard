@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react';
 import { Shield, Check, Loader2, ChevronRight, AlertTriangle, ExternalLink, Copy, Sparkles, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
 type SetupMode = 'choose' | 'manual' | 'entri';
@@ -32,34 +33,46 @@ export function DNSSetupStage({ workspaceId, onComplete }: StageComponentProps) 
   const [copiedRecord, setCopiedRecord] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Load email provider and domain
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'dns_setup');
+
+  // Load email provider and domain, fall back to draft for domain
   useEffect(() => {
+    let cancelled = false;
+
     async function loadConfig() {
       try {
         // Get email provider
         const providerRes = await fetch(`/api/workspace/email-config?workspace_id=${workspaceId}`);
-        if (providerRes.ok) {
+        if (providerRes.ok && !cancelled) {
           const providerData = await providerRes.json();
           setProvider(providerData.provider || 'gmail');
         }
 
         // Get brand info for domain
         const brandRes = await fetch(`/api/onboarding/brand?workspace_id=${workspaceId}`);
-        if (brandRes.ok) {
+        if (brandRes.ok && !cancelled) {
           const brandData = await brandRes.json();
           if (brandData.website) {
-            // Extract domain from website
             const extractedDomain = brandData.website.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
             setDomain(extractedDomain);
+          } else if (draft?.domain) {
+            setDomain(draft.domain as string);
           }
         }
       } catch (err) {
         console.error('Failed to load config:', err);
+        if (!cancelled && draft?.domain) {
+          setDomain(draft.domain as string);
+        }
       }
     }
 
-    loadConfig();
-  }, [workspaceId]);
+    if (!isDraftLoading) {
+      loadConfig();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleGenerateRecords = async () => {
     if (!domain.trim()) {
@@ -160,7 +173,7 @@ export function DNSSetupStage({ workspaceId, onComplete }: StageComponentProps) 
           <input
             type="text"
             value={domain}
-            onChange={(e) => setDomain(e.target.value)}
+            onChange={(e) => { setDomain(e.target.value); saveDraft({ domain: e.target.value }); }}
             placeholder="example.com"
             className="w-full h-10 px-4 bg-surface-elevated border-2 border-border rounded-lg text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
           />

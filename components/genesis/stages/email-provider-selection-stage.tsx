@@ -15,6 +15,7 @@
 import { useState, useEffect } from 'react';
 import { Mail, Server, Check, ChevronRight, AlertCircle, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 import type { EmailProviderChoice } from '@/lib/genesis/phase64/credential-vault-types';
 
@@ -62,28 +63,43 @@ export function EmailProviderSelectionStage({ workspaceId, onComplete }: StageCo
   const [error, setError] = useState<string | null>(null);
   const [existingProvider, setExistingProvider] = useState<EmailProviderChoice | null>(null);
 
-  // Check for existing provider selection
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'email_provider_selection');
+
+  // Check for existing provider selection, fall back to draft
   useEffect(() => {
+    let cancelled = false;
+
     async function checkExisting() {
       try {
         const res = await fetch(`/api/workspace/email-config?workspace_id=${workspaceId}`);
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
           if (data.provider) {
             setExistingProvider(data.provider);
             setSelectedProvider(data.provider);
+          } else if (draft?.provider) {
+            setSelectedProvider(draft.provider as EmailProviderChoice);
           }
         }
       } catch (err) {
         console.error('Failed to check existing provider:', err);
+        if (!cancelled && draft?.provider) {
+          setSelectedProvider(draft.provider as EmailProviderChoice);
+        }
       }
     }
-    checkExisting();
-  }, [workspaceId]);
+
+    if (!isDraftLoading) {
+      checkExisting();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleSelect = (provider: EmailProviderChoice) => {
     setSelectedProvider(provider);
     setError(null);
+    saveDraft({ provider });
   };
 
   const handleContinue = async () => {

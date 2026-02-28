@@ -6,9 +6,10 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Building2, Globe, Loader2, ChevronRight, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
 export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps) {
@@ -22,26 +23,62 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
   const [scrapeSuccess, setScrapeSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load existing brand info
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'brand_info');
+
+  // Auto-save draft on field change
+  const persistDraft = useCallback(
+    (overrides?: Partial<Record<string, string>>) => {
+      const data = { companyName, website, logoUrl, industry, description, ...overrides };
+      saveDraft(data);
+    },
+    [companyName, website, logoUrl, industry, description, saveDraft],
+  );
+
+  // Load existing brand info, fall back to draft
   useEffect(() => {
+    let cancelled = false;
+
     async function loadBrandInfo() {
       try {
         const res = await fetch(`/api/onboarding/brand?workspace_id=${workspaceId}`);
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
-          if (data.companyName) setCompanyName(data.companyName);
-          if (data.website) setWebsite(data.website);
-          if (data.logoUrl) setLogoUrl(data.logoUrl);
-          if (data.industry) setIndustry(data.industry);
-          if (data.description) setDescription(data.description);
+          let hasServer = false;
+          if (data.companyName) { setCompanyName(data.companyName); hasServer = true; }
+          if (data.website) { setWebsite(data.website); hasServer = true; }
+          if (data.logoUrl) { setLogoUrl(data.logoUrl); hasServer = true; }
+          if (data.industry) { setIndustry(data.industry); hasServer = true; }
+          if (data.description) { setDescription(data.description); hasServer = true; }
+
+          // If no server data, restore from draft
+          if (!hasServer && draft) {
+            if (draft.companyName) setCompanyName(draft.companyName as string);
+            if (draft.website) setWebsite(draft.website as string);
+            if (draft.logoUrl) setLogoUrl(draft.logoUrl as string);
+            if (draft.industry) setIndustry(draft.industry as string);
+            if (draft.description) setDescription(draft.description as string);
+          }
         }
       } catch (err) {
         console.error('Failed to load brand info:', err);
+        // On error, still try to restore from draft
+        if (!cancelled && draft) {
+          if (draft.companyName) setCompanyName(draft.companyName as string);
+          if (draft.website) setWebsite(draft.website as string);
+          if (draft.logoUrl) setLogoUrl(draft.logoUrl as string);
+          if (draft.industry) setIndustry(draft.industry as string);
+          if (draft.description) setDescription(draft.description as string);
+        }
       }
     }
 
-    loadBrandInfo();
-  }, [workspaceId]);
+    // Wait for draft to finish loading before deciding
+    if (!isDraftLoading) {
+      loadBrandInfo();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleAutoScrape = async () => {
     if (!website.trim()) {
@@ -133,7 +170,7 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
             <input
               type="url"
               value={website}
-              onChange={(e) => setWebsite(e.target.value)}
+              onChange={(e) => { setWebsite(e.target.value); persistDraft({ website: e.target.value }); }}
               placeholder="https://acmecorp.com"
               className="w-full pl-10 pr-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
@@ -176,7 +213,7 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
         <input
           type="text"
           value={companyName}
-          onChange={(e) => setCompanyName(e.target.value)}
+          onChange={(e) => { setCompanyName(e.target.value); persistDraft({ companyName: e.target.value }); }}
           placeholder="Acme Corporation"
           className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
         />
@@ -191,7 +228,7 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
         <input
           type="url"
           value={logoUrl}
-          onChange={(e) => setLogoUrl(e.target.value)}
+          onChange={(e) => { setLogoUrl(e.target.value); persistDraft({ logoUrl: e.target.value }); }}
           placeholder="https://yourcompany.com/logo.png"
           className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
         />
@@ -209,7 +246,7 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
         <input
           type="text"
           value={industry}
-          onChange={(e) => setIndustry(e.target.value)}
+          onChange={(e) => { setIndustry(e.target.value); persistDraft({ industry: e.target.value }); }}
           placeholder="SaaS, FinTech, Healthcare, etc."
           className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
         />
@@ -223,7 +260,7 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
         
         <textarea
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => { setDescription(e.target.value); persistDraft({ description: e.target.value }); }}
           placeholder="Describe what your company does..."
           rows={3}
           className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all resize-none"

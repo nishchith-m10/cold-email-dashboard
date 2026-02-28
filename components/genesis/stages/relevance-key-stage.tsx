@@ -11,7 +11,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Sparkles, 
   Loader2, 
@@ -25,6 +25,7 @@ import {
   Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
 
 // Relevance AI region examples
@@ -50,27 +51,53 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Load existing config
+  const { draft, isLoading: isDraftLoading, save: saveDraft } = useOnboardingDraft(workspaceId, 'relevance_key');
+
+  // Save non-secret fields as draft
+  const persistDraft = useCallback(
+    (overrides?: Record<string, unknown>) => {
+      saveDraft({ baseUrl, projectId, studioId, toolImported, ...overrides });
+    },
+    [baseUrl, projectId, studioId, toolImported, saveDraft],
+  );
+
+  // Load existing config, fall back to draft
   useEffect(() => {
+    let cancelled = false;
+
     async function loadConfig() {
       try {
         const res = await fetch(`/api/onboarding/credentials?workspace_id=${workspaceId}&type=relevance_config`);
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
           if (data.config) {
             setBaseUrl(data.config.baseUrl || '');
             setProjectId(data.config.projectId || '');
             setStudioId(data.config.studioId || '');
-            // Don't load auth token for security
             setToolImported(data.config.toolImported || false);
+          } else if (draft) {
+            if (draft.baseUrl) setBaseUrl(draft.baseUrl as string);
+            if (draft.projectId) setProjectId(draft.projectId as string);
+            if (draft.studioId) setStudioId(draft.studioId as string);
+            if (draft.toolImported) setToolImported(draft.toolImported as boolean);
           }
         }
       } catch (err) {
         console.error('Failed to load Relevance config:', err);
+        if (!cancelled && draft) {
+          if (draft.baseUrl) setBaseUrl(draft.baseUrl as string);
+          if (draft.projectId) setProjectId(draft.projectId as string);
+          if (draft.studioId) setStudioId(draft.studioId as string);
+        }
       }
     }
-    loadConfig();
-  }, [workspaceId]);
+
+    if (!isDraftLoading) {
+      loadConfig();
+    }
+
+    return () => { cancelled = true; };
+  }, [workspaceId, draft, isDraftLoading]);
 
   const handleCopy = async (text: string, field: string) => {
     try {
@@ -275,7 +302,7 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
             <input
               type="url"
               value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
+              onChange={(e) => { setBaseUrl(e.target.value); persistDraft({ baseUrl: e.target.value }); }}
               placeholder="https://api-bcbe5a.stack.tryrelevance.com"
               className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
             />
@@ -310,7 +337,7 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
             <input
               type="text"
               value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
+              onChange={(e) => { setProjectId(e.target.value); persistDraft({ projectId: e.target.value }); }}
               placeholder="1c7dae110947-495a-b439-7578c53dea94"
               className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all font-mono"
             />
@@ -327,7 +354,7 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
             <input
               type="text"
               value={studioId}
-              onChange={(e) => setStudioId(e.target.value)}
+              onChange={(e) => { setStudioId(e.target.value); persistDraft({ studioId: e.target.value }); }}
               placeholder="f9a70da4-2d80-4e17-ad1b-a37716c423c8"
               className="w-full px-4 py-3 rounded-lg text-sm bg-surface-elevated border-2 border-border text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all font-mono"
             />
