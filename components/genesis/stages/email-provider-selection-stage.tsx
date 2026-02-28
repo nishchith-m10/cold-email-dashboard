@@ -156,7 +156,7 @@ export function EmailProviderSelectionStage({ workspaceId, onComplete }: StageCo
                 'relative w-full text-left p-4 rounded-lg border-2 transition-all',
                 isSelected 
                   ? 'border-accent-primary bg-accent-primary/5' 
-                  : 'border-border hover:border-border-focus',
+                  : 'border-border bg-surface-elevated hover:border-border-focus',
                 isDisabled && 'opacity-50 cursor-not-allowed'
               )}
             >
