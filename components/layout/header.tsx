@@ -282,18 +282,18 @@ export function Header({ onCommandOpen, onShareOpen }: HeaderProps) {
           {pathname !== '/join' && (
             <SignedIn>
               <nav className="hidden md:flex items-center justify-center w-fit mx-auto bg-surface-elevated rounded-lg p-0.5 relative">
-                <Link href={`/${query}`}>
+                <Link href={`/dashboard${query}`}>
                   <motion.button
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: "spring", stiffness: 400, damping: 17 }}
                     className={cn(
                       'relative px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 flex items-center gap-1.5',
-                      pathname === '/'
+                      pathname === '/dashboard'
                         ? 'text-text-primary'
                         : 'text-text-secondary hover:text-text-primary'
                     )}
                   >
-                    {pathname === '/' && (
+                    {pathname === '/dashboard' && (
                       <motion.div
                         layoutId="active-tab-bg"
                         className="absolute inset-0 bg-surface shadow-sm rounded-md"
