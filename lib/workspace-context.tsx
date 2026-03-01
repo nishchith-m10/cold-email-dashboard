@@ -20,6 +20,7 @@ export interface Workspace {
   canRead?: boolean;
   canWrite?: boolean;
   canManage?: boolean;
+  created_at?: string;
 }
 
 export interface WorkspaceContextValue {

@@ -10,6 +10,7 @@
 import { memo, useCallback } from 'react';
 import useSWR from 'swr';
 import { fetcher } from '@/lib/fetcher';
+import { AppLoadingSpinner } from '@/components/ui/loading-states';
 import type { WorkflowTemplateType } from '@/lib/workflow-graph/types';
 import {
   CheckCircle2,

@@ -517,9 +517,7 @@ async function fetchAggregateData(
     : 0;
   const clickRateChange = Number((clickRatePct - prevClickRatePct).toFixed(2));
 
-  const costChangePct = prevTotalCostUsd > 0
-    ? Number((((totalCostUsd - prevTotalCostUsd) / prevTotalCostUsd) * 100).toFixed(1))
-    : 0;
+  // costChangePct computed below after totalCostUsd is derived
   // ============================================
 
   const dailyStats = dailyStatsResult.data || [];
@@ -646,6 +644,9 @@ async function fetchAggregateData(
     .sort((a, b) => a.day.localeCompare(b.day));
 
   const totalCostUsd = byProvider.reduce((sum, p) => sum + p.cost_usd, 0);
+  const costChangePct = prevTotalCostUsd > 0
+    ? Number((((totalCostUsd - prevTotalCostUsd) / prevTotalCostUsd) * 100).toFixed(1))
+    : 0;
   const totalTokensIn = byProvider.reduce((sum, p) => sum + p.tokens_in, 0);
   const totalTokensOut = byProvider.reduce((sum, p) => sum + p.tokens_out, 0);
   const totalCalls = byProvider.reduce((sum, p) => sum + p.calls, 0);

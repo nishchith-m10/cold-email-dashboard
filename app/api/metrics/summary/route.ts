@@ -52,6 +52,8 @@ function emptyResponse(startDate: string, endDate: string, source = 'supabase'):
     sends_change_pct: 0,
     reply_rate_change_pp: 0,
     opt_out_rate_change_pp: 0,
+    click_rate_change_pp: 0,
+    cost_change_pct: 0,
     prev_sends: 0,
     prev_reply_rate_pct: 0,
     start_date: startDate,
