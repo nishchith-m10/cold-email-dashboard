@@ -108,6 +108,44 @@
         "npx tsc --noEmit passes"
       ],
       "passes": false
+    },
+    {
+      "id": "MOB-008",
+      "title": "Add viewport-fit=cover for iOS Safe Area Insets",
+      "description": "app/layout.tsx exports `metadata` but no `viewport` export. Without `viewport-fit=cover` in the viewport meta tag, `env(safe-area-inset-bottom)` and `env(safe-area-inset-top)` resolve to 0 on iOS Safari — meaning the CSS variables `--safe-area-bottom` and `--safe-area-top` (defined in globals.css lines 34–35) are always 0. On iPhone X and newer, the 34px home indicator bar overlaps the MobileBottomNav because there's no padding compensation. Fix: add `export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' }` to app/layout.tsx, importing `Viewport` from 'next'. The globals.css `env()` values will then resolve correctly on real iOS devices.",
+      "acceptanceCriteria": [
+        "app/layout.tsx exports a `viewport` constant of type `Viewport` from 'next'",
+        "viewport includes `viewportFit: 'cover'`",
+        "viewport includes `width: 'device-width'` and `initialScale: 1`",
+        "No existing metadata export is changed or removed",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MOB-009",
+      "title": "Analytics Page — Mobile Date Picker and Bottom Padding",
+      "description": "analytics-page-client.tsx has two mobile-specific issues. (1) The header controls use `<DateRangePicker>` unconditionally (line 122) — this is the full desktop calendar popover with text labels that is too wide for mobile viewports. It should use `<DateRangePickerMobile>` on mobile and `<DateRangePicker>` on desktop, same pattern as dashboard-page-client.tsx and contacts page. Wrap DateRangePicker in `hidden md:block` and add a `block md:hidden` version using `DateRangePickerMobile`. (2) The root div (line 107) is `space-y-6 pt-4 md:pt-6` with no bottom padding — the last chart/card scrolls behind the 56px fixed MobileBottomNav on mobile. Add `pb-20 md:pb-8` to the root div.",
+      "acceptanceCriteria": [
+        "DateRangePicker (full calendar) wrapped in hidden md:block — desktop only",
+        "DateRangePickerMobile added in block md:hidden — visible on mobile",
+        "Both pickers share the same startDate, endDate, onDateChange props",
+        "Root div has pb-20 md:pb-8 — last analytics widget fully visible above bottom nav on mobile",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MOB-010",
+      "title": "Dashboard Page — Add Bottom Padding for Bottom Nav",
+      "description": "dashboard-page-client.tsx root div (line 351) is `space-y-6 pt-4 md:pt-6` with no bottom padding. The last widget in the draggable grid is hidden behind the 56px fixed MobileBottomNav when scrolled to the bottom on mobile. Add `pb-20 md:pb-8` to this root div to ensure all widgets are reachable.",
+      "acceptanceCriteria": [
+        "dashboard-page-client.tsx root div has pb-20 md:pb-8",
+        "On mobile, all dashboard widgets visible and scrollable past the bottom nav",
+        "On desktop, pb-8 bottom padding unchanged",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
     }
   ]
 }
