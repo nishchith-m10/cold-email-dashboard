@@ -17,7 +17,12 @@ import { APIHealthTab } from '@/components/admin/api-health-tab';
 import { MigrationControlTab } from '@/components/admin/migration-control-tab';
 import { DisasterRecoveryTab } from '@/components/admin/disaster-recovery-tab';
 import { FleetUpdatesTab } from '@/components/admin/fleet-updates-tab';
-import { Shield, AlertTriangle, Building2, ScrollText, Activity, Bell, ChevronDown, Stethoscope, Database, Globe, Rocket } from 'lucide-react';
+import { WebhookDLQTab } from '@/components/admin/webhook-dlq-tab';
+import { ControlPlaneHealthTab } from '@/components/admin/control-plane-health-tab';
+import { SidecarCommandCenterTab } from '@/components/admin/sidecar-command-center-tab';
+import { WatchdogDriftTab } from '@/components/admin/watchdog-drift-tab';
+import { LLMUsageTab } from '@/components/admin/llm-usage-tab';
+import { Shield, AlertTriangle, Building2, ScrollText, Activity, Bell, ChevronDown, Stethoscope, Database, Globe, Rocket, Mail, Cloud, Terminal, Eye, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BottomSheet } from '@/components/mobile';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,7 +32,7 @@ const SUPER_ADMIN_IDS = process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS
   ? process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS.split(',').map(id => id.trim())
   : [];
 
-type AdminTab = 'workspaces' | 'audit' | 'scale-health' | 'alert-history' | 'api-health' | 'migration' | 'disaster-recovery' | 'fleet-updates';
+type AdminTab = 'workspaces' | 'audit' | 'scale-health' | 'alert-history' | 'api-health' | 'migration' | 'disaster-recovery' | 'fleet-updates' | 'webhook-dlq' | 'control-plane' | 'sidecar' | 'watchdog' | 'llm-usage';
 
 const TABS = [
   { id: 'workspaces' as const, label: 'Workspaces', icon: Building2 },
@@ -38,6 +43,11 @@ const TABS = [
   { id: 'migration' as const, label: 'Migration', icon: Database },
   { id: 'disaster-recovery' as const, label: 'Disaster Recovery', icon: Globe },
   { id: 'fleet-updates' as const, label: 'Fleet Updates', icon: Rocket },
+  { id: 'webhook-dlq' as const, label: 'Webhook DLQ', icon: Mail },
+  { id: 'control-plane' as const, label: 'Control Plane', icon: Cloud },
+  { id: 'sidecar' as const, label: 'Sidecar Fleet', icon: Terminal },
+  { id: 'watchdog' as const, label: 'Watchdog & Drift', icon: Eye },
+  { id: 'llm-usage' as const, label: 'LLM Usage', icon: Brain },
 ];
 
 export default function AdminPage() {
@@ -219,6 +229,41 @@ export default function AdminPage() {
           <div className="overflow-x-auto -mx-4 md:mx-0">
             <div className="px-4 md:px-0">
               <FleetUpdatesTab />
+            </div>
+          </div>
+        )}
+        {activeTab === 'webhook-dlq' && (
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="px-4 md:px-0">
+              <WebhookDLQTab />
+            </div>
+          </div>
+        )}
+        {activeTab === 'control-plane' && (
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="px-4 md:px-0">
+              <ControlPlaneHealthTab />
+            </div>
+          </div>
+        )}
+        {activeTab === 'sidecar' && (
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="px-4 md:px-0">
+              <SidecarCommandCenterTab />
+            </div>
+          </div>
+        )}
+        {activeTab === 'watchdog' && (
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="px-4 md:px-0">
+              <WatchdogDriftTab />
+            </div>
+          </div>
+        )}
+        {activeTab === 'llm-usage' && (
+          <div className="overflow-x-auto -mx-4 md:mx-0">
+            <div className="px-4 md:px-0">
+              <LLMUsageTab />
             </div>
           </div>
         )}
