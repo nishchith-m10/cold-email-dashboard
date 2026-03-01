@@ -78,7 +78,7 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
       <div className="flex items-center h-full px-4 gap-3">
         {/* LEFT: Logo + Branding + Workspace */}
         <div className="flex items-center gap-3">
-          <Link href={`/${query}`} className="flex items-center gap-2 flex-shrink-0">
+          <Link href={`/dashboard${query}`} className="flex items-center gap-2 flex-shrink-0">
             <div className="w-6 h-6 rounded-lg overflow-hidden">
               <Image src="/logo.png" alt="Logo" width={24} height={24} className="w-full h-full object-cover" />
             </div>

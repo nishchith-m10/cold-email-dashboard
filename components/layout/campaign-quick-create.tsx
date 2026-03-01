@@ -43,7 +43,7 @@ export function CampaignQuickCreate() {
     const params = new URLSearchParams();
     if (groupId) params.set('group', groupId);
     if (workspace?.slug) params.set('workspace', workspace.slug);
-    router.push(`/?${params.toString()}`);
+    router.push(`/dashboard?${params.toString()}`);
   };
 
   return (
