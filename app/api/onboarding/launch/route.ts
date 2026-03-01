@@ -82,32 +82,32 @@ function buildOrchestrator(workspaceId: string) {
   const credentialVault = new CredentialVault(masterKey, {
     insert: async (record) => {
       const { data } = await admin
-        .schema('genesis').from('credential_store' as any)
+        .schema('genesis').from('workspace_credentials' as any)
         .insert(record as any)
         .select('id')
         .single();
       return { id: (data as any)?.id || 'unknown' };
     },
     update: async (id, updates) => {
-      await admin.schema('genesis').from('credential_store' as any).update(updates as any).eq('id', id);
+      await admin.schema('genesis').from('workspace_credentials' as any).update(updates as any).eq('id', id);
     },
     select: async (workspace_id) => {
       const { data } = await admin
-        .schema('genesis').from('credential_store' as any)
+        .schema('genesis').from('workspace_credentials' as any)
         .select('*')
         .eq('workspace_id', workspace_id);
       return (data as any[]) || [];
     },
     selectOne: async (id) => {
       const { data } = await admin
-        .schema('genesis').from('credential_store' as any)
+        .schema('genesis').from('workspace_credentials' as any)
         .select('*')
         .eq('id', id)
         .single();
       return data as any;
     },
     delete: async (id) => {
-      await admin.schema('genesis').from('credential_store' as any).delete().eq('id', id);
+      await admin.schema('genesis').from('workspace_credentials' as any).delete().eq('id', id);
     },
     logAction: async (record) => {
       await admin.schema('genesis').from('credential_audit_log' as any).insert(record as any).select();
