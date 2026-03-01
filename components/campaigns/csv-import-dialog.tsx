@@ -81,20 +81,22 @@ export function CsvImportDialog({
   const [result, setResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Load campaigns when dialog opens ──────────────────────────────────────
+  // ── Load campaign groups when dialog opens ──────────────────────────────
 
   useEffect(() => {
     if (!open || !workspaceId) return;
     setCampaignsLoading(true);
-    fetch(`/api/campaigns?workspace_id=${workspaceId}`)
+    fetch(`/api/campaign-groups?workspace_id=${workspaceId}`)
       .then(r => r.json())
-      .then((body: { campaigns?: CampaignOption[] }) => {
-        setCampaigns(body.campaigns ?? []);
-        // Auto-select if only one campaign or preselection given
+      .then((body: { groups?: { id: string; name: string; is_test?: boolean }[] }) => {
+        // Exclude test groups — only real campaigns
+        const realGroups = (body.groups ?? []).filter(g => !g.is_test);
+        setCampaigns(realGroups.map(g => ({ id: g.id, name: g.name })));
+        // Auto-select if only one group or preselection given
         if (preselectedCampaignId) {
           setSelectedCampaignId(preselectedCampaignId);
-        } else if (body.campaigns?.length === 1) {
-          setSelectedCampaignId(body.campaigns[0].id);
+        } else if (realGroups.length === 1) {
+          setSelectedCampaignId(realGroups[0].id);
         }
       })
       .catch(() => setCampaigns([]))
@@ -160,7 +162,7 @@ export function CsvImportDialog({
       const formData = new FormData();
       formData.append('file', file);
 
-      const url = `/api/campaigns/${selectedCampaignId}/import?workspace_id=${encodeURIComponent(workspaceId)}`;
+      const url = `/api/campaign-groups/${selectedCampaignId}/import?workspace_id=${encodeURIComponent(workspaceId)}`;
       const res = await fetch(url, { method: 'POST', body: formData });
       const body: ImportResult = await res.json();
 
@@ -210,6 +212,9 @@ export function CsvImportDialog({
             {/* Campaign selector */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-text-primary">Campaign *</label>
+              <p className="text-xs text-text-secondary">
+                Select the campaign — Email 1, 2 &amp; 3 are sequences within it.
+              </p>
               <Select
                 value={selectedCampaignId}
                 onValueChange={setSelectedCampaignId}
