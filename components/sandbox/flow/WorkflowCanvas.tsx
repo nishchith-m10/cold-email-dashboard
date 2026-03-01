@@ -25,7 +25,7 @@ import {
 import { nodeTypes } from './nodes';
 import type { CustomNodeData } from './nodes/types';
 import type { NodeExecutionOverlayStatus } from '@/lib/workflow-graph/types';
-import { Loader2 } from 'lucide-react';
+import { FramerSpinner } from '@/components/ui/loading-states';
 
 /* ---------- Types ---------- */
 
@@ -154,10 +154,7 @@ function WorkflowCanvasInner({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center w-full h-full min-h-[400px] bg-muted/30 rounded-lg">
-        <div className="flex flex-col items-center gap-3 text-muted-foreground">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="text-sm">Loading workflow&hellip;</span>
-        </div>
+        <FramerSpinner size={40} />
       </div>
     );
   }
