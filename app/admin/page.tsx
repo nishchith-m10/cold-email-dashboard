@@ -14,21 +14,36 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
+import dynamic from 'next/dynamic';
 import { useUser } from '@clerk/nextjs';
-import { SuperAdminPanel } from '@/components/admin/super-admin-panel';
-import { AuditLogViewer } from '@/components/admin/audit-log-viewer';
-import { ScaleHealthTab } from '@/components/admin/scale-health-tab';
-import { AlertHistoryTab } from '@/components/admin/alert-history-tab';
-import { APIHealthTab } from '@/components/admin/api-health-tab';
-import { MigrationControlTab } from '@/components/admin/migration-control-tab';
-import { DisasterRecoveryTab } from '@/components/admin/disaster-recovery-tab';
-import { FleetUpdatesTab } from '@/components/admin/fleet-updates-tab';
-import { WebhookDLQTab } from '@/components/admin/webhook-dlq-tab';
-import { ControlPlaneHealthTab } from '@/components/admin/control-plane-health-tab';
-import { SidecarCommandCenterTab } from '@/components/admin/sidecar-command-center-tab';
-import { WatchdogDriftTab } from '@/components/admin/watchdog-drift-tab';
-import { LLMUsageTab } from '@/components/admin/llm-usage-tab';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function TabSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-8 w-64" />
+      <Skeleton className="h-4 w-48" />
+      <div className="grid grid-cols-2 gap-4 mt-2">
+        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+      </div>
+    </div>
+  );
+}
+
+const SuperAdminPanel       = dynamic(() => import('@/components/admin/super-admin-panel').then(m => ({ default: m.SuperAdminPanel })),           { loading: () => <TabSkeleton /> });
+const AuditLogViewer        = dynamic(() => import('@/components/admin/audit-log-viewer').then(m => ({ default: m.AuditLogViewer })),             { loading: () => <TabSkeleton /> });
+const ScaleHealthTab        = dynamic(() => import('@/components/admin/scale-health-tab').then(m => ({ default: m.ScaleHealthTab })),             { loading: () => <TabSkeleton /> });
+const AlertHistoryTab       = dynamic(() => import('@/components/admin/alert-history-tab').then(m => ({ default: m.AlertHistoryTab })),           { loading: () => <TabSkeleton /> });
+const APIHealthTab          = dynamic(() => import('@/components/admin/api-health-tab').then(m => ({ default: m.APIHealthTab })),                 { loading: () => <TabSkeleton /> });
+const MigrationControlTab   = dynamic(() => import('@/components/admin/migration-control-tab').then(m => ({ default: m.MigrationControlTab })),   { loading: () => <TabSkeleton /> });
+const DisasterRecoveryTab   = dynamic(() => import('@/components/admin/disaster-recovery-tab').then(m => ({ default: m.DisasterRecoveryTab })),   { loading: () => <TabSkeleton /> });
+const FleetUpdatesTab       = dynamic(() => import('@/components/admin/fleet-updates-tab').then(m => ({ default: m.FleetUpdatesTab })),           { loading: () => <TabSkeleton /> });
+const WebhookDLQTab         = dynamic(() => import('@/components/admin/webhook-dlq-tab').then(m => ({ default: m.WebhookDLQTab })),               { loading: () => <TabSkeleton /> });
+const ControlPlaneHealthTab = dynamic(() => import('@/components/admin/control-plane-health-tab').then(m => ({ default: m.ControlPlaneHealthTab })), { loading: () => <TabSkeleton /> });
+const SidecarCommandCenterTab = dynamic(() => import('@/components/admin/sidecar-command-center-tab').then(m => ({ default: m.SidecarCommandCenterTab })), { loading: () => <TabSkeleton /> });
+const WatchdogDriftTab      = dynamic(() => import('@/components/admin/watchdog-drift-tab').then(m => ({ default: m.WatchdogDriftTab })),         { loading: () => <TabSkeleton /> });
+const LLMUsageTab           = dynamic(() => import('@/components/admin/llm-usage-tab').then(m => ({ default: m.LLMUsageTab })),                   { loading: () => <TabSkeleton /> });
 import {
   Shield, AlertTriangle, Building2, ScrollText, Activity, Bell,
   ChevronDown, ChevronRight, Stethoscope, Database, Globe, Rocket,
@@ -37,7 +52,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BottomSheet } from '@/components/mobile';
-import { Skeleton } from '@/components/ui/skeleton';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -197,6 +211,11 @@ export default function AdminPage() {
   const { user, isLoaded } = useUser();
   const [activeTab, setActiveTab] = useState<AdminTab>('workspaces');
   const [showTabPicker, setShowTabPicker] = useState(false);
+  const [, startTabTransition] = useTransition();
+
+  const selectTab = (tab: AdminTab) => {
+    startTabTransition(() => setActiveTab(tab));
+  };
 
   const activeTabDef = ALL_TABS.find(t => t.id === activeTab) ?? ALL_TABS[0];
   const activeGroup  = GROUPS.find(g => g.tabs.some(t => t.id === activeTab));
@@ -288,7 +307,7 @@ export default function AdminPage() {
                     return (
                       <button
                         key={tab.id}
-                        onClick={() => { setActiveTab(tab.id); setShowTabPicker(false); }}
+                        onClick={() => { selectTab(tab.id); setShowTabPicker(false); }}
                         className={cn(
                           'w-full flex items-center gap-3 px-4 py-2.5 transition-colors',
                           isActive
@@ -314,7 +333,7 @@ export default function AdminPage() {
 
         {/* Sticky sidebar */}
         <aside className="sticky top-6 bg-surface border border-border rounded-xl p-3">
-          <Sidebar active={activeTab} onSelect={setActiveTab} />
+          <Sidebar active={activeTab} onSelect={selectTab} />
         </aside>
 
         {/* Content panel */}
