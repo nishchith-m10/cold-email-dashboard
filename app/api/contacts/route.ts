@@ -112,19 +112,22 @@ export async function GET(req: NextRequest) {
         { count: 'exact' }
       )
       .eq('workspace_id', workspaceId);
-    
-    query = query.order('id', { ascending: true }).range(from, to);
 
+    // Apply search BEFORE range so we paginate the filtered set, not filter the paginated window
     if (search) {
       const term = `%${search}%`;
       query = query.or(
         [
           `email_address.ilike.${term}`,
           `full_name.ilike.${term}`,
-          `company.ilike.${term}`,
+          `organization_name.ilike.${term}`,
+          `position.ilike.${term}`,
+          `industry.ilike.${term}`,
         ].join(',')
       );
     }
+
+    query = query.order('id', { ascending: true }).range(from, to);
 
     const { data, error, count } = await query;
 
