@@ -124,72 +124,74 @@ export function useOptionalTimezone(): TimezoneContextValue | undefined {
  * Format a date in the user's selected timezone
  */
 export function formatInTimezone(
-  date: Date | string, 
-  timezone: string, 
-  formatStr: string = 'short'
+  date: Date | string,
+  timezone: string,
+  formatStr: string = 'short',
+  locale: string = 'en-US'
 ): string {
   const d = typeof date === 'string' ? new Date(date) : date;
-  
+
   const options: Intl.DateTimeFormatOptions = {
     timeZone: timezone,
   };
 
   switch (formatStr) {
     case 'short':
-      return d.toLocaleDateString('en-US', { 
-        ...options, 
-        month: 'short', 
-        day: 'numeric' 
+      return d.toLocaleDateString(locale, {
+        ...options,
+        month: 'short',
+        day: 'numeric',
       });
     case 'long':
-      return d.toLocaleDateString('en-US', { 
-        ...options, 
-        month: 'long', 
-        day: 'numeric', 
-        year: 'numeric' 
-      });
-    case 'datetime':
-      return d.toLocaleString('en-US', { 
-        ...options, 
-        month: 'short', 
-        day: 'numeric', 
-        hour: 'numeric', 
-        minute: '2-digit' 
-      });
-    case 'datetime-full':
-      return d.toLocaleString('en-US', { 
-        ...options, 
-        month: 'short', 
+      return d.toLocaleDateString(locale, {
+        ...options,
+        month: 'long',
         day: 'numeric',
         year: 'numeric',
-        hour: 'numeric', 
+      });
+    case 'datetime':
+      return d.toLocaleString(locale, {
+        ...options,
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
         minute: '2-digit',
-        second: '2-digit'
+      });
+    case 'datetime-full':
+      return d.toLocaleString(locale, {
+        ...options,
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
       });
     case 'time':
-      return d.toLocaleTimeString('en-US', { 
-        ...options, 
-        hour: 'numeric', 
-        minute: '2-digit' 
+      return d.toLocaleTimeString('en-US', {
+        ...options,
+        hour: 'numeric',
+        minute: '2-digit',
       });
     case 'time-24':
-      return d.toLocaleTimeString('en-US', { 
-        ...options, 
-        hour: '2-digit', 
+      return d.toLocaleTimeString('en-US', {
+        ...options,
+        hour: '2-digit',
         minute: '2-digit',
-        hour12: false
+        hour12: false,
       });
-    case 'iso':
-      // Return YYYY-MM-DD in the specified timezone
-      const formatter = new Intl.DateTimeFormat('en-CA', { 
-        ...options, 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit' 
+    case 'iso': {
+      // Return YYYY-MM-DD in the specified timezone (always en-CA for ISO)
+      const formatter = new Intl.DateTimeFormat('en-CA', {
+        ...options,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
       });
       return formatter.format(d);
+    }
     case 'full':
-      return d.toLocaleDateString('en-US', {
+      return d.toLocaleDateString(locale, {
         ...options,
         weekday: 'long',
         year: 'numeric',
@@ -197,10 +199,10 @@ export function formatInTimezone(
         day: 'numeric',
       });
     default:
-      return d.toLocaleDateString('en-US', { 
-        ...options, 
-        month: 'short', 
-        day: 'numeric' 
+      return d.toLocaleDateString(locale, {
+        ...options,
+        month: 'short',
+        day: 'numeric',
       });
   }
 }

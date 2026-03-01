@@ -12,12 +12,12 @@ import {
   Zap, 
   Shield, 
   BarChart3,
-  Loader2,
   CheckCircle,
   AlertCircle,
   Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AppLoadingSpinner } from '@/components/ui/loading-states';
 import { cn } from '@/lib/utils';
 import { useWorkspace } from '@/lib/workspace-context';
 
@@ -109,7 +109,7 @@ export function JoinTeamPageClient() {
   if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-accent-primary" />
+        <AppLoadingSpinner />
       </div>
     );
   }

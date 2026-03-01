@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { useWorkspaceConfig } from '@/hooks/use-workspace-config';
 import { usePermissions } from '@/lib/hooks/use-permissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AppLoadingSpinner } from '@/components/ui/loading-states';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -65,9 +66,8 @@ export function ConfigVaultTab() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-muted-foreground">Loading configuration...</span>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <AppLoadingSpinner size={22} />
       </div>
     );
   }

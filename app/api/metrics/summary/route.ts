@@ -24,6 +24,8 @@ interface SummaryResponse {
   sends_change_pct: number;
   reply_rate_change_pp: number;
   opt_out_rate_change_pp: number;
+  click_rate_change_pp: number;
+  cost_change_pct: number;
   prev_sends: number;
   prev_reply_rate_pct: number;
   start_date: string;
@@ -169,7 +171,27 @@ async function fetchSummaryData(
     sends: prevEvents.filter(e => e.event_type === 'sent').length,
     replies: prevEvents.filter(e => e.event_type === 'replied').length,
     opt_outs: prevEvents.filter(e => e.event_type === 'opt_out').length,
+    clicks: prevEvents.filter(e => e.event_type === 'clicked').length,
   };
+
+  // Previous period cost
+  let prevCostQuery = supabaseAdmin!
+    .from('llm_usage')
+    .select('cost_usd')
+    .gte('created_at', `${prevStartDate}T00:00:00Z`)
+    .lte('created_at', `${prevEndDate}T23:59:59Z`);
+  if (campaign) {
+    prevCostQuery = prevCostQuery.eq('campaign_name', campaign);
+  } else {
+    for (const excludedCampaign of EXCLUDED_CAMPAIGNS) {
+      prevCostQuery = prevCostQuery.neq('campaign_name', excludedCampaign);
+    }
+  }
+  const prevCostResult = await prevCostQuery;
+  const prevTotalCost = (prevCostResult.data || []).reduce(
+    (sum, row) => sum + (Number(row.cost_usd) || 0),
+    0
+  );
 
   const prevReplyRatePct = prevTotals.sends > 0
     ? Number(((prevTotals.replies / prevTotals.sends) * 100).toFixed(2))
@@ -180,6 +202,15 @@ async function fetchSummaryData(
     ? Number((((totals.sends - prevTotals.sends) / prevTotals.sends) * 100).toFixed(1))
     : 0;
   const replyRateChange = Number((replyRatePct - prevReplyRatePct).toFixed(2));
+
+  const prevClickRatePct = prevTotals.sends > 0
+    ? Number(((prevTotals.clicks / prevTotals.sends) * 100).toFixed(2))
+    : 0;
+  const clickRateChange = Number((clickRatePct - prevClickRatePct).toFixed(2));
+
+  const costChangePct = prevTotalCost > 0
+    ? Number((((totalCost - prevTotalCost) / prevTotalCost) * 100).toFixed(1))
+    : 0;
 
   return {
     sends: totals.sends,
@@ -197,6 +228,8 @@ async function fetchSummaryData(
     sends_change_pct: sendsChange,
     reply_rate_change_pp: replyRateChange,
     opt_out_rate_change_pp: 0,
+    click_rate_change_pp: clickRateChange,
+    cost_change_pct: costChangePct,
     prev_sends: prevTotals.sends,
     prev_reply_rate_pct: prevReplyRatePct,
     start_date: startDate,

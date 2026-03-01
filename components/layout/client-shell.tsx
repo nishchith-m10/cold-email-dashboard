@@ -12,6 +12,7 @@ import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
 import { WorkspaceProvider, useWorkspace } from '@/lib/workspace-context';
 import { TimezoneProvider } from '@/lib/timezone-context';
 import { CurrencyProvider } from '@/lib/currency-context';
+import { DateFormatProvider } from '@/lib/date-format-context';
 import { SidebarProvider, useSidebar } from '@/lib/sidebar-context';
 import { SWRProvider } from '@/lib/swr-config';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
@@ -19,7 +20,8 @@ import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { MobileBottomNav, MobileHeader, MobileDrawer } from '@/components/mobile';
 import { ShareDialog } from '@/components/dashboard/share-dialog';
 import { SignedIn, SignedOut, SignInButton, useAuth } from '@clerk/nextjs';
-import { Zap, Mail, BarChart3, Shield, Loader2 } from 'lucide-react';
+import { Zap, Mail, BarChart3, Shield } from 'lucide-react';
+import { AppLoadingSpinner } from '@/components/ui/loading-states';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -47,8 +49,8 @@ function WorkspaceGate({ children }: { children: React.ReactNode }) {
   // Show loading while checking workspace access
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-accent-primary" />
+      <div className="flex items-center justify-center min-h-screen">
+        <AppLoadingSpinner />
       </div>
     );
   }
@@ -61,8 +63,8 @@ function WorkspaceGate({ children }: { children: React.ReactNode }) {
   // If needs onboarding, show nothing (redirect will happen to /join)
   if (needsOnboarding) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-accent-primary" />
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <AppLoadingSpinner />
       </div>
     );
   }
@@ -132,14 +134,9 @@ export function ClientShell({ children }: ClientShellProps) {
       <WorkspaceProvider>
         <TimezoneProvider>
           <CurrencyProvider>
+            <DateFormatProvider>
             <SidebarProvider>
-              {/* Background pattern - Hidden on clean layout pages */}
-              {pathname !== '/join' && (
-                <div className="fixed inset-0 -z-10">
-                  <div className="absolute inset-0 bg-gradient-to-br from-accent-primary/5 via-transparent to-accent-purple/5" />
-                  <div className="absolute inset-0 dot-pattern opacity-30" />
-                </div>
-              )}
+              {/* Solid background — no gradient or dot-pattern overlay */}
 
               {/* Hybrid Navigation - Hidden on clean layout pages */}
               {pathname !== '/join' && (
@@ -247,6 +244,7 @@ export function ClientShell({ children }: ClientShellProps) {
                 </main>
               </SignedOut>
             </SidebarProvider>
+            </DateFormatProvider>
           </CurrencyProvider>
         </TimezoneProvider>
       </WorkspaceProvider>

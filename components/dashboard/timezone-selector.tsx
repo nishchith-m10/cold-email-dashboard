@@ -75,7 +75,7 @@ export function TimezoneSelector({
       <Popover.Trigger asChild>
         <Button
           variant="outline"
-          className={cn('justify-start gap-1.5 min-w-[100px] h-8 px-2.5 text-xs', className)}
+          className={cn('justify-start gap-1.5 w-full h-9 px-3 text-sm', className)}
           disabled={disabled}
         >
           {isAutoDetected ? (
@@ -83,7 +83,7 @@ export function TimezoneSelector({
           ) : (
             <Globe className="h-3.5 w-3.5 text-text-secondary" />
           )}
-          <span className="flex-1 text-left">{selected.offset}</span>
+          <span className="flex-1 text-left">{selected.label}</span>
           <ChevronDown className={cn(
             'h-3.5 w-3.5 text-text-secondary transition-transform',
             isOpen && 'rotate-180'
@@ -94,12 +94,12 @@ export function TimezoneSelector({
       <Popover.Portal>
         <Popover.Content
           className="z-50 animate-in fade-in-0 zoom-in-95"
-          sideOffset={8}
-          align="end"
+          sideOffset={6}
+          align="start"
         >
-          <div className="rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-[#141416] p-2 min-w-[180px]">
+          <div className="rounded-xl border border-border bg-surface shadow-xl p-1.5 w-64">
             <div className="flex items-center justify-between px-2 py-1.5 mb-1">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-text-secondary">
                 Timezone
               </p>
               {detectedTz !== selectedTimezone && (
@@ -123,10 +123,10 @@ export function TimezoneSelector({
                   setIsOpen(false);
                 }}
                 className={cn(
-                  'w-full rounded-md px-2 py-1.5 text-left text-xs transition flex justify-between items-center',
+                  'w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors flex justify-between items-center',
                   tz.value === selectedTimezone
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+                    ? 'bg-accent-primary/10 text-accent-primary'
+                    : 'text-text-primary hover:bg-surface-elevated'
                 )}
               >
                 <span className="flex items-center gap-1.5">
@@ -135,7 +135,7 @@ export function TimezoneSelector({
                     <MapPin className="h-3 w-3 text-accent-success" />
                   )}
                 </span>
-                <span className="text-slate-400 dark:text-slate-500">{tz.offset}</span>
+                <span className="text-text-secondary">{tz.offset}</span>
               </button>
             ))}
           </div>

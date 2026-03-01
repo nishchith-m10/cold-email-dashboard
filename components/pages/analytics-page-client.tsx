@@ -3,9 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { format } from 'date-fns';
-import { Calendar, Cpu } from 'lucide-react';
-import * as Popover from '@radix-ui/react-popover';
+import { Cpu } from 'lucide-react';
 import { toISODate, daysAgo, formatNumber } from '@/lib/utils';
 import { getModelDisplayName } from '@/lib/constants';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
@@ -15,11 +13,10 @@ import { useFormatCurrency } from '@/hooks/use-format-currency';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { MetricCard } from '@/components/dashboard/metric-card';
 import { TimeSeriesChart } from '@/components/dashboard/time-series-chart';
 import { DonutChart } from '@/components/dashboard/donut-chart';
-import { DateRangePickerContent } from '@/components/dashboard/date-range-picker-content';
+import { DateRangePicker } from '@/components/dashboard/date-range-picker';
 import { ProviderSelector, ProviderId } from '@/components/dashboard/provider-selector';
 import { DailyCostChart } from '@/components/dashboard/daily-cost-chart';
 import { SenderBreakdown } from '@/components/dashboard/sender-breakdown';
@@ -40,7 +37,6 @@ export function AnalyticsPageClient() {
   
   const { workspace } = useWorkspace();
   const [selectedProvider, setSelectedProvider] = useState<ProviderId | undefined>();
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
   
   // Timezone from context (synced with workspace settings)
   const { timezone } = useTimezone();
@@ -121,37 +117,12 @@ export function AnalyticsPageClient() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Calendar Date Range - Icon Only */}
-          <div className="relative">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              title={`${format(new Date(startDate), 'MMM d')} - ${format(new Date(endDate), 'MMM d, yyyy')}`}
-              onClick={() => setDatePickerOpen(!datePickerOpen)}
-            >
-              <Calendar className="h-4 w-4" />
-            </Button>
-            
-            {datePickerOpen && (
-              <>
-                <div 
-                  className="fixed inset-0 z-40" 
-                  onClick={() => setDatePickerOpen(false)}
-                />
-                <div className="absolute top-full right-0 mt-2 z-50">
-                  <DateRangePickerContent
-                    startDate={startDate}
-                    endDate={endDate}
-                    onDateChange={(start, end) => {
-                      handleDateChange(start, end);
-                      setDatePickerOpen(false);
-                    }}
-                  />
-                </div>
-              </>
-            )}
-          </div>
+          {/* Calendar Date Range - Full picker with date text */}
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onDateChange={handleDateChange}
+          />
 
           {/* Provider Selector */}
           <ProviderSelector

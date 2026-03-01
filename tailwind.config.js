@@ -38,7 +38,7 @@ module.exports = {
         'touch-lg': '48px',
       },
       colors: {
-        background: '#0a0a0b',
+        background: '#0B0B0B',
         surface: '#141416',
         'surface-elevated': '#1c1c1f',
         border: '#27272a',

@@ -15,8 +15,8 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Loader2,
   Play,
+  Loader2,
 } from 'lucide-react';
 
 /* ---------- Types ---------- */
@@ -112,7 +112,7 @@ function ExecutionHistoryComponent({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full min-h-[100px]">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <AppLoadingSpinner size={32} />
       </div>
     );
   }

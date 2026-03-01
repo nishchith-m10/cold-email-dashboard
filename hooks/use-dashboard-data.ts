@@ -41,6 +41,8 @@ interface AggregateResponse {
     sends_change_pct: number;
     reply_rate_change_pp: number;
     opt_out_rate_change_pp: number;
+    click_rate_change_pp: number;
+    cost_change_pct: number;
     prev_sends: number;
     prev_reply_rate_pct: number;
   };
@@ -196,6 +198,8 @@ export function useDashboardData(params: DashboardParams): DashboardData {
       sends_change_pct: s.sends_change_pct,
       reply_rate_change_pp: s.reply_rate_change_pp,
       opt_out_rate_change_pp: s.opt_out_rate_change_pp,
+      click_rate_change_pp: s.click_rate_change_pp,
+      cost_change_pct: s.cost_change_pct,
       prev_sends: s.prev_sends,
       prev_reply_rate_pct: s.prev_reply_rate_pct,
       start_date: aggregateData.dateRange.start,

@@ -9,10 +9,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AppLoadingSpinner } from '@/components/ui/loading-states';
 import { 
   ChevronLeft, 
   Check, 
-  Loader2,
   Clock,
   Globe,
   Building2,
@@ -368,8 +368,8 @@ export function GenesisOnboardingWizard({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-accent-primary" />
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <AppLoadingSpinner />
       </div>
     );
   }

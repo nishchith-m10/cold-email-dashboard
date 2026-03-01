@@ -57,8 +57,8 @@ export function ProviderSelector({
       <Select.Trigger
         className={cn(
           'inline-flex items-center justify-between gap-1.5 rounded-md px-2.5 h-8',
-          'bg-surface-elevated border border-border text-xs font-medium text-text-primary',
-          'hover:bg-surface-elevated/80 transition-colors min-w-[140px]',
+          'bg-transparent border border-border text-xs font-medium text-text-primary',
+          'hover:bg-surface-elevated transition-colors min-w-[140px]',
           'focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-2 focus:ring-offset-background',
           'disabled:opacity-50 disabled:pointer-events-none',
           className
