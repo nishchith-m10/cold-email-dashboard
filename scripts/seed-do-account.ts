@@ -93,13 +93,13 @@ async function main() {
   console.log("══════════════════════════════════════════════════\n");
 
   // ── 1. Validate env vars ─────────────────────────────────
-  const doToken = process.env.DO_API_TOKEN;
+  const doToken = process.env.DO_API_TOKEN || process.env.DIGITALOCEAN_API_TOKEN || process.env.DO_TOKEN;
   const encryptionKey = process.env.INTERNAL_ENCRYPTION_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   const missing: string[] = [];
-  if (!doToken) missing.push("DO_API_TOKEN");
+  if (!doToken) missing.push("DO_API_TOKEN (or DIGITALOCEAN_API_TOKEN / DO_TOKEN)");
   if (!encryptionKey) missing.push("INTERNAL_ENCRYPTION_KEY");
   if (!supabaseUrl) missing.push("NEXT_PUBLIC_SUPABASE_URL");
   if (!supabaseKey) missing.push("SUPABASE_SERVICE_ROLE_KEY");
