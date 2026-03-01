@@ -38,7 +38,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Overview', href: '/', icon: LayoutDashboard },
+  { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Analytics', href: '/analytics', icon: BarChart3 },
   { label: 'Contacts', href: '/contacts', icon: Users },
   { label: 'Sequences', href: '/sequences', icon: Mail },
@@ -164,7 +164,7 @@ export function Sidebar() {
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
-          const fullHref = item.href === '/' ? `/${query}` : `${item.href}${query}`;
+          const fullHref = `${item.href}${query}`;
 
           return (
             <Link
