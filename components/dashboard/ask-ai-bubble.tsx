@@ -123,7 +123,7 @@ export function AskAIBubble({ visible, onHide }: AskAIBubbleProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed bottom-[3.5rem] right-6 z-[198] w-[420px] max-h-[min(600px,calc(100vh-8rem))] rounded-2xl bg-surface border border-border shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-[7.5rem] md:bottom-[3.5rem] left-3 right-3 md:left-auto md:right-6 z-[198] w-auto md:w-[420px] max-h-[min(280px,40vh)] md:max-h-[min(600px,calc(100vh-8rem))] rounded-2xl bg-surface border border-border shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Popup Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-surface-elevated/50">
@@ -158,7 +158,7 @@ export function AskAIBubble({ visible, onHide }: AskAIBubbleProps) {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 400, damping: 20, delay: 0.3 }}
         className={cn(
-          'fixed bottom-6 right-6 z-[197] h-8 w-8 rounded-full',
+          'fixed bottom-[4.5rem] md:bottom-6 right-4 md:right-6 z-[197] h-8 w-8 rounded-full',
           'bg-accent-primary hover:bg-accent-primary/90 shadow-lg hover:shadow-xl',
           'flex items-center justify-center transition-shadow',
           'focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:ring-offset-2 focus:ring-offset-background',

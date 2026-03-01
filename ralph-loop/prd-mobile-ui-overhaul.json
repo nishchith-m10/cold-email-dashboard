@@ -1,15 +1,15 @@
 {
   "project": "cold-email-dashboard",
   "branchName": "mobile-ui-overhaul",
-  "description": "Mobile UI Overhaul — Full audit and systematic fix of mobile layout layering, navigation redundancy, content overflow, and FAB UX. Every issue traced to source code in this session. Desktop UI is completely untouched.",
+  "description": "Mobile UI Overhaul \u2014 Full audit and systematic fix of mobile layout layering, navigation redundancy, content overflow, and FAB UX. Every issue traced to source code in this session. Desktop UI is completely untouched.",
   "auditFindings": {
-    "doubleHeader": "TopNavbar (fixed z-50 h-12) has no md-only guard — renders on mobile AND desktop. MobileHeader (sticky z-40 h-14 md:hidden) renders on mobile only. Result: two headers stack on mobile.",
-    "contentMarginBug": "MainContentWithSidebar in client-shell.tsx applies marginLeft:effectiveWidth (200px expanded / 48px collapsed) and width:calc(100vw-effectiveWidth) as INLINE STYLES on ALL screen sizes. Sidebar is correctly hidden md:flex, but the margin still pushes all mobile content 48–200px to the right.",
-    "topMarginWrong": "MainContentWithSidebar applies mt-12 (48px) on ALL screens to offset fixed TopNavbar. On mobile, TopNavbar is hidden (after fix), and MobileHeader is sticky inside the content flow — so the mt-12 creates a 48px phantom gap above the mobile header.",
+    "doubleHeader": "TopNavbar (fixed z-50 h-12) has no md-only guard \u2014 renders on mobile AND desktop. MobileHeader (sticky z-40 h-14 md:hidden) renders on mobile only. Result: two headers stack on mobile.",
+    "contentMarginBug": "MainContentWithSidebar in client-shell.tsx applies marginLeft:effectiveWidth (200px expanded / 48px collapsed) and width:calc(100vw-effectiveWidth) as INLINE STYLES on ALL screen sizes. Sidebar is correctly hidden md:flex, but the margin still pushes all mobile content 48\u2013200px to the right.",
+    "topMarginWrong": "MainContentWithSidebar applies mt-12 (48px) on ALL screens to offset fixed TopNavbar. On mobile, TopNavbar is hidden (after fix), and MobileHeader is sticky inside the content flow \u2014 so the mt-12 creates a 48px phantom gap above the mobile header.",
     "noBottomPadding": "No page or wrapper adds bottom padding to clear the 56px fixed MobileBottomNav. Content scrolls behind the bottom nav bar on every page.",
     "fabConfusion": "FloatingActionButton (purple, bottom-right) expands a 3-action speed dial: New Campaign / Add Contact / Create Sequence. Pages can't talk to it (not context-aware). The actions duplicate what the nav already provides. The button is visually jarring and conflicts with the bottom nav.",
     "missingNotificationsOnMobile": "Notification bell in TopNavbar is desktop-only. On mobile, TopNavbar is hidden (will be after fix), so notifications become inaccessible. MobileHeader has no notification bell.",
-    "urlParamBleed": "MobileBottomNav passes the full raw searchParams (including ?group= campaign filter) to every tab link. Switching from Contacts (filtered by campaign) to Dashboard carries the ?group= param — wrong and misleading."
+    "urlParamBleed": "MobileBottomNav passes the full raw searchParams (including ?group= campaign filter) to every tab link. Switching from Contacts (filtered by campaign) to Dashboard carries the ?group= param \u2014 wrong and misleading."
   },
   "userStories": [
     {
@@ -19,7 +19,7 @@
       "acceptanceCriteria": [
         "TopNavbar `<header>` element has `hidden md:block` added to its className",
         "No TopNavbar visible on screens below 768px",
-        "Desktop TopNavbar unchanged — still renders and functions on md+ breakpoints",
+        "Desktop TopNavbar unchanged \u2014 still renders and functions on md+ breakpoints",
         "MobileHeader is the sole header on mobile",
         "npx tsc --noEmit passes (use NODE_OPTIONS='--max-old-space-size=4096' --skipLibCheck)"
       ],
@@ -27,12 +27,12 @@
     },
     {
       "id": "MOB-002",
-      "title": "Fix Main Content — Zero Sidebar Margin on Mobile",
-      "description": "MainContentWithSidebar in components/layout/client-shell.tsx applies `marginLeft: effectiveWidth` and `width: calc(100vw - effectiveWidth)` as inline styles unconditionally. On mobile, the sidebar is `hidden md:flex` (invisible) but the inline margin still offsets content 48–200px left. Fix: add a `useIsMobile()` pattern — detect if window.innerWidth < 768 on mount via a React state+effect, and when mobile, set marginLeft to 0 and width to '100%'. Use a `isMobile` boolean initialized to `true` (mobile-first) to avoid a flash of wrong layout on initial render.",
+      "title": "Fix Main Content \u2014 Zero Sidebar Margin on Mobile",
+      "description": "MainContentWithSidebar in components/layout/client-shell.tsx applies `marginLeft: effectiveWidth` and `width: calc(100vw - effectiveWidth)` as inline styles unconditionally. On mobile, the sidebar is `hidden md:flex` (invisible) but the inline margin still offsets content 48\u2013200px left. Fix: add a `useIsMobile()` pattern \u2014 detect if window.innerWidth < 768 on mount via a React state+effect, and when mobile, set marginLeft to 0 and width to '100%'. Use a `isMobile` boolean initialized to `true` (mobile-first) to avoid a flash of wrong layout on initial render.",
       "acceptanceCriteria": [
         "On mobile (<768px), main content has marginLeft 0px and width 100%",
         "On desktop (>=768px), main content uses effectiveWidth from SidebarContext as before",
-        "Content fills full viewport width on mobile — no left offset from sidebar",
+        "Content fills full viewport width on mobile \u2014 no left offset from sidebar",
         "Sidebar expand/collapse animation still works correctly on desktop",
         "Resize from mobile to desktop dynamically updates the margin (resize observer or window resize event)",
         "npx tsc --noEmit passes"
@@ -66,7 +66,7 @@
     {
       "id": "MOB-005",
       "title": "Remove Confusing FAB from Mobile",
-      "description": "The FloatingActionButton (components/ui/floating-action-button.tsx) renders a purple button at bottom-right that expands a 3-action speed dial (New Campaign, Add Contact, Create Sequence). These are context-unaware, duplicate what the bottom nav provides, and the purple button conflicts visually. Remove the `<FloatingActionButton />` render from client-shell.tsx. Do not delete the component file itself — just stop rendering it. All actions remain accessible via MobileBottomNav tabs and MobileDrawer.",
+      "description": "The FloatingActionButton (components/ui/floating-action-button.tsx) renders a purple button at bottom-right that expands a 3-action speed dial (New Campaign, Add Contact, Create Sequence). These are context-unaware, duplicate what the bottom nav provides, and the purple button conflicts visually. Remove the `<FloatingActionButton />` render from client-shell.tsx. Do not delete the component file itself \u2014 just stop rendering it. All actions remain accessible via MobileBottomNav tabs and MobileDrawer.",
       "acceptanceCriteria": [
         "<FloatingActionButton /> removed from the SignedIn block in client-shell.tsx",
         "No purple floating button visible on any mobile page",
@@ -97,8 +97,8 @@
     },
     {
       "id": "MOB-007",
-      "title": "MobileBottomNav — Selective URL Param Preservation",
-      "description": "MobileBottomNav (components/mobile/bottom-nav.tsx) currently appends the full raw searchParams.toString() to every tab link. This bleeds ?group= (campaign filter) across pages — e.g. going from /contacts?group=abc to /dashboard carries ?group=abc which should not apply on the dashboard. Fix the query construction: preserve ?workspace= and optionally ?start=/?end=, but explicitly exclude ?group= when building the nav link query string.",
+      "title": "MobileBottomNav \u2014 Selective URL Param Preservation",
+      "description": "MobileBottomNav (components/mobile/bottom-nav.tsx) currently appends the full raw searchParams.toString() to every tab link. This bleeds ?group= (campaign filter) across pages \u2014 e.g. going from /contacts?group=abc to /dashboard carries ?group=abc which should not apply on the dashboard. Fix the query construction: preserve ?workspace= and optionally ?start=/?end=, but explicitly exclude ?group= when building the nav link query string.",
       "acceptanceCriteria": [
         "?workspace= URL param is preserved when navigating between bottom nav tabs",
         "?start= and ?end= date range params are preserved when navigating between tabs",
@@ -112,7 +112,7 @@
     {
       "id": "MOB-008",
       "title": "Add viewport-fit=cover for iOS Safe Area Insets",
-      "description": "app/layout.tsx exports `metadata` but no `viewport` export. Without `viewport-fit=cover` in the viewport meta tag, `env(safe-area-inset-bottom)` and `env(safe-area-inset-top)` resolve to 0 on iOS Safari — meaning the CSS variables `--safe-area-bottom` and `--safe-area-top` (defined in globals.css lines 34–35) are always 0. On iPhone X and newer, the 34px home indicator bar overlaps the MobileBottomNav because there's no padding compensation. Fix: add `export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' }` to app/layout.tsx, importing `Viewport` from 'next'. The globals.css `env()` values will then resolve correctly on real iOS devices.",
+      "description": "app/layout.tsx exports `metadata` but no `viewport` export. Without `viewport-fit=cover` in the viewport meta tag, `env(safe-area-inset-bottom)` and `env(safe-area-inset-top)` resolve to 0 on iOS Safari \u2014 meaning the CSS variables `--safe-area-bottom` and `--safe-area-top` (defined in globals.css lines 34\u201335) are always 0. On iPhone X and newer, the 34px home indicator bar overlaps the MobileBottomNav because there's no padding compensation. Fix: add `export const viewport: Viewport = { width: 'device-width', initialScale: 1, viewportFit: 'cover' }` to app/layout.tsx, importing `Viewport` from 'next'. The globals.css `env()` values will then resolve correctly on real iOS devices.",
       "acceptanceCriteria": [
         "app/layout.tsx exports a `viewport` constant of type `Viewport` from 'next'",
         "viewport includes `viewportFit: 'cover'`",
@@ -124,25 +124,111 @@
     },
     {
       "id": "MOB-009",
-      "title": "Analytics Page — Mobile Date Picker and Bottom Padding",
-      "description": "analytics-page-client.tsx has two mobile-specific issues. (1) The header controls use `<DateRangePicker>` unconditionally (line 122) — this is the full desktop calendar popover with text labels that is too wide for mobile viewports. It should use `<DateRangePickerMobile>` on mobile and `<DateRangePicker>` on desktop, same pattern as dashboard-page-client.tsx and contacts page. Wrap DateRangePicker in `hidden md:block` and add a `block md:hidden` version using `DateRangePickerMobile`. (2) The root div (line 107) is `space-y-6 pt-4 md:pt-6` with no bottom padding — the last chart/card scrolls behind the 56px fixed MobileBottomNav on mobile. Add `pb-20 md:pb-8` to the root div.",
+      "title": "Analytics Page \u2014 Mobile Date Picker and Bottom Padding",
+      "description": "analytics-page-client.tsx has two mobile-specific issues. (1) The header controls use `<DateRangePicker>` unconditionally (line 122) \u2014 this is the full desktop calendar popover with text labels that is too wide for mobile viewports. It should use `<DateRangePickerMobile>` on mobile and `<DateRangePicker>` on desktop, same pattern as dashboard-page-client.tsx and contacts page. Wrap DateRangePicker in `hidden md:block` and add a `block md:hidden` version using `DateRangePickerMobile`. (2) The root div (line 107) is `space-y-6 pt-4 md:pt-6` with no bottom padding \u2014 the last chart/card scrolls behind the 56px fixed MobileBottomNav on mobile. Add `pb-20 md:pb-8` to the root div.",
       "acceptanceCriteria": [
-        "DateRangePicker (full calendar) wrapped in hidden md:block — desktop only",
-        "DateRangePickerMobile added in block md:hidden — visible on mobile",
+        "DateRangePicker (full calendar) wrapped in hidden md:block \u2014 desktop only",
+        "DateRangePickerMobile added in block md:hidden \u2014 visible on mobile",
         "Both pickers share the same startDate, endDate, onDateChange props",
-        "Root div has pb-20 md:pb-8 — last analytics widget fully visible above bottom nav on mobile",
+        "Root div has pb-20 md:pb-8 \u2014 last analytics widget fully visible above bottom nav on mobile",
         "npx tsc --noEmit passes"
       ],
       "passes": true
     },
     {
       "id": "MOB-010",
-      "title": "Dashboard Page — Add Bottom Padding for Bottom Nav",
+      "title": "Dashboard Page \u2014 Add Bottom Padding for Bottom Nav",
       "description": "dashboard-page-client.tsx root div (line 351) is `space-y-6 pt-4 md:pt-6` with no bottom padding. The last widget in the draggable grid is hidden behind the 56px fixed MobileBottomNav when scrolled to the bottom on mobile. Add `pb-20 md:pb-8` to this root div to ensure all widgets are reachable.",
       "acceptanceCriteria": [
         "dashboard-page-client.tsx root div has pb-20 md:pb-8",
         "On mobile, all dashboard widgets visible and scrollable past the bottom nav",
         "On desktop, pb-8 bottom padding unchanged",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "MOB-011",
+      "title": "Bottom Nav Label \u2014 'Home' to 'Overview'",
+      "description": "bottom-nav.tsx tabs array has label: 'Home' for the /dashboard route. Change to 'Overview'.",
+      "acceptanceCriteria": [
+        "bottom-nav.tsx: label for /dashboard route is 'Overview'",
+        "Bottom nav bar shows 'Overview' text on mobile",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "MOB-012",
+      "title": "AI Bubble \u2014 Position Above Bottom Nav on Mobile",
+      "description": "ask-ai-bubble.tsx bubble button at bottom-6 overlaps bottom nav on mobile. Move bubble to bottom-[4.5rem] md:bottom-6 right-4 md:right-6. Resize popup to compact on mobile: left-3 right-3, max-h-[min(280px,40vh)], bottom-[7.5rem] md:bottom-[3.5rem].",
+      "acceptanceCriteria": [
+        "Bubble button: bottom-[4.5rem] md:bottom-6 right-4 md:right-6",
+        "Popup: left-3 right-3 on mobile; w-auto md:w-[420px]; compact max-h on mobile",
+        "Bottom nav not obscured by AI bubble on mobile",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "MOB-013",
+      "title": "MobileHeader \u2014 Profile Dropdown with Appearance + Sign Out",
+      "description": "mobile-header.tsx: replace simple openUserProfile() avatar button with dropdown containing user info, Manage Account, Appearance toggle (useTheme), Sign Out (signOut + SignOutTransition).",
+      "acceptanceCriteria": [
+        "Profile avatar opens dropdown",
+        "Dropdown shows user name + email",
+        "Manage Account triggers openUserProfile()",
+        "Appearance section toggles theme",
+        "Sign Out triggers signOut() with SignOutTransition overlay",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "MOB-014",
+      "title": "MobileDrawer \u2014 Remove Appearance + Sign Out (Now in Header)",
+      "description": "mobile-drawer.tsx: remove Appearance section, Sign Out footer, SignOutTransition, handleSignOut, isSigningOut state, useTheme, Sun/Moon/LogOut imports. These features moved to MobileHeader profile dropdown (MOB-013).",
+      "acceptanceCriteria": [
+        "Drawer no longer shows Appearance section",
+        "Drawer no longer shows Sign Out footer",
+        "Related imports and state removed",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "MOB-015",
+      "title": "WorkflowCanvas \u2014 Hide MiniMap on Mobile",
+      "description": "WorkflowCanvas.tsx: add isMobile state with resize listener (window.innerWidth < 768), wrap MiniMap in conditional render so it only shows on md+ viewports.",
+      "acceptanceCriteria": [
+        "isMobile state tracks window.innerWidth < 768",
+        "MiniMap hidden on mobile viewports",
+        "MiniMap visible on md+ viewports",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "MOB-016",
+      "title": "SuperAdminPanel \u2014 Workspace List Scrollable on Mobile",
+      "description": "super-admin-panel.tsx workspace list div: add max-h-[70vh] overflow-y-auto pr-1 so long workspace lists are scrollable on mobile.",
+      "acceptanceCriteria": [
+        "Workspace list div has max-h-[70vh] overflow-y-auto",
+        "Long workspace lists scrollable on mobile",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true
+    },
+    {
+      "id": "MOB-017",
+      "title": "CampaignCardStack \u2014 Group Hierarchy (Group to Sequences)",
+      "description": "campaign-management-card-stack.tsx: rewrite to match desktop table group hierarchy. Use useCampaignGroups, build groupMap, split campaigns into ungrouped vs grouped, render expandable GroupCard with nested indented CampaignCard components. Wire deleteCampaign.",
+      "acceptanceCriteria": [
+        "useCampaignGroups used for groupMap",
+        "Grouped campaigns rendered inside expandable GroupCard",
+        "Ungrouped campaigns rendered as flat cards",
+        "GroupCard shows group name, sequence count, active count, chevron",
+        "deleteCampaign wired to Delete menu item",
         "npx tsc --noEmit passes"
       ],
       "passes": true

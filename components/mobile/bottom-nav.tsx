@@ -30,7 +30,7 @@ const tabs: NavTab[] = [
   {
     href: '/dashboard',
     icon: LayoutDashboard,
-    label: 'Home',
+    label: 'Overview',
     matchPath: '/dashboard',
   },
   {
