@@ -56,7 +56,7 @@ export function CampaignQuickCreate() {
             size="icon"
             title="Campaign Groups"
           >
-            <Layers className="h-5 w-5 text-text-secondary" />
+            <Layers className="h-5 w-5 text-text-secondary hover:text-text-primary" />
           </Button>
         </DropdownMenuTrigger>
 
