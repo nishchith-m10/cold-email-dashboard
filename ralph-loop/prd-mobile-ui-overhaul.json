@@ -1,0 +1,113 @@
+{
+  "project": "cold-email-dashboard",
+  "branchName": "mobile-ui-overhaul",
+  "description": "Mobile UI Overhaul — Full audit and systematic fix of mobile layout layering, navigation redundancy, content overflow, and FAB UX. Every issue traced to source code in this session. Desktop UI is completely untouched.",
+  "auditFindings": {
+    "doubleHeader": "TopNavbar (fixed z-50 h-12) has no md-only guard — renders on mobile AND desktop. MobileHeader (sticky z-40 h-14 md:hidden) renders on mobile only. Result: two headers stack on mobile.",
+    "contentMarginBug": "MainContentWithSidebar in client-shell.tsx applies marginLeft:effectiveWidth (200px expanded / 48px collapsed) and width:calc(100vw-effectiveWidth) as INLINE STYLES on ALL screen sizes. Sidebar is correctly hidden md:flex, but the margin still pushes all mobile content 48–200px to the right.",
+    "topMarginWrong": "MainContentWithSidebar applies mt-12 (48px) on ALL screens to offset fixed TopNavbar. On mobile, TopNavbar is hidden (after fix), and MobileHeader is sticky inside the content flow — so the mt-12 creates a 48px phantom gap above the mobile header.",
+    "noBottomPadding": "No page or wrapper adds bottom padding to clear the 56px fixed MobileBottomNav. Content scrolls behind the bottom nav bar on every page.",
+    "fabConfusion": "FloatingActionButton (purple, bottom-right) expands a 3-action speed dial: New Campaign / Add Contact / Create Sequence. Pages can't talk to it (not context-aware). The actions duplicate what the nav already provides. The button is visually jarring and conflicts with the bottom nav.",
+    "missingNotificationsOnMobile": "Notification bell in TopNavbar is desktop-only. On mobile, TopNavbar is hidden (will be after fix), so notifications become inaccessible. MobileHeader has no notification bell.",
+    "urlParamBleed": "MobileBottomNav passes the full raw searchParams (including ?group= campaign filter) to every tab link. Switching from Contacts (filtered by campaign) to Dashboard carries the ?group= param — wrong and misleading."
+  },
+  "userStories": [
+    {
+      "id": "MOB-001",
+      "title": "Hide TopNavbar on Mobile",
+      "description": "TopNavbar (components/layout/top-navbar.tsx) renders on all screen sizes. The `<header>` element has class `fixed top-0 left-0 right-0 z-50 w-full h-12 ...` with no mobile-hide guard. This causes a double-header on mobile when combined with MobileHeader. Add `hidden md:block` to the outer `<header>` element in top-navbar.tsx so the TopNavbar is desktop-only. Do not touch any other classes or the component's internal logic.",
+      "acceptanceCriteria": [
+        "TopNavbar `<header>` element has `hidden md:block` added to its className",
+        "No TopNavbar visible on screens below 768px",
+        "Desktop TopNavbar unchanged — still renders and functions on md+ breakpoints",
+        "MobileHeader is the sole header on mobile",
+        "npx tsc --noEmit passes (use NODE_OPTIONS='--max-old-space-size=4096' --skipLibCheck)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MOB-002",
+      "title": "Fix Main Content — Zero Sidebar Margin on Mobile",
+      "description": "MainContentWithSidebar in components/layout/client-shell.tsx applies `marginLeft: effectiveWidth` and `width: calc(100vw - effectiveWidth)` as inline styles unconditionally. On mobile, the sidebar is `hidden md:flex` (invisible) but the inline margin still offsets content 48–200px left. Fix: add a `useIsMobile()` pattern — detect if window.innerWidth < 768 on mount via a React state+effect, and when mobile, set marginLeft to 0 and width to '100%'. Use a `isMobile` boolean initialized to `true` (mobile-first) to avoid a flash of wrong layout on initial render.",
+      "acceptanceCriteria": [
+        "On mobile (<768px), main content has marginLeft 0px and width 100%",
+        "On desktop (>=768px), main content uses effectiveWidth from SidebarContext as before",
+        "Content fills full viewport width on mobile — no left offset from sidebar",
+        "Sidebar expand/collapse animation still works correctly on desktop",
+        "Resize from mobile to desktop dynamically updates the margin (resize observer or window resize event)",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MOB-003",
+      "title": "Fix Main Content Top Margin for Mobile",
+      "description": "MainContentWithSidebar applies `pb-8 mt-12` (48px top margin) on ALL screens to offset the fixed TopNavbar. After MOB-001, TopNavbar is hidden on mobile. MobileHeader is `sticky top-0` inside the content flow (not fixed), so the main element needs zero top margin on mobile. Change `mt-12` to `mt-0 md:mt-12` in the main element's className in client-shell.tsx. The `pb-8` will be replaced entirely by MOB-004.",
+      "acceptanceCriteria": [
+        "main element has `mt-0 md:mt-12` (no top margin on mobile, 48px on desktop)",
+        "No gap between MobileHeader and page content on mobile",
+        "Desktop content still starts 48px below the fixed TopNavbar",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MOB-004",
+      "title": "Add Global Bottom Padding for Bottom Nav",
+      "description": "MobileBottomNav is a fixed h-14 (56px) bar at the bottom. No page wrapper adds clearance. Content scrolls behind it. Replace the current `pb-8` in the main element's className in client-shell.tsx with `pb-20 md:pb-8`. 80px (pb-20) accounts for the 56px bottom nav plus a safe-area buffer. The `pb-8` is preserved for desktop. This is a single class change on the `<main>` element.",
+      "acceptanceCriteria": [
+        "main element has `pb-20 md:pb-8` replacing the existing `pb-8`",
+        "On mobile, last items on all pages (dashboard, contacts, analytics, sequences, settings) are fully visible above the bottom nav",
+        "On desktop, pb-8 bottom padding unchanged",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MOB-005",
+      "title": "Remove Confusing FAB from Mobile",
+      "description": "The FloatingActionButton (components/ui/floating-action-button.tsx) renders a purple button at bottom-right that expands a 3-action speed dial (New Campaign, Add Contact, Create Sequence). These are context-unaware, duplicate what the bottom nav provides, and the purple button conflicts visually. Remove the `<FloatingActionButton />` render from client-shell.tsx. Do not delete the component file itself — just stop rendering it. All actions remain accessible via MobileBottomNav tabs and MobileDrawer.",
+      "acceptanceCriteria": [
+        "<FloatingActionButton /> removed from the SignedIn block in client-shell.tsx",
+        "No purple floating button visible on any mobile page",
+        "The import of FloatingActionButton in client-shell.tsx also removed",
+        "All actions (contacts, sequences, settings, dashboard) still accessible via bottom nav",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MOB-006",
+      "title": "Add Notification Bell to MobileHeader",
+      "description": "Notifications are only accessible via TopNavbar which is desktop-only (after MOB-001). MobileHeader (components/mobile/mobile-header.tsx) currently shows: [Menu][Logo][Profile]. Add a notification bell icon between Logo and Profile using the `useNotifications` hook. When unread > 0, show a small red dot badge on the bell. Clicking opens a slide-down dropdown with the same structure as in TopNavbar (title, mark-all-read, scrollable list, dismiss per item). Keep the dropdown width to `w-80 max-w-[calc(100vw-2rem)]` so it fits on small screens.",
+      "acceptanceCriteria": [
+        "MobileHeader imports and uses useNotifications hook",
+        "Bell icon (lucide Bell) shown between logo area and profile avatar",
+        "Red dot badge appears when unreadCount > 0",
+        "Clicking bell toggles a dropdown notification list",
+        "Dropdown is scrollable, max-h-72, shows title + message + time ago per notification",
+        "Clicking a notification marks it as read (markAsRead)",
+        "Dismiss (X) button per notification calls dismiss(id)",
+        "Mark all read button when unreadCount > 0",
+        "Backdrop click closes dropdown",
+        "Dropdown bounded within screen width on small phones",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "MOB-007",
+      "title": "MobileBottomNav — Selective URL Param Preservation",
+      "description": "MobileBottomNav (components/mobile/bottom-nav.tsx) currently appends the full raw searchParams.toString() to every tab link. This bleeds ?group= (campaign filter) across pages — e.g. going from /contacts?group=abc to /dashboard carries ?group=abc which should not apply on the dashboard. Fix the query construction: preserve ?workspace= and optionally ?start=/?end=, but explicitly exclude ?group= when building the nav link query string.",
+      "acceptanceCriteria": [
+        "?workspace= URL param is preserved when navigating between bottom nav tabs",
+        "?start= and ?end= date range params are preserved when navigating between tabs",
+        "?group= campaign filter param is NOT carried over when switching pages",
+        "Any other incidental params (?new=, ?cursor=, etc.) are also dropped",
+        "Active tab indicator (animated bar) renders correctly on all 5 tabs",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": false
+    }
+  ]
+}
