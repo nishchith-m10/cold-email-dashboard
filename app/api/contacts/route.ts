@@ -78,6 +78,7 @@ export async function GET(req: NextRequest) {
   const from = (page - 1) * limit;
   const to = from + limit - 1;
   const search = searchParams.get('search')?.trim();
+  const campaignName = searchParams.get('campaign_name')?.trim();
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
 
@@ -112,6 +113,11 @@ export async function GET(req: NextRequest) {
         { count: 'exact' }
       )
       .eq('workspace_id', workspaceId);
+
+    // Apply campaign filter if specified
+    if (campaignName) {
+      query = query.eq('campaign_name', campaignName);
+    }
 
     // Apply search BEFORE range so we paginate the filtered set, not filter the paginated window
     if (search) {
