@@ -60,6 +60,15 @@ function WorkflowCanvasInner({
   // Track colorMode as state so it updates when DOM class changes
   const [colorMode, setColorMode] = useState<'light' | 'dark'>('dark');
 
+  // Hide MiniMap on small screens
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   // Listen for theme changes on the html element
   useEffect(() => {
     // Set initial value
@@ -201,17 +210,19 @@ function WorkflowCanvasInner({
           borderRadius: '8px',
         }}
       />
-      <MiniMap
-        nodeStrokeWidth={3}
-        zoomable
-        pannable
-        style={{
-          backgroundColor: currentColors.minimap,
-          border: `1px solid ${currentColors.minimapBorder}`,
-          borderRadius: '4px',
-        }}
-        nodeColor={() => currentColors.minimapNode}
-      />
+      {!isMobile && (
+        <MiniMap
+          nodeStrokeWidth={3}
+          zoomable
+          pannable
+          style={{
+            backgroundColor: currentColors.minimap,
+            border: `1px solid ${currentColors.minimapBorder}`,
+            borderRadius: '4px',
+          }}
+          nodeColor={() => currentColors.minimapNode}
+        />
+      )}
     </ReactFlow>
     </div>
   );

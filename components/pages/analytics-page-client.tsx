@@ -17,6 +17,7 @@ import { MetricCard } from '@/components/dashboard/metric-card';
 import { TimeSeriesChart } from '@/components/dashboard/time-series-chart';
 import { DonutChart } from '@/components/dashboard/donut-chart';
 import { DateRangePicker } from '@/components/dashboard/date-range-picker';
+import { DateRangePickerMobile } from '@/components/dashboard/date-range-picker-mobile';
 import { ProviderSelector, ProviderId } from '@/components/dashboard/provider-selector';
 import { DailyCostChart } from '@/components/dashboard/daily-cost-chart';
 import { SenderBreakdown } from '@/components/dashboard/sender-breakdown';
@@ -104,7 +105,7 @@ export function AnalyticsPageClient() {
   }, [searchParams, router]);
 
   return (
-    <div className="space-y-6 pt-4 md:pt-6">
+    <div className="space-y-6 pt-4 md:pt-6 pb-20 md:pb-8">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -117,12 +118,23 @@ export function AnalyticsPageClient() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Calendar Date Range - Full picker with date text */}
-          <DateRangePicker
-            startDate={startDate}
-            endDate={endDate}
-            onDateChange={handleDateChange}
-          />
+          {/* Calendar Date Range - Desktop full picker */}
+          <div className="hidden md:block">
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onDateChange={handleDateChange}
+            />
+          </div>
+
+          {/* Calendar Date Range - Mobile compact picker */}
+          <div className="block md:hidden">
+            <DateRangePickerMobile
+              startDate={startDate}
+              endDate={endDate}
+              onDateChange={handleDateChange}
+            />
+          </div>
 
           {/* Provider Selector */}
           <ProviderSelector
