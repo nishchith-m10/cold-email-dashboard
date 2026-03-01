@@ -128,7 +128,7 @@ function CampaignCard({
   campaign: Campaign;
   editingId: string | null;
   setEditingId: (id: string | null) => void;
-  handleToggle: (id: string, action: 'activate' | 'deactivate') => void;
+  handleToggle: (id: string, action: 'activate' | 'deactivate') => Promise<void>;
   handleRename: (id: string, name: string) => void;
   handleDelete: (id: string) => void;
   isToggling: string | boolean;
@@ -238,7 +238,7 @@ function GroupCard({
   onToggleExpand: () => void;
   editingId: string | null;
   setEditingId: (id: string | null) => void;
-  handleToggle: (id: string, action: 'activate' | 'deactivate') => void;
+  handleToggle: (id: string, action: 'activate' | 'deactivate') => Promise<void>;
   handleRename: (id: string, name: string) => void;
   handleDelete: (id: string) => void;
   isToggling: string | boolean;
