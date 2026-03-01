@@ -29,6 +29,8 @@ interface SummaryData {
   sends_change_pct: number;
   reply_rate_change_pp: number;
   opt_out_rate_change_pp: number;
+  click_rate_change_pp: number;
+  cost_change_pct: number;
   prev_sends: number;
   prev_reply_rate_pct: number;
 }
@@ -178,6 +180,8 @@ function emptyResponse(startDate: string, endDate: string): AggregateResponse {
       sends_change_pct: 0,
       reply_rate_change_pp: 0,
       opt_out_rate_change_pp: 0,
+      click_rate_change_pp: 0,
+      cost_change_pct: 0,
       prev_sends: 0,
       prev_reply_rate_pct: 0,
     },
@@ -302,6 +306,18 @@ async function fetchAggregateData(
     supabaseAdmin.from('email_events').select('*', { count: 'exact', head: true }).eq('event_type', 'replied'),
     prevStartDate, prevEndDate, campaign
   );
+  const prevCountClicksQuery = buildEventFilters(
+    supabaseAdmin.from('email_events').select('*', { count: 'exact', head: true }).eq('event_type', 'clicked'),
+    prevStartDate, prevEndDate, campaign
+  );
+  let prevLlmCostQuery = supabaseAdmin
+    .from('llm_usage')
+    .select('cost_usd')
+    .eq('workspace_id', workspaceId)
+    .eq('is_test', false)
+    .gte('created_at', `${prevStartDate}T00:00:00Z`)
+    .lte('created_at', `${prevEndDate}T23:59:59Z`);
+  if (campaign) prevLlmCostQuery = prevLlmCostQuery.eq('campaign_name', campaign);
 
   // 3. Step breakdown - fetch only sent events with email_number (lighter than all events)
   let stepBreakdownQuery = supabaseAdmin
@@ -408,6 +424,8 @@ async function fetchAggregateData(
     countClicksResult,
     prevCountSendsResult,
     prevCountRepliesResult,
+    prevCountClicksResult,
+    prevLlmCostResult,
     stepBreakdownResult,
     dailyStatsResult,
     llmUsageResult,
@@ -426,6 +444,8 @@ async function fetchAggregateData(
     countClicksQuery,
     prevCountSendsQuery,
     prevCountRepliesQuery,
+    prevCountClicksQuery,
+    prevLlmCostQuery,
     stepBreakdownQuery,
     dailyStatsQuery,
     llmUsageQuery,
@@ -477,7 +497,12 @@ async function fetchAggregateData(
   const prevTotals = {
     sends: prevCountSendsResult.count || 0,
     replies: prevCountRepliesResult.count || 0,
+    clicks: prevCountClicksResult.count || 0,
   };
+  const prevTotalCostUsd = (prevLlmCostResult.data || []).reduce(
+    (sum: number, row: { cost_usd: number | null }) => sum + (Number(row.cost_usd) || 0),
+    0
+  );
   const prevReplyRatePct = prevTotals.sends > 0
     ? Number(((prevTotals.replies / prevTotals.sends) * 100).toFixed(2))
     : 0;
@@ -487,8 +512,14 @@ async function fetchAggregateData(
     : 0;
   const replyRateChange = Number((replyRatePct - prevReplyRatePct).toFixed(2));
 
-  // ============================================
-  // PROCESS TIMESERIES DATA
+  const prevClickRatePct = prevTotals.sends > 0
+    ? Number(((prevTotals.clicks / prevTotals.sends) * 100).toFixed(2))
+    : 0;
+  const clickRateChange = Number((clickRatePct - prevClickRatePct).toFixed(2));
+
+  const costChangePct = prevTotalCostUsd > 0
+    ? Number((((totalCostUsd - prevTotalCostUsd) / prevTotalCostUsd) * 100).toFixed(1))
+    : 0;
   // ============================================
 
   const dailyStats = dailyStatsResult.data || [];
@@ -834,6 +865,8 @@ async function fetchAggregateData(
       sends_change_pct: sendsChange,
       reply_rate_change_pp: replyRateChange,
       opt_out_rate_change_pp: 0,
+      click_rate_change_pp: clickRateChange,
+      cost_change_pct: costChangePct,
       prev_sends: prevTotals.sends,
       prev_reply_rate_pct: prevReplyRatePct,
     },

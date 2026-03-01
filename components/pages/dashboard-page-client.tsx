@@ -165,6 +165,8 @@ export function DashboardPageClient() {
             <MetricCard
               title="Click Rate"
               value={summary?.click_rate_pct ?? 0}
+              change={summary?.click_rate_change_pp}
+              changeLabel="pp"
               format="percent"
               icon="clicks"
               loading={summaryLoading}
@@ -197,6 +199,7 @@ export function DashboardPageClient() {
             <MetricCard
               title="Total Cost"
               value={summary?.cost_usd ?? 0}
+              change={summary?.cost_change_pct}
               format="currency"
               icon="cost"
               loading={summaryLoading}
@@ -257,7 +260,6 @@ export function DashboardPageClient() {
                 loading={optOutRateLoading}
                 type="line"
                 valueFormatter={(v) => `${v}%`}
-                height={280}
                 className="h-full"
               />
             </div>

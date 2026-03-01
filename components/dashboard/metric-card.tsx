@@ -115,7 +115,7 @@ export function MetricCard({
   }
 
   // Only show "vs prev" when change has a meaningful non-zero value
-  const hasChange = change !== undefined && change !== 0;
+  const hasChange = change !== undefined && !isNaN(change) && Math.abs(change) >= 0.05;
 
   return (
     <motion.div

@@ -22,6 +22,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AppLoadingSpinner } from '@/components/ui/loading-states';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
@@ -171,7 +172,7 @@ export function ActiveSessionsModal({ open, onClose }: ActiveSessionsModalProps)
               <div className="p-6 overflow-y-auto flex-1">
                 {!isLoaded ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-primary)]" />
+                    <AppLoadingSpinner />
                   </div>
                 ) : sessions.length === 0 ? (
                   <div className="text-center py-12">

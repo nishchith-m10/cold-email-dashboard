@@ -8,7 +8,7 @@
 
 import useSWR from 'swr';
 import { Mail, Inbox, Search } from 'lucide-react';
-import { FramerSpinner } from '@/components/ui/loading-states';
+import { AppLoadingSpinner } from '@/components/ui/loading-states';
 import { cn } from '@/lib/utils';
 
 interface WorkflowTemplate {
@@ -41,7 +41,7 @@ export function TemplateGallery({ onSelectTemplate, selectedTemplateId }: Templa
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <FramerSpinner size={40} />
+        <AppLoadingSpinner />
       </div>
     );
   }

@@ -9,7 +9,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-accent-primary text-white hover:bg-accent-primary/90 shadow-lg shadow-accent-primary/25',
+          'bg-accent-primary text-white hover:bg-accent-primary/90',
         secondary:
           'bg-surface-elevated text-text-primary hover:bg-surface-elevated/80 border border-border',
         ghost:

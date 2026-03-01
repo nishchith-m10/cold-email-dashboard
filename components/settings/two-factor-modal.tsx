@@ -21,6 +21,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AppLoadingSpinner } from '@/components/ui/loading-states';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -345,7 +346,7 @@ export function TwoFactorModal({ open, onClose }: TwoFactorModalProps) {
                       <CardContent className="space-y-4">
                         {isLoading ? (
                           <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-primary)]" />
+                            <AppLoadingSpinner />
                           </div>
                         ) : (
                           <>
@@ -363,7 +364,7 @@ export function TwoFactorModal({ open, onClose }: TwoFactorModalProps) {
                                 </div>
                               ) : (
                                 <div className="w-48 h-48 bg-[var(--surface-elevated)] rounded-lg border border-[var(--border)] flex items-center justify-center">
-                                  <Loader2 className="h-8 w-8 animate-spin text-[var(--accent-primary)]" />
+                                  <AppLoadingSpinner />
                                 </div>
                               )}
                             </div>

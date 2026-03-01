@@ -54,6 +54,17 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const supabase = supabaseAdmin;
 
+  // Allowlist of known columns — prevents PGRST204 errors if a new field is
+  // sent by the client before the corresponding migration has been applied.
+  const ALLOWED_COLUMNS = ['sidebar_mode', 'theme', 'currency'];
+  const safeBody = Object.fromEntries(
+    Object.entries(body).filter(([key]) => ALLOWED_COLUMNS.includes(key))
+  );
+
+  if (Object.keys(safeBody).length === 0) {
+    return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+  }
+
   try {
     // Upsert user settings - NOTE: 'user_settings' table may not exist in all deployments
     const { data, error } = await (supabase as any)
@@ -61,7 +72,7 @@ export async function PATCH(req: NextRequest) {
       .upsert(
         {
           user_id: userId,
-          ...body,
+          ...safeBody,
           updated_at: new Date().toISOString(),
         },
         {

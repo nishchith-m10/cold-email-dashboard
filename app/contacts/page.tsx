@@ -546,8 +546,8 @@ export default function ContactsPage() {
               <Input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search name, email, company..."
-                className="pl-9 w-72 h-8"
+                placeholder="Search Leads"
+                className="pl-9 w-[148px] h-8 bg-transparent"
               />
             </div>
             <DateRangePicker

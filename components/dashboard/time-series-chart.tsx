@@ -99,7 +99,7 @@ export function TimeSeriesChart({
             <p className="text-xs text-text-secondary mt-1">{subtitle}</p>
           )}
         </CardHeader>
-        <CardContent className={color === CHART_COLORS.sends ? "pb-4 pt-8" : color === CHART_COLORS.optOuts && type === 'line' ? "pb-4 pt-4" : "pb-4"}>
+        <CardContent className="pb-4 pt-4">
           <div style={{ width: '100%', height }}>
             <ResponsiveContainer width="100%" height="100%">
               <ChartComponent

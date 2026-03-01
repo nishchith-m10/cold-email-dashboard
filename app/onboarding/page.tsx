@@ -7,20 +7,11 @@
 
 'use client';
 
-import { Suspense } from 'react';
 import { GenesisOnboardingClient } from '@/components/genesis/genesis-onboarding-client';
-import { Loader2 } from 'lucide-react';
 
 export default function OnboardingPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <Loader2 className="h-8 w-8 animate-spin text-accent-primary" />
-        </div>
-      }
-    >
-      <GenesisOnboardingClient />
-    </Suspense>
-  );
+  // GenesisOnboardingClient already handles its own loading state internally —
+  // wrapping it in Suspense here caused a second full-screen spinner to flash
+  // on hard reload before the client component's own isLoading check kicked in.
+  return <GenesisOnboardingClient />;
 }

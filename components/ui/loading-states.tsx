@@ -8,49 +8,38 @@ import { cn } from '@/lib/utils';
  * Framer-style spinner — rotating arc with glow, no container box.
  * Used for both page-level and full-screen loading states.
  */
-export function FramerSpinner({ size = 40 }: { size?: number }) {
+export function FramerSpinner({ size = 28 }: { size?: number }) {
   const arcPath = "M 16.25 9 C 16.25 10.07 16.018 11.086 15.602 12 C 15.163 12.965 14.518 13.817 13.724 14.5";
   return (
-    <div className="flex items-center gap-3">
-      {/* Spinner icon */}
-      <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
-        {/* Static base ring */}
+    <div className="relative flex-shrink-0 text-text-primary" style={{ width: size, height: size }}>
+      {/* Static base ring — inherits text color at 16% opacity */}
+      <svg viewBox="0 0 18 18" width={size} height={size} className="absolute inset-0">
+        <path
+          d="M 9 16.25 C 4.996 16.25 1.75 13.004 1.75 9 C 1.75 4.996 4.996 1.75 9 1.75 C 13.004 1.75 16.25 4.996 16.25 9 C 16.25 13.004 13.004 16.25 9 16.25 Z"
+          fill="transparent"
+          strokeWidth="1.5"
+          stroke="currentColor"
+          strokeOpacity="0.16"
+          strokeLinecap="round"
+        />
+      </svg>
+      {/*
+        Single div with CSS drop-shadow for glow — one compositing layer, zero frame desync.
+        Previously a separate blurred SVG created a second layer that could be 1 frame behind
+        on reload. CSS drop-shadow is applied to the same layer as the transform.
+      */}
+      <div
+        className="spinner-arc absolute inset-0 animate-spin [animation-duration:1.4s]"
+        style={{
+          transformOrigin: "center",
+          willChange: "transform",
+          filter: "drop-shadow(0 0 3px currentColor)",
+        }}
+      >
         <svg viewBox="0 0 18 18" width={size} height={size} className="absolute inset-0">
-          <path
-            d="M 9 16.25 C 4.996 16.25 1.75 13.004 1.75 9 C 1.75 4.996 4.996 1.75 9 1.75 C 13.004 1.75 16.25 4.996 16.25 9 C 16.25 13.004 13.004 16.25 9 16.25 Z"
-            fill="transparent"
-            strokeWidth="2"
-            stroke="rgba(241, 242, 244, 0.16)"
-            strokeLinecap="round"
-          />
+          <path d={arcPath} fill="transparent" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" />
         </svg>
-        {/* Rotating arc */}
-        <motion.svg
-          viewBox="0 0 18 18"
-          width={size}
-          height={size}
-          className="absolute inset-0"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
-          style={{ transformOrigin: "center" }}
-        >
-          <path d={arcPath} fill="transparent" strokeWidth="2" stroke="rgb(241, 242, 244)" strokeLinecap="round" />
-        </motion.svg>
-        {/* Blurred glow arc */}
-        <motion.svg
-          viewBox="0 0 18 18"
-          width={size}
-          height={size}
-          className="absolute inset-0"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
-          style={{ transformOrigin: "center", filter: "blur(4px)" }}
-        >
-          <path d={arcPath} fill="transparent" strokeWidth="2" stroke="rgb(241, 242, 244)" strokeLinecap="round" />
-        </motion.svg>
       </div>
-      {/* Text */}
-      <span className="text-sm font-medium text-text-secondary">Loading...</span>
     </div>
   );
 }
@@ -66,7 +55,7 @@ export function PageLoader() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.2 }}
       >
-        <FramerSpinner size={32} />
+        <FramerSpinner size={24} />
       </motion.div>
     </div>
   );

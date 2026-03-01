@@ -25,6 +25,8 @@ export interface MetricsSummary {
   sends_change_pct: number;
   reply_rate_change_pp: number;
   opt_out_rate_change_pp: number;
+  click_rate_change_pp?: number;
+  cost_change_pct?: number;
   prev_sends: number;
   prev_reply_rate_pct: number;
   start_date: string;

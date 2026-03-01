@@ -25,7 +25,7 @@ import {
 import { nodeTypes } from './nodes';
 import type { CustomNodeData } from './nodes/types';
 import type { NodeExecutionOverlayStatus } from '@/lib/workflow-graph/types';
-import { FramerSpinner } from '@/components/ui/loading-states';
+import { AppLoadingSpinner } from '@/components/ui/loading-states';
 
 /* ---------- Types ---------- */
 
@@ -154,7 +154,7 @@ function WorkflowCanvasInner({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center w-full h-full min-h-[400px] bg-muted/30 rounded-lg">
-        <FramerSpinner size={40} />
+        <AppLoadingSpinner />
       </div>
     );
   }

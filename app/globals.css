@@ -11,7 +11,7 @@
    CSS VARIABLES - DARK MODE (Default)
    ============================================================ */
 :root {
-  --background: #0a0a0b;
+  --background: #0B0B0B;
   --foreground: #fafafa;
   --card: #141416;
   --card-foreground: #fafafa;
@@ -112,6 +112,11 @@
   html.light .border-border {
     border-color: #CBD5E1 !important;
   }
+
+  /* Divide colors — divide-border has no separate light override unlike border-border */
+  html.light .divide-border > * + * {
+    border-color: #E2E8F0 !important;
+  }
   
   /* Text colors */
   html.light .text-text-primary {
@@ -134,11 +139,10 @@
     color: #475569 !important;
   }
   
-  /* Cards - ensure visible separation */
+  /* Cards - very subtle separation, no heavy drop-shadow on every rounded element */
   html.light [class*="rounded-xl"][class*="border"] {
     background-color: #FFFFFF;
     border-color: #E2E8F0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   }
   
   /* Header */
@@ -147,13 +151,26 @@
     border-color: #E2E8F0 !important;
   }
   
-  /* Buttons - hover states */
-  html.light button:hover:not(:disabled) {
-    background-color: #F1F5F9;
-  }
-  
+  /*
+   * HOVER STATES — kept as subtle as dark mode.
+   * DO NOT add a blanket button:hover rule here — it creates noticeable
+   * gray boxes on every ghost/icon button. Instead only target explicit
+   * hover:bg-surface-elevated classes with a near-invisible tint.
+   */
+  html.light .hover\:bg-surface-elevated:hover,
   html.light [class*="hover:bg-surface-elevated"]:hover {
-    background-color: #E2E8F0 !important;
+    background-color: rgba(0, 0, 0, 0.04) !important;
+  }
+
+  /* /50 opacity variant used in workspace-switcher and similar */
+  html.light .hover\:bg-surface-elevated\/50:hover {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+  }
+
+  /* Ghost buttons (icon buttons in navbar, etc.) must never show a bg box */
+  html.light button.hover\:text-text-primary:hover,
+  html.light a.hover\:text-text-primary:hover {
+    background-color: transparent !important;
   }
   
   /* Navigation tabs */
@@ -182,14 +199,20 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06) !important;
   }
   
-  /* Light mode calendar - high contrast text */
+  /* Light mode calendar / select / popover — high contrast text, subtle highlights */
   html.light [data-radix-popper-content-wrapper] {
     color: #0F172A !important;
   }
   
+  /* Remove font-weight bump — it makes preset/select labels noticeably bolder */
   html.light [data-radix-popper-content-wrapper] button {
     color: #1E293B !important;
-    font-weight: 500;
+  }
+
+  /* Radix data-highlighted state (Select.Item, etc.) — match our subtle hover tint */
+  html.light [data-highlighted] {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+    outline: none !important;
   }
   
   html.light [data-radix-popper-content-wrapper] .text-slate-900,
@@ -202,15 +225,31 @@
     color: #475569 !important;
   }
   
+  /* Spinner — in light mode, keep the glow softer (no box-shadow, just the arc outline glow) */
+  html.light .spinner-arc {
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.25)) !important;
+  }
+
+  /*
+   * Section header bands (bg-surface-elevated/10) in settings.
+   * In light mode, the Tailwind-config dark value #1c1c1f at 10% opactiy
+   * renders as rgb(232,232,232) — a visible gray band. Override to a
+   * near-invisible 2.5% black tint that's barely distinguishable from white.
+   */
+  html.light .bg-surface-elevated\/10 {
+    background-color: rgba(0, 0, 0, 0.025) !important;
+  }
+
+  html.light .bg-surface-elevated\/40 {
+    background-color: rgba(0, 0, 0, 0.025) !important;
+  }
+
+  html.light .bg-surface-elevated\/60 {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+  }
+
   /* Light mode button styling */
-  html.light button[class*="hover:bg-surface-elevated"]:hover {
-    background-color: #E2E8F0 !important;
-  }
-  
-  html.light button[class*="bg-surface-elevated"] {
-    background-color: #F1F5F9 !important;
-    border-color: #CBD5E1 !important;
-  }
+  /* hover:bg-surface-elevated is handled above — no separate button rule needed */
   
   html.light button[class*="border-border"] {
     border-color: #CBD5E1 !important;

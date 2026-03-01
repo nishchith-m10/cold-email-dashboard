@@ -110,9 +110,9 @@ export function DateRangePicker({
 
   const displayValue = rangeStart && rangeEnd
     ? isSameDay(rangeStart, rangeEnd)
-      ? format(rangeStart, 'MMM d, yyyy')
-      : `${format(rangeStart, 'MMM d')} - ${format(rangeEnd, 'MMM d, yyyy')}`
-    : 'Select date range';
+      ? format(rangeStart, 'M/d/yy')
+      : `${format(rangeStart, 'M/d')} - ${format(rangeEnd, 'M/d/yy')}`
+    : 'Select range';
 
   // Generate days for current month
   const monthStart = startOfMonth(currentMonth);
@@ -136,7 +136,7 @@ export function DateRangePicker({
       <Popover.Trigger asChild>
         <Button
           variant="outline"
-          className={cn('justify-start gap-1.5 min-w-[200px] h-8 px-2.5 text-xs', className)}
+          className={cn('justify-start gap-1.5 min-w-[120px] h-8 px-2.5 text-xs', className)}
         >
           <Calendar className="h-3.5 w-3.5 text-text-secondary" />
           <span className="flex-1 text-left">{displayValue}</span>

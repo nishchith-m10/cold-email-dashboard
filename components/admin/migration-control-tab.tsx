@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { AppLoadingSpinner } from '@/components/ui/loading-states';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -237,8 +238,8 @@ export function MigrationControlTab() {
 
   if (statusLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <AppLoadingSpinner />
       </div>
     );
   }

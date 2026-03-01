@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { AppLoadingSpinner } from '@/components/ui/loading-states';
 import { cn } from '@/lib/utils';
 
 interface AuditEntry {
@@ -112,9 +113,8 @@ export function AuditLogViewer() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-muted-foreground">Loading audit logs...</span>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <AppLoadingSpinner />
       </div>
     );
   }
