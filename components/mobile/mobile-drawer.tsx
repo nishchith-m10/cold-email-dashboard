@@ -13,13 +13,13 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { X, UserCircle, Shield, ChevronRight } from 'lucide-react';
-import { useUser, useClerk } from '@clerk/nextjs';
+import { useUser } from '@clerk/nextjs';
 import { cn } from '@/lib/utils';
 import { useWorkspace } from '@/lib/workspace-context';
 import { WorkspaceSwitcher } from '@/components/dashboard/workspace-switcher';
@@ -62,8 +62,6 @@ function NavLink({
     </Link>
   );
 }
-
-// Theme hook removed — Appearance & Sign Out moved to MobileHeader profile menu
 
 export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
   const { user } = useUser();
@@ -212,8 +210,8 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                   </div>
                 )}
 
-                {/* Theme Toggle — moved to MobileHeader profile menu */}
               </div>
+
             </motion.aside>
           </>
         )}

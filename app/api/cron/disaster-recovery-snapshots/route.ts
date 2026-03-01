@@ -121,6 +121,31 @@ export async function POST(request: NextRequest) {
     const activeWorkspaces = workspaces || [];
     console.log(`[Cron:DRSnapshots] Found ${activeWorkspaces.length} active workspaces`);
 
+    // Fetch real droplet IDs from genesis.fleet_status for all active workspaces
+    const workspaceIds = activeWorkspaces.map((w) => w.id);
+    const dropletMap = new Map<string, string>();
+
+    if (workspaceIds.length > 0) {
+      const { data: fleetStatuses, error: fleetError } = await supabaseAdmin
+        .schema('genesis')
+        .from('fleet_status')
+        .select('workspace_id, droplet_id, status')
+        .in('workspace_id', workspaceIds)
+        .eq('status', 'active');
+
+      if (fleetError) {
+        console.warn('[Cron:DRSnapshots] Failed to fetch fleet_status (will skip unprovisioned workspaces):', fleetError);
+      } else {
+        for (const fs of fleetStatuses || []) {
+          if (fs.droplet_id) {
+            dropletMap.set(fs.workspace_id, String(fs.droplet_id));
+          }
+        }
+      }
+    }
+
+    console.log(`[Cron:DRSnapshots] ${dropletMap.size}/${activeWorkspaces.length} workspaces have provisioned droplets`);
+
     // ============================================
     // 3. CREATE SNAPSHOTS FOR EACH WORKSPACE
     // ============================================
@@ -144,8 +169,13 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Generate droplet ID (in production this comes from workspace metadata)
-        const dropletId = `droplet-${workspace.id}`;
+        // Resolve real droplet ID from genesis.fleet_status
+        const dropletId = dropletMap.get(workspace.id);
+        if (!dropletId) {
+          console.log(`[Cron:DRSnapshots] Skipping ${workspace.id} - no active provisioned droplet`);
+          skipped++;
+          continue;
+        }
 
         // Create snapshot via DigitalOcean API (persists to DB automatically)
         const snapshotName = `daily_${new Date().toISOString().split('T')[0]}_${workspace.id}`;

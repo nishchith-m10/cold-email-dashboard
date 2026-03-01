@@ -30,7 +30,7 @@ const tabs: NavTab[] = [
   {
     href: '/dashboard',
     icon: LayoutDashboard,
-    label: 'Home',
+    label: 'Overview',
     matchPath: '/dashboard',
   },
   {
@@ -62,9 +62,19 @@ const tabs: NavTab[] = [
 export function MobileBottomNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  
-  // Preserve URL params when navigating
-  const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+
+  // Preserve only workspace/date params — never bleed ?group= or other page-specific filters across tabs
+  const query = (() => {
+    const preserved = new URLSearchParams();
+    const workspace = searchParams.get('workspace');
+    const start = searchParams.get('start');
+    const end = searchParams.get('end');
+    if (workspace) preserved.set('workspace', workspace);
+    if (start) preserved.set('start', start);
+    if (end) preserved.set('end', end);
+    const qs = preserved.toString();
+    return qs ? `?${qs}` : '';
+  })();
 
   // Don't show on auth pages
   if (pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up') || pathname === '/join') {

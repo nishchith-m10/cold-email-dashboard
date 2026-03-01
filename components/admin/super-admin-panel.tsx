@@ -168,7 +168,7 @@ export function SuperAdminPanel() {
       </div>
 
       {/* Workspace List */}
-      <div className="space-y-3">
+      <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
         {workspaces.map((ws) => {
           const isFrozen = ws.status === 'frozen';
           const isProcessing = freezingId === ws.id;
