@@ -41,6 +41,7 @@
   ],
   "exclude": [
     "node_modules",
+    "control-plane",
     "e2e",
     "scripts",
     "sidecar",
