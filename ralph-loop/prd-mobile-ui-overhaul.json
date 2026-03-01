@@ -23,7 +23,7 @@
         "MobileHeader is the sole header on mobile",
         "npx tsc --noEmit passes (use NODE_OPTIONS='--max-old-space-size=4096' --skipLibCheck)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "MOB-002",
@@ -37,7 +37,7 @@
         "Resize from mobile to desktop dynamically updates the margin (resize observer or window resize event)",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "MOB-003",
@@ -49,7 +49,7 @@
         "Desktop content still starts 48px below the fixed TopNavbar",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "MOB-004",
@@ -61,7 +61,7 @@
         "On desktop, pb-8 bottom padding unchanged",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "MOB-005",
@@ -74,7 +74,7 @@
         "All actions (contacts, sequences, settings, dashboard) still accessible via bottom nav",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "MOB-006",
@@ -93,7 +93,7 @@
         "Dropdown bounded within screen width on small phones",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "MOB-007",
@@ -107,7 +107,7 @@
         "Active tab indicator (animated bar) renders correctly on all 5 tabs",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "MOB-008",
@@ -120,7 +120,7 @@
         "No existing metadata export is changed or removed",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "MOB-009",
@@ -133,7 +133,7 @@
         "Root div has pb-20 md:pb-8 — last analytics widget fully visible above bottom nav on mobile",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "MOB-010",
@@ -145,7 +145,7 @@
         "On desktop, pb-8 bottom padding unchanged",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 }

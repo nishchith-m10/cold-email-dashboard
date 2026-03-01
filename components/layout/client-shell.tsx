@@ -16,7 +16,6 @@ import { DateFormatProvider } from '@/lib/date-format-context';
 import { SidebarProvider, useSidebar } from '@/lib/sidebar-context';
 import { SWRProvider } from '@/lib/swr-config';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
-import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { MobileBottomNav, MobileHeader, MobileDrawer } from '@/components/mobile';
 import { ShareDialog } from '@/components/dashboard/share-dialog';
 import { SignedIn, SignedOut, SignInButton, useAuth } from '@clerk/nextjs';
@@ -95,19 +94,28 @@ function WorkspaceGate({ children }: { children: React.ReactNode }) {
 function MainContentWithSidebar({ children, pathname }: { children: React.ReactNode; pathname: string | null }) {
   const { effectiveWidth } = useSidebar();
   
+  // Mobile-first: initialize true to avoid flash of wrong layout on first render
+  const [isMobile, setIsMobile] = useState(true);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   // Check if we're on a clean layout page (no sidebars)
   const isCleanLayout = pathname === '/join';
-  const isOnboarding = pathname === '/onboarding';
   
   return (
     <main 
       className={cn(
-        isCleanLayout ? '' : 'pb-8 mt-12',
+        isCleanLayout ? '' : 'pb-20 md:pb-8 mt-0 md:mt-12',
         'transition-all duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] will-change-[margin-left,width]' // Ultra smooth animation
       )} 
       style={{
-        marginLeft: isCleanLayout ? 0 : `${effectiveWidth}px`,
-        width: isCleanLayout ? 'auto' : `calc(100vw - ${effectiveWidth}px)`,
+        marginLeft: isCleanLayout || isMobile ? 0 : `${effectiveWidth}px`,
+        width: isCleanLayout || isMobile ? '100%' : `calc(100vw - ${effectiveWidth}px)`,
       }}
       data-tour="welcome"
     >
@@ -180,9 +188,6 @@ export function ClientShell({ children }: ClientShellProps) {
                   
                   {/* Onboarding tour for first-time users */}
                   <OnboardingTour />
-                  
-                  {/* Mobile Floating Action Button */}
-                  <FloatingActionButton />
 
                   {/* Mobile Bottom Navigation */}
                   <MobileBottomNav />

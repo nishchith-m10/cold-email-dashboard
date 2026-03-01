@@ -348,7 +348,7 @@ export function DashboardPageClient() {
   };
 
   return (
-    <div className="space-y-6 pt-4 md:pt-6">
+    <div className="space-y-6 pt-4 md:pt-6 pb-20 md:pb-8">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
