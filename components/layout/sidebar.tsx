@@ -8,7 +8,7 @@
  * to ensure date range selections persist across page navigation.
  */
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -116,7 +116,7 @@ export function Sidebar() {
   // Hover handling with smoother delay
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = null;
@@ -124,21 +124,21 @@ export function Sidebar() {
     if (mode === 'hover') {
       setIsHovered(true);
     }
-  };
+  }, [mode, setIsHovered]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     if (mode === 'hover') {
       hoverTimeoutRef.current = setTimeout(() => {
         setIsHovered(false);
         hoverTimeoutRef.current = null;
       }, 50);
     }
-  };
+  }, [mode, setIsHovered]);
 
-  const handleModeSelect = (newMode: 'expanded' | 'collapsed' | 'hover') => {
+  const handleModeSelect = useCallback((newMode: 'expanded' | 'collapsed' | 'hover') => {
     setMode(newMode);
     setShowModeMenu(false);
-  };
+  }, [setMode]);
 
   return (
     <motion.aside
@@ -146,7 +146,7 @@ export function Sidebar() {
         'fixed left-0 top-12 h-[calc(100vh-3rem)] border-r border-border bg-surface flex flex-col z-40',
         'hidden md:flex', // Hide on mobile, show on desktop
       )}
-      style={{ overflow: 'visible' }} // Allow dropdown to overflow
+      style={{ overflow: 'visible', willChange: 'width' }} // promote to composite layer
       initial={false}
       animate={{
         width: effectiveWidth,
