@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
  * Framer-style spinner — rotating arc with glow, no container box.
  * Used for both page-level and full-screen loading states.
  */
-function FramerSpinner({ size = 32 }: { size?: number }) {
+export function FramerSpinner({ size = 40 }: { size?: number }) {
   const arcPath = "M 16.25 9 C 16.25 10.07 16.018 11.086 15.602 12 C 15.163 12.965 14.518 13.817 13.724 14.5";
   return (
     <div className="flex items-center gap-3">
@@ -215,7 +215,7 @@ export function InlineLoader({
  * App-level loading spinner — Framer-style arc with glow, no container box.
  * Used by app/loading.tsx for Next.js route segment loading.
  */
-export function AppLoadingSpinner({ size = 32 }: { size?: number }) {
+export function AppLoadingSpinner({ size = 40 }: { size?: number }) {
   return <FramerSpinner size={size} />;
 }
 

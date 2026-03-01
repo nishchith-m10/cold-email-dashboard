@@ -10,7 +10,7 @@
 import { useRouter } from 'next/navigation';
 import { useWorkspace } from '@/lib/workspace-context';
 import { GenesisOnboardingWizard } from '@/components/genesis/genesis-onboarding-wizard';
-import { Loader2 } from 'lucide-react';
+import { AppLoadingSpinner } from '@/components/ui/loading-states';
 
 export function GenesisOnboardingClient() {
   const router = useRouter();
@@ -18,13 +18,13 @@ export function GenesisOnboardingClient() {
 
   const handleComplete = () => {
     // Redirect to dashboard after completion
-    router.push(`/?workspace=${workspace?.slug || ''}`);
+    router.push(`/dashboard?workspace=${workspace?.slug || ''}`);
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-accent-primary" />
+        <AppLoadingSpinner />
       </div>
     );
   }
