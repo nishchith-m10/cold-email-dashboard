@@ -13,18 +13,17 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { X, Sun, Moon, LogOut, UserCircle, Shield, ChevronRight } from 'lucide-react';
-import { useUser, useClerk } from '@clerk/nextjs';
+import { X, UserCircle, Shield, ChevronRight } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 import { cn } from '@/lib/utils';
 import { useWorkspace } from '@/lib/workspace-context';
 import { WorkspaceSwitcher } from '@/components/dashboard/workspace-switcher';
 import { RoleBadge } from '@/components/ui/role-badge';
-import { SignOutTransition } from '@/components/ui/sign-out-transition';
 
 interface MobileDrawerProps {
   open: boolean;
@@ -64,37 +63,9 @@ function NavLink({
   );
 }
 
-// Theme hook (duplicated from header for self-containment)
-function useTheme() {
-  const getTheme = () => {
-    if (typeof window === 'undefined') return 'dark';
-    return document.documentElement.classList.contains('light') ? 'light' : 'dark';
-  };
-
-  const toggleTheme = () => {
-    const newTheme = getTheme() === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.classList.toggle('light', newTheme === 'light');
-  };
-
-  return { theme: getTheme(), toggleTheme };
-}
-
 export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
   const { user } = useUser();
-  const { signOut, openUserProfile } = useClerk();
   const { userRole, isSuperAdmin } = useWorkspace();
-  const { theme, toggleTheme } = useTheme();
-  const [isSigningOut, setIsSigningOut] = useState(false);
-
-  const handleSignOut = () => {
-    onClose();
-    setIsSigningOut(true);
-    // Small delay to show transition before signOut
-    setTimeout(() => {
-      signOut({ redirectUrl: '/sign-in' });
-    }, 500);
-  };
 
   // Lock body scroll when open
   useEffect(() => {
@@ -239,61 +210,12 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                   </div>
                 )}
 
-                {/* Theme Toggle */}
-                <div className="p-4">
-                  <p className="text-xs font-medium text-text-secondary mb-3 uppercase tracking-wide">
-                    Appearance
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => {
-                        if (theme === 'dark') toggleTheme();
-                      }}
-                      className={cn(
-                        'flex items-center justify-center gap-2 py-3 rounded-lg border transition-colors',
-                        theme === 'light'
-                          ? 'bg-surface-elevated border-accent-primary text-text-primary'
-                          : 'border-border text-text-secondary hover:bg-surface-elevated'
-                      )}
-                    >
-                      <Sun className="h-4 w-4" />
-                      <span className="text-sm font-medium">Light</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (theme === 'light') toggleTheme();
-                      }}
-                      className={cn(
-                        'flex items-center justify-center gap-2 py-3 rounded-lg border transition-colors',
-                        theme === 'dark'
-                          ? 'bg-surface-elevated border-accent-primary text-text-primary'
-                          : 'border-border text-text-secondary hover:bg-surface-elevated'
-                      )}
-                    >
-                      <Moon className="h-4 w-4" />
-                      <span className="text-sm font-medium">Dark</span>
-                    </button>
-                  </div>
-                </div>
               </div>
 
-              {/* Footer - Just Sign Out (profile icon handles account) */}
-              <div className="flex-shrink-0 p-4 border-t border-border bg-surface">
-                <button
-                  onClick={handleSignOut}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm text-accent-danger bg-accent-danger/10 hover:bg-accent-danger/20 transition-colors"
-                >
-                  <LogOut className="h-5 w-5" />
-                  Sign Out
-                </button>
-              </div>
             </motion.aside>
           </>
         )}
       </AnimatePresence>
-      
-      {/* Sign Out Transition Overlay */}
-      <SignOutTransition isVisible={isSigningOut} />
     </>
   );
 }

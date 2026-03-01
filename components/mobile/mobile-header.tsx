@@ -14,9 +14,11 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Menu, Bell, X } from 'lucide-react';
+import { Menu, Bell, X, Sun, Moon, LogOut, User } from 'lucide-react';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { useNotifications } from '@/hooks/use-notifications';
+import { useTheme } from '@/hooks/use-theme';
+import { SignOutTransition } from '@/components/ui/sign-out-transition';
 import { getNotificationIcon, getNotificationColor, formatTimeAgo } from '@/lib/notification-utils';
 import { cn } from '@/lib/utils';
 
@@ -30,9 +32,17 @@ export function MobileHeader({
   className,
 }: MobileHeaderProps) {
   const { user } = useUser();
-  const { openUserProfile } = useClerk();
+  const { openUserProfile, signOut } = useClerk();
   const { notifications, unreadCount, markAsRead, dismiss } = useNotifications();
+  const { theme, toggleTheme } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    await signOut();
+  };
 
   const markAllAsRead = () => {
     const unreadIds = notifications.filter(n => !n.read_at).map(n => n.id);
@@ -40,6 +50,8 @@ export function MobileHeader({
   };
 
   return (
+    <>
+    <SignOutTransition isVisible={isSigningOut} />
     <header
       className={cn(
         'sticky top-0 z-40 md:hidden',
@@ -174,32 +186,96 @@ export function MobileHeader({
             </AnimatePresence>
           </div>
 
-          {/* Profile Avatar - Opens Clerk Profile */}
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => openUserProfile()}
-            className="flex items-center justify-center w-10 h-10 rounded-full overflow-hidden ring-2 ring-transparent hover:ring-accent-primary/30 transition-all"
-            aria-label="Profile settings"
-          >
-            {user?.imageUrl ? (
-              <Image
-                src={user.imageUrl}
-                alt={user.fullName || 'Profile'}
-                width={32}
-                height={32}
-                className="h-8 w-8 rounded-full object-cover"
-              />
-            ) : (
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-                <span className="text-xs font-semibold text-white">
-                  {user?.firstName?.[0] || 'U'}
-                </span>
-              </div>
-            )}
-          </motion.button>
+          {/* Profile Avatar - Opens profile dropdown */}
+          <div className="relative">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowProfileMenu(v => !v)}
+              className="flex items-center justify-center w-10 h-10 rounded-full overflow-hidden ring-2 ring-transparent hover:ring-accent-primary/30 transition-all"
+              aria-label="Profile settings"
+            >
+              {user?.imageUrl ? (
+                <Image
+                  src={user.imageUrl}
+                  alt={user.fullName || 'Profile'}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                  <span className="text-xs font-semibold text-white">
+                    {user?.firstName?.[0] || 'U'}
+                  </span>
+                </div>
+              )}
+            </motion.button>
+
+            {/* Profile Dropdown */}
+            <AnimatePresence>
+              {showProfileMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-64 rounded-xl border border-border bg-surface shadow-2xl overflow-hidden z-50"
+                  >
+                    {/* User info */}
+                    <div className="px-4 py-3 border-b border-border bg-surface-elevated">
+                      <p className="text-sm font-semibold text-text-primary truncate">{user?.fullName || user?.firstName || 'My Account'}</p>
+                      <p className="text-xs text-text-secondary truncate">{user?.primaryEmailAddress?.emailAddress || ''}</p>
+                    </div>
+
+                    {/* Manage Account */}
+                    <button
+                      type="button"
+                      onClick={() => { setShowProfileMenu(false); openUserProfile(); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-text-primary hover:bg-surface-elevated transition-colors"
+                    >
+                      <User className="h-4 w-4 text-text-secondary" />
+                      Manage Account
+                    </button>
+
+                    {/* Appearance */}
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                      <div className="flex items-center gap-3">
+                        {theme === 'light' ? (
+                          <Sun className="h-4 w-4 text-text-secondary" />
+                        ) : (
+                          <Moon className="h-4 w-4 text-text-secondary" />
+                        )}
+                        <span className="text-sm text-text-primary">Appearance</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={toggleTheme}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-elevated hover:bg-border transition-colors text-xs font-medium text-text-secondary"
+                      >
+                        {theme === 'light' ? 'Light' : 'Dark'}
+                      </button>
+                    </div>
+
+                    {/* Sign Out */}
+                    <button
+                      type="button"
+                      onClick={() => { setShowProfileMenu(false); handleSignOut(); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-accent-danger hover:bg-accent-danger/10 transition-colors border-t border-border"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </button>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </header>
+    </>
   );
 }
 

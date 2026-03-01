@@ -1,37 +1,36 @@
 /**
  * CampaignManagementCardStack - Mobile card view for campaign management
- * 
- * Phase 38: Mobile Sovereignty - Pillar 1: The Card Metamorphosis
- * 
- * Replaces the CampaignManagementTable on mobile with tappable cards
- * featuring swipe-like actions via overflow menu.
- * 
+ *
+ * Renders campaigns grouped by campaign_group_id (matching desktop table).
+ * Groups collapse/expand. Ungrouped campaigns appear as flat cards.
+ *
  * Features:
- * - Vertical card stack layout
- * - Campaign name + status visible at glance
- * - Toggle switch for active/paused
- * - Overflow menu (•••) for actions instead of context menu
- * - N8n sync status indicators
+ * - Group → sequences hierarchy (expandable GroupCard)
+ * - Status badge, n8n indicator, toggle, overflow menu per campaign
+ * - Search across group names and campaign names
+ * - Delete action wired through useCampaigns.deleteCampaign
  */
 
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  Search, 
-  RefreshCw, 
-  AlertCircle, 
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Search,
+  RefreshCw,
+  AlertCircle,
   MoreVertical,
   Pencil,
   Pause,
   Play,
   Trash2,
-  Loader2,
   CheckCircle2,
-  XCircle
+  XCircle,
+  ChevronDown,
+  ChevronRight,
+  Layers,
 } from 'lucide-react';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -45,6 +44,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useCampaigns } from '@/hooks/use-campaigns';
+import { useCampaignGroups } from '@/hooks/use-campaign-groups';
 import { CampaignToggle } from './campaign-toggle';
 import { usePermission } from '@/components/ui/permission-gate';
 import type { Campaign } from '@/lib/dashboard-types';
@@ -57,14 +57,11 @@ interface CampaignManagementCardStackProps {
 // Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.06 },
-  },
+  visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 15 },
+  hidden: { opacity: 0, y: 12 },
   visible: { opacity: 1, y: 0 },
 };
 
@@ -82,20 +79,13 @@ function CampaignCardSkeleton() {
   );
 }
 
-// Status badge component
 function StatusBadge({ status }: { status?: Campaign['status'] }) {
   const styles = {
     active: 'bg-accent-success/10 text-accent-success border-accent-success/20',
     paused: 'bg-accent-warning/10 text-accent-warning border-accent-warning/20',
     completed: 'bg-text-secondary/10 text-text-secondary border-border',
   };
-
-  const labels = {
-    active: 'Active',
-    paused: 'Paused',
-    completed: 'Completed',
-  };
-
+  const labels = { active: 'Active', paused: 'Paused', completed: 'Completed' };
   return (
     <Badge variant="secondary" className={cn('text-xs', styles[status || 'paused'])}>
       {labels[status || 'paused']}
@@ -103,26 +93,203 @@ function StatusBadge({ status }: { status?: Campaign['status'] }) {
   );
 }
 
-// N8n sync indicator
 function N8nIndicator({ status }: { status?: Campaign['n8n_status'] }) {
   if (!status || status === 'unknown') return null;
-
   const config = {
     active: { icon: CheckCircle2, color: 'text-accent-success', label: 'n8n Active' },
     inactive: { icon: XCircle, color: 'text-text-secondary', label: 'n8n Inactive' },
     error: { icon: AlertCircle, color: 'text-accent-danger', label: 'n8n Error' },
     unknown: { icon: null, color: '', label: '' },
   };
-
   const cfg = config[status];
   if (!cfg.icon) return null;
   const Icon = cfg.icon;
-
   return (
     <span className={cn('flex items-center gap-1 text-xs', cfg.color)}>
       <Icon className="h-3 w-3" />
       {cfg.label}
     </span>
+  );
+}
+
+// Individual campaign card (used both standalone and inside group)
+function CampaignCard({
+  campaign,
+  editingId,
+  setEditingId,
+  handleToggle,
+  handleRename,
+  handleDelete,
+  isToggling,
+  canWrite,
+  canManage,
+  indented = false,
+}: {
+  campaign: Campaign;
+  editingId: string | null;
+  setEditingId: (id: string | null) => void;
+  handleToggle: (id: string, action: 'activate' | 'deactivate') => void;
+  handleRename: (id: string, name: string) => void;
+  handleDelete: (id: string) => void;
+  isToggling: string | boolean;
+  canWrite: boolean;
+  canManage: boolean;
+  indented?: boolean;
+}) {
+  return (
+    <motion.div variants={cardVariants}>
+      <Card
+        className={cn(
+          'active:scale-[0.98] transition-transform',
+          indented && 'ml-4 border-l-2 border-accent-primary/20'
+        )}
+      >
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              {editingId === campaign.id ? (
+                <Input
+                  defaultValue={campaign.name}
+                  autoFocus
+                  className="h-8 text-sm font-medium"
+                  onBlur={(e) => handleRename(campaign.id!, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRename(campaign.id!, e.currentTarget.value);
+                    else if (e.key === 'Escape') setEditingId(null);
+                  }}
+                />
+              ) : (
+                <h3 className="font-medium text-text-primary truncate">{campaign.name}</h3>
+              )}
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <StatusBadge status={campaign.status} />
+                <N8nIndicator status={campaign.n8n_status} />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <CampaignToggle
+                campaignId={campaign.id!}
+                isActive={campaign.status === 'active'}
+                isLinked={Boolean(campaign.n8n_workflow_id)}
+                onToggle={handleToggle}
+                isToggling={typeof isToggling === 'string' ? isToggling === campaign.id : false}
+                disabled={!canWrite}
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem disabled={!canWrite} onClick={() => setEditingId(campaign.id!)}>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Rename
+                  </DropdownMenuItem>
+                  {campaign.status === 'active' ? (
+                    <DropdownMenuItem
+                      disabled={!canWrite || (typeof isToggling === 'string' && isToggling === campaign.id)}
+                      onClick={() => handleToggle(campaign.id!, 'deactivate')}
+                    >
+                      <Pause className="h-4 w-4 mr-2" />
+                      Pause
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      disabled={!canWrite || (typeof isToggling === 'string' && isToggling === campaign.id)}
+                      onClick={() => handleToggle(campaign.id!, 'activate')}
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Resume
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    disabled={!canManage}
+                    className="text-accent-danger focus:text-accent-danger"
+                    onClick={() => handleDelete(campaign.id!)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
+// Expandable group card containing nested campaign cards
+function GroupCard({
+  groupId,
+  groupName,
+  members,
+  expanded,
+  onToggleExpand,
+  ...cardProps
+}: {
+  groupId: string;
+  groupName: string;
+  members: Campaign[];
+  expanded: boolean;
+  onToggleExpand: () => void;
+  editingId: string | null;
+  setEditingId: (id: string | null) => void;
+  handleToggle: (id: string, action: 'activate' | 'deactivate') => void;
+  handleRename: (id: string, name: string) => void;
+  handleDelete: (id: string) => void;
+  isToggling: string | boolean;
+  canWrite: boolean;
+  canManage: boolean;
+}) {
+  const activeCount = members.filter(c => c.status === 'active').length;
+  return (
+    <motion.div variants={cardVariants} className="space-y-2">
+      {/* Group header */}
+      <button
+        type="button"
+        onClick={onToggleExpand}
+        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-elevated border border-border hover:bg-surface-elevated/80 transition-colors text-left"
+      >
+        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-accent-primary/10 flex-shrink-0">
+          <Layers className="h-4 w-4 text-accent-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-text-primary truncate">{groupName}</p>
+          <p className="text-xs text-text-secondary">
+            {members.length} sequence{members.length !== 1 ? 's' : ''}
+            {activeCount > 0 && (
+              <span className="ml-2 text-accent-success">{activeCount} active</span>
+            )}
+          </p>
+        </div>
+        {expanded ? (
+          <ChevronDown className="h-4 w-4 text-text-secondary flex-shrink-0" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-text-secondary flex-shrink-0" />
+        )}
+      </button>
+
+      {/* Nested campaign cards */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-2 overflow-hidden"
+          >
+            {members.map(campaign => (
+              <CampaignCard key={campaign.id} campaign={campaign} indented {...cardProps} />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -132,6 +299,7 @@ export function CampaignManagementCardStack({
 }: CampaignManagementCardStackProps) {
   const [searchFilter, setSearchFilter] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const {
     campaigns,
@@ -139,27 +307,63 @@ export function CampaignManagementCardStack({
     error,
     toggleCampaign,
     updateCampaign,
+    deleteCampaign,
     isToggling,
     refresh,
   } = useCampaigns({ workspaceId });
 
+  const { groups: campaignGroups } = useCampaignGroups(workspaceId);
+
   const canWrite = usePermission('write');
   const canManage = usePermission('manage');
 
-  // Filter campaigns
-  const filteredCampaigns = campaigns.filter(c =>
-    c.name.toLowerCase().includes(searchFilter.toLowerCase())
-  );
+  // Build groupId → name map
+  const groupMap = Object.fromEntries(campaignGroups.map(g => [g.id, g.name]));
 
-  // Handle toggle
+  const toggleGroupExpand = (id: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const handleToggle = async (id: string, action: 'activate' | 'deactivate') => {
     await toggleCampaign(id, action);
   };
 
-  // Handle rename
   const handleRename = async (id: string, newName: string) => {
     await updateCampaign(id, { name: newName });
     setEditingId(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteCampaign(id);
+  };
+
+  const q = searchFilter.toLowerCase();
+
+  // Filter campaigns
+  const filtered = campaigns.filter(c =>
+    c.name.toLowerCase().includes(q) ||
+    (c.campaign_group_id && (groupMap[c.campaign_group_id] || '').toLowerCase().includes(q))
+  );
+
+  // Split into grouped vs ungrouped
+  const ungrouped = filtered.filter(c => !c.campaign_group_id);
+  const groupedMap = new Map<string, Campaign[]>();
+  for (const c of filtered) {
+    if (c.campaign_group_id) {
+      const arr = groupedMap.get(c.campaign_group_id) || [];
+      arr.push(c);
+      groupedMap.set(c.campaign_group_id, arr);
+    }
+  }
+
+  const cardSharedProps = {
+    editingId, setEditingId, handleToggle, handleRename, handleDelete,
+    isToggling, canWrite, canManage,
   };
 
   if (error) {
@@ -211,7 +415,7 @@ export function CampaignManagementCardStack({
       )}
 
       {/* Empty State */}
-      {!isLoading && filteredCampaigns.length === 0 && (
+      {!isLoading && filtered.length === 0 && (
         <Card className="p-6 text-center">
           <p className="text-text-secondary text-sm">
             {searchFilter ? 'No campaigns match your search' : 'No campaigns yet'}
@@ -219,114 +423,34 @@ export function CampaignManagementCardStack({
         </Card>
       )}
 
-      {/* Campaign Cards */}
-      {!isLoading && filteredCampaigns.length > 0 && (
+      {/* Campaign List with group hierarchy */}
+      {!isLoading && filtered.length > 0 && (
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
           className="space-y-3"
         >
-          {filteredCampaigns.map((campaign) => (
-            <motion.div key={campaign.id} variants={cardVariants}>
-              <Card className="active:scale-[0.98] transition-transform">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    {/* Left: Campaign Info */}
-                    <div className="flex-1 min-w-0">
-                      {/* Campaign Name */}
-                      {editingId === campaign.id ? (
-                        <Input
-                          defaultValue={campaign.name}
-                          autoFocus
-                          className="h-8 text-sm font-medium"
-                          onBlur={(e) => handleRename(campaign.id!, e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              handleRename(campaign.id!, e.currentTarget.value);
-                            } else if (e.key === 'Escape') {
-                              setEditingId(null);
-                            }
-                          }}
-                        />
-                      ) : (
-                        <h3 className="font-medium text-text-primary truncate">
-                          {campaign.name}
-                        </h3>
-                      )}
+          {/* Ungrouped campaigns */}
+          {ungrouped.map(campaign => (
+            <CampaignCard key={campaign.id} campaign={campaign} {...cardSharedProps} />
+          ))}
 
-                      {/* Status Row */}
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        <StatusBadge status={campaign.status} />
-                        <N8nIndicator status={campaign.n8n_status} />
-                      </div>
-                    </div>
-
-                    {/* Right: Toggle + Menu */}
-                    <div className="flex items-center gap-2">
-                      {/* Toggle Switch */}
-                      <CampaignToggle
-                        campaignId={campaign.id!}
-                        isActive={campaign.status === 'active'}
-                        isLinked={Boolean(campaign.n8n_workflow_id)}
-                        onToggle={handleToggle}
-                        isToggling={typeof isToggling === 'string' ? isToggling === campaign.id : false}
-                        disabled={!canWrite}
-                      />
-
-                      {/* Overflow Menu */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem
-                            disabled={!canWrite}
-                            onClick={() => setEditingId(campaign.id!)}
-                          >
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Rename
-                          </DropdownMenuItem>
-
-                          {campaign.status === 'active' ? (
-                            <DropdownMenuItem
-                              disabled={!canWrite || (typeof isToggling === 'string' && isToggling === campaign.id)}
-                              onClick={() => handleToggle(campaign.id!, 'deactivate')}
-                            >
-                              <Pause className="h-4 w-4 mr-2" />
-                              Pause Campaign
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem
-                              disabled={!canWrite || (typeof isToggling === 'string' && isToggling === campaign.id)}
-                              onClick={() => handleToggle(campaign.id!, 'activate')}
-                            >
-                              <Play className="h-4 w-4 mr-2" />
-                              Resume Campaign
-                            </DropdownMenuItem>
-                          )}
-
-                          <DropdownMenuSeparator />
-
-                          <DropdownMenuItem
-                            disabled={!canManage}
-                            className="text-accent-danger focus:text-accent-danger"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+          {/* Grouped campaigns */}
+          {Array.from(groupedMap.entries()).map(([groupId, members]) => (
+            <GroupCard
+              key={groupId}
+              groupId={groupId}
+              groupName={groupMap[groupId] || groupId}
+              members={members}
+              expanded={expandedGroups.has(groupId)}
+              onToggleExpand={() => toggleGroupExpand(groupId)}
+              {...cardSharedProps}
+            />
           ))}
         </motion.div>
       )}
     </div>
   );
 }
+
