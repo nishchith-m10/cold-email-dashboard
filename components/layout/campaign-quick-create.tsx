@@ -55,9 +55,8 @@ export function CampaignQuickCreate() {
             variant="ghost"
             size="icon"
             title="Campaign Groups"
-            disabled={isLoading}
           >
-            <Layers className="h-5 w-5 text-text-secondary hover:text-text-primary transition-colors" />
+            <Layers className="h-5 w-5 text-text-secondary" />
           </Button>
         </DropdownMenuTrigger>
 

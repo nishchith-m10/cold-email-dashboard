@@ -121,6 +121,18 @@
   html.light .text-text-secondary {
     color: #475569 !important;
   }
+
+  /* Hover text color overrides for light mode — Tailwind hardcodes these to
+     dark-mode values (#fafafa / #a1a1aa), which are invisible on white backgrounds */
+  html.light .hover\:text-text-primary:hover,
+  html.light .hover\:text-text-primary:hover svg {
+    color: #0F172A !important;
+  }
+
+  html.light .hover\:text-text-secondary:hover,
+  html.light .hover\:text-text-secondary:hover svg {
+    color: #475569 !important;
+  }
   
   /* Cards - ensure visible separation */
   html.light [class*="rounded-xl"][class*="border"] {
