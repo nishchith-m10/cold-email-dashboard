@@ -47,7 +47,8 @@ export type DORegion =
   | 'sfo1' // US-West
   | 'fra1' // EU-West (Frankfurt)
   | 'lon1' // UK (London)
-  | 'sgp1'; // APAC (Singapore)
+  | 'sgp1' // APAC (Singapore)
+  | 'blr1'; // APAC (Bangalore — primary beta region)
 
 export interface RegionMapping {
   primary: DORegion;
@@ -61,6 +62,7 @@ export const CROSS_REGION_MAPPINGS: RegionMapping[] = [
   { primary: 'fra1', backup: 'lon1', rationale: 'GDPR-compliant backup' },
   { primary: 'lon1', backup: 'fra1', rationale: 'GDPR-compliant backup' },
   { primary: 'sgp1', backup: 'sfo1', rationale: 'Closest alternative' },
+  { primary: 'blr1', backup: 'sgp1', rationale: 'APAC — Bangalore fails over to Singapore' },
 ];
 
 export function getBackupRegion(primary: DORegion): DORegion {
