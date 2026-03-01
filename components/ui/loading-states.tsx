@@ -5,18 +5,68 @@ import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
+ * Framer-style spinner — rotating arc with glow, no container box.
+ * Used for both page-level and full-screen loading states.
+ */
+function FramerSpinner({ size = 32 }: { size?: number }) {
+  const arcPath = "M 16.25 9 C 16.25 10.07 16.018 11.086 15.602 12 C 15.163 12.965 14.518 13.817 13.724 14.5";
+  return (
+    <div className="flex items-center gap-3">
+      {/* Spinner icon */}
+      <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+        {/* Static base ring */}
+        <svg viewBox="0 0 18 18" width={size} height={size} className="absolute inset-0">
+          <path
+            d="M 9 16.25 C 4.996 16.25 1.75 13.004 1.75 9 C 1.75 4.996 4.996 1.75 9 1.75 C 13.004 1.75 16.25 4.996 16.25 9 C 16.25 13.004 13.004 16.25 9 16.25 Z"
+            fill="transparent"
+            strokeWidth="2"
+            stroke="rgba(241, 242, 244, 0.16)"
+            strokeLinecap="round"
+          />
+        </svg>
+        {/* Rotating arc */}
+        <motion.svg
+          viewBox="0 0 18 18"
+          width={size}
+          height={size}
+          className="absolute inset-0"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
+          style={{ transformOrigin: "center" }}
+        >
+          <path d={arcPath} fill="transparent" strokeWidth="2" stroke="rgb(241, 242, 244)" strokeLinecap="round" />
+        </motion.svg>
+        {/* Blurred glow arc */}
+        <motion.svg
+          viewBox="0 0 18 18"
+          width={size}
+          height={size}
+          className="absolute inset-0"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
+          style={{ transformOrigin: "center", filter: "blur(4px)" }}
+        >
+          <path d={arcPath} fill="transparent" strokeWidth="2" stroke="rgb(241, 242, 244)" strokeLinecap="round" />
+        </motion.svg>
+      </div>
+      {/* Text */}
+      <span className="text-sm font-medium text-text-secondary">Loading...</span>
+    </div>
+  );
+}
+
+/**
  * Page-level loading spinner
  */
 export function PageLoader() {
   return (
     <div className="flex items-center justify-center min-h-[400px]">
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center gap-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
       >
-        <Loader2 className="h-8 w-8 text-accent-primary animate-spin" />
-        <p className="text-sm text-text-secondary">Loading...</p>
+        <FramerSpinner size={32} />
       </motion.div>
     </div>
   );
@@ -162,22 +212,11 @@ export function InlineLoader({
 }
 
 /**
- * App-level loading spinner — clean rotating arc, no container box.
+ * App-level loading spinner — Framer-style arc with glow, no container box.
  * Used by app/loading.tsx for Next.js route segment loading.
  */
-export function AppLoadingSpinner({ size = 40 }: { size?: number }) {
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <div
-        className="absolute inset-0 rounded-full border-2 border-border"
-      />
-      <motion.div
-        className="absolute inset-0 rounded-full border-2 border-transparent border-t-accent-primary"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 0.7, repeat: Infinity, ease: "linear" }}
-      />
-    </div>
-  );
+export function AppLoadingSpinner({ size = 32 }: { size?: number }) {
+  return <FramerSpinner size={size} />;
 }
 
 /**
