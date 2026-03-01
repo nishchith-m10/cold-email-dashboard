@@ -845,14 +845,14 @@ export default function ContactsPage() {
           {selectedContactId && (
             <>
               <motion.div
-                className="fixed inset-0 bg-black/40 z-40 hidden md:block"
+                className="fixed inset-0 bg-black/40 z-[60] hidden md:block"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={closeDetail}
               />
               <motion.aside
-                className="fixed right-0 top-0 h-full w-full max-w-xl bg-background z-50 shadow-2xl border-l border-border flex-col hidden md:flex"
+                className="fixed right-0 top-0 h-full w-full max-w-xl bg-background z-[70] shadow-2xl border-l border-border flex-col hidden md:flex"
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
@@ -971,14 +971,14 @@ export default function ContactsPage() {
           {showAdd && (
             <>
               <motion.div
-                className="fixed inset-0 bg-black/40 z-40"
+                className="fixed inset-0 bg-black/40 z-[60]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setShowAdd(false)}
               />
               <motion.div
-                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                className="fixed inset-0 z-[70] flex items-center justify-center p-4"
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
