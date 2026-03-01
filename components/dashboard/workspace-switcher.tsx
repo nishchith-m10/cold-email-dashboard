@@ -155,11 +155,6 @@ export function WorkspaceSwitcher({
             )}
           </div>
         )}
-        {isSuperAdmin && (
-          <span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">
-            Admin
-          </span>
-        )}
       </div>
     );
   }
