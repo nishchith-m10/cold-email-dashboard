@@ -131,7 +131,7 @@ function CampaignCard({
   handleToggle: (id: string, action: 'activate' | 'deactivate') => Promise<void>;
   handleRename: (id: string, name: string) => void;
   handleDelete: (id: string) => void;
-  isToggling: string | boolean;
+  isToggling: string | boolean | ((id: string) => boolean);
   canWrite: boolean;
   canManage: boolean;
   indented?: boolean;
@@ -172,7 +172,7 @@ function CampaignCard({
                 isActive={campaign.status === 'active'}
                 isLinked={Boolean(campaign.n8n_workflow_id)}
                 onToggle={handleToggle}
-                isToggling={typeof isToggling === 'string' ? isToggling === campaign.id : false}
+                isToggling={typeof isToggling === 'function' ? isToggling(campaign.id) : typeof isToggling === 'string' ? isToggling === campaign.id : false}
                 disabled={!canWrite}
               />
               <DropdownMenu>
@@ -188,7 +188,7 @@ function CampaignCard({
                   </DropdownMenuItem>
                   {campaign.status === 'active' ? (
                     <DropdownMenuItem
-                      disabled={!canWrite || (typeof isToggling === 'string' && isToggling === campaign.id)}
+                      disabled={!canWrite || (typeof isToggling === 'function' ? isToggling(campaign.id) : (typeof isToggling === 'string' && isToggling === campaign.id))}
                       onClick={() => handleToggle(campaign.id!, 'deactivate')}
                     >
                       <Pause className="h-4 w-4 mr-2" />
@@ -196,7 +196,7 @@ function CampaignCard({
                     </DropdownMenuItem>
                   ) : (
                     <DropdownMenuItem
-                      disabled={!canWrite || (typeof isToggling === 'string' && isToggling === campaign.id)}
+                      disabled={!canWrite || (typeof isToggling === 'function' ? isToggling(campaign.id) : (typeof isToggling === 'string' && isToggling === campaign.id))}
                       onClick={() => handleToggle(campaign.id!, 'activate')}
                     >
                       <Play className="h-4 w-4 mr-2" />
@@ -241,7 +241,7 @@ function GroupCard({
   handleToggle: (id: string, action: 'activate' | 'deactivate') => Promise<void>;
   handleRename: (id: string, name: string) => void;
   handleDelete: (id: string) => void;
-  isToggling: string | boolean;
+  isToggling: string | boolean | ((id: string) => boolean);
   canWrite: boolean;
   canManage: boolean;
 }) {
