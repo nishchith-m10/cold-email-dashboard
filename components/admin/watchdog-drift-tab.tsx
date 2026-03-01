@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useWatchdog, triggerWatchdogRun } from '@/hooks/use-watchdog';
 import type { WatchdogRunSummary } from '@/hooks/use-watchdog';
+import type { DriftType, DriftSeverity } from '@/lib/genesis/phase43/watchdog-types';
 import { useToast } from '@/hooks/use-toast';
 import {
   Activity,
@@ -317,8 +318,8 @@ export function WatchdogDriftTab() {
         drifts_healed: result.drifts_healed ?? 0,
         drifts_failed: result.drifts_failed ?? 0,
         dry_run: result.dry_run ?? dryRun,
-        drifts_by_type: result.drifts_by_type ?? {},
-        drifts_by_severity: result.drifts_by_severity ?? {},
+        drifts_by_type: result.drifts_by_type ?? ({} as Record<DriftType, number>),
+        drifts_by_severity: result.drifts_by_severity ?? ({} as Record<DriftSeverity, number>),
         errors: result.errors ?? [],
       };
 
