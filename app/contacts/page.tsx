@@ -192,6 +192,9 @@ export default function ContactsPage() {
   const [addError, setAddError] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
   const [showCsvImport, setShowCsvImport] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<string>('');
+  const [totalCount, setTotalCount] = useState<number | null>(null);
+  const [campaignGroups, setCampaignGroups] = useState<{ id: string; name: string }[]>([]);
   const detailCache = useRef<Map<number, ContactDetail>>(new Map());
   const desktopSentinelRef = useRef<HTMLDivElement | null>(null);
   const mobileSentinelRef = useRef<HTMLDivElement | null>(null);
@@ -204,6 +207,18 @@ export default function ContactsPage() {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  // Fetch campaign groups for the filter dropdown
+  useEffect(() => {
+    if (!workspaceId) return;
+    fetch(`/api/campaign-groups?workspace_id=${workspaceId}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(body => {
+        const groups = (body.groups || []).filter((g: any) => !g.is_test);
+        setCampaignGroups(groups);
+      })
+      .catch(() => {/* silently ignore */});
+  }, [workspaceId]);
 
   const fetchPage = useCallback(
     async (cursor: string | null, reset = false, signal?: AbortSignal) => {
@@ -224,6 +239,9 @@ export default function ContactsPage() {
       if (debouncedSearch) {
         params.set('search', debouncedSearch);
       }
+      if (selectedCampaign) {
+        params.set('campaign_name', selectedCampaign);
+      }
 
       try {
         const res = await fetch(`/api/contacts?${params.toString()}`, { 
@@ -236,6 +254,9 @@ export default function ContactsPage() {
         }
         const body = await res.json();
         const incoming: Contact[] = body.contacts || [];
+        if (reset && body.total !== undefined) {
+          setTotalCount(body.total);
+        }
         setContacts(prev => {
           if (reset) return incoming;
           // Deduplicate by id to guard against concurrent fetches producing duplicate rows
@@ -255,7 +276,7 @@ export default function ContactsPage() {
         setLoading(false);
       }
     },
-    [workspaceId, debouncedSearch, startDate, endDate]
+    [workspaceId, debouncedSearch, startDate, endDate, selectedCampaign]
   );
 
   // Initial + search + date range reload
@@ -270,6 +291,7 @@ export default function ContactsPage() {
     setContacts([]);
     setNextCursor('1');
     setHasMore(true);
+    setTotalCount(null);
     if (workspaceId) {
       fetchPage('1', true, controller.signal);
     }
@@ -277,7 +299,7 @@ export default function ContactsPage() {
     return () => {
       controller.abort();
     };
-  }, [workspaceId, debouncedSearch, startDate, endDate, fetchPage]);
+  }, [workspaceId, debouncedSearch, startDate, endDate, selectedCampaign, fetchPage]);
 
   // Infinite scroll observer - observe BOTH desktop and mobile sentinels
   useEffect(() => {
@@ -550,6 +572,38 @@ export default function ContactsPage() {
                 className="pl-9 w-[148px] h-8 bg-transparent"
               />
             </div>
+            {/* Campaign filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-8 px-3 text-xs gap-1.5 max-w-[160px]">
+                  <Filter className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">
+                    {selectedCampaign
+                      ? (campaignGroups.find(g => g.name === selectedCampaign)?.name ?? selectedCampaign)
+                      : 'All Campaigns'}
+                  </span>
+                  <ChevronDown className="h-3 w-3 ml-auto shrink-0" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-surface-elevated border-border rounded-xl shadow-2xl w-52">
+                <DropdownMenuItem
+                  onClick={() => setSelectedCampaign('')}
+                  className={cn('text-sm', !selectedCampaign && 'font-semibold text-accent-primary')}
+                >
+                  All Campaigns
+                </DropdownMenuItem>
+                {campaignGroups.length > 0 && <DropdownMenuSeparator className="bg-border" />}
+                {campaignGroups.map(g => (
+                  <DropdownMenuItem
+                    key={g.id}
+                    onClick={() => setSelectedCampaign(g.name)}
+                    className={cn('text-sm', selectedCampaign === g.name && 'font-semibold text-accent-primary')}
+                  >
+                    {g.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DateRangePicker
               startDate={startDate}
               endDate={endDate}
@@ -588,6 +642,36 @@ export default function ContactsPage() {
                 className="pl-9 h-10 w-full"
               />
             </div>
+            {/* Campaign filter (mobile) */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  variant={selectedCampaign ? 'default' : 'outline'}
+                  className="h-10 w-10 shrink-0"
+                >
+                  <Filter className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-surface-elevated border-border rounded-xl shadow-2xl w-52">
+                <DropdownMenuItem
+                  onClick={() => setSelectedCampaign('')}
+                  className={cn('text-sm', !selectedCampaign && 'font-semibold text-accent-primary')}
+                >
+                  All Campaigns
+                </DropdownMenuItem>
+                {campaignGroups.length > 0 && <DropdownMenuSeparator className="bg-border" />}
+                {campaignGroups.map(g => (
+                  <DropdownMenuItem
+                    key={g.id}
+                    onClick={() => setSelectedCampaign(g.name)}
+                    className={cn('text-sm', selectedCampaign === g.name && 'font-semibold text-accent-primary')}
+                  >
+                    {g.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DateRangePickerMobile
               startDate={startDate}
               endDate={endDate}
@@ -620,7 +704,14 @@ export default function ContactsPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Master Grid</CardTitle>
               <p className="text-sm text-text-secondary">
-                {contacts.length} contacts loaded
+                {totalCount !== null ? (
+                  <>
+                    <span className="font-medium text-text-primary">{totalCount.toLocaleString()}</span> total
+                    {selectedCampaign ? ` · ${selectedCampaign}` : ''}
+                  </>
+                ) : (
+                  `${contacts.length} contacts loaded`
+                )}
               </p>
             </CardHeader>
             <CardContent className="p-0">
@@ -718,7 +809,8 @@ export default function ContactsPage() {
                 className="space-y-3"
               >
                 <p className="text-xs text-text-secondary uppercase tracking-wide">
-                  {contacts.length} contacts
+                  {totalCount !== null ? `${totalCount.toLocaleString()} contacts` : `${contacts.length} contacts`}
+                  {selectedCampaign ? ` · ${selectedCampaign}` : ''}
                 </p>
                 {contacts.map(contact => (
                   <ContactCard
