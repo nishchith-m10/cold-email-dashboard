@@ -14,7 +14,8 @@ import {
   BarChart3,
   CheckCircle,
   AlertCircle,
-  Building2
+  Building2,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AppLoadingSpinner } from '@/components/ui/loading-states';
