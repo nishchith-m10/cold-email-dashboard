@@ -1,8 +1,15 @@
 /**
- * PHASE 36.2 - Admin Page (Mobile Responsive)
- * 
- * Super Admin dashboard page with Workspaces and Audit Log tabs.
- * Only accessible to users in SUPER_ADMIN_IDS.
+ * Admin Page — Grouped Sidebar Navigation
+ *
+ * 13 tabs reorganised into 5 logical groups rendered as a sticky left sidebar
+ * on desktop and a grouped bottom-sheet picker on mobile.
+ *
+ * Groups:
+ *   Platform       — Workspaces, Audit Log
+ *   Infrastructure — Scale Health, Alert History, Disaster Recovery, Fleet Updates
+ *   Services       — API Health, Control Plane, Sidecar Fleet
+ *   Automation     — Webhook DLQ, Watchdog & Drift, Migration
+ *   Analytics      — LLM Usage
  */
 
 'use client';
@@ -22,41 +29,178 @@ import { ControlPlaneHealthTab } from '@/components/admin/control-plane-health-t
 import { SidecarCommandCenterTab } from '@/components/admin/sidecar-command-center-tab';
 import { WatchdogDriftTab } from '@/components/admin/watchdog-drift-tab';
 import { LLMUsageTab } from '@/components/admin/llm-usage-tab';
-import { Shield, AlertTriangle, Building2, ScrollText, Activity, Bell, ChevronDown, Stethoscope, Database, Globe, Rocket, Mail, Cloud, Terminal, Eye, Brain } from 'lucide-react';
+import {
+  Shield, AlertTriangle, Building2, ScrollText, Activity, Bell,
+  ChevronDown, ChevronRight, Stethoscope, Database, Globe, Rocket,
+  Mail, Cloud, Terminal, Eye, Brain, Server, Cpu, Zap, BarChart3,
+  type LucideIcon,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BottomSheet } from '@/components/mobile';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Super admin IDs from environment variable (comma-separated)
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type AdminTab =
+  | 'workspaces' | 'audit'
+  | 'scale-health' | 'alert-history' | 'disaster-recovery' | 'fleet-updates'
+  | 'api-health' | 'control-plane' | 'sidecar'
+  | 'webhook-dlq' | 'watchdog' | 'migration'
+  | 'llm-usage';
+
+interface TabDef {
+  id: AdminTab;
+  label: string;
+  icon: LucideIcon;
+}
+
+interface GroupDef {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  tabs: TabDef[];
+}
+
+// ─── Navigation Structure ─────────────────────────────────────────────────────
+
+const GROUPS: GroupDef[] = [
+  {
+    id: 'platform',
+    label: 'Platform',
+    icon: Building2,
+    tabs: [
+      { id: 'workspaces', label: 'Workspaces',  icon: Building2 },
+      { id: 'audit',      label: 'Audit Log',   icon: ScrollText },
+    ],
+  },
+  {
+    id: 'infrastructure',
+    label: 'Infrastructure',
+    icon: Server,
+    tabs: [
+      { id: 'scale-health',      label: 'Scale Health',      icon: Activity },
+      { id: 'alert-history',     label: 'Alert History',     icon: Bell },
+      { id: 'disaster-recovery', label: 'Disaster Recovery', icon: Globe },
+      { id: 'fleet-updates',     label: 'Fleet Updates',     icon: Rocket },
+    ],
+  },
+  {
+    id: 'services',
+    label: 'Services',
+    icon: Cpu,
+    tabs: [
+      { id: 'api-health',     label: 'API Health',     icon: Stethoscope },
+      { id: 'control-plane', label: 'Control Plane',  icon: Cloud },
+      { id: 'sidecar',       label: 'Sidecar Fleet',  icon: Terminal },
+    ],
+  },
+  {
+    id: 'automation',
+    label: 'Automation',
+    icon: Zap,
+    tabs: [
+      { id: 'webhook-dlq', label: 'Webhook DLQ',       icon: Mail },
+      { id: 'watchdog',    label: 'Watchdog & Drift',  icon: Eye },
+      { id: 'migration',   label: 'Migration',         icon: Database },
+    ],
+  },
+  {
+    id: 'analytics',
+    label: 'Analytics',
+    icon: BarChart3,
+    tabs: [
+      { id: 'llm-usage', label: 'LLM Usage', icon: Brain },
+    ],
+  },
+];
+
+// Flat list for lookups
+const ALL_TABS: TabDef[] = GROUPS.flatMap(g => g.tabs);
+
+// ─── Auth guard ───────────────────────────────────────────────────────────────
+
 const SUPER_ADMIN_IDS = process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS
   ? process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS.split(',').map(id => id.trim())
   : [];
 
-type AdminTab = 'workspaces' | 'audit' | 'scale-health' | 'alert-history' | 'api-health' | 'migration' | 'disaster-recovery' | 'fleet-updates' | 'webhook-dlq' | 'control-plane' | 'sidecar' | 'watchdog' | 'llm-usage';
+// ─── Tab content renderer ─────────────────────────────────────────────────────
 
-const TABS = [
-  { id: 'workspaces' as const, label: 'Workspaces', icon: Building2 },
-  { id: 'audit' as const, label: 'Audit Log', icon: ScrollText },
-  { id: 'scale-health' as const, label: 'Scale Health', icon: Activity },
-  { id: 'alert-history' as const, label: 'Alert History', icon: Bell },
-  { id: 'api-health' as const, label: 'API Health', icon: Stethoscope },
-  { id: 'migration' as const, label: 'Migration', icon: Database },
-  { id: 'disaster-recovery' as const, label: 'Disaster Recovery', icon: Globe },
-  { id: 'fleet-updates' as const, label: 'Fleet Updates', icon: Rocket },
-  { id: 'webhook-dlq' as const, label: 'Webhook DLQ', icon: Mail },
-  { id: 'control-plane' as const, label: 'Control Plane', icon: Cloud },
-  { id: 'sidecar' as const, label: 'Sidecar Fleet', icon: Terminal },
-  { id: 'watchdog' as const, label: 'Watchdog & Drift', icon: Eye },
-  { id: 'llm-usage' as const, label: 'LLM Usage', icon: Brain },
-];
+function TabContent({ tab }: { tab: AdminTab }) {
+  const wrap = (node: React.ReactNode) => (
+    <div className="overflow-x-auto -mx-4 md:mx-0">
+      <div className="px-4 md:px-0">{node}</div>
+    </div>
+  );
+  switch (tab) {
+    case 'workspaces':        return <div className="overflow-x-auto -mx-4 md:mx-0"><div className="px-4 md:px-0 min-w-[600px] md:min-w-0"><SuperAdminPanel /></div></div>;
+    case 'audit':             return wrap(<AuditLogViewer />);
+    case 'scale-health':      return wrap(<ScaleHealthTab />);
+    case 'alert-history':     return wrap(<AlertHistoryTab />);
+    case 'disaster-recovery': return wrap(<DisasterRecoveryTab />);
+    case 'fleet-updates':     return wrap(<FleetUpdatesTab />);
+    case 'api-health':        return wrap(<APIHealthTab />);
+    case 'control-plane':     return wrap(<ControlPlaneHealthTab />);
+    case 'sidecar':           return wrap(<SidecarCommandCenterTab />);
+    case 'webhook-dlq':       return wrap(<WebhookDLQTab />);
+    case 'watchdog':          return wrap(<WatchdogDriftTab />);
+    case 'migration':         return wrap(<MigrationControlTab />);
+    case 'llm-usage':         return wrap(<LLMUsageTab />);
+  }
+}
+
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+
+function Sidebar({ active, onSelect }: { active: AdminTab; onSelect: (t: AdminTab) => void }) {
+  return (
+    <nav className="space-y-1" aria-label="Admin navigation">
+      {GROUPS.map((group) => (
+        <div key={group.id} className="mb-1">
+          {/* Group label */}
+          <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 select-none">
+            {group.label}
+          </p>
+          {/* Group items */}
+          {group.tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = active === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onSelect(tab.id)}
+                className={cn(
+                  'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all',
+                  isActive
+                    ? 'bg-amber-500/10 text-amber-500 font-medium'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+                )}
+              >
+                <Icon className={cn('h-4 w-4 shrink-0', isActive ? 'text-amber-500' : 'text-muted-foreground')} />
+                <span className="truncate">{tab.label}</span>
+                {isActive && <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0 text-amber-500/60" />}
+              </button>
+            );
+          })}
+
+          {/* Group divider (not after last) */}
+          {group.id !== 'analytics' && (
+            <div className="my-2 mx-3 border-t border-border/40" />
+          )}
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
   const { user, isLoaded } = useUser();
   const [activeTab, setActiveTab] = useState<AdminTab>('workspaces');
   const [showTabPicker, setShowTabPicker] = useState(false);
 
-  const activeTabData = TABS.find(t => t.id === activeTab) || TABS[0];
-  const ActiveIcon = activeTabData.icon;
+  const activeTabDef = ALL_TABS.find(t => t.id === activeTab) ?? ALL_TABS[0];
+  const activeGroup  = GROUPS.find(g => g.tabs.some(t => t.id === activeTab));
+  const ActiveIcon   = activeTabDef.icon;
 
   if (!isLoaded) {
     return (
@@ -64,8 +208,12 @@ export default function AdminPage() {
         <div className="space-y-6">
           <Skeleton className="h-10 w-48" />
           <Skeleton className="h-4 w-64" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-64 w-full" />
+          <div className="grid grid-cols-[200px_1fr] gap-6 mt-4">
+            <div className="space-y-2">
+              {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+            </div>
+            <Skeleton className="h-64 w-full" />
+          </div>
         </div>
       </div>
     );
@@ -86,8 +234,9 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="px-4 md:container md:mx-auto py-6 md:py-8 space-y-6 pb-24 md:pb-8">
-      {/* Header */}
+    <div className="px-4 md:container md:mx-auto py-6 md:py-8 pb-24 md:pb-8 space-y-6">
+
+      {/* ── Page header ── */}
       <div className="flex items-center gap-3">
         <div className="p-2 bg-amber-500/10 rounded-lg">
           <Shield className="h-5 w-5 md:h-6 md:w-6 text-amber-500" />
@@ -95,12 +244,12 @@ export default function AdminPage() {
         <div>
           <h1 className="text-xl md:text-3xl font-bold tracking-tight">Admin Dashboard</h1>
           <p className="text-xs md:text-base text-muted-foreground">
-            Platform administration & governance
+            Platform administration &amp; governance
           </p>
         </div>
       </div>
 
-      {/* Mobile: Tab Picker Button */}
+      {/* ── Mobile: active tab button → bottom-sheet picker ── */}
       <div className="md:hidden">
         <button
           onClick={() => setShowTabPicker(true)}
@@ -108,166 +257,83 @@ export default function AdminPage() {
         >
           <div className="flex items-center gap-3">
             <ActiveIcon className="h-5 w-5 text-amber-500" />
-            <span className="text-sm font-medium text-text-primary">{activeTabData.label}</span>
+            <div className="text-left">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider leading-none mb-0.5">
+                {activeGroup?.label}
+              </p>
+              <p className="text-sm font-medium text-text-primary">{activeTabDef.label}</p>
+            </div>
           </div>
           <ChevronDown className="h-4 w-4 text-text-secondary" />
         </button>
       </div>
 
-      {/* Mobile: Tab Picker Bottom Sheet */}
-      <BottomSheet
-        open={showTabPicker}
-        onClose={() => setShowTabPicker(false)}
-        title="Select Tab"
-      >
-        <div className="space-y-1">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+      {/* ── Mobile: grouped bottom sheet ── */}
+      <BottomSheet open={showTabPicker} onClose={() => setShowTabPicker(false)} title="Admin Navigation">
+        <div className="pb-4">
+          {GROUPS.map((group) => {
+            const GroupIcon = group.icon;
             return (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setShowTabPicker(false);
-                }}
-                className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
-                  isActive
-                    ? 'bg-amber-500/10 text-amber-500'
-                    : 'text-text-primary hover:bg-surface-elevated'
-                )}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="text-sm font-medium">{tab.label}</span>
-                {isActive && (
-                  <span className="ml-auto text-xs text-amber-500">Active</span>
-                )}
-              </button>
+              <div key={group.id} className="mb-3">
+                <div className="flex items-center gap-2 px-4 py-2">
+                  <GroupIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    {group.label}
+                  </p>
+                </div>
+                <div className="space-y-0.5">
+                  {group.tabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => { setActiveTab(tab.id); setShowTabPicker(false); }}
+                        className={cn(
+                          'w-full flex items-center gap-3 px-4 py-2.5 transition-colors',
+                          isActive
+                            ? 'bg-amber-500/10 text-amber-500'
+                            : 'text-text-primary hover:bg-surface-elevated',
+                        )}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="text-sm font-medium">{tab.label}</span>
+                        {isActive && <span className="ml-auto text-[10px] text-amber-500 font-medium">Active</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </div>
       </BottomSheet>
 
-      {/* Desktop: Tab Navigation */}
-      <div className="hidden md:block border-b border-border">
-        <nav className="flex gap-4" aria-label="Admin tabs">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors',
-                  isActive
-                    ? 'border-amber-500 text-amber-500'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </nav>
+      {/* ── Desktop: sidebar + content grid ── */}
+      <div className="hidden md:grid md:grid-cols-[220px_1fr] gap-6 items-start">
+
+        {/* Sticky sidebar */}
+        <aside className="sticky top-6 bg-surface border border-border rounded-xl p-3">
+          <Sidebar active={activeTab} onSelect={setActiveTab} />
+        </aside>
+
+        {/* Content panel */}
+        <main className="min-w-0 min-h-[500px]">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-4">
+            <span>{activeGroup?.label}</span>
+            <ChevronRight className="h-3 w-3" />
+            <span className="text-foreground font-medium">{activeTabDef.label}</span>
+          </div>
+          <TabContent tab={activeTab} />
+        </main>
       </div>
 
-      {/* Tab Content */}
-      <div className="min-h-[300px] md:min-h-[400px]">
-        {activeTab === 'workspaces' && (
-          <div className="overflow-x-auto -mx-4 md:mx-0">
-            <div className="px-4 md:px-0 min-w-[600px] md:min-w-0">
-              <SuperAdminPanel />
-            </div>
-          </div>
-        )}
-        {activeTab === 'audit' && (
-          <div className="overflow-x-auto -mx-4 md:mx-0">
-            <div className="px-4 md:px-0">
-              <AuditLogViewer />
-            </div>
-          </div>
-        )}
-        {activeTab === 'scale-health' && (
-          <div className="overflow-x-auto -mx-4 md:mx-0">
-            <div className="px-4 md:px-0">
-              <ScaleHealthTab />
-            </div>
-          </div>
-        )}
-        {activeTab === 'alert-history' && (
-          <div className="overflow-x-auto -mx-4 md:mx-0">
-            <div className="px-4 md:px-0">
-              <AlertHistoryTab />
-            </div>
-          </div>
-        )}
-        {activeTab === 'api-health' && (
-          <div className="overflow-x-auto -mx-4 md:mx-0">
-            <div className="px-4 md:px-0">
-              <APIHealthTab />
-            </div>
-          </div>
-        )}
-        {activeTab === 'migration' && (
-          <div className="overflow-x-auto -mx-4 md:mx-0">
-            <div className="px-4 md:px-0">
-              <MigrationControlTab />
-            </div>
-          </div>
-        )}
-        {activeTab === 'disaster-recovery' && (
-          <div className="overflow-x-auto -mx-4 md:mx-0">
-            <div className="px-4 md:px-0">
-              <DisasterRecoveryTab />
-            </div>
-          </div>
-        )}
-        {activeTab === 'fleet-updates' && (
-          <div className="overflow-x-auto -mx-4 md:mx-0">
-            <div className="px-4 md:px-0">
-              <FleetUpdatesTab />
-            </div>
-          </div>
-        )}
-        {activeTab === 'webhook-dlq' && (
-          <div className="overflow-x-auto -mx-4 md:mx-0">
-            <div className="px-4 md:px-0">
-              <WebhookDLQTab />
-            </div>
-          </div>
-        )}
-        {activeTab === 'control-plane' && (
-          <div className="overflow-x-auto -mx-4 md:mx-0">
-            <div className="px-4 md:px-0">
-              <ControlPlaneHealthTab />
-            </div>
-          </div>
-        )}
-        {activeTab === 'sidecar' && (
-          <div className="overflow-x-auto -mx-4 md:mx-0">
-            <div className="px-4 md:px-0">
-              <SidecarCommandCenterTab />
-            </div>
-          </div>
-        )}
-        {activeTab === 'watchdog' && (
-          <div className="overflow-x-auto -mx-4 md:mx-0">
-            <div className="px-4 md:px-0">
-              <WatchdogDriftTab />
-            </div>
-          </div>
-        )}
-        {activeTab === 'llm-usage' && (
-          <div className="overflow-x-auto -mx-4 md:mx-0">
-            <div className="px-4 md:px-0">
-              <LLMUsageTab />
-            </div>
-          </div>
-        )}
+      {/* ── Mobile: content only ── */}
+      <div className="md:hidden min-h-[300px]">
+        <TabContent tab={activeTab} />
       </div>
+
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { isSuperAdmin } from '@/lib/workspace-access';
 import { supabaseAdmin } from '@/lib/supabase';
 
 /**
@@ -154,15 +156,13 @@ export async function DELETE(req: NextRequest) {
 
 // GET endpoint to view records (useful for debugging)
 export async function GET(req: NextRequest) {
-  // Verify authentication
-  const token = req.headers.get('x-webhook-token');
-  const expectedToken = process.env.DASH_WEBHOOK_TOKEN;
-
-  if (!token || token !== expectedToken) {
-    return NextResponse.json(
-      { error: 'Unauthorized - Invalid or missing token' },
-      { status: 401 }
-    );
+  // Require Clerk session + super admin role
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+  if (!isSuperAdmin(userId)) {
+    return NextResponse.json({ error: 'Super admin access required' }, { status: 403 });
   }
 
   // Check if Supabase is configured
@@ -181,7 +181,7 @@ export async function GET(req: NextRequest) {
   try {
     let query = supabaseAdmin
       .from('llm_usage')
-      .select('id, provider, model, cost_usd, created_at')
+      .select('id, workspace_id, campaign_name, contact_email, provider, model, tokens_in, tokens_out, cost_usd, purpose, created_at')
       .order('created_at', { ascending: false })
       .limit(limit);
 
