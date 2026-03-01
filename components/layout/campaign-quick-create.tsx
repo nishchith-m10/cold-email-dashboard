@@ -13,7 +13,7 @@
  */
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Plus, Check, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,12 +38,19 @@ export function CampaignQuickCreate() {
   const { groups, isLoading } = useCampaignGroups(workspaceId);
 
   const selectedGroupId = searchParams.get('group') ?? undefined;
+  const pathname = usePathname();
 
   const handleGroupSelect = (groupId: string | undefined) => {
-    const params = new URLSearchParams();
-    if (groupId) params.set('group', groupId);
+    // Preserve existing params (e.g. ?start= ?end= on contacts page)
+    const params = new URLSearchParams(searchParams.toString());
+    if (groupId) {
+      params.set('group', groupId);
+    } else {
+      params.delete('group');
+    }
     if (workspace?.slug) params.set('workspace', workspace.slug);
-    router.push(`/dashboard?${params.toString()}`);
+    // Stay on current page — just update the ?group= param
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   return (
