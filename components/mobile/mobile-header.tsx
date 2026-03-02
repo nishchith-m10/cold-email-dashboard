@@ -19,6 +19,7 @@ import { useUser, useClerk } from '@clerk/nextjs';
 import { useNotifications } from '@/hooks/use-notifications';
 import { useTheme } from '@/hooks/use-theme';
 import { SignOutTransition } from '@/components/ui/sign-out-transition';
+import { CampaignQuickCreate } from '@/components/layout/campaign-quick-create';
 import { getNotificationIcon, getNotificationColor, formatTimeAgo } from '@/lib/notification-utils';
 import { cn } from '@/lib/utils';
 
@@ -83,8 +84,11 @@ export function MobileHeader({
           </div>
         </Link>
 
-        {/* Right actions: bell + profile */}
+        {/* Right actions: campaign + bell + profile */}
         <div className="flex items-center gap-1">
+          {/* Campaign Quick Create */}
+          <CampaignQuickCreate />
+
           {/* Notification Bell */}
           <div className="relative">
             <motion.button

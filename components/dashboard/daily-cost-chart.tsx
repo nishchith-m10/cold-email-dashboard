@@ -136,6 +136,28 @@ export function DailyCostChart({
     return allDates;
   }, [data, startDate, endDate]);
 
+  // Smart tick interval: avoid overlapping labels based on data point count
+  const dataLen = formattedData.length;
+  const tickInterval = dataLen <= 7 ? 0 : dataLen <= 14 ? 1 : dataLen <= 30 ? Math.ceil(dataLen / 7) - 1 : Math.ceil(dataLen / 6) - 1;
+
+  // Smart tick formatter: adapt label density based on date range
+  const smartTickFormatter = (value: string, index: number) => {
+    if (dataLen <= 7) return value; // "Nov 25" - show all
+    if (dataLen <= 30) return value; // "Nov 25" - interval handles density
+    // 31+ days: condense labels
+    const item = formattedData[index];
+    if (!item) return value;
+    const dayNum = parseInt(item.day.split('-')[2], 10);
+    if (dayNum <= Math.ceil(dataLen / (dataLen > 90 ? 6 : 7)) || index === 0) {
+      if (dataLen > 90) {
+        const [y] = item.day.split('-');
+        return `${value.split(' ')[0]} '${y.slice(2)}`;
+      }
+      return value;
+    }
+    return '';
+  };
+
   // Calculate totals
   const totalCost = useMemo(() => 
     formattedData.reduce((sum, d) => sum + d.value, 0),
@@ -204,7 +226,8 @@ export function DailyCostChart({
                   tickLine={false}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
                   tickMargin={8}
-                  interval="preserveStartEnd"
+                  interval={tickInterval}
+                  tickFormatter={smartTickFormatter}
                 />
                 <YAxis
                   axisLine={false}

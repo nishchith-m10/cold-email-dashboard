@@ -63,7 +63,7 @@ export const CHART_COLORS = {
   anthropic: '#d97706',  // Anthropic amber
   google: '#4285f4',     // Google blue
   relevance_ai: '#6366f1', // Indigo
-  apify: '#00d1b2',      // Teal
+  apify: '#ef4444',      // Red
   unknown: '#94a3b8',    // Slate gray
 };
 

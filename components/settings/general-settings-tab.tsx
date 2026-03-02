@@ -102,18 +102,18 @@ export function GeneralSettingsTab() {
       <div className="rounded-xl border border-border bg-surface overflow-hidden">
 
         {/* ── Section: Workspace Identity ── */}
-        <div className="px-6 py-3 border-b border-border bg-surface-elevated/10 flex items-center gap-2">
+        <div className="px-4 md:px-6 py-3 border-b border-border bg-surface-elevated/10 flex items-center gap-2">
           <Building2 className="h-3.5 w-3.5 text-text-primary" />
           <span className="text-[11px] font-semibold uppercase tracking-widest text-text-secondary/70">Workspace Identity</span>
         </div>
 
         {/* Workspace Name */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border gap-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between px-4 md:px-6 py-4 border-b border-border gap-2 md:gap-6">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-text-primary">Workspace Name</p>
             <p className="text-xs text-text-secondary mt-0.5">Display name shown across the dashboard</p>
           </div>
-          <div className="shrink-0 w-64">
+          <div className="w-full md:shrink-0 md:w-64">
             <Input
               value={workspaceName}
               onChange={(e) => setWorkspaceName(e.target.value)}
@@ -125,12 +125,12 @@ export function GeneralSettingsTab() {
         </div>
 
         {/* Workspace Slug */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border gap-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between px-4 md:px-6 py-4 border-b border-border gap-2 md:gap-6">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-text-primary">Workspace Slug</p>
             <p className="text-xs text-text-secondary mt-0.5">Auto-generated URL-friendly identifier</p>
           </div>
-          <div className="shrink-0 w-64">
+          <div className="w-full md:shrink-0 md:w-64">
             <Input
               value={workspace?.slug || 'N/A'}
               disabled
@@ -140,18 +140,18 @@ export function GeneralSettingsTab() {
         </div>
 
         {/* ── Section: Localization ── */}
-        <div className="px-6 py-3 border-b border-border bg-surface-elevated/10 flex items-center gap-2">
+        <div className="px-4 md:px-6 py-3 border-b border-border bg-surface-elevated/10 flex items-center gap-2">
           <Globe className="h-3.5 w-3.5 text-text-primary" />
           <span className="text-[11px] font-semibold uppercase tracking-widest text-text-secondary/70">Localization</span>
         </div>
 
         {/* Timezone */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border gap-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between px-4 md:px-6 py-4 border-b border-border gap-2 md:gap-6">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-text-primary">Timezone</p>
             <p className="text-xs text-text-secondary mt-0.5">Used for displaying all dates and times</p>
           </div>
-          <div className="shrink-0 w-64">
+          <div className="w-full md:shrink-0 md:w-64">
             <TimezoneSelector
               selectedTimezone={timezone}
               onTimezoneChange={setTimezone}
@@ -161,12 +161,12 @@ export function GeneralSettingsTab() {
         </div>
 
         {/* Date Format */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border gap-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between px-4 md:px-6 py-4 border-b border-border gap-2 md:gap-6">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-text-primary">Date Format</p>
             <p className="text-xs text-text-secondary mt-0.5">How dates appear throughout the dashboard</p>
           </div>
-          <div className="shrink-0 w-64">
+          <div className="w-full md:shrink-0 md:w-64">
             <Popover.Root open={isDateFormatOpen} onOpenChange={setIsDateFormatOpen}>
               <Popover.Trigger asChild>
                 <Button variant="outline" className="justify-start gap-2 h-9 px-3 text-sm w-full" disabled={!canWrite}>
@@ -196,12 +196,12 @@ export function GeneralSettingsTab() {
         </div>
 
         {/* Currency */}
-        <div className="flex items-center justify-between px-6 py-4 gap-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between px-4 md:px-6 py-4 gap-2 md:gap-6">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-text-primary">Currency</p>
             <p className="text-xs text-text-secondary mt-0.5">Default currency for cost and spend displays</p>
           </div>
-          <div className="shrink-0 w-64">
+          <div className="w-full md:shrink-0 md:w-64">
             <Popover.Root open={isCurrencyOpen} onOpenChange={setIsCurrencyOpen}>
               <Popover.Trigger asChild>
                 <Button variant="outline" className="justify-start gap-2 h-9 px-3 text-sm w-full" disabled={!canWrite}>
@@ -235,15 +235,15 @@ export function GeneralSettingsTab() {
 
       {/* ── Workspace Info — read-only grid card ─────────────── */}
       <div className="rounded-xl border border-border bg-surface overflow-hidden">
-        <div className="px-6 py-3 border-b border-border bg-surface-elevated/10 flex items-center gap-2">
+        <div className="px-4 md:px-6 py-3 border-b border-border bg-surface-elevated/10 flex items-center gap-2">
           <Building2 className="h-3.5 w-3.5 text-text-primary" />
           <span className="text-[11px] font-semibold uppercase tracking-widest text-text-secondary/70">Workspace Info</span>
           <span className="ml-auto text-[10px] text-text-secondary bg-surface-elevated px-2 py-0.5 rounded-full border border-border">Read-only</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
+        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
 
           {/* Workspace ID */}
-          <div className="px-6 py-5">
+          <div className="px-4 md:px-6 py-5">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-text-secondary mb-3">Workspace ID</p>
             <div className="flex items-center gap-1.5">
               <code className="flex-1 text-xs text-text-primary font-mono bg-black/[0.04] border border-border/50 rounded-md px-2.5 py-1.5 truncate">
@@ -260,7 +260,7 @@ export function GeneralSettingsTab() {
           </div>
 
           {/* Plan */}
-          <div className="px-6 py-5">
+          <div className="px-4 md:px-6 py-5">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-text-secondary mb-3">Plan</p>
             <span className={cn(
               'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold border capitalize',
@@ -274,7 +274,7 @@ export function GeneralSettingsTab() {
           </div>
 
           {/* Created */}
-          <div className="px-6 py-5">
+          <div className="px-4 md:px-6 py-5">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-text-secondary mb-3">Created</p>
             <p className="text-sm text-text-primary">
               {workspace?.created_at

@@ -283,17 +283,25 @@ export function CampaignManagementTable({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
     >
-      <Card className={cn('overflow-hidden', className)}>
-        <CardHeader className="pb-4">
+      <Card className={cn('overflow-hidden border-border/60', className)}>
+        <CardHeader className="pb-3 pt-5">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <CardTitle className="text-base">Campaign Management</CardTitle>
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-accent-primary/10 flex items-center justify-center">
+                  <Layers className="h-4 w-4 text-accent-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-base leading-tight">Campaign Management</CardTitle>
+                  <p className="text-[11px] text-text-secondary mt-0.5">{filteredCampaigns.length} sequence{filteredCampaigns.length !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
               <button 
                 onClick={refresh}
-                className="p-1 hover:bg-surface-elevated rounded transition-colors"
+                className="p-1.5 hover:bg-surface-elevated rounded-lg transition-colors ml-1"
                 title="Refresh campaigns"
               >
-                <RefreshCw className="h-4 w-4 text-text-secondary" />
+                <RefreshCw className="h-3.5 w-3.5 text-text-secondary" />
               </button>
               <SyncLegend />
             </div>
@@ -303,33 +311,33 @@ export function CampaignManagementTable({
                 placeholder="Search campaigns..."
                 value={searchFilter}
                 onChange={e => setSearchFilter(e.target.value)}
-                className="pl-9 w-64"
+                className="pl-9 w-64 h-9 rounded-lg"
               />
             </div>
           </div>
         </CardHeader>
-        <CardContent className="px-0">
+        <CardContent className="px-0 pt-0">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="px-6 py-3 text-left w-12" />
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                <tr className="border-y border-border/60 bg-surface-elevated/30">
+                  <th className="px-4 py-2.5 text-left w-10" />
+                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
                     Campaign
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
                     Group
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
-                    n8n Status
+                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
+                    n8n Sync
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
                     Live
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-center text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
                     Toggle
                   </th>
                 </tr>
@@ -355,47 +363,62 @@ export function CampaignManagementTable({
                           {/* Group summary row */}
                           <motion.tr
                             key={row.groupId}
-                            className="hover:bg-surface-elevated/50 transition-colors cursor-pointer"
+                            className="hover:bg-surface-elevated/40 transition-colors cursor-pointer group/row"
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.2, delay: index * 0.05 }}
                             onClick={() => toggleGroupExpand(row.groupId)}
                           >
-                            <td className="px-6 py-4 w-12" onClick={e => e.stopPropagation()}>
-                              {/* No checkbox on group row — select individual sequences below */}
-                            </td>
-                            <td className="px-6 py-4 text-sm">
-                              <div className="flex items-center gap-2">
+                            <td className="px-4 py-3 w-10" onClick={e => e.stopPropagation()}>
+                              <div className="h-6 w-6 rounded-md bg-surface-elevated flex items-center justify-center group-hover/row:bg-border transition-colors">
                                 {isExpanded
-                                  ? <ChevronDown className="h-4 w-4 text-text-secondary shrink-0" />
-                                  : <ChevronRight className="h-4 w-4 text-text-secondary shrink-0" />}
-                                <Layers className="h-4 w-4 text-accent-primary shrink-0" />
-                                <span className="font-medium text-text-primary">{row.groupName}</span>
-                                <Badge variant="secondary" className="text-xs font-normal ml-1">
-                                  {row.campaigns.length} sequences
-                                </Badge>
+                                  ? <ChevronDown className="h-3.5 w-3.5 text-text-secondary" />
+                                  : <ChevronRight className="h-3.5 w-3.5 text-text-secondary" />}
                               </div>
                             </td>
-                            <td className="px-6 py-4 text-sm">
-                              <span className="text-text-secondary text-xs">—</span>
+                            <td className="px-4 py-3 text-sm">
+                              <div className="flex items-center gap-2.5">
+                                <div className="h-7 w-7 rounded-lg bg-accent-primary/10 flex items-center justify-center shrink-0">
+                                  <Layers className="h-3.5 w-3.5 text-accent-primary" />
+                                </div>
+                                <span className="font-semibold text-text-primary">{row.groupName}</span>
+                                <span className="text-[11px] text-text-secondary bg-surface-elevated px-2 py-0.5 rounded-full border border-border/50">
+                                  {row.campaigns.length} seq
+                                </span>
+                              </div>
                             </td>
-                            <td className="px-6 py-4 text-sm">
-                              <Badge variant={allActive ? 'success' : row.anyActive ? 'warning' : 'default'}>
-                                {allActive ? 'active' : row.anyActive ? 'partial' : 'inactive'}
-                              </Badge>
+                            <td className="px-4 py-3 text-sm">
+                              <span className="text-text-secondary/40 text-xs">—</span>
                             </td>
-                            <td className="px-6 py-4 text-sm">
-                              <Badge variant={allActive ? 'success' : row.anyActive ? 'warning' : 'default'}>
-                                {allActive ? 'active' : row.anyActive ? 'partial' : 'inactive'}
-                              </Badge>
+                            <td className="px-4 py-3 text-sm">
+                              <span className={cn(
+                                'inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border',
+                                allActive ? 'bg-accent-success/10 text-accent-success border-accent-success/20' :
+                                row.anyActive ? 'bg-accent-warning/10 text-accent-warning border-accent-warning/20' :
+                                'bg-surface-elevated text-text-secondary border-border'
+                              )}>
+                                <span className={cn('h-1.5 w-1.5 rounded-full', allActive ? 'bg-accent-success' : row.anyActive ? 'bg-accent-warning' : 'bg-text-secondary/40')} />
+                                {allActive ? 'Active' : row.anyActive ? 'Partial' : 'Inactive'}
+                              </span>
                             </td>
-                            <td className="px-6 py-4 text-sm">
-                              <span className="text-text-secondary text-xs">—</span>
+                            <td className="px-4 py-3 text-sm">
+                              <span className={cn(
+                                'inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border',
+                                allActive ? 'bg-accent-success/10 text-accent-success border-accent-success/20' :
+                                row.anyActive ? 'bg-accent-warning/10 text-accent-warning border-accent-warning/20' :
+                                'bg-surface-elevated text-text-secondary border-border'
+                              )}>
+                                <span className={cn('h-1.5 w-1.5 rounded-full', allActive ? 'bg-accent-success' : row.anyActive ? 'bg-accent-warning' : 'bg-text-secondary/40')} />
+                                {allActive ? 'Synced' : row.anyActive ? 'Partial' : 'Unlinked'}
+                              </span>
                             </td>
-                            <td className="px-6 py-4 text-sm" onClick={e => e.stopPropagation()}>
+                            <td className="px-4 py-3 text-sm">
+                              <span className="text-text-secondary/40 text-xs">—</span>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-center" onClick={e => e.stopPropagation()}>
                               {anyLinked && (
                                 <button
-                                  className="text-xs text-accent-primary hover:underline"
+                                  className="text-xs text-accent-primary hover:underline font-medium"
                                   onClick={() => {
                                     const action = allActive ? 'deactivate' : 'activate';
                                     if (confirm(`${allActive ? 'Pause' : 'Resume'} all ${row.campaigns.length} sequences in "${row.groupName}"?`)) {
@@ -414,39 +437,51 @@ export function CampaignManagementTable({
                             <ContextMenu key={campaign.id}>
                               <ContextMenuTrigger asChild>
                                 <motion.tr
-                                  className="hover:bg-surface-elevated/30 transition-colors cursor-context-menu bg-surface-subtle"
+                                  className="hover:bg-surface-elevated/30 transition-colors cursor-context-menu bg-surface-elevated/5"
                                   initial={{ opacity: 0 }}
                                   animate={{ opacity: 1 }}
                                   transition={{ duration: 0.15, delay: si * 0.04 }}
                                 >
-                                  <td className="px-6 py-3 w-12">
+                                  <td className="px-4 py-2.5 w-10">
                                     <Checkbox
                                       checked={isSelected(campaign.id)}
                                       onCheckedChange={() => toggleSelection(campaign.id)}
                                     />
                                   </td>
-                                  <td className="px-6 py-3 text-sm pl-14">
+                                  <td className="px-4 py-2.5 text-sm pl-14">
                                     <div className="font-normal text-text-secondary">
                                       {campaign.name}
                                     </div>
                                   </td>
-                                  <td className="px-6 py-3 text-sm">
-                                    <span className="text-text-secondary text-xs">sequence</span>
+                                  <td className="px-4 py-2.5 text-sm">
+                                    <span className="text-[11px] text-text-secondary/50 bg-surface-elevated px-1.5 py-0.5 rounded">seq</span>
                                   </td>
-                                  <td className="px-6 py-3 text-sm">
-                                    <Badge variant={campaign.status === 'active' ? 'success' : campaign.status === 'paused' ? 'warning' : 'default'}>
+                                  <td className="px-4 py-2.5 text-sm">
+                                    <span className={cn(
+                                      'inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full border',
+                                      campaign.status === 'active' ? 'bg-accent-success/10 text-accent-success border-accent-success/20' :
+                                      campaign.status === 'paused' ? 'bg-accent-warning/10 text-accent-warning border-accent-warning/20' :
+                                      'bg-surface-elevated text-text-secondary border-border'
+                                    )}>
+                                      <span className={cn('h-1.5 w-1.5 rounded-full', campaign.status === 'active' ? 'bg-accent-success' : campaign.status === 'paused' ? 'bg-accent-warning' : 'bg-text-secondary/40')} />
                                       {campaign.status}
-                                    </Badge>
+                                    </span>
                                   </td>
-                                  <td className="px-6 py-3 text-sm">
-                                    <Badge variant={campaign.n8n_status === 'active' ? 'success' : campaign.n8n_status === 'error' ? 'danger' : 'default'}>
+                                  <td className="px-4 py-2.5 text-sm">
+                                    <span className={cn(
+                                      'inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full border',
+                                      campaign.n8n_status === 'active' ? 'bg-accent-success/10 text-accent-success border-accent-success/20' :
+                                      campaign.n8n_status === 'error' ? 'bg-accent-danger/10 text-accent-danger border-accent-danger/20' :
+                                      'bg-surface-elevated text-text-secondary border-border'
+                                    )}>
+                                      <span className={cn('h-1.5 w-1.5 rounded-full', campaign.n8n_status === 'active' ? 'bg-accent-success' : campaign.n8n_status === 'error' ? 'bg-accent-danger' : 'bg-text-secondary/40')} />
                                       {campaign.n8n_status || 'unknown'}
-                                    </Badge>
+                                    </span>
                                   </td>
-                                  <td className="px-6 py-3 text-sm">
+                                  <td className="px-4 py-2.5 text-sm">
                                     <CampaignPulse campaignId={campaign.id!} />
                                   </td>
-                                  <td className="px-6 py-3 text-sm">
+                                  <td className="px-4 py-2.5 text-sm text-center">
                                     <CampaignToggle
                                       campaignId={campaign.id}
                                       isActive={campaign.n8n_status === 'active'}
@@ -511,18 +546,18 @@ export function CampaignManagementTable({
                       <ContextMenuTrigger asChild>
                         <motion.tr
                           key={campaign.id}
-                          className="hover:bg-surface-elevated/50 transition-colors cursor-context-menu"
+                          className="hover:bg-surface-elevated/40 transition-colors cursor-context-menu"
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.2, delay: index * 0.05 }}
                         >
-                          <td className="px-6 py-4 w-12">
+                          <td className="px-4 py-3 w-10">
                             <Checkbox
                               checked={isSelected(campaign.id)}
                               onCheckedChange={() => toggleSelection(campaign.id)}
                             />
                           </td>
-                          <td className="px-6 py-4 text-sm">
+                          <td className="px-4 py-3 text-sm">
                             <div className="font-medium text-text-primary">
                               <EditableText
                                 value={campaign.name}
@@ -538,41 +573,41 @@ export function CampaignManagementTable({
                             )}
                           </td>
                           {/* Group column */}
-                          <td className="px-6 py-4 text-sm">
+                          <td className="px-4 py-3 text-sm">
                             {campaign.campaign_group_id ? (
-                              <Badge variant="secondary" className="text-xs font-normal">
+                              <span className="text-[11px] text-text-secondary bg-surface-elevated px-2 py-0.5 rounded-full border border-border/50">
                                 {groupMap[campaign.campaign_group_id] ?? '—'}
-                              </Badge>
+                              </span>
                             ) : (
-                              <span className="text-text-secondary text-xs">—</span>
+                              <span className="text-text-secondary/40 text-xs">—</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-sm">
-                            <Badge 
-                              variant={
-                                campaign.status === 'active' ? 'success' : 
-                                campaign.status === 'paused' ? 'warning' : 
-                                'default'
-                              }
-                            >
+                          <td className="px-4 py-3 text-sm">
+                            <span className={cn(
+                              'inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border',
+                              campaign.status === 'active' ? 'bg-accent-success/10 text-accent-success border-accent-success/20' :
+                              campaign.status === 'paused' ? 'bg-accent-warning/10 text-accent-warning border-accent-warning/20' :
+                              'bg-surface-elevated text-text-secondary border-border'
+                            )}>
+                              <span className={cn('h-1.5 w-1.5 rounded-full', campaign.status === 'active' ? 'bg-accent-success' : campaign.status === 'paused' ? 'bg-accent-warning' : 'bg-text-secondary/40')} />
                               {campaign.status}
-                            </Badge>
+                            </span>
                           </td>
-                          <td className="px-6 py-4 text-sm">
-                            <Badge 
-                              variant={
-                                campaign.n8n_status === 'active' ? 'success' : 
-                                campaign.n8n_status === 'error' ? 'danger' : 
-                                'default'
-                              }
-                            >
+                          <td className="px-4 py-3 text-sm">
+                            <span className={cn(
+                              'inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border',
+                              campaign.n8n_status === 'active' ? 'bg-accent-success/10 text-accent-success border-accent-success/20' :
+                              campaign.n8n_status === 'error' ? 'bg-accent-danger/10 text-accent-danger border-accent-danger/20' :
+                              'bg-surface-elevated text-text-secondary border-border'
+                            )}>
+                              <span className={cn('h-1.5 w-1.5 rounded-full', campaign.n8n_status === 'active' ? 'bg-accent-success' : campaign.n8n_status === 'error' ? 'bg-accent-danger' : 'bg-text-secondary/40')} />
                               {campaign.n8n_status || 'unknown'}
-                            </Badge>
+                            </span>
                           </td>
-                          <td className="px-6 py-4 text-sm">
+                          <td className="px-4 py-3 text-sm">
                             <CampaignPulse campaignId={campaign.id!} />
                           </td>
-                          <td className="px-6 py-4 text-sm">
+                          <td className="px-4 py-3 text-sm text-center">
                             <CampaignToggle
                               campaignId={campaign.id}
                               isActive={campaign.n8n_status === 'active'}
