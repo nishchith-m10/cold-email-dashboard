@@ -2,6 +2,7 @@
 
 import { useSenderStats } from '@/hooks';
 import { cn } from '@/lib/utils';
+import { Mail, Users } from 'lucide-react';
 
 interface SenderBreakdownProps {
   startDate: string;
@@ -58,8 +59,22 @@ export function SenderBreakdown({
             </thead>
             <tbody>
               <tr>
-                <td colSpan={7} className="py-8 text-center text-text-secondary text-sm">
-                  No sender data available yet
+                <td colSpan={7} className="py-16 text-center">
+                  <div className="flex flex-col items-center gap-3 max-w-xs mx-auto">
+                    <div className="w-12 h-12 rounded-xl bg-accent-primary/10 flex items-center justify-center">
+                      <Mail className="h-6 w-6 text-accent-primary/60" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-text-primary mb-1">No sender data yet</p>
+                      <p className="text-xs text-text-secondary leading-relaxed">
+                        Per-sender performance metrics will appear here once email sends are tracked for this date range.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-text-secondary/50 mt-1">
+                      <Users className="h-3 w-3" />
+                      <span>Tracks sends, replies &amp; engagement per sender</span>
+                    </div>
+                  </div>
                 </td>
               </tr>
             </tbody>
