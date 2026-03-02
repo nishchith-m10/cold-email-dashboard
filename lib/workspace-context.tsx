@@ -97,17 +97,19 @@ export function WorkspaceProvider({
   const [workspace, setWorkspaceState] = useState<Workspace>(initialWorkspace);
   const [workspaces, setWorkspacesState] = useState<Workspace[]>([initialWorkspace]);
   const [isLoading, setIsLoading] = useState(true);
-  // Initialize isSuperAdmin from localStorage for instant display
-  const [isSuperAdmin, setIsSuperAdmin] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const cached = localStorage.getItem('is_super_admin');
-      return cached === 'true';
-    }
-    return false;
-  });
+  // Always start false so server and client render the same HTML (no hydration mismatch).
+  // The localStorage fast-path restores the cached value in a useEffect after mount.
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
+
+  // Restore cached isSuperAdmin after mount (can't do in useState to avoid hydration mismatch)
+  useEffect(() => {
+    if (localStorage.getItem('is_super_admin') === 'true') {
+      setIsSuperAdmin(true);
+    }
+  }, []);
 
   // Fetch workspaces from API
   const fetchWorkspaces = useCallback(async () => {
