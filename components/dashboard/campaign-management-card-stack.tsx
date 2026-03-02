@@ -85,18 +85,11 @@ function StatusBadge({ status }: { status?: Campaign['status'] }) {
     paused: 'bg-accent-warning/10 text-accent-warning border-accent-warning/20',
     completed: 'bg-text-secondary/10 text-text-secondary border-border',
   };
-  const dotStyles = {
-    active: 'bg-accent-success',
-    paused: 'bg-accent-warning',
-    completed: 'bg-text-secondary/40',
-  };
   const labels = { active: 'Active', paused: 'Paused', completed: 'Completed' };
-  const s = status || 'paused';
   return (
-    <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border', styles[s])}>
-      <span className={cn('h-1.5 w-1.5 rounded-full', dotStyles[s])} />
-      {labels[s]}
-    </span>
+    <Badge variant="secondary" className={cn('text-xs', styles[status || 'paused'])}>
+      {labels[status || 'paused']}
+    </Badge>
   );
 }
 
@@ -253,7 +246,6 @@ function GroupCard({
   canManage: boolean;
 }) {
   const activeCount = members.filter(c => c.status === 'active').length;
-  const allActive = activeCount === members.length && members.length > 0;
   return (
     <motion.div variants={cardVariants} className="space-y-2">
       {/* Group header */}
@@ -266,23 +258,13 @@ function GroupCard({
           <Layers className="h-4 w-4 text-accent-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-text-primary truncate">{groupName}</p>
-            <span className="text-[11px] text-text-secondary bg-surface px-2 py-0.5 rounded-full border border-border/50">
-              {members.length} seq
-            </span>
-          </div>
-          <div className="flex items-center gap-2 mt-1">
-            <span className={cn(
-              'inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full border',
-              allActive ? 'bg-accent-success/10 text-accent-success border-accent-success/20' :
-              activeCount > 0 ? 'bg-accent-warning/10 text-accent-warning border-accent-warning/20' :
-              'bg-surface text-text-secondary border-border'
-            )}>
-              <span className={cn('h-1.5 w-1.5 rounded-full', allActive ? 'bg-accent-success' : activeCount > 0 ? 'bg-accent-warning' : 'bg-text-secondary/40')} />
-              {allActive ? 'All Active' : activeCount > 0 ? `${activeCount} active` : 'Inactive'}
-            </span>
-          </div>
+          <p className="text-sm font-semibold text-text-primary truncate">{groupName}</p>
+          <p className="text-xs text-text-secondary">
+            {members.length} sequence{members.length !== 1 ? 's' : ''}
+            {activeCount > 0 && (
+              <span className="ml-2 text-accent-success">{activeCount} active</span>
+            )}
+          </p>
         </div>
         {expanded ? (
           <ChevronDown className="h-4 w-4 text-text-secondary flex-shrink-0" />

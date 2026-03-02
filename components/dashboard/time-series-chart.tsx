@@ -70,29 +70,6 @@ export function TimeSeriesChart({
     displayDay: formatDate(d.day, 'short'),
   }));
 
-  // Smart tick interval: avoid overlapping labels based on data point count
-  const dataLen = formattedData.length;
-  const tickInterval = dataLen <= 7 ? 0 : dataLen <= 14 ? 1 : dataLen <= 30 ? Math.ceil(dataLen / 7) - 1 : Math.ceil(dataLen / 6) - 1;
-
-  // Smart tick formatter: adapt label density based on date range
-  const smartTickFormatter = (value: string, index: number) => {
-    if (dataLen <= 7) return value; // "Nov 25" - show all
-    if (dataLen <= 30) return value; // "Nov 25" - interval handles density
-    // 31-90+: Show abbreviated month only for first tick of each month, else day number
-    const item = formattedData[index];
-    if (!item) return value;
-    const dayNum = parseInt(item.day.split('-')[2], 10);
-    if (dayNum <= Math.ceil(dataLen / (dataLen > 90 ? 6 : 7)) || index === 0) {
-      // For 90+ days, append year
-      if (dataLen > 90) {
-        const [y] = item.day.split('-');
-        return `${value.split(' ')[0]} '${y.slice(2)}`;
-      }
-      return value;
-    }
-    return '';
-  };
-
   if (loading) {
     return (
       <Card className={className}>
@@ -146,8 +123,7 @@ export function TimeSeriesChart({
                   tickLine={false}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
                   tickMargin={8}
-                  interval={tickInterval}
-                  tickFormatter={smartTickFormatter}
+                  interval="preserveStartEnd"
                 />
                 <YAxis
                   axisLine={false}

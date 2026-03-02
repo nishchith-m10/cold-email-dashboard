@@ -126,51 +126,17 @@ export function DonutChart({
         <CardContent>
           {!hasData ? (
             <div className="flex items-center justify-center h-64">
-              <div className="flex flex-col items-center gap-4 text-center max-w-xs mx-auto">
-                {/* Dashed ring placeholder mimicking the donut shape */}
-                <div className="relative w-32 h-32">
-                  <svg className="w-full h-full" viewBox="0 0 128 128">
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="50"
-                      fill="none"
-                      stroke="var(--border)"
-                      strokeWidth="12"
-                      strokeDasharray="8 6"
-                      strokeLinecap="round"
-                      opacity="0.5"
-                    />
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="50"
-                      fill="none"
-                      stroke="var(--border)"
-                      strokeWidth="12"
-                      strokeDasharray="20 80"
-                      strokeDashoffset="0"
-                      strokeLinecap="round"
-                      opacity="0.25"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full bg-surface-elevated/80 flex items-center justify-center">
-                      <PieChartIcon className="h-5 w-5 text-text-secondary/50" />
-                    </div>
-                  </div>
+              <div className="flex flex-col items-center gap-3 text-center max-w-xs mx-auto">
+                <div className="w-12 h-12 rounded-full bg-surface-elevated flex items-center justify-center">
+                  <PieChartIcon className="h-6 w-6 text-text-secondary" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-text-primary mb-1">No {title.toLowerCase()} yet</p>
-                  <p className="text-xs text-text-secondary leading-relaxed">
+                  <p className="text-xs text-text-secondary">
                     {title.includes('Provider') 
                       ? 'LLM API usage will appear here once your campaigns start running'
                       : 'Model usage breakdown will be displayed as your campaigns generate data'}
                   </p>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-text-secondary/60">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>Data updates automatically</span>
                 </div>
               </div>
             </div>
