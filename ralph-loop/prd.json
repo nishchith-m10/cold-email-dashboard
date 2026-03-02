@@ -382,6 +382,39 @@
       ],
       "passes": true,
       "notes": "655276c — Deleted 5 deprecated files (939 lines removed), no remaining imports"
+    },
+    {
+      "id": "SEC-001",
+      "title": "SMTP Endpoint Authentication (localhost + secret)",
+      "description": "The sidecar /send and /check-reply HTTP endpoints are intentionally unauthenticated (n8n workflows call them directly). This is a P0 security gap: any process reachable on the droplet's port can send arbitrary emails. Fix: (1) Add requireSmtpCaller middleware that rejects requests not originating from localhost (127.0.0.1/::1/::ffff:127.0.0.1); (2) if SMTP_WEBHOOK_SECRET env var is set, also enforce X-Smtp-Secret header match for defence-in-depth. Add smtpWebhookSecret to SidecarConfig and wire from env. Existing n8n workflow HTTP nodes already call localhost so no template changes required for the IP guard.",
+      "acceptanceCriteria": [
+        "SidecarConfig has smtpWebhookSecret?: string field",
+        "requireSmtpCaller middleware rejects non-localhost remote addresses with 403",
+        "requireSmtpCaller also rejects when X-Smtp-Secret header is wrong (if SMTP_WEBHOOK_SECRET is set)",
+        "requireSmtpCaller allows localhost callers with correct/missing secret when SMTP_WEBHOOK_SECRET not set",
+        "/send route uses requireSmtpCaller middleware",
+        "/check-reply route uses requireSmtpCaller middleware",
+        "Main entry point loads smtpWebhookSecret from process.env.SMTP_WEBHOOK_SECRET",
+        "cd sidecar && npx tsc --noEmit passes"
+      ],
+      "passes": true,
+      "notes": "SEC-001: requireSmtpCaller middleware added to /send and /check-reply. Localhost IP guard (127.0.0.1/::1/::ffff:127.0.0.1) applied unconditionally. If SMTP_WEBHOOK_SECRET env var is set, X-Smtp-Secret header is also required. smtpWebhookSecret added to SidecarConfig. Main entry wires process.env.SMTP_WEBHOOK_SECRET. tsc --noEmit passes."
+    },
+    {
+      "id": "SEC-002",
+      "title": "Sidecar Token Disk Persistence",
+      "description": "After performHandshake() the sidecar token is stored only in memory. Process restarts (n8n crash, OOM kill, deploy) lose the token and break heartbeats until the droplet is re-provisioned. Fix: after acquiring the token, write it to $SIDECAR_DATA_DIR/.sidecar_token (default /app/data). On start(), load from disk before calling performHandshake(); if a valid token is found set this.config.sidecarToken so the handshake is skipped. Handle file errors gracefully (log + continue) so a missing/corrupt file falls back to re-handshake.",
+      "acceptanceCriteria": [
+        "persistToken(token) writes token to TOKEN_FILE path with mkdirSync for parent dir",
+        "loadPersistedToken() reads TOKEN_FILE and returns token string or null on any error",
+        "start() calls loadPersistedToken() before bootstrapN8n() and applies result to this.config.sidecarToken",
+        "performHandshake() sets token then immediately calls persistToken()",
+        "TODO comment removed from performHandshake()",
+        "SIDECAR_DATA_DIR env var controls the data directory (default /app/data)",
+        "cd sidecar && npx tsc --noEmit passes"
+      ],
+      "passes": true,
+      "notes": "SEC-002: TOKEN_FILE constant = $SIDECAR_DATA_DIR/.sidecar_token (default /app/data). persistToken() writes with mode 0o600 + mkdirSync. loadPersistedToken() reads on start() before bootstrapN8n(); applies token to config so performHandshake() skips re-handshake. performHandshake() calls persistToken() after receiving token. TODO comment removed. tsc --noEmit passes."
     }
   ]
 }

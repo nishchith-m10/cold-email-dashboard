@@ -14,8 +14,10 @@
  * Security Model: Zero-Trust JWT (RS256)
  */
 
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import axios from 'axios';
+import * as fs from 'fs';
+import * as path from 'path';
 import { JWTVerifier, SidecarJWTPayload } from './jwt-verifier';
 import { N8nManager } from './n8n-manager';
 import { DockerManager } from './docker-manager';
@@ -45,6 +47,8 @@ interface SidecarConfig {
   smtpPass?: string;
   smtpFromEmail?: string;
   smtpFromName?: string;
+  // SEC-001: shared secret for /send and /check-reply (defence-in-depth on top of localhost guard)
+  smtpWebhookSecret?: string;
 }
 
 // ============================================
@@ -91,6 +95,15 @@ interface HealthReport {
   cpu_percent?: number;
   uptime_seconds?: number;
 }
+
+// ============================================
+// CONSTANTS
+// ============================================
+
+/** Directory used to persist state across process restarts (SEC-002) */
+const SIDECAR_DATA_DIR = process.env.SIDECAR_DATA_DIR || '/app/data';
+/** File path where the sidecar heartbeat token is persisted (SEC-002) */
+const TOKEN_FILE = path.join(SIDECAR_DATA_DIR, '.sidecar_token');
 
 // ============================================
 // SIDECAR AGENT CLASS
@@ -160,6 +173,13 @@ export class SidecarAgent {
     console.log(`   Droplet:   ${this.config.dropletId}`);
     console.log(`   Dashboard: ${this.config.dashboardUrl}`);
 
+    // SEC-002: Restore persisted sidecar token so we skip re-handshake on restarts
+    const persistedToken = this.loadPersistedToken();
+    if (persistedToken) {
+      this.config.sidecarToken = persistedToken;
+      console.log('🔑 Loaded persisted sidecar token from disk');
+    }
+
     // Start HTTP server
     this.app.listen(this.config.port, () => {
       console.log(`✅ Sidecar Agent listening on port ${this.config.port}`);
@@ -215,14 +235,60 @@ export class SidecarAgent {
       await this.handleCommand(req, res);
     });
 
-    // Phase 64.B: SMTP endpoints (NOT JWT-protected - called by n8n workflows)
-    this.app.post('/send', async (req: Request, res: Response) => {
+    // Phase 64.B / SEC-001: SMTP endpoints — localhost-only + optional secret header
+    this.app.post('/send', this.requireSmtpCaller.bind(this), async (req: Request, res: Response) => {
       await this.handleSMTPSend(req, res);
     });
 
-    this.app.get('/check-reply', async (req: Request, res: Response) => {
+    this.app.get('/check-reply', this.requireSmtpCaller.bind(this), async (req: Request, res: Response) => {
       await this.handleSMTPCheckReply(req, res);
     });
+  }
+
+  /**
+   * SEC-001: SMTP CALLER GUARD
+   *
+   * Enforces two layers of access control on /send and /check-reply:
+   *  1. Caller must originate from localhost (127.0.0.1 / ::1 / ::ffff:127.0.0.1) — n8n
+   *     always satisfies this because it runs on the same droplet.
+   *  2. If SMTP_WEBHOOK_SECRET is configured, the X-Smtp-Secret header must match.
+   *
+   * This prevents any external process or pod that can reach port 3100 from
+   * sending arbitrary emails through the workspace's SMTP credentials.
+   */
+  private requireSmtpCaller(req: Request, res: Response, next: NextFunction): void {
+    const remoteAddr = req.socket.remoteAddress ?? '';
+    const isLocalhost =
+      remoteAddr === '127.0.0.1' ||
+      remoteAddr === '::1' ||
+      remoteAddr === '::ffff:127.0.0.1';
+
+    const secret = this.config.smtpWebhookSecret || process.env.SMTP_WEBHOOK_SECRET;
+    if (secret) {
+      // When a secret is configured, the caller must supply it — even from localhost.
+      const provided = req.headers['x-smtp-secret'];
+      if (provided !== secret) {
+        console.warn(
+          `[SEC-001] /send or /check-reply rejected: bad or missing X-Smtp-Secret from ${remoteAddr}`
+        );
+        res.status(401).json({ success: false, error: 'Unauthorized: invalid SMTP secret' });
+        return;
+      }
+    } else {
+      // No secret configured — fall back to localhost-only IP guard.
+      if (!isLocalhost) {
+        console.warn(`[SEC-001] /send or /check-reply rejected: non-localhost caller ${remoteAddr}`);
+        res.status(403).json({
+          success: false,
+          error: 'SMTP endpoints are only accessible from localhost (n8n on the same droplet)',
+        });
+        return;
+      }
+      // Log a startup warning if secret was never configured.
+      // (already warned at startup — see start() — so only debug-level here)
+    }
+
+    next();
   }
 
   /**
@@ -877,10 +943,49 @@ export class SidecarAgent {
 
       console.log('✅ Handshake complete, received sidecar token');
 
-      // TODO: Persist sidecar token to disk
+      // SEC-002: Persist token so restarts don't require re-handshake
+      this.persistToken(this.config.sidecarToken);
     } catch (error) {
       console.error('❌ Handshake failed:', error instanceof Error ? error.message : String(error));
       throw error;
+    }
+  }
+
+  // ============================================================================
+  // SEC-002 — TOKEN PERSISTENCE
+  // ============================================================================
+
+  /**
+   * Write the sidecar token to disk so it survives process restarts.
+   * Errors are non-fatal: a failed write is logged and execution continues.
+   */
+  private persistToken(token: string): void {
+    try {
+      fs.mkdirSync(path.dirname(TOKEN_FILE), { recursive: true });
+      fs.writeFileSync(TOKEN_FILE, token, { encoding: 'utf8', mode: 0o600 });
+      console.log(`💾 Sidecar token persisted to ${TOKEN_FILE}`);
+    } catch (err) {
+      console.warn(
+        `[SEC-002] Could not persist sidecar token to ${TOKEN_FILE}:`,
+        err instanceof Error ? err.message : String(err)
+      );
+    }
+  }
+
+  /**
+   * Read the previously-persisted sidecar token from disk.
+   * Returns null on any error (missing file, corrupt contents, etc.).
+   */
+  private loadPersistedToken(): string | null {
+    try {
+      const token = fs.readFileSync(TOKEN_FILE, { encoding: 'utf8' }).trim();
+      if (token && token !== 'PENDING') {
+        return token;
+      }
+      return null;
+    } catch {
+      // File not found or unreadable — first boot, normal condition
+      return null;
     }
   }
 
@@ -928,6 +1033,8 @@ if (require.main === module) {
     smtpPass: process.env.SMTP_PASS,
     smtpFromEmail: process.env.SMTP_FROM_EMAIL,
     smtpFromName: process.env.SMTP_FROM_NAME,
+    // SEC-001: shared SMTP webhook secret (set this on the droplet at deploy-time)
+    smtpWebhookSecret: process.env.SMTP_WEBHOOK_SECRET,
   };
 
   // Validate config

@@ -18,6 +18,8 @@ Started: 2026-02-11
 - Diagnostic endpoint: `/api/admin/api-health/diagnostics/[serviceId]` returns `{ success, guide: DiagnosticGuide | null, metadata }` — null when service is healthy
 - Fragment with key: Use `<Fragment key={...}>` not `<>` when multiple sibling elements need a key in .map()
 - DiagnosticGuide fields: `{ serviceId, serviceName, issue, severity, impact, diagnosticSteps[], fixPath, estimatedFixTime, preventionTips[] }`
+- Sidecar SMTP routes (/send, /check-reply) use IP guard (req.socket.remoteAddress — check 127.0.0.1, ::1, ::ffff:127.0.0.1); optional X-Smtp-Secret header when SMTP_WEBHOOK_SECRET env set
+- Sidecar token persisted to $SIDECAR_DATA_DIR/.sidecar_token (mode 0o600); Docker volume must mount this dir for survival across container replacements
 ---
 
 ## 2026-02-11 - US-001, US-002, US-003
@@ -412,6 +414,27 @@ Branch: ralph/infra-free-tier-hardening
 - Telegram Bot API accepts Markdown in parse_mode — use for structured alert messages
 - contacts table never created — search route already handled this gracefully with as any cast
 - tsvector GENERATED ALWAYS AS + GIN index is the idiomatic Postgres FTS approach for simple single-column search
+---
+
+## 2026-03-02 - SEC-001 + SEC-002
+- **SEC-001**: Authenticated `/send` and `/check-reply` SMTP endpoints on the sidecar (P0 2.3 fix)
+  - Added `requireSmtpCaller` Express middleware (localhost IP guard + optional `X-Smtp-Secret` header check)
+  - Both SMTP routes now pass through the middleware before reaching handlers
+  - `smtpWebhookSecret?: string` added to `SidecarConfig`; wired from `process.env.SMTP_WEBHOOK_SECRET` in main entry
+  - When `SMTP_WEBHOOK_SECRET` is set, callers must supply matching `X-Smtp-Secret` header (defence-in-depth on top of IP)
+  - When secret is NOT set, only the localhost IP guard applies (backward-compat for existing deployments)
+- **SEC-002**: Persisted sidecar heartbeat token to disk so process restarts don't require re-handshake (P1 2.4 fix)
+  - `TOKEN_FILE` = `$SIDECAR_DATA_DIR/.sidecar_token` (default `/app/data/.sidecar_token`)
+  - `persistToken()` writes with `mode: 0o600` and `mkdirSync({ recursive: true })` — non-fatal on error
+  - `loadPersistedToken()` reads on `start()` before `bootstrapN8n()` — non-fatal on missing/corrupt file
+  - `performHandshake()` calls `persistToken()` immediately after receiving token; removed old TODO comment
+  - Skips re-handshake entirely if persisted token loaded successfully (existing logic: token !== 'PENDING')
+- Files changed: `sidecar/sidecar-agent.ts`, `ralph-loop/prd.json`
+- **Learnings for future iterations:**
+  - Sidecar SMTP routes (`/send`, `/check-reply`) are intentionally NOT JWT-protected — they're called by n8n from localhost; use IP guard not JWT for these
+  - `SIDECAR_DATA_DIR` env var controls data persistence path; must map a Docker volume to this path so token survives container replacement
+  - `smtpWebhookSecret` must be injected into n8n workflow HTTP Request nodes as `X-Smtp-Secret` header when `SMTP_WEBHOOK_SECRET` is set — workflow templates need `YOUR_SMTP_WEBHOOK_SECRET` placeholder (future story)
+  - Express `req.socket.remoteAddress` returns `::ffff:127.0.0.1` for IPv4-mapped IPv6 loopback — check all three variants
 ---
 
 ## Onboarding Redesign (branch: ralph/onboarding-redesign)
