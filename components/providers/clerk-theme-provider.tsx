@@ -5,12 +5,12 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 // ---- Lazy-loaded Clerk wrapper ------------------------------------------------
-// We dynamic-import ClerkProvider so that @clerk/nextjs is never evaluated on
-// landing pages. This prevents the "Publishable key not valid" crash when env
-// vars are missing / incorrect.
+// SSR must be ENABLED (default) so that Clerk can complete the session handshake
+// server-side after sign-in. Using ssr:false breaks the session token refresh
+// flow and causes an infinite redirect loop back to sign-in.
+// Landing pages are handled by the isLandingPage guard below (no ClerkProvider).
 const ClerkWrapper = dynamic(
   () => import('./clerk-wrapper').then((m) => m.ClerkWrapper),
-  { ssr: false },
 );
 
 interface ClerkThemeProviderProps {
