@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Cpu, BarChart3 } from 'lucide-react';
+import { Cpu } from 'lucide-react';
 import { toISODate, daysAgo, formatNumber } from '@/lib/utils';
 import { getModelDisplayName } from '@/lib/constants';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
@@ -309,22 +309,8 @@ export function AnalyticsPageClient() {
                     ))}
                     {(!costData?.by_model || costData.by_model.length === 0) && (
                       <tr>
-                        <td colSpan={6} className="px-4 py-16 text-center">
-                          <div className="flex flex-col items-center gap-3 max-w-xs mx-auto">
-                            <div className="w-12 h-12 rounded-xl bg-accent-purple/10 flex items-center justify-center">
-                              <Cpu className="h-6 w-6 text-accent-purple/60" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-text-primary mb-1">No model usage data yet</p>
-                              <p className="text-xs text-text-secondary leading-relaxed">
-                                Model-level token usage and cost breakdowns will appear here once your campaigns start making LLM API calls.
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-[11px] text-text-secondary/50 mt-1">
-                              <BarChart3 className="h-3 w-3" />
-                              <span>Tracks calls, tokens &amp; costs per model</span>
-                            </div>
-                          </div>
+                        <td colSpan={6} className="px-4 py-12 text-center text-text-secondary">
+                          No model usage data available
                         </td>
                       </tr>
                     )}
