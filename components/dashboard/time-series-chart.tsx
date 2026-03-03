@@ -75,7 +75,8 @@ export function TimeSeriesChart({
   // avoids the "dead space" gap that preserveStartEnd causes near the end
   const xAxisTicks = useMemo((): string[] | undefined => {
     if (formattedData.length <= 8) return undefined; // show all
-    const n = 7;
+    // fewer ticks for shorter ranges so intervals look clean (~7 days for 30-day, ~15 days for 90-day)
+    const n = formattedData.length <= 45 ? 5 : 7;
     const indices = new Set<number>();
     indices.add(0);
     indices.add(formattedData.length - 1);

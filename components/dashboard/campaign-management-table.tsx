@@ -7,10 +7,9 @@
 
 'use client';
 
-import { useState, Fragment } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -18,8 +17,6 @@ import { Search, RefreshCw, AlertCircle, Pencil, Pause, Play, Trash2, BarChart3,
 import { useCampaigns } from '@/hooks/use-campaigns';
 import { useCampaignGroups } from '@/hooks/use-campaign-groups';
 import { CampaignToggle } from './campaign-toggle';
-import { CampaignPulse } from './campaign-pulse';
-import { SyncLegend } from '@/components/ui/sync-legend';
 import { EditableText } from '@/components/ui/editable-text';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -277,6 +274,91 @@ export function CampaignManagementTable({
     );
   }
 
+  // Separate groups and ungrouped singles for clean grid rendering
+  const groupRows = displayRows.filter((r): r is Extract<typeof r, { type: 'group' }> => r.type === 'group');
+  const singleRows = displayRows.filter((r): r is Extract<typeof r, { type: 'single' }> => r.type === 'single');
+
+  const CampaignCard = ({ campaign, delay = 0 }: { campaign: (typeof filteredCampaigns)[0]; delay?: number }) => (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.15, delay }}
+          className="bg-surface-elevated/40 border border-border hover:border-border hover:bg-surface-elevated/80 rounded-xl p-4 cursor-context-menu transition-all"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2.5 min-w-0">
+              <Checkbox
+                checked={isSelected(campaign.id)}
+                onCheckedChange={() => toggleSelection(campaign.id)}
+                className="mt-0.5 shrink-0"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-text-primary leading-snug">
+                  <EditableText
+                    value={campaign.name}
+                    onSave={async (val) => { await updateCampaign(campaign.id, { name: val }); }}
+                  />
+                </p>
+                {campaign.description && (
+                  <p className="text-xs text-text-secondary/50 mt-0.5 truncate">{campaign.description}</p>
+                )}
+              </div>
+            </div>
+            <div className="shrink-0">
+              <CampaignToggle
+                campaignId={campaign.id}
+                isActive={campaign.n8n_status === 'active'}
+                isLinked={Boolean(campaign.n8n_workflow_id)}
+                isToggling={isToggling(campaign.id)}
+                onToggle={handleToggle}
+              />
+            </div>
+          </div>
+        </motion.div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem disabled={!canWrite}>
+          <Pencil className="mr-2 h-4 w-4" />Rename
+          <ContextMenuShortcut>F2</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => { navigator.clipboard.writeText(campaign.id); toast({ title: 'Copied', description: 'Campaign ID copied to clipboard' }); }}>
+          <Copy className="mr-2 h-4 w-4" />Copy Campaign ID
+          <ContextMenuShortcut>Ctrl+C</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuItem disabled>
+          <CopyPlus className="mr-2 h-4 w-4" />Duplicate
+          <ContextMenuShortcut className="text-text-secondary text-[10px]">Coming Soon</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => window.open(`/campaigns/${campaign.id}`, '_blank')}>
+          <BarChart3 className="mr-2 h-4 w-4" />View Analytics
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          onClick={() => handleToggle(campaign.id, campaign.n8n_status === 'active' ? 'deactivate' : 'activate')}
+          disabled={!canWrite || !campaign.n8n_workflow_id || isToggling(campaign.id)}
+        >
+          {campaign.n8n_status === 'active' ? (<><Pause className="mr-2 h-4 w-4" />Pause Campaign</>) : (<><Play className="mr-2 h-4 w-4" />Resume Campaign</>)}
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        {canManage && (
+          <ContextMenuItem destructive onClick={async () => {
+            if (confirm(`Are you sure you want to delete "${campaign.name}"?`)) {
+              const result = await deleteCampaign(campaign.id);
+              if (result.success) toast({ title: 'Deleted', description: `"${campaign.name}" deleted` });
+              else toast({ variant: 'destructive', title: 'Delete failed', description: result.error || 'Failed to delete campaign' });
+            }
+          }}>
+            <Trash2 className="mr-2 h-4 w-4" />Delete Campaign
+            <ContextMenuShortcut>⌫</ContextMenuShortcut>
+          </ContextMenuItem>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -288,14 +370,13 @@ export function CampaignManagementTable({
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <CardTitle className="text-base">Campaign Management</CardTitle>
-              <button 
+              <button
                 onClick={refresh}
                 className="p-1 hover:bg-surface-elevated rounded transition-colors"
                 title="Refresh campaigns"
               >
                 <RefreshCw className="h-4 w-4 text-text-secondary" />
               </button>
-              <SyncLegend />
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
@@ -308,331 +389,72 @@ export function CampaignManagementTable({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="px-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="pl-4 pr-2 py-2.5 w-8" />
-                  <th className="px-3 py-2.5 text-left text-[11px] font-medium text-text-secondary uppercase tracking-wider">
-                    Campaign
-                  </th>
-                  <th className="px-3 py-2.5 text-left text-[11px] font-medium text-text-secondary uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-3 py-2.5 text-left text-[11px] font-medium text-text-secondary uppercase tracking-wider">
-                    Live
-                  </th>
-                  <th className="px-3 py-2.5 w-24" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredCampaigns.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-4 py-12 text-center text-text-secondary"
+        <CardContent className="px-6 pb-6">
+          {filteredCampaigns.length === 0 ? (
+            <div className="py-16 text-center">
+              <p className="text-sm text-text-secondary/70">
+                {searchFilter ? 'No campaigns match your search' : 'No campaigns yet'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Grouped campaigns */}
+              {groupRows.map((row) => {
+                const isExpanded = expandedGroups.has(row.groupId);
+                const allActive = row.campaigns.every(c => c.n8n_status === 'active');
+                const anyLinked = row.campaigns.some(c => c.n8n_workflow_id);
+                return (
+                  <div key={row.groupId} className="space-y-3">
+                    <button
+                      className="w-full flex items-center gap-2.5 group"
+                      onClick={() => toggleGroupExpand(row.groupId)}
                     >
-                      {searchFilter ? 'No matching campaigns' : 'No campaigns found'}
-                    </td>
-                  </tr>
-                ) : (
-                  displayRows.map((row, index) => {
-                    if (row.type === 'group') {
-                      const isExpanded = expandedGroups.has(row.groupId);
-                      const allActive = row.campaigns.every(c => c.n8n_status === 'active');
-                      const anyLinked = row.campaigns.some(c => c.n8n_workflow_id);
-                      return (
-                        <Fragment key={row.groupId}>
-                          {/* Group summary row */}
-                          <motion.tr
-                            key={row.groupId}
-                            className="hover:bg-surface-elevated/40 transition-colors cursor-pointer"
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.2, delay: index * 0.05 }}
-                            onClick={() => toggleGroupExpand(row.groupId)}
-                          >
-                            <td className="pl-4 pr-2 py-2 w-8">
-                              <div className="flex items-center justify-center">
-                                {isExpanded
-                                  ? <ChevronDown className="h-3.5 w-3.5 text-text-secondary shrink-0" />
-                                  : <ChevronRight className="h-3.5 w-3.5 text-text-secondary shrink-0" />}
-                              </div>
-                            </td>
-                            <td className="px-3 py-2 text-sm">
-                              <span className="font-medium text-text-primary">{row.groupName}</span>
-                              <span className="ml-2 text-[11px] text-text-secondary">{row.campaigns.length} seq</span>
-                            </td>
-                            <td className="px-3 py-2">
-                              <Badge variant={allActive ? 'success' : row.anyActive ? 'warning' : 'default'} className="text-[10px] px-1.5 py-0">
-                                {allActive ? 'active' : row.anyActive ? 'partial' : 'inactive'}
-                              </Badge>
-                            </td>
-                            <td className="px-3 py-2">
-                              <span className="text-text-secondary/40 text-xs">—</span>
-                            </td>
-                            <td className="px-3 py-2 text-sm" onClick={e => e.stopPropagation()}>
-                              {anyLinked && (
-                                <button
-                                  className="text-xs text-accent-primary hover:underline"
-                                  onClick={() => {
-                                    const action = allActive ? 'deactivate' : 'activate';
-                                    if (confirm(`${allActive ? 'Pause' : 'Resume'} all ${row.campaigns.length} sequences in "${row.groupName}"?`)) {
-                                      Promise.all(row.campaigns.map(c => toggleCampaign(c.id, action))).then(refresh);
-                                    }
-                                  }}
-                                  disabled={!canWrite}
-                                >
-                                  {allActive ? 'Pause all' : 'Resume all'}
-                                </button>
-                              )}
-                            </td>
-                          </motion.tr>
-                          {/* Expanded sequence rows */}
-                          {isExpanded && row.campaigns.map((campaign, si) => (
-                            <ContextMenu key={campaign.id}>
-                              <ContextMenuTrigger asChild>
-                                <motion.tr
-                                  className="hover:bg-surface-elevated/20 transition-colors cursor-context-menu"
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  transition={{ duration: 0.15, delay: si * 0.04 }}
-                                >
-                                  <td className="pl-4 pr-2 py-2 w-8">
-                                    <Checkbox
-                                      checked={isSelected(campaign.id)}
-                                      onCheckedChange={() => toggleSelection(campaign.id)}
-                                    />
-                                  </td>
-                                  <td className="px-3 py-2 text-sm pl-7">
-                                    <span className="text-text-secondary">{campaign.name}</span>
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    <Badge variant={campaign.n8n_status === 'active' ? 'success' : campaign.n8n_status === 'error' ? 'danger' : 'default'} className="text-[10px] px-1.5 py-0">
-                                      {campaign.n8n_status || 'idle'}
-                                    </Badge>
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    <CampaignPulse campaignId={campaign.id!} />
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    <CampaignToggle
-                                      campaignId={campaign.id}
-                                      isActive={campaign.n8n_status === 'active'}
-                                      isLinked={Boolean(campaign.n8n_workflow_id)}
-                                      isToggling={isToggling(campaign.id)}
-                                      onToggle={handleToggle}
-                                    />
-                                  </td>
-                                </motion.tr>
-                              </ContextMenuTrigger>
-                              <ContextMenuContent>
-                                <ContextMenuItem
-                                  onClick={() => handleToggle(campaign.id, campaign.n8n_status === 'active' ? 'deactivate' : 'activate')}
-                                  disabled={!canWrite || !campaign.n8n_workflow_id || isToggling(campaign.id)}
-                                >
-                                  {campaign.n8n_status === 'active' ? <><Pause className="mr-2 h-4 w-4" />Pause</> : <><Play className="mr-2 h-4 w-4" />Resume</>}
-                                </ContextMenuItem>
-                                <ContextMenuSeparator />
-                                <ContextMenuItem
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(campaign.id);
-                                    toast({
-                                      title: 'Copied',
-                                      description: 'Campaign ID copied to clipboard',
-                                    });
-                                  }}
-                                >
-                                  <Copy className="mr-2 h-4 w-4" />
-                                  Copy Campaign ID
-                                  <ContextMenuShortcut>Ctrl+C</ContextMenuShortcut>
-                                </ContextMenuItem>
-                                <ContextMenuItem disabled>
-                                  <CopyPlus className="mr-2 h-4 w-4" />
-                                  Duplicate
-                                  <ContextMenuShortcut className="text-text-secondary text-[10px]">Coming Soon</ContextMenuShortcut>
-                                </ContextMenuItem>
-                                <ContextMenuSeparator />
-                                {canManage && (
-                                  <ContextMenuItem
-                                    destructive
-                                    onClick={async () => {
-                                      if (confirm(`Delete "${campaign.name}"?`)) {
-                                        const result = await deleteCampaign(campaign.id);
-                                        if (!result.success) toast({ variant: 'destructive', title: 'Delete failed', description: result.error });
-                                      }
-                                    }}
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />Delete Sequence
-                                  </ContextMenuItem>
-                                )}
-                              </ContextMenuContent>
-                            </ContextMenu>
-                          ))}
-                        </Fragment>
-                      );
-                    }
+                      {isExpanded
+                        ? <ChevronDown className="h-3.5 w-3.5 text-text-secondary shrink-0" />
+                        : <ChevronRight className="h-3.5 w-3.5 text-text-secondary shrink-0" />}
+                      <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">{row.groupName}</span>
+                      <span className="text-xs text-text-secondary/40">{row.campaigns.length} sequences</span>
+                      <div className="flex-1 h-px bg-border/40" />
+                      {anyLinked && (
+                        <span
+                          role="button"
+                          className="text-xs text-text-secondary/60 hover:text-text-primary transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const action = allActive ? 'deactivate' : 'activate';
+                            if (confirm(`${allActive ? 'Pause' : 'Resume'} all ${row.campaigns.length} sequences in "${row.groupName}"?`)) {
+                              Promise.all(row.campaigns.map(c => toggleCampaign(c.id, action))).then(refresh);
+                            }
+                          }}
+                        >
+                          {allActive ? 'Pause all' : 'Resume all'}
+                        </span>
+                      )}
+                    </button>
+                    {isExpanded && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {row.campaigns.map((campaign, si) => (
+                          <CampaignCard key={campaign.id} campaign={campaign} delay={si * 0.04} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
 
-                    // Single (ungrouped) campaign row
-                    const { campaign } = row;
-                    return (
-                    <ContextMenu key={campaign.id}>
-                      <ContextMenuTrigger asChild>
-                        <motion.tr
-                          key={campaign.id}
-                          className="hover:bg-surface-elevated/40 transition-colors cursor-context-menu"
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.2, delay: index * 0.05 }}
-                        >
-                          <td className="pl-4 pr-2 py-2 w-8">
-                            <Checkbox
-                              checked={isSelected(campaign.id)}
-                              onCheckedChange={() => toggleSelection(campaign.id)}
-                            />
-                          </td>
-                          <td className="px-3 py-2 text-sm">
-                            <div className="font-medium text-text-primary">
-                              <EditableText
-                                value={campaign.name}
-                                onSave={async (val) => {
-                                  await updateCampaign(campaign.id, { name: val });
-                                }}
-                              />
-                            </div>
-                            {campaign.description && (
-                              <div className="text-xs text-text-secondary mt-0.5">
-                                {campaign.description}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-3 py-2">
-                            <Badge
-                              variant={
-                                (campaign.n8n_status || campaign.status) === 'active' ? 'success' :
-                                (campaign.n8n_status || campaign.status) === 'error' ? 'danger' :
-                                (campaign.n8n_status || campaign.status) === 'paused' ? 'warning' :
-                                'default'
-                              }
-                              className="text-[10px] px-1.5 py-0"
-                            >
-                              {campaign.n8n_status || campaign.status || 'idle'}
-                            </Badge>
-                          </td>
-                          <td className="px-3 py-2">
-                            <CampaignPulse campaignId={campaign.id!} />
-                          </td>
-                          <td className="px-3 py-2">
-                            <CampaignToggle
-                              campaignId={campaign.id}
-                              isActive={campaign.n8n_status === 'active'}
-                              isLinked={Boolean(campaign.n8n_workflow_id)}
-                              isToggling={isToggling(campaign.id)}
-                              onToggle={handleToggle}
-                            />
-                          </td>
-                        </motion.tr>
-                      </ContextMenuTrigger>
-                      <ContextMenuContent>
-                        <ContextMenuItem
-                          onClick={() => {
-                            // Trigger edit mode on the EditableText
-                            const row = document.querySelector(`[data-campaign-id="${campaign.id}"]`);
-                            row?.querySelector('button')?.click();
-                          }}
-                          disabled={!canWrite}
-                        >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Rename
-                          <ContextMenuShortcut>F2</ContextMenuShortcut>
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                          onClick={() => {
-                            navigator.clipboard.writeText(campaign.id);
-                            toast({
-                              title: 'Copied',
-                              description: 'Campaign ID copied to clipboard',
-                            });
-                          }}
-                        >
-                          <Copy className="mr-2 h-4 w-4" />
-                          Copy Campaign ID
-                          <ContextMenuShortcut>Ctrl+C</ContextMenuShortcut>
-                        </ContextMenuItem>
-                        <ContextMenuItem
-                          disabled
-                        >
-                          <CopyPlus className="mr-2 h-4 w-4" />
-                          Duplicate
-                          <ContextMenuShortcut className="text-text-secondary text-[10px]">Coming Soon</ContextMenuShortcut>
-                        </ContextMenuItem>
-                        <ContextMenuSeparator />
-                        <ContextMenuItem
-                          onClick={() => window.open(`/campaigns/${campaign.id}`, '_blank')}
-                        >
-                          <BarChart3 className="mr-2 h-4 w-4" />
-                          View Analytics
-                        </ContextMenuItem>
-                        <ContextMenuSeparator />
-                        <ContextMenuItem
-                          onClick={() => handleToggle(
-                            campaign.id,
-                            campaign.n8n_status === 'active' ? 'deactivate' : 'activate'
-                          )}
-                          disabled={!canWrite || !campaign.n8n_workflow_id || isToggling(campaign.id)}
-                        >
-                          {campaign.n8n_status === 'active' ? (
-                            <>
-                              <Pause className="mr-2 h-4 w-4" />
-                              Pause Campaign
-                            </>
-                          ) : (
-                            <>
-                              <Play className="mr-2 h-4 w-4" />
-                              Resume Campaign
-                            </>
-                          )}
-                        </ContextMenuItem>
-                        <ContextMenuSeparator />
-                        {canManage && (
-                          <ContextMenuItem
-                            destructive
-                            onClick={async () => {
-                              if (confirm(`Are you sure you want to delete "${campaign.name}"?`)) {
-                                const result = await deleteCampaign(campaign.id);
-                                if (result.success) {
-                                  toast({
-                                    title: 'Deleted',
-                                    description: `Campaign "${campaign.name}" deleted`,
-                                  });
-                                } else {
-                                  toast({
-                                    variant: 'destructive',
-                                    title: 'Delete failed',
-                                    description: result.error || 'Failed to delete campaign',
-                                  });
-                                }
-                              }
-                            }}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Campaign
-                            <ContextMenuShortcut>⌫</ContextMenuShortcut>
-                          </ContextMenuItem>
-                        )}
-                      </ContextMenuContent>
-                    </ContextMenu>
-                  );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+              {/* Ungrouped campaigns */}
+              {singleRows.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {singleRows.map((row, i) => (
+                    <CampaignCard key={row.campaign.id} campaign={row.campaign} delay={i * 0.03} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
-      
-      {/* Bulk Action Toolbar */}
+
       <BulkActionToolbar
         selectedCount={selectedCount}
         onClearSelection={clearSelection}
