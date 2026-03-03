@@ -136,6 +136,43 @@ export async function getWorkflow(workflowId: string): Promise<N8nResult<N8nWork
 }
 
 /**
+ * Update a workflow by ID (full PUT replacement)
+ * PUT /workflows/{id}
+ */
+export async function updateWorkflow(workflowId: string, workflowJson: unknown): Promise<N8nResult<N8nWorkflow>> {
+  try {
+    const response = await withRetry(async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT);
+      try {
+        const res = await fetch(`${getBaseUrl()}/workflows/${workflowId}`, {
+          method: 'PUT',
+          headers: { ...getHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify(workflowJson),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        return res;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    });
+    if (!response.ok) {
+      const errorBody = await response.text();
+      return {
+        success: false,
+        error: { message: `Failed to update workflow: ${response.status}`, code: `HTTP_${response.status}`, details: errorBody },
+      };
+    }
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: { message: error instanceof Error ? error.message : 'Unknown error', code: 'FETCH_ERROR' } };
+  }
+}
+
+/**
  * Activate a workflow by ID
  * POST /workflows/{id}/activate
  */
