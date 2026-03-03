@@ -5,29 +5,25 @@ import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
- * Framer-design spinner — dark pill container with multi-layer glowing arc.
- * Faithfully reproduces the framer.com/m/loadingSpinner-qP3z.js design,
- * minus the "Loading..." text wrapper.
+ * Framer-design spinner — glowing arc ring with "Loading..." text.
+ * No background wrapper. Reproduces framer.com/m/loadingSpinner-qP3z.js
+ * with the pill container removed, text preserved.
  */
 export function FramerSpinner({ size = 28 }: { size?: number }) {
   const arcPath = "M 16.25 9 C 16.25 10.07 16.018 11.086 15.602 12 C 15.163 12.965 14.518 13.817 13.724 14.5";
-  const padding = Math.max(4, Math.round(size / 6));
+  const fontSize = Math.max(11, Math.round(size * 0.5));
 
   return (
     <div
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding,
-        backgroundColor: 'rgb(15, 15, 15)',
-        borderRadius: '999px',
-        boxShadow:
-          '0px 2px 4px rgba(0,0,0,0.08), 0px 8px 8px rgba(0,0,0,0.07), 0px 17px 10px rgba(0,0,0,0.04), 0px 31px 12px rgba(0,0,0,0.01)',
+        gap: Math.max(6, Math.round(size / 4)),
         flexShrink: 0,
       }}
     >
-      <div style={{ position: 'relative', width: size, height: size }}>
+      {/* Ring + glow */}
+      <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
         {/* Static faint base ring */}
         <svg
           viewBox="0 0 18 18"
@@ -85,6 +81,19 @@ export function FramerSpinner({ size = 28 }: { size?: number }) {
           </div>
         </div>
       </div>
+
+      {/* Loading text */}
+      <span
+        style={{
+          fontSize,
+          color: 'rgb(241, 242, 244)',
+          fontFamily: 'Inter, sans-serif',
+          lineHeight: 1,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Loading...
+      </span>
     </div>
   );
 }
