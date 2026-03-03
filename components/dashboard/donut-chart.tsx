@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { CHART_COLORS } from '@/lib/constants';
 import { useFormatCurrency } from '@/hooks/use-format-currency';
 import { formatCurrency as formatCurrencyUtil, Currency } from '@/lib/currency-context';
+import { PieChart as PieChartIcon } from 'lucide-react';
 
 interface DonutChartProps {
   title: string;
@@ -124,24 +125,21 @@ export function DonutChart({
         </CardHeader>
         <CardContent>
           {!hasData ? (
-            <>
-              <div className="relative h-56">
-                {/* Faint placeholder donut ring */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <svg width="180" height="180" viewBox="0 0 180 180">
-                    <circle cx="90" cy="90" r="75" fill="none" stroke="var(--border)" strokeWidth="30" opacity="0.15" />
-                    <circle cx="90" cy="90" r="58" fill="none" stroke="var(--border)" strokeWidth="1" opacity="0.08" strokeDasharray="4 4" />
-                  </svg>
+            <div className="flex items-center justify-center h-64">
+              <div className="flex flex-col items-center gap-3 text-center max-w-xs mx-auto">
+                <div className="w-12 h-12 rounded-full bg-surface-elevated flex items-center justify-center">
+                  <PieChartIcon className="h-6 w-6 text-text-secondary" />
                 </div>
-                {/* Center label */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-text-secondary/40">{formatCurrency(0)}</p>
-                    <p className="text-xs text-text-secondary/30">Total</p>
-                  </div>
+                <div>
+                  <p className="text-sm font-medium text-text-primary mb-1">No {title.toLowerCase()} yet</p>
+                  <p className="text-xs text-text-secondary">
+                    {title.includes('Provider')
+                      ? 'LLM API usage will appear here once your campaigns start running'
+                      : 'Model usage breakdown will be displayed as your campaigns generate data'}
+                  </p>
                 </div>
               </div>
-            </>
+            </div>
           ) : (
             <>
             <div className="relative h-56">

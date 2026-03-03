@@ -136,13 +136,6 @@ export function DailyCostChart({
     return allDates;
   }, [data, startDate, endDate]);
 
-  // Compute uniform tick interval so ~7 labels are evenly spaced
-  const xAxisInterval = useMemo(() => {
-    const maxTicks = 7;
-    if (formattedData.length <= maxTicks) return 0;
-    return Math.ceil(formattedData.length / maxTicks) - 1;
-  }, [formattedData.length]);
-
   // Calculate totals
   const totalCost = useMemo(() => 
     formattedData.reduce((sum, d) => sum + d.value, 0),
@@ -211,7 +204,7 @@ export function DailyCostChart({
                   tickLine={false}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
                   tickMargin={8}
-                  interval={xAxisInterval}
+                  interval="preserveStartEnd"
                 />
                 <YAxis
                   axisLine={false}

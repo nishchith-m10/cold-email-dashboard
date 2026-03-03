@@ -6,12 +6,12 @@ import { cn } from '@/lib/utils';
 
 /**
  * Framer-design spinner — glowing arc ring with "Loading..." text.
- * No background wrapper. Reproduces framer.com/m/loadingSpinner-qP3z.js
- * with the pill container removed, text preserved.
+ * No background wrapper. No 3D crisp arc — pure soft glow effect.
+ * Text pulses with a fading glow animation.
  */
-export function FramerSpinner({ size = 28 }: { size?: number }) {
+export function FramerSpinner({ size = 20 }: { size?: number }) {
   const arcPath = "M 16.25 9 C 16.25 10.07 16.018 11.086 15.602 12 C 15.163 12.965 14.518 13.817 13.724 14.5";
-  const fontSize = Math.max(11, Math.round(size * 0.5));
+  const fontSize = Math.max(10, Math.round(size * 0.5));
 
   return (
     <div
@@ -22,7 +22,7 @@ export function FramerSpinner({ size = 28 }: { size?: number }) {
         flexShrink: 0,
       }}
     >
-      {/* Ring + glow */}
+      {/* Ring */}
       <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
         {/* Static faint base ring */}
         <svg
@@ -40,7 +40,7 @@ export function FramerSpinner({ size = 28 }: { size?: number }) {
           />
         </svg>
 
-        {/* Rotating container — all glow layers spin in sync */}
+        {/* Rotating glow arc — pure blur, no crisp arc on top */}
         <div
           className="animate-spin"
           style={{
@@ -52,38 +52,25 @@ export function FramerSpinner({ size = 28 }: { size?: number }) {
             overflow: 'visible',
           }}
         >
-          {/* Primary arc */}
-          <svg
-            viewBox="0 0 18 18"
-            width={size}
-            height={size}
-            style={{ position: 'absolute', inset: 0, display: 'block', overflow: 'visible' }}
-          >
-            <path
-              d={arcPath}
-              fill="transparent"
-              strokeWidth="2"
-              stroke="rgb(241, 242, 244)"
-              strokeLinecap="round"
-            />
-          </svg>
-          {/* Glow layer 1 — blurred copy */}
-          <div style={{ position: 'absolute', inset: 0, filter: 'blur(4px)', overflow: 'visible' }}>
+          <div style={{ position: 'absolute', inset: 0, filter: 'blur(3px)', overflow: 'visible' }}>
             <svg viewBox="0 0 18 18" width={size} height={size} style={{ display: 'block', overflow: 'visible' }}>
-              <path d={arcPath} fill="transparent" strokeWidth="2" stroke="rgb(241, 242, 244)" strokeLinecap="round" />
-            </svg>
-          </div>
-          {/* Glow layer 2 — softer secondary bloom */}
-          <div style={{ position: 'absolute', inset: 0, filter: 'blur(4px)', opacity: 0.25, overflow: 'visible' }}>
-            <svg viewBox="0 0 18 18" width={size} height={size} style={{ display: 'block', overflow: 'visible' }}>
-              <path d={arcPath} fill="transparent" strokeWidth="2" stroke="rgb(241, 242, 244)" strokeLinecap="round" />
+              <path d={arcPath} fill="transparent" strokeWidth="2.5" stroke="rgb(241, 242, 244)" strokeLinecap="round" />
             </svg>
           </div>
         </div>
       </div>
 
-      {/* Loading text */}
-      <span
+      {/* Loading text — pulsing glow fade */}
+      <motion.span
+        animate={{
+          opacity: [0.5, 1, 0.5],
+          textShadow: [
+            '0 0 0px rgba(241,242,244,0)',
+            '0 0 8px rgba(241,242,244,0.7)',
+            '0 0 0px rgba(241,242,244,0)',
+          ],
+        }}
+        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
         style={{
           fontSize,
           color: 'rgb(241, 242, 244)',
@@ -93,7 +80,7 @@ export function FramerSpinner({ size = 28 }: { size?: number }) {
         }}
       >
         Loading...
-      </span>
+      </motion.span>
     </div>
   );
 }
@@ -258,7 +245,7 @@ export function InlineLoader({
  * App-level loading spinner — Framer-style arc with glow, no container box.
  * Used by app/loading.tsx for Next.js route segment loading.
  */
-export function AppLoadingSpinner({ size = 40 }: { size?: number }) {
+export function AppLoadingSpinner({ size = 28 }: { size?: number }) {
   return <FramerSpinner size={size} />;
 }
 

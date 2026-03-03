@@ -43,7 +43,7 @@ export function SenderBreakdown({
           </span>
         </div>
 
-        <div className="relative overflow-x-auto">
+        <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -57,22 +57,13 @@ export function SenderBreakdown({
               </tr>
             </thead>
             <tbody>
-              {[0, 1, 2].map((i) => (
-                <tr key={`ghost-${i}`} aria-hidden="true" style={{ opacity: 0.25 - i * 0.06 }}>
-                  <td className="py-3 px-2"><div className="h-4 w-32 bg-surface-elevated rounded" /></td>
-                  <td className="py-3 px-2 text-right"><div className="h-4 w-8 bg-surface-elevated rounded ml-auto" /></td>
-                  <td className="py-3 px-2 text-right"><div className="h-4 w-8 bg-surface-elevated rounded ml-auto" /></td>
-                  <td className="py-3 px-2 text-right"><div className="h-5 w-12 bg-surface-elevated rounded ml-auto" /></td>
-                  <td className="py-3 px-2 text-right"><div className="h-4 w-8 bg-surface-elevated rounded ml-auto" /></td>
-                  <td className="py-3 px-2 text-right"><div className="h-4 w-8 bg-surface-elevated rounded ml-auto" /></td>
-                  <td className="py-3 px-2 text-right"><div className="h-4 w-14 bg-surface-elevated rounded ml-auto" /></td>
-                </tr>
-              ))}
+              <tr>
+                <td colSpan={7} className="py-8 text-center text-text-secondary text-sm">
+                  No sender data available yet
+                </td>
+              </tr>
             </tbody>
           </table>
-          <div className="absolute inset-0 top-8 flex items-center justify-center pointer-events-none">
-            <span className="text-sm text-text-secondary/70">No data</span>
-          </div>
         </div>
       </div>
     );
