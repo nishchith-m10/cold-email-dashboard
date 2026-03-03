@@ -11,8 +11,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { updateSnapshotStatus } from '@/lib/genesis/phase70/db-service';
+import { isSuperAdmin } from '@/lib/workspace-access';
 
-const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || '').split(',').filter(Boolean);
 
 const API_HEADERS = {
   'Content-Type': 'application/json',
@@ -39,7 +39,7 @@ export async function GET(
     }
 
     // Check Super Admin
-    if (!SUPER_ADMIN_IDS.includes(userId)) {
+    if (!isSuperAdmin(userId)) {
       return NextResponse.json(
         { error: 'Super Admin access required' },
         { status: 403, headers: API_HEADERS }
@@ -104,7 +104,7 @@ export async function DELETE(
     }
 
     // Check Super Admin
-    if (!SUPER_ADMIN_IDS.includes(userId)) {
+    if (!isSuperAdmin(userId)) {
       return NextResponse.json(
         { error: 'Super Admin access required' },
         { status: 403, headers: API_HEADERS }

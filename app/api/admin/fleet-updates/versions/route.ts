@@ -16,8 +16,8 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { getComponentVersionDistribution, getFleetOverview } from '@/lib/genesis/phase72/update-monitor';
 import { checkVersionCompatibility } from '@/lib/genesis/phase72/version-registry';
 import type { FleetComponent } from '@/lib/genesis/phase72/types';
+import { isSuperAdmin } from '@/lib/workspace-access';
 
-const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || '').split(',').filter(Boolean);
 
 const API_HEADERS = {
   'Content-Type': 'application/json',
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { userId } = await auth();
-    if (!userId || !SUPER_ADMIN_IDS.includes(userId)) {
+    if (!userId || !isSuperAdmin(userId)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: API_HEADERS });
     }
 

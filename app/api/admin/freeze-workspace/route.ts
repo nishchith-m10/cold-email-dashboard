@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { clearAllWorkspaceEntries } from '@/lib/api-workspace-guard';
 import { invalidateFrozenCache } from '@/lib/workspace-frozen-cache';
 import { randomUUID } from 'crypto';
+import { isSuperAdmin } from '@/lib/workspace-access';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,7 +18,6 @@ const supabase = createClient(
 );
 
 // Super Admin IDs - should be in env vars
-const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || '').split(',').filter(Boolean);
 
 const API_HEADERS = {
   'Content-Type': 'application/json',
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check Super Admin
-    if (!SUPER_ADMIN_IDS.includes(userId)) {
+    if (!isSuperAdmin(userId)) {
       return NextResponse.json(
         { error: 'Super Admin access required' },
         { status: 403, headers: API_HEADERS }
@@ -207,7 +207,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Check Super Admin
-    if (!SUPER_ADMIN_IDS.includes(userId)) {
+    if (!isSuperAdmin(userId)) {
       return NextResponse.json(
         { error: 'Super Admin access required' },
         { status: 403, headers: API_HEADERS }

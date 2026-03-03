@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
+import { isSuperAdmin } from '@/lib/workspace-access';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +15,6 @@ const supabase = createClient(
 );
 
 // Super Admin IDs
-const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || '').split(',').filter(Boolean);
 
 const API_HEADERS = {
   'Content-Type': 'application/json',
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Check Super Admin
-    if (!SUPER_ADMIN_IDS.includes(userId)) {
+    if (!isSuperAdmin(userId)) {
       return NextResponse.json(
         { error: 'Super Admin access required' },
         { status: 403, headers: API_HEADERS }

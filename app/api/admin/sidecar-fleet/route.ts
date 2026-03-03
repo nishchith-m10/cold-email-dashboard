@@ -12,18 +12,15 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { isSuperAdmin } from '@/lib/workspace-access';
 
 export const dynamic = 'force-dynamic';
 
-const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS || '')
-  .split(',')
-  .map(id => id.trim())
-  .filter(Boolean);
 
 export async function GET() {
   try {
     const { userId } = await auth();
-    if (!userId || !SUPER_ADMIN_IDS.includes(userId)) {
+    if (!userId || !isSuperAdmin(userId)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

@@ -13,6 +13,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import {
+import { isSuperAdmin } from '@/lib/workspace-access';
   createDefaultRegistry,
   HealthRunner,
   type HealthReport,
@@ -21,9 +22,6 @@ import {
 // ============================================
 // CONFIGURATION
 // ============================================
-const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || '')
-  .split(',')
-  .filter(Boolean);
 
 const API_HEADERS = {
   'Content-Type': 'application/json',
@@ -121,7 +119,7 @@ export async function GET() {
       );
     }
 
-    if (!SUPER_ADMIN_IDS.includes(userId)) {
+    if (!isSuperAdmin(userId)) {
       return NextResponse.json(
         { error: 'Forbidden - Super Admin access required' },
         { status: 403, headers: API_HEADERS }
@@ -187,7 +185,7 @@ export async function POST() {
       );
     }
 
-    if (!SUPER_ADMIN_IDS.includes(userId)) {
+    if (!isSuperAdmin(userId)) {
       return NextResponse.json(
         { error: 'Forbidden - Super Admin access required' },
         { status: 403, headers: API_HEADERS }

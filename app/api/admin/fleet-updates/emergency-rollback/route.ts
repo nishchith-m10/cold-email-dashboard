@@ -14,8 +14,8 @@ import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { executeEmergencyRollback, estimateRollbackTime } from '@/lib/genesis/phase72/emergency-rollback';
 import type { FleetComponent, RollbackScope } from '@/lib/genesis/phase72/types';
+import { isSuperAdmin } from '@/lib/workspace-access';
 
-const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || '').split(',').filter(Boolean);
 
 const API_HEADERS = {
   'Content-Type': 'application/json',
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { userId } = await auth();
-    if (!userId || !SUPER_ADMIN_IDS.includes(userId)) {
+    if (!userId || !isSuperAdmin(userId)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403, headers: API_HEADERS });
     }
 
