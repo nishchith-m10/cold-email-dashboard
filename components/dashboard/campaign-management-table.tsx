@@ -11,9 +11,8 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Search, RefreshCw, AlertCircle, Pencil, Pause, Play, Trash2, BarChart3, ChevronDown, ChevronRight, Copy, CopyPlus } from 'lucide-react';
+import { RefreshCw, AlertCircle, Pencil, Pause, Play, Trash2, BarChart3, ChevronDown, ChevronRight, Copy, CopyPlus } from 'lucide-react';
 import { useCampaigns } from '@/hooks/use-campaigns';
 import { useCampaignGroups } from '@/hooks/use-campaign-groups';
 import { CampaignToggle } from './campaign-toggle';
@@ -41,7 +40,6 @@ export function CampaignManagementTable({
   workspaceId, 
   className 
 }: CampaignManagementTableProps) {
-  const [searchFilter, setSearchFilter] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const toggleGroupExpand = (groupId: string) => {
@@ -74,11 +72,7 @@ export function CampaignManagementTable({
   const canWrite = usePermission('write');
   const canManage = usePermission('manage');
 
-  // Filter campaigns by search
-  const filteredCampaigns = campaigns.filter(c => 
-    c.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-    (c.campaign_group_id && (groupMap[c.campaign_group_id] || '').toLowerCase().includes(searchFilter.toLowerCase()))
-  );
+  const filteredCampaigns = campaigns;
 
   // Group campaigns by campaign_group_id
   // Grouped: one row per group showing group name + sequence count
@@ -367,34 +361,21 @@ export function CampaignManagementTable({
     >
       <Card className={cn('overflow-hidden', className)}>
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <CardTitle className="text-base">Campaign Management</CardTitle>
-              <button
-                onClick={refresh}
-                className="p-1 hover:bg-surface-elevated rounded transition-colors"
-                title="Refresh campaigns"
-              >
-                <RefreshCw className="h-4 w-4 text-text-secondary" />
-              </button>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
-              <Input
-                placeholder="Search campaigns..."
-                value={searchFilter}
-                onChange={e => setSearchFilter(e.target.value)}
-                className="pl-9 w-64"
-              />
-            </div>
+          <div className="flex items-center gap-3">
+            <CardTitle className="text-base">Campaign Management</CardTitle>
+            <button
+              onClick={refresh}
+              className="p-1 hover:bg-surface-elevated rounded transition-colors"
+              title="Refresh campaigns"
+            >
+              <RefreshCw className="h-4 w-4 text-text-secondary" />
+            </button>
           </div>
         </CardHeader>
-        <CardContent className="px-6 pb-6">
+        <CardContent className="px-6 pb-10">
           {filteredCampaigns.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="text-sm text-text-secondary/70">
-                {searchFilter ? 'No campaigns match your search' : 'No campaigns yet'}
-              </p>
+              <p className="text-sm text-text-secondary/70">No campaigns yet</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -432,7 +413,7 @@ export function CampaignManagementTable({
                       )}
                     </button>
                     {isExpanded && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {row.campaigns.map((campaign, si) => (
                           <CampaignCard key={campaign.id} campaign={campaign} delay={si * 0.04} />
                         ))}
@@ -444,7 +425,7 @@ export function CampaignManagementTable({
 
               {/* Ungrouped campaigns */}
               {singleRows.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {singleRows.map((row, i) => (
                     <CampaignCard key={row.campaign.id} campaign={row.campaign} delay={i * 0.03} />
                   ))}
