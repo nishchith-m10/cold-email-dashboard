@@ -31,6 +31,157 @@ import { useSelection } from '@/hooks/use-selection';
 import { BulkActionToolbar, BulkAction } from '@/components/ui/bulk-action-toolbar';
 import { Checkbox } from '@/components/ui/checkbox';
 
+interface CampaignLike {
+  id: string;
+  name: string;
+  description?: string | null;
+  n8n_status: string | null;
+  n8n_workflow_id?: string | null;
+  campaign_group_id?: string | null;
+}
+
+interface CampaignRowProps {
+  campaign: CampaignLike;
+  delay?: number;
+  indent?: boolean;
+  workspaceId?: string;
+  isSelected: (id: string) => boolean;
+  toggleSelection: (id: string) => void;
+  updateCampaign: (id: string, data: object) => Promise<unknown>;
+  isToggling: (id: string) => boolean;
+  handleToggle: (id: string, action: 'activate' | 'deactivate') => Promise<void>;
+  deleteCampaign: (id: string) => Promise<{ success: boolean; error?: string }>;
+  canWrite: boolean;
+  canManage: boolean;
+}
+
+/**
+ * CampaignRow is a module-level component (NOT defined inside the parent).
+ * Defining it inside the parent caused React to create a new component type on
+ * every re-render (poll cycle), unmounting/remounting the row and destroying
+ * all local state — including any open dialogs.
+ */
+function CampaignRow({
+  campaign,
+  delay = 0,
+  indent = false,
+  workspaceId,
+  isSelected,
+  toggleSelection,
+  updateCampaign,
+  isToggling,
+  handleToggle,
+  deleteCampaign,
+  canWrite,
+  canManage,
+}: CampaignRowProps) {
+  const { toast } = useToast();
+  const isActive = campaign.n8n_status === 'active';
+  const isError = campaign.n8n_status === 'error';
+  const isPaused = campaign.n8n_status === 'paused';
+  const stripeColor = isActive
+    ? 'bg-emerald-500/60'
+    : isError
+    ? 'bg-red-500/55'
+    : isPaused
+    ? 'bg-amber-500/45'
+    : 'bg-transparent';
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <motion.div
+          initial={{ opacity: 0, x: -6 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.14, delay }}
+          className={`relative flex items-center gap-3 pr-5 py-3.5 border-b border-border/25 hover:bg-surface-elevated/20 transition-colors cursor-context-menu ${
+            indent ? 'pl-12' : 'pl-5'
+          }`}
+        >
+          {/* Status stripe */}
+          <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-r-sm ${stripeColor}`} />
+
+          {/* Checkbox */}
+          <Checkbox
+            checked={isSelected(campaign.id)}
+            onCheckedChange={() => toggleSelection(campaign.id)}
+            className="shrink-0"
+          />
+
+          {/* Name + description */}
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-text-primary leading-snug">
+              <EditableText
+                value={campaign.name}
+                onSave={async (val) => { await updateCampaign(campaign.id, { name: val }); }}
+              />
+            </div>
+            {campaign.description && (
+              <p className="text-xs text-text-secondary/40 truncate mt-0.5">{campaign.description}</p>
+            )}
+          </div>
+
+          {/* Schedule — explicit column, not tied to toggle */}
+          <div className="shrink-0 w-8 flex items-center justify-center border-r border-border/20 mr-1">
+            <CampaignScheduleDialog
+              campaignId={campaign.id}
+              workflowId={campaign.n8n_workflow_id}
+              workspaceId={workspaceId}
+            />
+          </div>
+
+          {/* Toggle */}
+          <div className="shrink-0">
+            <CampaignToggle
+              campaignId={campaign.id}
+              isActive={isActive}
+              isLinked={Boolean(campaign.n8n_workflow_id)}
+              isToggling={isToggling(campaign.id)}
+              onToggle={handleToggle}
+            />
+          </div>
+        </motion.div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem disabled={!canWrite}>
+          <Pencil className="mr-2 h-4 w-4" />Rename
+          <ContextMenuShortcut>F2</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => { navigator.clipboard.writeText(campaign.id); toast({ title: 'Copied', description: 'Campaign ID copied' }); }}>
+          <Copy className="mr-2 h-4 w-4" />Copy Campaign ID
+        </ContextMenuItem>
+        <ContextMenuItem disabled>
+          <CopyPlus className="mr-2 h-4 w-4" />Duplicate
+          <ContextMenuShortcut className="text-text-secondary text-[10px]">Coming Soon</ContextMenuShortcut>
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={() => window.open(`/campaigns/${campaign.id}`, '_blank')}>
+          <BarChart3 className="mr-2 h-4 w-4" />View Analytics
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          onClick={() => handleToggle(campaign.id, isActive ? 'deactivate' : 'activate')}
+          disabled={!canWrite || !campaign.n8n_workflow_id || isToggling(campaign.id)}
+        >
+          {isActive ? (<><Pause className="mr-2 h-4 w-4" />Pause</>) : (<><Play className="mr-2 h-4 w-4" />Resume</>)}
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        {canManage && (
+          <ContextMenuItem destructive onClick={async () => {
+            if (confirm(`Delete "${campaign.name}"?`)) {
+              const r = await deleteCampaign(campaign.id);
+              if (r.success) toast({ title: 'Deleted', description: `"${campaign.name}" deleted` });
+              else toast({ variant: 'destructive', title: 'Delete failed', description: r.error || 'Failed' });
+            }
+          }}>
+            <Trash2 className="mr-2 h-4 w-4" />Delete Campaign
+          </ContextMenuItem>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+}
+
 interface CampaignManagementTableProps {
   workspaceId?: string;
   className?: string;
@@ -261,118 +412,6 @@ export function CampaignManagementTable({
   const groupRows = displayRows.filter((r): r is Extract<typeof r, { type: 'group' }> => r.type === 'group');
   const singleRows = displayRows.filter((r): r is Extract<typeof r, { type: 'single' }> => r.type === 'single');
 
-  // Inner row component – rich list design: status stripe + checkbox + name + schedule + toggle
-  const CampaignRow = ({
-    campaign,
-    delay = 0,
-    indent = false,
-  }: {
-    campaign: (typeof filteredCampaigns)[0];
-    delay?: number;
-    indent?: boolean;
-  }) => {
-    const isActive = campaign.n8n_status === 'active';
-    const isError = campaign.n8n_status === 'error';
-    const isPaused = campaign.n8n_status === 'paused';
-    const stripeColor = isActive
-      ? 'bg-emerald-500/60'
-      : isError
-      ? 'bg-red-500/55'
-      : isPaused
-      ? 'bg-amber-500/45'
-      : 'bg-transparent';
-
-    return (
-      <ContextMenu>
-        <ContextMenuTrigger asChild>
-          <motion.div
-            initial={{ opacity: 0, x: -6 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.14, delay }}
-            className={`relative flex items-center gap-3 pr-5 py-3.5 border-b border-border/25 hover:bg-surface-elevated/20 transition-colors cursor-context-menu ${
-              indent ? 'pl-12' : 'pl-5'
-            }`}
-          >
-            {/* Status stripe */}
-            <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-r-sm ${stripeColor}`} />
-
-            {/* Checkbox */}
-            <Checkbox
-              checked={isSelected(campaign.id)}
-              onCheckedChange={() => toggleSelection(campaign.id)}
-              className="shrink-0"
-            />
-
-            {/* Name + description */}
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-text-primary leading-snug">
-                <EditableText
-                  value={campaign.name}
-                  onSave={async (val) => { await updateCampaign(campaign.id, { name: val }); }}
-                />
-              </div>
-              {campaign.description && (
-                <p className="text-xs text-text-secondary/40 truncate mt-0.5">{campaign.description}</p>
-              )}
-            </div>
-
-            {/* Schedule — own column */}
-            <div className="shrink-0 w-8 flex items-center justify-center">
-              <CampaignScheduleDialog campaignId={campaign.id} workflowId={campaign.n8n_workflow_id} />
-            </div>
-
-            {/* Toggle */}
-            <div className="shrink-0">
-            <CampaignToggle
-              campaignId={campaign.id}
-              isActive={isActive}
-              isLinked={Boolean(campaign.n8n_workflow_id)}
-              isToggling={isToggling(campaign.id)}
-              onToggle={handleToggle}
-            />
-            </div>
-          </motion.div>
-        </ContextMenuTrigger>
-        <ContextMenuContent>
-          <ContextMenuItem disabled={!canWrite}>
-            <Pencil className="mr-2 h-4 w-4" />Rename
-            <ContextMenuShortcut>F2</ContextMenuShortcut>
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => { navigator.clipboard.writeText(campaign.id); toast({ title: 'Copied', description: 'Campaign ID copied' }); }}>
-            <Copy className="mr-2 h-4 w-4" />Copy Campaign ID
-          </ContextMenuItem>
-          <ContextMenuItem disabled>
-            <CopyPlus className="mr-2 h-4 w-4" />Duplicate
-            <ContextMenuShortcut className="text-text-secondary text-[10px]">Coming Soon</ContextMenuShortcut>
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem onClick={() => window.open(`/campaigns/${campaign.id}`, '_blank')}>
-            <BarChart3 className="mr-2 h-4 w-4" />View Analytics
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem
-            onClick={() => handleToggle(campaign.id, isActive ? 'deactivate' : 'activate')}
-            disabled={!canWrite || !campaign.n8n_workflow_id || isToggling(campaign.id)}
-          >
-            {isActive ? (<><Pause className="mr-2 h-4 w-4" />Pause</>) : (<><Play className="mr-2 h-4 w-4" />Resume</>)}
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          {canManage && (
-            <ContextMenuItem destructive onClick={async () => {
-              if (confirm(`Delete "${campaign.name}"?`)) {
-                const r = await deleteCampaign(campaign.id);
-                if (r.success) toast({ title: 'Deleted', description: `"${campaign.name}" deleted` });
-                else toast({ variant: 'destructive', title: 'Delete failed', description: r.error || 'Failed' });
-              }
-            }}>
-              <Trash2 className="mr-2 h-4 w-4" />Delete Campaign
-            </ContextMenuItem>
-          )}
-        </ContextMenuContent>
-      </ContextMenu>
-    );
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -431,7 +470,21 @@ export function CampaignManagementTable({
                     </div>
                     {/* Always show all campaigns */}
                     {row.campaigns.map((campaign, si) => (
-                      <CampaignRow key={campaign.id} campaign={campaign} delay={si * 0.04} indent />
+                      <CampaignRow
+                        key={campaign.id}
+                        campaign={campaign}
+                        delay={si * 0.04}
+                        indent
+                        workspaceId={workspaceId}
+                        isSelected={isSelected}
+                        toggleSelection={toggleSelection}
+                        updateCampaign={updateCampaign}
+                        isToggling={isToggling}
+                        handleToggle={handleToggle}
+                        deleteCampaign={deleteCampaign}
+                        canWrite={canWrite}
+                        canManage={canManage}
+                      />
                     ))}
                   </div>
                 );
@@ -439,7 +492,20 @@ export function CampaignManagementTable({
 
               {/* Ungrouped campaigns */}
               {singleRows.map((row, i) => (
-                <CampaignRow key={row.campaign.id} campaign={row.campaign} delay={i * 0.03} />
+                <CampaignRow
+                  key={row.campaign.id}
+                  campaign={row.campaign}
+                  delay={i * 0.03}
+                  workspaceId={workspaceId}
+                  isSelected={isSelected}
+                  toggleSelection={toggleSelection}
+                  updateCampaign={updateCampaign}
+                  isToggling={isToggling}
+                  handleToggle={handleToggle}
+                  deleteCampaign={deleteCampaign}
+                  canWrite={canWrite}
+                  canManage={canManage}
+                />
               ))}
             </div>
           )}

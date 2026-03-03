@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CalendarClock } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -143,7 +143,7 @@ export function CampaignScheduleDialog({
           setOpen(true);
         }}
       >
-        <CalendarClock className="h-3.5 w-3.5" />
+        <SlidersHorizontal className="h-3.5 w-3.5" />
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
