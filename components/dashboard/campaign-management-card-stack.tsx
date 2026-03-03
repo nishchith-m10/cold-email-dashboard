@@ -28,7 +28,6 @@ import {
   XCircle,
   ChevronDown,
   ChevronRight,
-  Layers,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -144,7 +143,7 @@ function CampaignCard({
           indented && 'ml-4 border-l-2 border-accent-primary/20'
         )}
       >
-        <CardContent className="p-4">
+        <CardContent className="p-3.5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               {editingId === campaign.id ? (
@@ -252,25 +251,24 @@ function GroupCard({
       <button
         type="button"
         onClick={onToggleExpand}
-        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-surface-elevated border border-border hover:bg-surface-elevated/80 transition-colors text-left"
+        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-surface-elevated border border-border hover:bg-surface-elevated/80 transition-colors text-left"
       >
-        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-accent-primary/10 flex-shrink-0">
-          <Layers className="h-4 w-4 text-accent-primary" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-text-primary truncate">{groupName}</p>
-          <p className="text-xs text-text-secondary">
-            {members.length} sequence{members.length !== 1 ? 's' : ''}
-            {activeCount > 0 && (
-              <span className="ml-2 text-accent-success">{activeCount} active</span>
-            )}
-          </p>
-        </div>
         {expanded ? (
           <ChevronDown className="h-4 w-4 text-text-secondary flex-shrink-0" />
         ) : (
           <ChevronRight className="h-4 w-4 text-text-secondary flex-shrink-0" />
         )}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-text-primary truncate">
+            {groupName}
+            <span className="text-xs text-text-secondary font-normal ml-1">
+              · {members.length} sequence{members.length !== 1 ? 's' : ''}
+            </span>
+          </p>
+          {activeCount > 0 && (
+            <p className="text-xs text-accent-success mt-0.5">{activeCount} active</p>
+          )}
+        </div>
       </button>
 
       {/* Nested campaign cards */}

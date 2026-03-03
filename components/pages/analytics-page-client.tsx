@@ -266,7 +266,7 @@ export function AnalyticsPageClient() {
                 ))}
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="relative overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
@@ -308,14 +308,26 @@ export function AnalyticsPageClient() {
                       </motion.tr>
                     ))}
                     {(!costData?.by_model || costData.by_model.length === 0) && (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center text-text-secondary">
-                          No model usage data available
-                        </td>
-                      </tr>
+                      <>
+                        {[0, 1, 2].map((i) => (
+                          <tr key={`ghost-${i}`} aria-hidden="true" style={{ opacity: 0.25 - i * 0.06 }}>
+                            <td className="px-4 py-3"><div className="h-4 w-28 bg-surface-elevated rounded" /></td>
+                            <td className="px-4 py-3"><div className="h-5 w-16 bg-surface-elevated rounded-full" /></td>
+                            <td className="px-4 py-3 text-right"><div className="h-4 w-10 bg-surface-elevated rounded ml-auto" /></td>
+                            <td className="px-4 py-3 text-right"><div className="h-4 w-14 bg-surface-elevated rounded ml-auto" /></td>
+                            <td className="px-4 py-3 text-right"><div className="h-4 w-14 bg-surface-elevated rounded ml-auto" /></td>
+                            <td className="px-4 py-3 text-right"><div className="h-4 w-12 bg-surface-elevated rounded ml-auto" /></td>
+                          </tr>
+                        ))}
+                      </>
                     )}
                   </tbody>
                 </table>
+                {(!costData?.by_model || costData.by_model.length === 0) && (
+                  <div className="absolute inset-0 top-10 flex items-center justify-center pointer-events-none">
+                    <span className="text-sm text-text-secondary/70">No data</span>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

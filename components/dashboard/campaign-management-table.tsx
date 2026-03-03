@@ -313,23 +313,24 @@ export function CampaignManagementTable({
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="px-6 py-3 text-left w-12" />
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <th className="pl-3 pr-0 py-2.5 w-8" />
+                  <th className="px-4 py-2.5 text-left w-10" />
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-text-secondary uppercase tracking-wider">
                     Campaign
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-text-secondary uppercase tracking-wider">
                     Group
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-text-secondary uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-text-secondary uppercase tracking-wider">
                     n8n Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-text-secondary uppercase tracking-wider">
                     Live
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left text-[11px] font-medium text-text-secondary uppercase tracking-wider">
                     Toggle
                   </th>
                 </tr>
@@ -338,8 +339,8 @@ export function CampaignManagementTable({
                 {filteredCampaigns.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
-                      className="px-6 py-12 text-center text-text-secondary"
+                      colSpan={8}
+                      className="px-4 py-12 text-center text-text-secondary"
                     >
                       {searchFilter ? 'No matching campaigns' : 'No campaigns found'}
                     </td>
@@ -361,38 +362,40 @@ export function CampaignManagementTable({
                             transition={{ duration: 0.2, delay: index * 0.05 }}
                             onClick={() => toggleGroupExpand(row.groupId)}
                           >
-                            <td className="px-6 py-4 w-12" onClick={e => e.stopPropagation()}>
-                              {/* No checkbox on group row — select individual sequences below */}
-                            </td>
-                            <td className="px-6 py-4 text-sm">
-                              <div className="flex items-center gap-2">
+                            <td className="pl-3 pr-0 py-3 w-8">
+                              <div className="flex items-center justify-center">
                                 {isExpanded
                                   ? <ChevronDown className="h-4 w-4 text-text-secondary shrink-0" />
                                   : <ChevronRight className="h-4 w-4 text-text-secondary shrink-0" />}
-                                <Layers className="h-4 w-4 text-accent-primary shrink-0" />
-                                <span className="font-medium text-text-primary">{row.groupName}</span>
-                                <Badge variant="secondary" className="text-xs font-normal ml-1">
-                                  {row.campaigns.length} sequences
-                                </Badge>
                               </div>
                             </td>
-                            <td className="px-6 py-4 text-sm">
+                            <td className="px-4 py-3 w-10" onClick={e => e.stopPropagation()}>
+                              {/* No checkbox on group row — select individual sequences below */}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <div className="flex items-center gap-2">
+                                <Layers className="h-4 w-4 text-accent-primary shrink-0" />
+                                <span className="font-medium text-text-primary">{row.groupName}</span>
+                                <span className="text-xs text-text-secondary ml-1">· {row.campaigns.length} sequences</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm">
                               <span className="text-text-secondary text-xs">—</span>
                             </td>
-                            <td className="px-6 py-4 text-sm">
+                            <td className="px-4 py-3 text-sm">
                               <Badge variant={allActive ? 'success' : row.anyActive ? 'warning' : 'default'}>
                                 {allActive ? 'active' : row.anyActive ? 'partial' : 'inactive'}
                               </Badge>
                             </td>
-                            <td className="px-6 py-4 text-sm">
+                            <td className="px-4 py-3 text-sm">
                               <Badge variant={allActive ? 'success' : row.anyActive ? 'warning' : 'default'}>
                                 {allActive ? 'active' : row.anyActive ? 'partial' : 'inactive'}
                               </Badge>
                             </td>
-                            <td className="px-6 py-4 text-sm">
+                            <td className="px-4 py-3 text-sm">
                               <span className="text-text-secondary text-xs">—</span>
                             </td>
-                            <td className="px-6 py-4 text-sm" onClick={e => e.stopPropagation()}>
+                            <td className="px-4 py-3 text-sm" onClick={e => e.stopPropagation()}>
                               {anyLinked && (
                                 <button
                                   className="text-xs text-accent-primary hover:underline"
@@ -419,34 +422,35 @@ export function CampaignManagementTable({
                                   animate={{ opacity: 1 }}
                                   transition={{ duration: 0.15, delay: si * 0.04 }}
                                 >
-                                  <td className="px-6 py-3 w-12">
+                                  <td className="pl-3 pr-0 py-2.5 w-8" />
+                                  <td className="px-4 py-2.5 w-10">
                                     <Checkbox
                                       checked={isSelected(campaign.id)}
                                       onCheckedChange={() => toggleSelection(campaign.id)}
                                     />
                                   </td>
-                                  <td className="px-6 py-3 text-sm pl-14">
+                                  <td className="px-4 py-2.5 text-sm pl-6">
                                     <div className="font-normal text-text-secondary">
                                       {campaign.name}
                                     </div>
                                   </td>
-                                  <td className="px-6 py-3 text-sm">
+                                  <td className="px-4 py-2.5 text-sm">
                                     <span className="text-text-secondary text-xs">sequence</span>
                                   </td>
-                                  <td className="px-6 py-3 text-sm">
+                                  <td className="px-4 py-2.5 text-sm">
                                     <Badge variant={campaign.status === 'active' ? 'success' : campaign.status === 'paused' ? 'warning' : 'default'}>
                                       {campaign.status}
                                     </Badge>
                                   </td>
-                                  <td className="px-6 py-3 text-sm">
+                                  <td className="px-4 py-2.5 text-sm">
                                     <Badge variant={campaign.n8n_status === 'active' ? 'success' : campaign.n8n_status === 'error' ? 'danger' : 'default'}>
                                       {campaign.n8n_status || 'unknown'}
                                     </Badge>
                                   </td>
-                                  <td className="px-6 py-3 text-sm">
+                                  <td className="px-4 py-2.5 text-sm">
                                     <CampaignPulse campaignId={campaign.id!} />
                                   </td>
-                                  <td className="px-6 py-3 text-sm">
+                                  <td className="px-4 py-2.5 text-sm">
                                     <CampaignToggle
                                       campaignId={campaign.id}
                                       isActive={campaign.n8n_status === 'active'}
@@ -516,13 +520,14 @@ export function CampaignManagementTable({
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.2, delay: index * 0.05 }}
                         >
-                          <td className="px-6 py-4 w-12">
+                          <td className="pl-3 pr-0 py-3 w-8" />
+                          <td className="px-4 py-3 w-10">
                             <Checkbox
                               checked={isSelected(campaign.id)}
                               onCheckedChange={() => toggleSelection(campaign.id)}
                             />
                           </td>
-                          <td className="px-6 py-4 text-sm">
+                          <td className="px-4 py-3 text-sm">
                             <div className="font-medium text-text-primary">
                               <EditableText
                                 value={campaign.name}
@@ -538,16 +543,16 @@ export function CampaignManagementTable({
                             )}
                           </td>
                           {/* Group column */}
-                          <td className="px-6 py-4 text-sm">
+                          <td className="px-4 py-3 text-sm">
                             {campaign.campaign_group_id ? (
-                              <Badge variant="secondary" className="text-xs font-normal">
+                              <span className="text-sm text-text-secondary">
                                 {groupMap[campaign.campaign_group_id] ?? '—'}
-                              </Badge>
+                              </span>
                             ) : (
                               <span className="text-text-secondary text-xs">—</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-sm">
+                          <td className="px-4 py-3 text-sm">
                             <Badge 
                               variant={
                                 campaign.status === 'active' ? 'success' : 
@@ -558,7 +563,7 @@ export function CampaignManagementTable({
                               {campaign.status}
                             </Badge>
                           </td>
-                          <td className="px-6 py-4 text-sm">
+                          <td className="px-4 py-3 text-sm">
                             <Badge 
                               variant={
                                 campaign.n8n_status === 'active' ? 'success' : 
@@ -569,10 +574,10 @@ export function CampaignManagementTable({
                               {campaign.n8n_status || 'unknown'}
                             </Badge>
                           </td>
-                          <td className="px-6 py-4 text-sm">
+                          <td className="px-4 py-3 text-sm">
                             <CampaignPulse campaignId={campaign.id!} />
                           </td>
-                          <td className="px-6 py-4 text-sm">
+                          <td className="px-4 py-3 text-sm">
                             <CampaignToggle
                               campaignId={campaign.id}
                               isActive={campaign.n8n_status === 'active'}
