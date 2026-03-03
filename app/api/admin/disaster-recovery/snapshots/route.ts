@@ -17,11 +17,11 @@ import {
   type SnapshotFilters,
 } from '@/lib/genesis/phase70/db-service';
 import {
+import { isSuperAdmin } from '@/lib/workspace-access';
   createDOClient,
   type DORegion,
 } from '@/lib/genesis/phase70';
 
-const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || '').split(',').filter(Boolean);
 
 const API_HEADERS = {
   'Content-Type': 'application/json',
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Check Super Admin
-    if (!SUPER_ADMIN_IDS.includes(userId)) {
+    if (!isSuperAdmin(userId)) {
       return NextResponse.json(
         { error: 'Super Admin access required' },
         { status: 403, headers: API_HEADERS }
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check Super Admin
-    if (!SUPER_ADMIN_IDS.includes(userId)) {
+    if (!isSuperAdmin(userId)) {
       return NextResponse.json(
         { error: 'Super Admin access required' },
         { status: 403, headers: API_HEADERS }

@@ -18,8 +18,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
+import { isSuperAdmin } from '@/lib/workspace-access';
 
-const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || '').split(',').filter(Boolean);
 
 const API_HEADERS = {
   'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ async function requireSuperAdmin(): Promise<
       response: NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: API_HEADERS }),
     };
   }
-  if (!SUPER_ADMIN_IDS.includes(userId)) {
+  if (!isSuperAdmin(userId)) {
     return {
       authorized: false,
       response: NextResponse.json({ error: 'Super Admin access required' }, { status: 403, headers: API_HEADERS }),

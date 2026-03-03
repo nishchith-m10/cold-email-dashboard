@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getDLQEntriesForWorkspace, getDLQStats } from '@/lib/genesis/phase69';
+import { isSuperAdmin } from '@/lib/workspace-access';
 
 /**
  * GET /api/admin/webhook-dlq
@@ -38,8 +39,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Check if user is super admin
-    const superAdminIds = process.env.SUPER_ADMIN_IDS?.split(',') || [];
-    if (!superAdminIds.includes(userId)) {
+        if (!isSuperAdmin(userId)) {
       return NextResponse.json(
         { error: 'Forbidden - Admin access required' },
         { status: 403 }

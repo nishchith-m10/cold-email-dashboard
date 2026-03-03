@@ -14,6 +14,7 @@ import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
 import { SupabaseWatchdogDB } from '@/lib/genesis/phase43/supabase-watchdog-db';
 import type { WatchdogRunConfig, WatchdogEvent, DriftType } from '@/lib/genesis/phase43/watchdog-types';
+import { isSuperAdmin } from '@/lib/workspace-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,6 @@ const supabase = createClient(
   }
 );
 
-const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || '').split(',').map(id => id.trim()).filter(Boolean);
 
 const API_HEADERS = {
   'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    if (!SUPER_ADMIN_IDS.includes(userId)) {
+    if (!isSuperAdmin(userId)) {
       return NextResponse.json(
         { error: 'Super Admin access required' },
         { status: 403, headers: API_HEADERS }

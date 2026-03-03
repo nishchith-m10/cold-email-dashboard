@@ -17,13 +17,11 @@ import { SupabaseMigrationDB } from '@/lib/genesis/phase46/supabase-migration-db
 import { MockMigrationDB } from '@/lib/genesis/phase46/mock-migration-db';
 import { MigrationOrchestrator } from '@/lib/genesis/phase46/migration-orchestrator';
 import type { CreateMigrationInput } from '@/lib/genesis/phase46/types';
+import { isSuperAdmin } from '@/lib/workspace-access';
 
 // ============================================
 // CONFIGURATION
 // ============================================
-const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || '')
-  .split(',')
-  .filter(Boolean);
 
 const API_HEADERS = {
   'Content-Type': 'application/json',
@@ -38,7 +36,7 @@ export async function POST(request: NextRequest) {
     // Auth: Super Admin only
     const { userId } = await auth();
 
-    if (!userId || !SUPER_ADMIN_IDS.includes(userId)) {
+    if (!userId || !isSuperAdmin(userId)) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized: Super Admin access required' },
         { status: 403, headers: API_HEADERS }

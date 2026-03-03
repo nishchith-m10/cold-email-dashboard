@@ -17,12 +17,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
+import { isSuperAdmin } from '@/lib/workspace-access';
 
 // ============================================
 // CONFIG
 // ============================================
 
-const SUPER_ADMIN_IDS = (process.env.SUPER_ADMIN_IDS || '').split(',').filter(Boolean);
 
 const VALID_STATUSES = ['active', 'full', 'suspended', 'maintenance'] as const;
 type AccountStatus = (typeof VALID_STATUSES)[number];
@@ -66,7 +66,7 @@ async function requireSuperAdmin(): Promise<
     };
   }
 
-  if (!SUPER_ADMIN_IDS.includes(userId)) {
+  if (!isSuperAdmin(userId)) {
     return {
       authorized: false,
       response: NextResponse.json(
