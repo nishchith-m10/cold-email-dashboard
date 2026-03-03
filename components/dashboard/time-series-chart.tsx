@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   LineChart,
@@ -70,6 +71,20 @@ export function TimeSeriesChart({
     displayDay: formatDate(d.day, 'short'),
   }));
 
+  // Compute evenly-distributed tick positions including start and end
+  // avoids the "dead space" gap that preserveStartEnd causes near the end
+  const xAxisTicks = useMemo((): string[] | undefined => {
+    if (formattedData.length <= 8) return undefined; // show all
+    const n = 7;
+    const indices = new Set<number>();
+    indices.add(0);
+    indices.add(formattedData.length - 1);
+    for (let i = 1; i < n - 1; i++) {
+      indices.add(Math.round(i * (formattedData.length - 1) / (n - 1)));
+    }
+    return [...indices].sort((a, b) => a - b).map(i => formattedData[i].displayDay);
+  }, [formattedData]);
+
   if (loading) {
     return (
       <Card className={className}>
@@ -123,7 +138,8 @@ export function TimeSeriesChart({
                   tickLine={false}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
                   tickMargin={8}
-                  interval="preserveStartEnd"
+                  ticks={xAxisTicks}
+                  interval={xAxisTicks ? 0 : 'preserveStartEnd'}
                 />
                 <YAxis
                   axisLine={false}
