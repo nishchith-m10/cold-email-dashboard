@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   LineChart,
@@ -70,6 +71,13 @@ export function TimeSeriesChart({
     displayDay: formatDate(d.day, 'short'),
   }));
 
+  // Compute uniform tick interval so ~7 labels are evenly spaced
+  const xAxisInterval = useMemo(() => {
+    const maxTicks = 7;
+    if (formattedData.length <= maxTicks) return 0;
+    return Math.ceil(formattedData.length / maxTicks) - 1;
+  }, [formattedData.length]);
+
   if (loading) {
     return (
       <Card className={className}>
@@ -123,7 +131,7 @@ export function TimeSeriesChart({
                   tickLine={false}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
                   tickMargin={8}
-                  interval="preserveStartEnd"
+                  interval={xAxisInterval}
                 />
                 <YAxis
                   axisLine={false}
