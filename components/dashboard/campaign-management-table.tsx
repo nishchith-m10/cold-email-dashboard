@@ -7,12 +7,11 @@
 
 'use client';
 
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { RefreshCw, AlertCircle, Pencil, Pause, Play, Trash2, BarChart3, ChevronDown, ChevronRight, Copy, CopyPlus } from 'lucide-react';
+import { RefreshCw, AlertCircle, Pencil, Pause, Play, Trash2, BarChart3, Copy, CopyPlus } from 'lucide-react';
 import { useCampaigns } from '@/hooks/use-campaigns';
 import { useCampaignGroups } from '@/hooks/use-campaign-groups';
 import { CampaignToggle } from './campaign-toggle';
@@ -41,17 +40,6 @@ export function CampaignManagementTable({
   workspaceId, 
   className 
 }: CampaignManagementTableProps) {
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-
-  const toggleGroupExpand = (groupId: string) => {
-    setExpandedGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(groupId)) next.delete(groupId);
-      else next.add(groupId);
-      return next;
-    });
-  };
-  
   const { 
     campaigns, 
     isLoading, 
@@ -328,10 +316,13 @@ export function CampaignManagementTable({
               )}
             </div>
 
-            {/* Schedule */}
-            <CampaignScheduleDialog campaignId={campaign.id} workflowId={campaign.n8n_workflow_id} />
+            {/* Schedule — own column */}
+            <div className="shrink-0 w-8 flex items-center justify-center">
+              <CampaignScheduleDialog campaignId={campaign.id} workflowId={campaign.n8n_workflow_id} />
+            </div>
 
             {/* Toggle */}
+            <div className="shrink-0">
             <CampaignToggle
               campaignId={campaign.id}
               isActive={isActive}
@@ -339,6 +330,7 @@ export function CampaignManagementTable({
               isToggling={isToggling(campaign.id)}
               onToggle={handleToggle}
             />
+            </div>
           </motion.div>
         </ContextMenuTrigger>
         <ContextMenuContent>
@@ -409,21 +401,12 @@ export function CampaignManagementTable({
             <div>
               {/* Grouped campaigns */}
               {groupRows.map((row) => {
-                const isExpanded = expandedGroups.has(row.groupId);
                 const allActive = row.campaigns.every(c => c.n8n_status === 'active');
                 const anyLinked = row.campaigns.some(c => c.n8n_workflow_id);
                 return (
                   <div key={row.groupId}>
-                    {/* Group section header */}
-                    <button
-                      className="w-full flex items-center gap-2.5 px-5 py-2.5 border-b border-border/50 hover:bg-surface-elevated/15 transition-colors bg-surface-subtle/30"
-                      onClick={() => toggleGroupExpand(row.groupId)}
-                    >
-                      <div className="text-text-secondary/50 shrink-0">
-                        {isExpanded
-                          ? <ChevronDown className="h-3.5 w-3.5" />
-                          : <ChevronRight className="h-3.5 w-3.5" />}
-                      </div>
+                    {/* Group section header — always expanded */}
+                    <div className="w-full flex items-center gap-2.5 px-5 py-2.5 border-b border-border/50 bg-surface-subtle/30">
                       <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
                         {row.groupName}
                       </span>
@@ -434,9 +417,8 @@ export function CampaignManagementTable({
                       {anyLinked && (
                         <span
                           role="button"
-                          className="text-[11px] text-text-secondary/50 hover:text-text-primary transition-colors pr-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          className="text-[11px] text-text-secondary/50 hover:text-text-primary transition-colors cursor-pointer pr-1"
+                          onClick={() => {
                             const action = allActive ? 'deactivate' : 'activate';
                             if (confirm(`${allActive ? 'Pause' : 'Resume'} all ${row.campaigns.length} sequences in "${row.groupName}"?`)) {
                               Promise.all(row.campaigns.map(c => toggleCampaign(c.id, action))).then(refresh);
@@ -446,9 +428,9 @@ export function CampaignManagementTable({
                           {allActive ? 'Pause all' : 'Resume all'}
                         </span>
                       )}
-                    </button>
-                    {/* Expanded sequence rows */}
-                    {isExpanded && row.campaigns.map((campaign, si) => (
+                    </div>
+                    {/* Always show all campaigns */}
+                    {row.campaigns.map((campaign, si) => (
                       <CampaignRow key={campaign.id} campaign={campaign} delay={si * 0.04} indent />
                     ))}
                   </div>

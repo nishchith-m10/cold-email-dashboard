@@ -217,7 +217,7 @@ export function DailyCostChart({
                   tickLine={false}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
                   tickMargin={8}
-                  interval={Math.max(1, Math.floor(formattedData.length / 10))}
+                  interval={Math.max(1, Math.ceil(formattedData.length / 15) - 1)}
                 />
                 <YAxis
                   axisLine={false}
