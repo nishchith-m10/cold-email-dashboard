@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   LineChart,
@@ -71,20 +70,9 @@ export function TimeSeriesChart({
     displayDay: formatDate(d.day, 'short'),
   }));
 
-  // Compute evenly-distributed tick positions including start and end
-  // avoids the "dead space" gap that preserveStartEnd causes near the end
-  const xAxisTicks = useMemo((): string[] | undefined => {
-    if (formattedData.length <= 8) return undefined; // show all
-    // fewer ticks for shorter ranges so intervals look clean (~7 days for 30-day, ~15 days for 90-day)
-    const n = formattedData.length <= 45 ? 5 : 7;
-    const indices = new Set<number>();
-    indices.add(0);
-    indices.add(formattedData.length - 1);
-    for (let i = 1; i < n - 1; i++) {
-      indices.add(Math.round(i * (formattedData.length - 1) / (n - 1)));
-    }
-    return [...indices].sort((a, b) => a - b).map(i => formattedData[i].displayDay);
-  }, [formattedData]);
+  // Numeric interval: evenly-spaced ~10 labels regardless of range
+  // No forced last-tick, so no gap at the end when switching ranges
+  const xAxisInterval = Math.max(1, Math.floor(formattedData.length / 10));
 
   if (loading) {
     return (
@@ -119,6 +107,7 @@ export function TimeSeriesChart({
           <div style={{ width: '100%', height }}>
             <ResponsiveContainer width="100%" height="100%">
               <ChartComponent
+                key={(data[0]?.day ?? '') + data.length}
                 data={formattedData}
                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
               >
@@ -139,8 +128,7 @@ export function TimeSeriesChart({
                   tickLine={false}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
                   tickMargin={8}
-                  ticks={xAxisTicks}
-                  interval={xAxisTicks ? 0 : 'preserveStartEnd'}
+                  interval={xAxisInterval}
                 />
                 <YAxis
                   axisLine={false}
