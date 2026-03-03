@@ -139,7 +139,7 @@ export function DailyCostChart({
   // Compute evenly-distributed tick positions including start and end
   const xAxisTicks = useMemo((): string[] | undefined => {
     if (formattedData.length <= 8) return undefined;
-    const n = 7;
+    const n = formattedData.length <= 45 ? 5 : 7;
     const indices = new Set<number>();
     indices.add(0);
     indices.add(formattedData.length - 1);
