@@ -94,7 +94,7 @@ function CampaignRow({
           initial={{ opacity: 0, x: -6 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.14, delay }}
-          className={`relative flex items-center gap-3 pr-5 py-3.5 border-b border-border/25 hover:bg-surface-elevated/20 transition-colors cursor-context-menu ${
+          className={`relative flex items-center gap-4 pr-5 py-3.5 border-b border-border/25 hover:bg-surface-elevated/20 transition-colors cursor-context-menu ${
             indent ? 'pl-12' : 'pl-5'
           }`}
         >
@@ -122,7 +122,7 @@ function CampaignRow({
           </div>
 
           {/* Schedule — explicit column, not tied to toggle */}
-          <div className="shrink-0 w-8 flex items-center justify-center border-r border-border/20 mr-1">
+          <div className="shrink-0 w-10 flex items-center justify-center border-r border-border/25 pr-3 mr-1">
             <CampaignScheduleDialog
               campaignId={campaign.id}
               workflowId={campaign.n8n_workflow_id}
@@ -438,6 +438,13 @@ export function CampaignManagementTable({
             </div>
           ) : (
             <div>
+              {/* Column headers */}
+              <div className="flex items-center gap-4 pl-5 pr-5 py-1.5 border-b border-border/40 bg-surface-subtle/20">
+                <div className="w-4 h-4 shrink-0" />
+                <div className="flex-1 text-[10px] font-semibold text-text-secondary/40 uppercase tracking-wider">Campaign</div>
+                <div className="w-10 shrink-0 text-[10px] font-semibold text-text-secondary/40 uppercase tracking-wider text-center pr-3">Schedule</div>
+                <div className="shrink-0 text-[10px] font-semibold text-text-secondary/40 uppercase tracking-wider">Status</div>
+              </div>
               {/* Grouped campaigns */}
               {groupRows.map((row) => {
                 const allActive = row.campaigns.every(c => c.n8n_status === 'active');

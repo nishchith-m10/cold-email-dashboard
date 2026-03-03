@@ -59,8 +59,9 @@ export function CampaignScheduleDialog({
 }: CampaignScheduleDialogProps) {
   const [open, setOpen] = useState(false);
   const [days, setDays] = useState<string[]>(['MON', 'TUE', 'WED', 'THU', 'FRI']);
-  const [hour, setHour] = useState('9');
-  const [minute, setMinute] = useState('0');
+  const [hour, setHour] = useState('9');       // 1-12
+  const [minute, setMinute] = useState('0');   // 0-55 by 5
+  const [ampm, setAmpm] = useState<'AM' | 'PM'>('AM');
   const [timezone, setTimezone] = useState('UTC');
   const [emailLimit, setEmailLimit] = useState('50');
   const [saving, setSaving] = useState(false);
@@ -76,9 +77,12 @@ export function CampaignScheduleDialog({
 
   const buildCronExpr = () => {
     const tz = TIMEZONES.find((t) => t.value === timezone) ?? TIMEZONES[0];
-    const h = Math.max(0, Math.min(23, Number(hour) || 0));
+    const h12 = Math.max(1, Math.min(12, Number(hour) || 12));
+    const h24 = ampm === 'AM'
+      ? (h12 === 12 ? 0 : h12)
+      : (h12 === 12 ? 12 : h12 + 12);
     const m = Math.max(0, Math.min(59, Number(minute) || 0));
-    const totalMinutes = h * 60 + m - tz.offset * 60;
+    const totalMinutes = h24 * 60 + m - tz.offset * 60;
     const utcHour = ((Math.floor(totalMinutes / 60) % 24) + 24) % 24;
     const utcMinute = ((totalMinutes % 60) + 60) % 60;
     const dayStr = days.length > 0 ? days.join(',') : 'MON,TUE,WED,THU,FRI';
@@ -113,12 +117,11 @@ export function CampaignScheduleDialog({
         throw new Error((err as { error?: string }).error || `HTTP ${res.status}`);
       }
 
-      const hh = String(hour).padStart(2, '0');
-      const mm = String(minute).padStart(2, '0');
+      const displayMinute = String(minute).padStart(2, '0');
       const tzLabel = TIMEZONES.find((t) => t.value === timezone)?.label ?? timezone;
       toast({
         title: 'Schedule saved',
-        description: `Sends at ${hh}:${mm} ${tzLabel}, max ${emailLimit}/run`,
+        description: `Sends at ${hour}:${displayMinute} ${ampm} ${tzLabel}, max ${emailLimit}/run`,
       });
       setOpen(false);
     } catch (e) {
@@ -148,7 +151,7 @@ export function CampaignScheduleDialog({
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
-          className="sm:max-w-[420px] p-6"
+          className="sm:max-w-[420px] p-6 max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <DialogHeader>
@@ -184,31 +187,49 @@ export function CampaignScheduleDialog({
             {/* Time */}
             <div className="space-y-2">
               <Label className="text-xs text-text-secondary">Send time</Label>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 flex items-center gap-1">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={23}
-                    value={hour}
-                    onChange={(e) => setHour(e.target.value)}
-                    placeholder="HH"
-                    className="h-8 text-xs text-center"
-                  />
-                  <span className="text-text-secondary/60 text-xs">h</span>
-                </div>
-                <span className="text-text-secondary/60 text-sm font-medium">:</span>
-                <div className="flex-1 flex items-center gap-1">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={59}
-                    value={minute}
-                    onChange={(e) => setMinute(e.target.value)}
-                    placeholder="MM"
-                    className="h-8 text-xs text-center"
-                  />
-                  <span className="text-text-secondary/60 text-xs">m</span>
+              <div className="flex items-center gap-1.5">
+                {/* Hour */}
+                <Select value={hour} onValueChange={setHour}>
+                  <SelectTrigger className="w-16 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => String(i + 1)).map((h) => (
+                      <SelectItem key={h} value={h} className="text-xs">{h}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-text-secondary/50 text-base font-medium leading-none">:</span>
+                {/* Minute */}
+                <Select value={minute} onValueChange={setMinute}>
+                  <SelectTrigger className="w-16 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 12 }, (_, i) => String(i * 5)).map((m) => (
+                      <SelectItem key={m} value={m} className="text-xs">
+                        {String(m).padStart(2, '0')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* AM / PM */}
+                <div className="flex rounded-md overflow-hidden border border-border ml-1">
+                  {(['AM', 'PM'] as const).map((period) => (
+                    <button
+                      key={period}
+                      type="button"
+                      onClick={() => setAmpm(period)}
+                      className={[
+                        'px-2.5 h-8 text-[11px] font-semibold transition-colors',
+                        ampm === period
+                          ? 'bg-accent-primary text-white'
+                          : 'text-text-secondary hover:bg-surface-elevated',
+                      ].join(' ')}
+                    >
+                      {period}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
