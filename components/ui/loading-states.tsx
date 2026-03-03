@@ -5,40 +5,85 @@ import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
- * Framer-style spinner — rotating arc with glow, no container box.
- * Used for both page-level and full-screen loading states.
+ * Framer-design spinner — dark pill container with multi-layer glowing arc.
+ * Faithfully reproduces the framer.com/m/loadingSpinner-qP3z.js design,
+ * minus the "Loading..." text wrapper.
  */
 export function FramerSpinner({ size = 28 }: { size?: number }) {
   const arcPath = "M 16.25 9 C 16.25 10.07 16.018 11.086 15.602 12 C 15.163 12.965 14.518 13.817 13.724 14.5";
+  const padding = Math.max(4, Math.round(size / 6));
+
   return (
-    <div className="relative flex-shrink-0 text-text-primary" style={{ width: size, height: size }}>
-      {/* Static base ring — inherits text color at 16% opacity */}
-      <svg viewBox="0 0 18 18" width={size} height={size} className="absolute inset-0">
-        <path
-          d="M 9 16.25 C 4.996 16.25 1.75 13.004 1.75 9 C 1.75 4.996 4.996 1.75 9 1.75 C 13.004 1.75 16.25 4.996 16.25 9 C 16.25 13.004 13.004 16.25 9 16.25 Z"
-          fill="transparent"
-          strokeWidth="1.5"
-          stroke="currentColor"
-          strokeOpacity="0.16"
-          strokeLinecap="round"
-        />
-      </svg>
-      {/*
-        Single div with CSS drop-shadow for glow — one compositing layer, zero frame desync.
-        Previously a separate blurred SVG created a second layer that could be 1 frame behind
-        on reload. CSS drop-shadow is applied to the same layer as the transform.
-      */}
-      <div
-        className="spinner-arc absolute inset-0 animate-spin [animation-duration:1.4s]"
-        style={{
-          transformOrigin: "center",
-          willChange: "transform",
-          filter: "drop-shadow(0 0 3px currentColor)",
-        }}
-      >
-        <svg viewBox="0 0 18 18" width={size} height={size} className="absolute inset-0">
-          <path d={arcPath} fill="transparent" strokeWidth="1.5" stroke="currentColor" strokeLinecap="round" />
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding,
+        backgroundColor: 'rgb(15, 15, 15)',
+        borderRadius: '999px',
+        boxShadow:
+          '0px 2px 4px rgba(0,0,0,0.08), 0px 8px 8px rgba(0,0,0,0.07), 0px 17px 10px rgba(0,0,0,0.04), 0px 31px 12px rgba(0,0,0,0.01)',
+        flexShrink: 0,
+      }}
+    >
+      <div style={{ position: 'relative', width: size, height: size }}>
+        {/* Static faint base ring */}
+        <svg
+          viewBox="0 0 18 18"
+          width={size}
+          height={size}
+          style={{ position: 'absolute', inset: 0, display: 'block', overflow: 'visible' }}
+        >
+          <path
+            d="M 9 16.25 C 4.996 16.25 1.75 13.004 1.75 9 C 1.75 4.996 4.996 1.75 9 1.75 C 13.004 1.75 16.25 4.996 16.25 9 C 16.25 13.004 13.004 16.25 9 16.25 Z"
+            fill="transparent"
+            strokeWidth="2"
+            stroke="rgba(241, 242, 244, 0.16)"
+            strokeLinecap="round"
+          />
         </svg>
+
+        {/* Rotating container — all glow layers spin in sync */}
+        <div
+          className="animate-spin"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            animationDuration: '0.6s',
+            animationTimingFunction: 'linear',
+            transformOrigin: 'center',
+            overflow: 'visible',
+          }}
+        >
+          {/* Primary arc */}
+          <svg
+            viewBox="0 0 18 18"
+            width={size}
+            height={size}
+            style={{ position: 'absolute', inset: 0, display: 'block', overflow: 'visible' }}
+          >
+            <path
+              d={arcPath}
+              fill="transparent"
+              strokeWidth="2"
+              stroke="rgb(241, 242, 244)"
+              strokeLinecap="round"
+            />
+          </svg>
+          {/* Glow layer 1 — blurred copy */}
+          <div style={{ position: 'absolute', inset: 0, filter: 'blur(4px)', overflow: 'visible' }}>
+            <svg viewBox="0 0 18 18" width={size} height={size} style={{ display: 'block', overflow: 'visible' }}>
+              <path d={arcPath} fill="transparent" strokeWidth="2" stroke="rgb(241, 242, 244)" strokeLinecap="round" />
+            </svg>
+          </div>
+          {/* Glow layer 2 — softer secondary bloom */}
+          <div style={{ position: 'absolute', inset: 0, filter: 'blur(4px)', opacity: 0.25, overflow: 'visible' }}>
+            <svg viewBox="0 0 18 18" width={size} height={size} style={{ display: 'block', overflow: 'visible' }}>
+              <path d={arcPath} fill="transparent" strokeWidth="2" stroke="rgb(241, 242, 244)" strokeLinecap="round" />
+            </svg>
+          </div>
+        </div>
       </div>
     </div>
   );
