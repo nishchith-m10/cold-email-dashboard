@@ -13,11 +13,11 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import {
-import { isSuperAdmin } from '@/lib/workspace-access';
   createDefaultRegistry,
   HealthRunner,
   type HealthReport,
 } from '@/lib/genesis/phase71';
+import { isSuperAdmin } from '@/lib/workspace-access';
 
 // ============================================
 // CONFIGURATION

@@ -20,7 +20,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import {
-import { isSuperAdmin } from '@/lib/workspace-access';
   publishTemplateVersion,
   getVersionHistory,
   getAllCurrentTemplates,
@@ -28,6 +27,7 @@ import { isSuperAdmin } from '@/lib/workspace-access';
   markAsCanary,
   unmarkCanary,
 } from '@/lib/genesis/phase72/template-manager';
+import { isSuperAdmin } from '@/lib/workspace-access';
 
 
 const API_HEADERS = {
