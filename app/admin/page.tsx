@@ -17,6 +17,7 @@
 import { useState, useTransition } from 'react';
 import dynamic from 'next/dynamic';
 import { useUser } from '@clerk/nextjs';
+import { useWorkspace } from '@/lib/workspace-context';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function TabSkeleton() {
@@ -131,12 +132,6 @@ const GROUPS: GroupDef[] = [
 // Flat list for lookups
 const ALL_TABS: TabDef[] = GROUPS.flatMap(g => g.tabs);
 
-// ─── Auth guard ───────────────────────────────────────────────────────────────
-
-const SUPER_ADMIN_IDS = process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS
-  ? process.env.NEXT_PUBLIC_SUPER_ADMIN_IDS.split(',').map(id => id.trim())
-  : [];
-
 // ─── Tab content renderer ─────────────────────────────────────────────────────
 
 function TabContent({ tab }: { tab: AdminTab }) {
@@ -208,7 +203,8 @@ function Sidebar({ active, onSelect }: { active: AdminTab; onSelect: (t: AdminTa
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const { user, isLoaded } = useUser();
+  const { isLoaded } = useUser();
+  const { isSuperAdmin, isLoading: isWorkspaceLoading } = useWorkspace();
   const [activeTab, setActiveTab] = useState<AdminTab>('workspaces');
   const [showTabPicker, setShowTabPicker] = useState(false);
   const [, startTabTransition] = useTransition();
@@ -221,7 +217,7 @@ export default function AdminPage() {
   const activeGroup  = GROUPS.find(g => g.tabs.some(t => t.id === activeTab));
   const ActiveIcon   = activeTabDef.icon;
 
-  if (!isLoaded) {
+  if (!isLoaded || isWorkspaceLoading) {
     return (
       <div className="px-4 md:container md:mx-auto py-6 md:py-8 pb-24 md:pb-8">
         <div className="space-y-6">
@@ -238,7 +234,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!user || !SUPER_ADMIN_IDS.includes(user.id)) {
+  if (!isSuperAdmin) {
     return (
       <div className="px-4 md:container md:mx-auto py-6 md:py-8 pb-24 md:pb-8">
         <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
