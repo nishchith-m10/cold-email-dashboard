@@ -70,9 +70,10 @@ export function TimeSeriesChart({
     displayDay: formatDate(d.day, 'short'),
   }));
 
-  // Numeric interval: evenly-spaced ~10 labels regardless of range
-  // No forced last-tick, so no gap at the end when switching ranges
-  const xAxisInterval = Math.max(1, Math.floor(formattedData.length / 10));
+  // Numeric interval: ~15 evenly-spaced labels regardless of range
+  // ceil(length/15)-1 gives interval=1 for 30d, interval=5 for 90d
+  // No forced last-tick (unlike preserveStartEnd) so zero dead space
+  const xAxisInterval = Math.max(1, Math.ceil(formattedData.length / 15) - 1);
 
   if (loading) {
     return (

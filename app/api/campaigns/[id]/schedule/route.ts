@@ -6,7 +6,7 @@
  *   - scheduleTrigger.parameters.rule.interval → cron expression
  *   - limit.parameters.maxItems → max contacts per run
  *
- * Body: { hour: number, minute: number, maxPerRun: number }
+ * Body: { cronExpr: string, maxPerRun: number }
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, DEFAULT_WORKSPACE_ID } from '@/lib/supabase';
@@ -36,15 +36,14 @@ export async function POST(
   if (accessError) return accessError;
 
   // --- Parse body ---
-  let hour: number, minute: number, maxPerRun: number;
+  let cronExpr: string, maxPerRun: number;
   try {
     const body = await req.json();
-    hour = Number(body.hour);
-    minute = Number(body.minute);
+    cronExpr = String(body.cronExpr || '').trim();
     maxPerRun = Number(body.maxPerRun);
-    if (isNaN(hour) || isNaN(minute) || isNaN(maxPerRun)) throw new Error('NaN');
+    if (!cronExpr || isNaN(maxPerRun)) throw new Error('missing fields');
   } catch {
-    return NextResponse.json({ error: 'Invalid body: hour, minute, maxPerRun required' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid body: cronExpr, maxPerRun required' }, { status: 400 });
   }
 
   // --- Get campaign ---
@@ -76,7 +75,6 @@ export async function POST(
   const nodes = ((workflow.nodes ?? []) as N8nNode[]).map(node => {
     // Patch schedule trigger
     if (node.type === 'n8n-nodes-base.scheduleTrigger') {
-      const cronExpr = `${minute} ${hour} * * MON-FRI`;
       return {
         ...node,
         parameters: {
@@ -104,6 +102,5 @@ export async function POST(
     );
   }
 
-  const cronExpr = `${minute} ${hour} * * MON-FRI`;
   return NextResponse.json({ success: true, schedule: { cronExpr, maxPerRun } });
 }
