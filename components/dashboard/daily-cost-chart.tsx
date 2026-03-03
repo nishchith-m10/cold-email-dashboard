@@ -136,19 +136,6 @@ export function DailyCostChart({
     return allDates;
   }, [data, startDate, endDate]);
 
-  // Compute evenly-distributed tick positions including start and end
-  const xAxisTicks = useMemo((): string[] | undefined => {
-    if (formattedData.length <= 8) return undefined;
-    const n = formattedData.length <= 45 ? 5 : 7;
-    const indices = new Set<number>();
-    indices.add(0);
-    indices.add(formattedData.length - 1);
-    for (let i = 1; i < n - 1; i++) {
-      indices.add(Math.round(i * (formattedData.length - 1) / (n - 1)));
-    }
-    return [...indices].sort((a, b) => a - b).map(i => formattedData[i].displayDay);
-  }, [formattedData]);
-
   // Calculate totals
   const totalCost = useMemo(() => 
     formattedData.reduce((sum, d) => sum + d.value, 0),
@@ -197,6 +184,7 @@ export function DailyCostChart({
           <div style={{ width: '100%', height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
+                key={formattedData.length}
                 data={formattedData}
                 margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
               >
@@ -217,8 +205,7 @@ export function DailyCostChart({
                   tickLine={false}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
                   tickMargin={8}
-                  ticks={xAxisTicks}
-                  interval={xAxisTicks ? 0 : 'preserveStartEnd'}
+                  interval="preserveStartEnd"
                 />
                 <YAxis
                   axisLine={false}
