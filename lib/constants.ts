@@ -56,6 +56,7 @@ export const EVENT_TYPES = ['sent', 'delivered', 'bounced', 'replied', 'opt_out'
 export const CHART_COLORS = {
   sends: '#3b82f6',      // Blue
   replies: '#22c55e',    // Green
+  clicks: '#f97316',     // Orange (matches KPI card click icon)
   optOuts: '#ef4444',    // Red
   bounces: '#f59e0b',    // Amber
   cost: '#8b5cf6',       // Purple
@@ -63,7 +64,7 @@ export const CHART_COLORS = {
   anthropic: '#d97706',  // Anthropic amber
   google: '#4285f4',     // Google blue
   relevance_ai: '#6366f1', // Indigo
-  apify: '#00d1b2',      // Teal
+  apify: '#ef4444',      // Red
   unknown: '#94a3b8',    // Slate gray
 };
 

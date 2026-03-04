@@ -94,7 +94,7 @@ export function EditableText({
           onKeyDown={handleKeyDown}
           onBlur={handleSave} // Optional: save on blur? often user-friendly
           disabled={isLoading}
-          className={cn("h-8 py-1 px-2 text-sm", inputClassName, error && "border-red-500")}
+          className={cn("h-8 py-1 px-2 text-sm max-w-[200px]", inputClassName, error && "border-red-500")}
           aria-label={label}
         />
         {/* We can hide these buttons if we save on blur, but good to have for explicit action or mobile */}
@@ -108,7 +108,7 @@ export function EditableText({
   return (
     <div 
       className={cn(
-        "group flex items-center gap-2 rounded px-1 -ml-1 transition-colors hover:bg-surface-elevated/50 cursor-pointer",
+        "group inline-flex items-center gap-2 rounded px-1 -ml-1 transition-colors hover:bg-surface-elevated/50 cursor-pointer min-w-0 max-w-full",
         disabled && "pointer-events-none opacity-70",
         className
       )}

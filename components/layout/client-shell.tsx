@@ -1,11 +1,15 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { Header } from './header';
 import { TopNavbar } from './top-navbar';
-import { Sidebar } from './sidebar';
+// ssr: false ensures Sidebar ONLY renders on the client, so localStorage
+// is always available on the first render — no SSR hydration mismatch,
+// no flash of missing admin/sandbox items on reload.
+const Sidebar = dynamic(() => import('./sidebar').then(m => ({ default: m.Sidebar })), { ssr: false });
 import { CommandPalette } from '@/components/ui/command-palette';
 import { OnboardingTour } from '@/components/onboarding/onboarding-tour';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
@@ -45,10 +49,12 @@ function WorkspaceGate({ children }: { children: React.ReactNode }) {
     }
   }, [needsOnboarding, isLoading, pathname, router]);
 
-  // Show loading while checking workspace access
+  // Show loading while checking workspace access.
+  // Use a content-area spinner (not a full-screen overlay) so the sidebar
+  // and navbar remain fully visible during the workspace API call.
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <AppLoadingSpinner />
       </div>
     );
@@ -150,9 +156,7 @@ export function ClientShell({ children }: ClientShellProps) {
               {pathname !== '/join' && (
                 <>
                   <TopNavbar onCommandOpen={() => setCommandOpen(true)} onShareOpen={() => setShareOpen(true)} />
-                  <Suspense fallback={null}>
-                    <Sidebar />
-                  </Suspense>
+                  <Sidebar />
                 </>
               )}
 
