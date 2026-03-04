@@ -449,3 +449,27 @@ Branch: ralph/infra-free-tier-hardening
 - **Files created**: app/api/onboarding/draft/route.ts, hooks/use-onboarding-draft.ts, supabase/migrations/20260228_add_onboarding_drafts.sql
 - **Files modified**: genesis-onboarding-wizard.tsx, onboarding-progress-service.ts, + 9 stage components
 ---
+
+## 2026-07-02 - SEC-003..009 (SAST Hardening — commit 46a90bd)
+- Snyk Code SAST scan: 75 issues (18 HIGH, 14 MEDIUM, 43 LOW)
+- **SEC-003**: Command injection fix — sanitizeArg() + 4 regex allowlists in docker-manager.ts
+- **SEC-004**: Disabled X-Powered-By header in sidecar Express app
+- **SEC-005**: Aligned sidecar handshake protocol (correct body + Authorization header)
+- **SEC-006**: Fixed heartbeat to use handshake endpoint (upserts last_seen_at)
+- **SEC-007**: SSRF guard on heartbeat + sidecar-command routes (block RFC-1918/localhost/link-local IPs)
+- **SEC-008**: ReDoS fix — replaced new RegExp() with replaceAll() in applyCredentialMap
+- **SEC-009**: Removed hardcoded n8n JWT from scripts, credential-rotation uses result data
+- **Dependency**: axios 1.13.4 → 1.13.6 (Prototype Pollution fix)
+- **Files modified**: sidecar/docker-manager.ts, sidecar/sidecar-agent.ts, sidecar/package.json, sidecar/package-lock.json, app/api/sidecar/heartbeat/route.ts, app/api/admin/sidecar-command/route.ts, scripts/duplicate-workflows-to-n8n.js, lib/genesis/phase69/credential-rotation-service.ts
+- **Remaining Snyk findings** (deferred):
+  - nodemailer 6→7 major bump (Uncontrolled Recursion) — needs breaking change evaluation
+  - Open Redirect in gmail-oauth-stage.tsx (MEDIUM) — needs redirect URL validation
+  - Prototype Pollution in hooks/scripts (7x MEDIUM) — mostly in data processing
+  - Format String in admin routes (5x MEDIUM) — need to evaluate
+  - 43 LOW findings in test files — acceptable (hardcoded test fixtures)
+- **Learnings**:
+  - `replaceAll()` is cleaner than `new RegExp(escaped, 'g')` for literal string replacement
+  - SSRF guards on DB-sourced URLs are defense-in-depth (primary control is who writes the DB)
+  - Snyk Code false positives: type identifiers flagged as "hardcoded secrets", Supabase-only routes flagged as SSRF
+  - n8n JWTs in source control = compromised; always use env vars with fail-fast
+---
