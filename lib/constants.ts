@@ -56,6 +56,7 @@ export const EVENT_TYPES = ['sent', 'delivered', 'bounced', 'replied', 'opt_out'
 export const CHART_COLORS = {
   sends: '#3b82f6',      // Blue
   replies: '#22c55e',    // Green
+  clicks: '#f97316',     // Orange (matches KPI card click icon)
   optOuts: '#ef4444',    // Red
   bounces: '#f59e0b',    // Amber
   cost: '#8b5cf6',       // Purple

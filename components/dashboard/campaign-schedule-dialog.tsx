@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, MapPin } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useTimezone } from '@/lib/timezone-context';
 
 interface CampaignScheduleDialogProps {
   campaignId: string;
@@ -52,6 +53,21 @@ const TIMEZONES = [
   { value: 'Australia/Sydney', label: 'Sydney (AEST)', offset: 10 },
 ];
 
+// Dynamically compute the UTC offset (in hours) for any IANA timezone via
+// the Intl API. This handles DST-aware offsets and timezones outside the
+// hardcoded list (e.g. auto-detected system timezones).
+function getUTCOffsetHours(tz: string): number {
+  try {
+    const now = new Date();
+    // Parse a UTC date string and the same moment in the target tz to get delta
+    const utcMs = Date.parse(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+    const tzMs  = Date.parse(now.toLocaleString('en-US', { timeZone: tz }));
+    return (tzMs - utcMs) / 3_600_000;
+  } catch {
+    return 0; // fallback to UTC
+  }
+}
+
 export function CampaignScheduleDialog({
   campaignId,
   workflowId,
@@ -62,10 +78,18 @@ export function CampaignScheduleDialog({
   const [hour, setHour] = useState('9');       // 1-12
   const [minute, setMinute] = useState('0');   // 0-55 by 5
   const [ampm, setAmpm] = useState<'AM' | 'PM'>('AM');
-  const [timezone, setTimezone] = useState('UTC');
   const [emailLimit, setEmailLimit] = useState('50');
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  // Timezone: defaults to the current dashboard timezone so the schedule is
+  // consistent with how the user views all other dates in the app. They can
+  // override it here for this specific campaign independently.
+  const { timezone: dashboardTimezone } = useTimezone();
+  const [timezoneOverride, setTimezoneOverride] = useState<string | null>(null);
+  const timezone = timezoneOverride ?? dashboardTimezone;
+  const isUsingDashboardTz = timezoneOverride === null;
+  const setTimezone = (tz: string) => setTimezoneOverride(tz);
 
   if (!workflowId) return null;
 
@@ -76,13 +100,16 @@ export function CampaignScheduleDialog({
   };
 
   const buildCronExpr = () => {
-    const tz = TIMEZONES.find((t) => t.value === timezone) ?? TIMEZONES[0];
+    // Use dynamic Intl offset so any IANA timezone (incl. those not in the
+    // hardcoded list, e.g. auto-detected system tz) computes cron correctly.
+    const knownTz = TIMEZONES.find((t) => t.value === timezone);
+    const offsetHours = knownTz ? knownTz.offset : getUTCOffsetHours(timezone);
     const h12 = Math.max(1, Math.min(12, Number(hour) || 12));
     const h24 = ampm === 'AM'
       ? (h12 === 12 ? 0 : h12)
       : (h12 === 12 ? 12 : h12 + 12);
     const m = Math.max(0, Math.min(59, Number(minute) || 0));
-    const totalMinutes = h24 * 60 + m - tz.offset * 60;
+    const totalMinutes = h24 * 60 + m - offsetHours * 60;
     const utcHour = ((Math.floor(totalMinutes / 60) % 24) + 24) % 24;
     const utcMinute = ((totalMinutes % 60) + 60) % 60;
     const dayStr = days.length > 0 ? days.join(',') : 'MON,TUE,WED,THU,FRI';
@@ -139,20 +166,19 @@ export function CampaignScheduleDialog({
     <>
       <button
         type="button"
-        className="p-1.5 rounded hover:bg-surface-elevated transition-colors text-text-secondary/40 hover:text-text-primary"
+        className="p-1.5 rounded transition-colors text-text-secondary/40 hover:text-text-primary"
         title="Configure send schedule"
         onClick={(e) => {
           e.stopPropagation();
           setOpen(true);
         }}
       >
-        <SlidersHorizontal className="h-3.5 w-3.5" />
+        <SlidersHorizontal className="h-5 w-5" />
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           className="sm:max-w-[420px] p-6 max-h-[90vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
         >
           <DialogHeader>
             <DialogTitle className="text-sm font-semibold">Send Schedule</DialogTitle>
@@ -188,31 +214,25 @@ export function CampaignScheduleDialog({
             <div className="space-y-2">
               <Label className="text-xs text-text-secondary">Send time</Label>
               <div className="flex items-center gap-1.5">
-                {/* Hour */}
-                <Select value={hour} onValueChange={setHour}>
-                  <SelectTrigger className="w-16 h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => String(i + 1)).map((h) => (
-                      <SelectItem key={h} value={h} className="text-xs">{h}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* Hour — plain input, no dropdown arrow */}
+                <input
+                  type="number"
+                  min={1}
+                  max={12}
+                  value={hour}
+                  onChange={(e) => setHour(e.target.value)}
+                  className="w-14 h-8 text-xs text-center rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
                 <span className="text-text-secondary/50 text-base font-medium leading-none">:</span>
-                {/* Minute */}
-                <Select value={minute} onValueChange={setMinute}>
-                  <SelectTrigger className="w-16 h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => String(i * 5)).map((m) => (
-                      <SelectItem key={m} value={m} className="text-xs">
-                        {String(m).padStart(2, '0')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {/* Minute — plain input, no dropdown arrow */}
+                <input
+                  type="number"
+                  min={0}
+                  max={59}
+                  value={minute}
+                  onChange={(e) => setMinute(e.target.value)}
+                  className="w-14 h-8 text-xs text-center rounded-md border border-input bg-background px-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
                 {/* AM / PM */}
                 <div className="flex rounded-md overflow-hidden border border-border ml-1">
                   {(['AM', 'PM'] as const).map((period) => (
@@ -236,12 +256,32 @@ export function CampaignScheduleDialog({
 
             {/* Timezone */}
             <div className="space-y-2">
-              <Label className="text-xs text-text-secondary">Timezone</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-text-secondary">Timezone</Label>
+                {!isUsingDashboardTz && (
+                  <button
+                    type="button"
+                    onClick={() => setTimezoneOverride(null)}
+                    className="flex items-center gap-1 text-[10px] text-accent-primary hover:text-accent-primary/80 font-medium transition-colors"
+                  >
+                    <MapPin className="h-3 w-3" />
+                    Reset to dashboard
+                  </button>
+                )}
+              </div>
               <Select value={timezone} onValueChange={setTimezone}>
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  {/* If the current timezone (e.g. auto-detected) is not in the
+                      hardcoded list, surface it as the first option so the
+                      Select always shows a valid label. */}
+                  {!TIMEZONES.find(t => t.value === timezone) && (
+                    <SelectItem value={timezone} className="text-xs">
+                      {timezone}
+                    </SelectItem>
+                  )}
                   {TIMEZONES.map((tz) => (
                     <SelectItem key={tz.value} value={tz.value} className="text-xs">
                       {tz.label}
@@ -249,6 +289,12 @@ export function CampaignScheduleDialog({
                   ))}
                 </SelectContent>
               </Select>
+              {isUsingDashboardTz && (
+                <p className="flex items-center gap-1 text-[11px] text-text-secondary/50 leading-snug">
+                  <MapPin className="h-3 w-3 text-accent-success flex-shrink-0" />
+                  Using your dashboard timezone. Select to override for this campaign.
+                </p>
+              )}
             </div>
 
             {/* Email limit */}

@@ -617,7 +617,7 @@ html.light .animate-pulse {
    RADIX UI OVERRIDES
    ============================================================ */
 [data-radix-popper-content-wrapper] {
-  z-index: 50 !important;
+  z-index: 200 !important;
 }
 
 /* ============================================================

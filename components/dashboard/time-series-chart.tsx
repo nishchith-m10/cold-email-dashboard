@@ -18,7 +18,18 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { CHART_COLORS } from '@/lib/constants';
-import { useFormatDate } from '@/hooks/use-format-date';
+
+// Parse a YYYY-MM-DD calendar date string as a local date (avoids UTC midnight
+// being interpreted as the previous day in negative-offset timezones).
+const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function formatShortCalendarDate(dateStr: string): string {
+  const parts = dateStr.split('-');
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+  return `${SHORT_MONTHS[month]} ${day}`;
+}
+
+
 
 interface TimeSeriesChartProps {
   title: string;
@@ -42,10 +53,17 @@ function CustomTooltip({
 
   const value = payload[0].value as number;
   const formattedValue = valueFormatter ? valueFormatter(value) : value.toLocaleString();
+  let displayLabel = String(label);
+  if (typeof label === 'number') {
+    const d = new Date(label);
+    displayLabel = `${SHORT_MONTHS[d.getMonth()]} ${d.getDate()}`;
+  } else if (typeof label === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(label)) {
+    displayLabel = formatShortCalendarDate(label);
+  }
 
   return (
     <div className="bg-surface-elevated border border-border rounded-lg px-3 py-2 shadow-xl">
-      <p className="text-xs text-text-secondary mb-1">{label}</p>
+      <p className="text-xs text-text-secondary mb-1">{displayLabel}</p>
       <p className="text-sm font-semibold text-text-primary">{formattedValue}</p>
     </div>
   );
@@ -62,18 +80,28 @@ export function TimeSeriesChart({
   height = 280,
   subtitle,
 }: TimeSeriesChartProps) {
-  const { formatDate } = useFormatDate();
-  
-  // Format day labels to be shorter (e.g., "Nov 25") using user's timezone
-  const formattedData = data.map(d => ({
-    ...d,
-    displayDay: formatDate(d.day, 'short'),
-  }));
+  // Use numeric timestamps as X axis values — pixel spacing is then purely
+  // arithmetic (linear scale), so ticks can be placed at exactly equal intervals
+  // regardless of data point count. Start and end dates are always included.
+  const formattedData = data.map(d => {
+    const parts = d.day.split('-').map(Number);
+    const ts = new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+    return { ...d, ts };
+  });
 
-  // Numeric interval: ~15 evenly-spaced labels regardless of range
-  // ceil(length/15)-1 gives interval=1 for 30d, interval=5 for 90d
-  // No forced last-tick (unlike preserveStartEnd) so zero dead space
-  const xAxisInterval = Math.max(1, Math.ceil(formattedData.length / 15) - 1);
+  const xAxisTicks = (() => {
+    const n = formattedData.length;
+    if (n === 0) return [];
+    if (n === 1) return [formattedData[0].ts];
+    const startTs = formattedData[0].ts;
+    const endTs = formattedData[n - 1].ts;
+    const target = Math.min(n, 15);
+    const ticks: number[] = [];
+    for (let i = 0; i < target; i++) {
+      ticks.push(Math.round(startTs + (i / (target - 1)) * (endTs - startTs)));
+    }
+    return ticks;
+  })();
 
   if (loading) {
     return (
@@ -124,12 +152,19 @@ export function TimeSeriesChart({
                   vertical={false}
                 />
                 <XAxis
-                  dataKey="displayDay"
+                  dataKey="ts"
+                  type="number"
+                  scale="time"
+                  domain={['dataMin', 'dataMax']}
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
                   tickMargin={8}
-                  interval={xAxisInterval}
+                  ticks={xAxisTicks}
+                  tickFormatter={(ts: number) => {
+                    const d = new Date(ts);
+                    return `${SHORT_MONTHS[d.getMonth()]} ${d.getDate()}`;
+                  }}
                 />
                 <YAxis
                   axisLine={false}

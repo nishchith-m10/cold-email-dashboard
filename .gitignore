@@ -73,3 +73,6 @@ lcov-report/
 
 # === n8n production workflows ===
 cold-email-system/
+
+# clerk configuration (can include secrets)
+/.clerk/
