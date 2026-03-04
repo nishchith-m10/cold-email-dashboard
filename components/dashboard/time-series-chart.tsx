@@ -70,6 +70,11 @@ export function TimeSeriesChart({
     displayDay: formatDate(d.day, 'short'),
   }));
 
+  // Numeric interval: ~15 evenly-spaced labels regardless of range
+  // ceil(length/15)-1 gives interval=1 for 30d, interval=5 for 90d
+  // No forced last-tick (unlike preserveStartEnd) so zero dead space
+  const xAxisInterval = Math.max(1, Math.ceil(formattedData.length / 15) - 1);
+
   if (loading) {
     return (
       <Card className={className}>
@@ -103,6 +108,7 @@ export function TimeSeriesChart({
           <div style={{ width: '100%', height }}>
             <ResponsiveContainer width="100%" height="100%">
               <ChartComponent
+                key={(data[0]?.day ?? '') + data.length}
                 data={formattedData}
                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
               >
@@ -123,7 +129,7 @@ export function TimeSeriesChart({
                   tickLine={false}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
                   tickMargin={8}
-                  interval="preserveStartEnd"
+                  interval={xAxisInterval}
                 />
                 <YAxis
                   axisLine={false}

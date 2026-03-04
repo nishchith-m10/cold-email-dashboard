@@ -266,7 +266,7 @@ export function AnalyticsPageClient() {
                 ))}
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="relative overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
@@ -309,8 +309,9 @@ export function AnalyticsPageClient() {
                     ))}
                     {(!costData?.by_model || costData.by_model.length === 0) && (
                       <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center text-text-secondary">
-                          No model usage data available
+                        <td colSpan={6} className="px-4 py-10 text-center">
+                          <p className="text-sm text-text-secondary/70">No model usage</p>
+                          <p className="text-xs text-text-secondary/40 mt-1">Appears once your campaigns make LLM calls</p>
                         </td>
                       </tr>
                     )}

@@ -58,8 +58,9 @@ export function SenderBreakdown({
             </thead>
             <tbody>
               <tr>
-                <td colSpan={7} className="py-8 text-center text-text-secondary text-sm">
-                  No sender data available yet
+                <td colSpan={7} className="py-10 text-center">
+                  <p className="text-sm text-text-secondary/70">No sender data</p>
+                  <p className="text-xs text-text-secondary/40 mt-1">Appears once campaigns start sending</p>
                 </td>
               </tr>
             </tbody>

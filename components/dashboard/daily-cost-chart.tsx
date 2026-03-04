@@ -136,6 +136,18 @@ export function DailyCostChart({
     return allDates;
   }, [data, startDate, endDate]);
 
+  // Evenly-spaced ticks matching ~2-day density, always including the last point
+  const xAxisTicks = useMemo(() => {
+    if (formattedData.length <= 2) return undefined;
+    const step = Math.max(1, Math.round(formattedData.length / 15));
+    const result: string[] = [];
+    for (let i = 0; i < formattedData.length - 1; i += step) {
+      result.push(formattedData[i].displayDay);
+    }
+    result.push(formattedData[formattedData.length - 1].displayDay);
+    return result;
+  }, [formattedData]);
+
   // Calculate totals
   const totalCost = useMemo(() => 
     formattedData.reduce((sum, d) => sum + d.value, 0),
@@ -184,6 +196,7 @@ export function DailyCostChart({
           <div style={{ width: '100%', height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
+                key={(formattedData[0]?.rawDay ?? '') + formattedData.length}
                 data={formattedData}
                 margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
               >
@@ -204,7 +217,7 @@ export function DailyCostChart({
                   tickLine={false}
                   tick={{ fill: 'var(--text-secondary)', fontSize: 10 }}
                   tickMargin={8}
-                  interval="preserveStartEnd"
+                  interval={Math.max(1, Math.ceil(formattedData.length / 15) - 1)}
                 />
                 <YAxis
                   axisLine={false}
