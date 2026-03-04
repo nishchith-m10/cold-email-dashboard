@@ -508,6 +508,32 @@
       ],
       "passes": true,
       "notes": "Removed real n8n JWT (expired 2026-04-30) and IP. Script now fails fast with clear error on missing env vars. Rotation service uses actual result data. NOTE: The exposed JWT should be rotated on the n8n instance."
+    },
+    {
+      "id": "SEC-010",
+      "title": "Open Redirect Guard — Gmail OAuth Callback",
+      "description": "The Gmail OAuth callback redirects to a returnUrl stored in the OAuth state. An attacker could craft returnUrl as an external URL, causing post-OAuth redirect to a phishing site. Fix: validate that returnUrl resolves to the same origin.",
+      "acceptanceCriteria": [
+        "Callback extracts returnUrl from OAuth state",
+        "Parsed URL origin is compared against req.url origin",
+        "Non-matching origins are rejected with fallback to /onboarding?stage=gmail_oauth",
+        "Warning logged for blocked redirects",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true,
+      "notes": "Same-origin check via new URL(returnUrl, req.url).origin !== new URL(req.url).origin. Fallback to /onboarding on mismatch or parse error."
+    },
+    {
+      "id": "SEC-012",
+      "title": "Prototype Pollution Guard — use-llm-usage.ts",
+      "description": "The useLLMUsage hook accumulates stats into plain objects using dynamic API-sourced keys (provider, model). If a DB record has '__proto__' as provider, it pollutes Object.prototype. Fix: use Object.create(null) for accumulators.",
+      "acceptanceCriteria": [
+        "byProvider and byModel accumulators use Object.create(null)",
+        "Dynamic key indexing is safe from __proto__ pollution",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true,
+      "notes": "Object.create(null) creates prototype-less objects, immune to __proto__ key collision."
     }
   ]
 }
