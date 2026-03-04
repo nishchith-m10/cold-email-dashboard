@@ -13,6 +13,26 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+// SEC-003: Input sanitisation for shell arguments.
+// Allowlist pattern: Docker image names/tags may contain a-z, 0-9, ._-/: only.
+const DOCKER_IMAGE_RE = /^[a-zA-Z0-9._\-\/]+$/;
+const DOCKER_TAG_RE = /^[a-zA-Z0-9._\-]+$/;
+// Numeric string (lines count, PID, etc.)
+const NUMERIC_RE = /^[0-9]+$/;
+// ISO-8601 date-ish (since argument): digits, T, Z, colons, dashes, dots
+const SINCE_RE = /^[0-9TZ:.\-]+$/;
+
+/**
+ * Validate and escape a shell argument.
+ * Returns the sanitised value or throws on invalid input.
+ */
+function sanitizeArg(value: string, pattern: RegExp, label: string): string {
+  if (!pattern.test(value)) {
+    throw new Error(`[SEC-003] Invalid ${label}: '${value}' does not match ${pattern}`);
+  }
+  return value;
+}
+
 export interface ContainerInfo {
   id: string;
   name: string;
@@ -92,7 +112,10 @@ export class DockerManager {
 
   async pullImage(imageName: string, tag: string = 'latest'): Promise<boolean> {
     try {
-      const fullImage = `${imageName}:${tag}`;
+      // SEC-003: Validate image name and tag against allowlist
+      const safeName = sanitizeArg(imageName, DOCKER_IMAGE_RE, 'image name');
+      const safeTag = sanitizeArg(tag, DOCKER_TAG_RE, 'image tag');
+      const fullImage = `${safeName}:${safeTag}`;
       console.log(`Pulling image: ${fullImage}`);
 
       await execAsync(`docker pull ${fullImage}`, {
@@ -120,6 +143,8 @@ export class DockerManager {
    */
   async swapContainer(newImageTag: string): Promise<{ success: boolean; oldContainerId?: string }> {
     try {
+      // SEC-003: Validate the image tag before interpolating into shell commands
+      const safeTag = sanitizeArg(newImageTag, DOCKER_TAG_RE, 'image tag');
       const oldContainerName = this.containerName;
       const newContainerName = `${this.containerName}-new`;
 
@@ -154,7 +179,7 @@ export class DockerManager {
         .join(' ');
 
       await execAsync(
-        `docker create --name ${newContainerName} ${envVars} ${volumes} ${ports} n8nio/n8n:${newImageTag}`
+        `docker create --name ${newContainerName} ${envVars} ${volumes} ${ports} n8nio/n8n:${safeTag}`
       );
 
       // STEP 5: Start new container
@@ -262,9 +287,13 @@ export class DockerManager {
 
   async getLogs(lines: number = 100, since?: string): Promise<string[]> {
     try {
-      const sinceArg = since ? `--since ${since}` : '';
+      // SEC-003: Validate numeric lines and ISO date 'since' argument
+      const safeLines = sanitizeArg(String(lines), NUMERIC_RE, 'lines');
+      const sinceArg = since
+        ? `--since ${sanitizeArg(since, SINCE_RE, 'since timestamp')}`
+        : '';
       const { stdout } = await execAsync(
-        `docker logs ${this.containerName} --tail ${lines} ${sinceArg}`
+        `docker logs ${this.containerName} --tail ${safeLines} ${sinceArg}`
       );
 
       return stdout.split('\n').filter((line) => line.trim());

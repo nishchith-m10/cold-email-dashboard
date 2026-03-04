@@ -4,9 +4,14 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-// Configuration
-const N8N_API_URL = 'https://64.23.139.93.sslip.io';
-const N8N_API_KEY = process.env.N8N_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjNzA0MmFlMS01NWM0LTQ0YTctYTBiMi0yZGFlNTIxMzVmODgiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY5ODQ2NzM2LCJleHAiOjE3Nzc2MDgwMDB9.BAYZEAa5ztq38sH0akiargTRLDTa4_un5tohsNEKpsI';
+// Configuration — SEC-009: removed hardcoded secrets, require env vars
+const N8N_API_URL = process.env.N8N_API_URL;
+const N8N_API_KEY = process.env.N8N_API_KEY;
+
+if (!N8N_API_URL || !N8N_API_KEY) {
+  console.error('Missing required env vars: N8N_API_URL and N8N_API_KEY');
+  process.exit(1);
+}
 
 async function makeN8nRequest(endpoint, method, data) {
   return new Promise((resolve, reject) => {

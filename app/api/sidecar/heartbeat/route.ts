@@ -81,6 +81,42 @@ export async function GET(req: NextRequest) {
 
   // ── Ping the sidecar's /health endpoint ───────────────────────────────
   const sidecarUrl: string = sidecarRecord.sidecar_url;
+
+  // SEC-007: SSRF guard — reject internal/private IPs that should never be sidecar targets
+  try {
+    const parsed = new URL(sidecarUrl);
+    const hostname = parsed.hostname;
+    // Block RFC-1918 & link-local (except the DO metadata IP which sidecar uses internally)
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1' ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('192.168.') ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+      hostname === '0.0.0.0' ||
+      hostname.startsWith('169.254.')
+    ) {
+      console.warn(`[SEC-007] Blocked SSRF to private IP: ${sidecarUrl}`);
+      const response: SidecarHeartbeatResponse = {
+        status: 'offline',
+        workspace_id: workspaceId,
+        sidecar_url: sidecarUrl,
+        error: 'Sidecar URL points to a private IP',
+      };
+      return NextResponse.json(response, { status: 200 });
+    }
+  } catch {
+    // Invalid URL — treat as offline
+    const response: SidecarHeartbeatResponse = {
+      status: 'offline',
+      workspace_id: workspaceId,
+      sidecar_url: sidecarUrl,
+      error: 'Invalid sidecar URL',
+    };
+    return NextResponse.json(response, { status: 200 });
+  }
+
   const pingStart = Date.now();
   let status: SidecarHeartbeatResponse['status'] = 'offline';
   let latency_ms: number | undefined;

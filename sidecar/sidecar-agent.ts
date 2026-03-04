@@ -158,6 +158,8 @@ export class SidecarAgent {
 
     // Initialize Express app
     this.app = express();
+    // SEC-004: Disable X-Powered-By header to avoid fingerprinting
+    this.app.disable('x-powered-by');
     this.app.use(express.json({ limit: '10mb' }));
 
     // Setup routes
@@ -700,9 +702,10 @@ export class SidecarAgent {
     // Convert to string for replacement
     let workflowStr = JSON.stringify(workflowJson);
 
-    // Replace each placeholder UUID
+    // SEC-008: Replace each placeholder UUID using literal replaceAll
+    // (avoids ReDoS from new RegExp with unsanitized input)
     for (const [placeholder, replacement] of Object.entries(credentialMap)) {
-      workflowStr = workflowStr.replace(new RegExp(placeholder, 'g'), replacement);
+      workflowStr = workflowStr.replaceAll(placeholder, replacement);
     }
 
     // Parse back to object
@@ -742,14 +745,27 @@ export class SidecarAgent {
         uptime_seconds: Math.floor((Date.now() - this.startTime) / 1000),
       };
 
-      // Send to Dashboard
+      // SEC-006: Send heartbeat as a handshake keep-alive call.
+      // The dashboard's /api/sidecar/heartbeat route is a GET endpoint
+      // used by the frontend to PING sidecars — it does not accept POSTs.
+      // Instead, re-call /api/sidecar/handshake which upserts into
+      // genesis.sidecar_registry and updates last_seen_at.
+      const handshakeSecret = process.env.SIDECAR_HANDSHAKE_SECRET;
       const response = await axios.post(
-        `${this.config.dashboardUrl}/api/sidecar/heartbeat`,
-        report,
+        `${this.config.dashboardUrl}/api/sidecar/handshake`,
+        {
+          workspace_id: report.workspace_id,
+          sidecar_url: `http://${await this.getDropletIp()}:${this.config.port}`,
+          version: report.n8n_status,
+          capabilities: [
+            'deploy',
+            ...(this.smtpService ? ['smtp'] : ['gmail']),
+          ],
+        },
         {
           headers: {
-            'X-Sidecar-Token': this.config.sidecarToken,
             'Content-Type': 'application/json',
+            ...(handshakeSecret ? { 'Authorization': `Bearer ${handshakeSecret}` } : {}),
           },
           timeout: 10000,
         }
@@ -917,29 +933,44 @@ export class SidecarAgent {
       // Get n8n version
       const n8nHealth = await this.n8nManager.getHealth();
 
-      // Construct webhook URL
-      const webhookUrl = `http://${dropletIp}:${this.config.port}/webhook`;
+      // SEC-005: Send handshake to dashboard with proper auth + matching contract.
+      // Dashboard expects: { workspace_id, sidecar_url, version?, capabilities? }
+      // Dashboard auth: Authorization: Bearer <SIDECAR_HANDSHAKE_SECRET>
+      const sidecarUrl = `http://${dropletIp}:${this.config.port}`;
+      const handshakeSecret = process.env.SIDECAR_HANDSHAKE_SECRET;
 
-      // Send handshake request
+      if (!handshakeSecret) {
+        console.warn('⚠️  SIDECAR_HANDSHAKE_SECRET not set — handshake will be rejected by dashboard');
+      }
+
       const response = await axios.post(
         `${this.config.dashboardUrl}/api/sidecar/handshake`,
         {
           workspace_id: this.config.workspaceId,
-          droplet_id: this.config.dropletId,
-          webhook_url: webhookUrl,
-          droplet_ip: dropletIp,
-          n8n_version: n8nHealth.version || 'unknown',
+          sidecar_url: sidecarUrl,
+          version: n8nHealth.version || 'unknown',
+          capabilities: [
+            'deploy',
+            ...(this.smtpService ? ['smtp'] : ['gmail']),
+          ],
         },
         {
           headers: {
             'Content-Type': 'application/json',
+            ...(handshakeSecret ? { 'Authorization': `Bearer ${handshakeSecret}` } : {}),
           },
           timeout: 30000,
         }
       );
 
-      // Update config with received sidecar token
-      this.config.sidecarToken = response.data.sidecar_token;
+      if (!response.data?.success) {
+        throw new Error(`Handshake rejected: ${response.data?.error || 'unknown'}`);
+      }
+
+      // Dashboard returns { success, registered_at, workspace_id, message }
+      // Use the workspace_id as a lightweight "token" for heartbeats since
+      // the dashboard identifies the sidecar by workspace_id in the registry.
+      this.config.sidecarToken = this.config.workspaceId;
 
       console.log('✅ Handshake complete, received sidecar token');
 

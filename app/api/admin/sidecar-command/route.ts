@@ -66,6 +66,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Sidecar host not available' }, { status: 404 });
     }
 
+    // SEC-007: SSRF guard — reject private/internal IPs
+    if (
+      sidecarHost === 'localhost' ||
+      sidecarHost === '127.0.0.1' ||
+      sidecarHost === '::1' ||
+      sidecarHost.startsWith('10.') ||
+      sidecarHost.startsWith('192.168.') ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(sidecarHost) ||
+      sidecarHost === '0.0.0.0' ||
+      sidecarHost.startsWith('169.254.')
+    ) {
+      return NextResponse.json({ error: 'Sidecar host resolves to a private IP' }, { status: 400 });
+    }
+
     // Send command to sidecar's REST API
     const sidecarUrl = `https://${sidecarHost}:3100/command`;
 

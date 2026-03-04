@@ -202,13 +202,13 @@ export async function processCredentialRotation(
 
     // 5. Handle result
     if (result.success) {
-      // Build new credential value
+      // Build new credential value from rotation result
       const newValue = buildUpdatedCredentialValue(decryptedValue, {
-        access_token: 'new_access_token', // From result
-        refresh_token: undefined, // May be undefined
-        expires_in: 3600, // From result
-        scope: 'gmail.readonly',
-        token_type: 'Bearer',
+        access_token: result.access_token ?? decryptedValue.access_token,
+        refresh_token: result.refresh_token, // May be undefined (not all providers rotate refresh tokens)
+        expires_in: result.expires_in ?? 3600,
+        scope: result.scope ?? 'gmail.readonly',
+        token_type: result.token_type ?? 'Bearer',
       });
 
       // TODO: Encrypt newValue before storing
