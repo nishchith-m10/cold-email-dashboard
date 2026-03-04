@@ -415,6 +415,99 @@
       ],
       "passes": true,
       "notes": "SEC-002: TOKEN_FILE constant = $SIDECAR_DATA_DIR/.sidecar_token (default /app/data). persistToken() writes with mode 0o600 + mkdirSync. loadPersistedToken() reads on start() before bootstrapN8n(); applies token to config so performHandshake() skips re-handshake. performHandshake() calls persistToken() after receiving token. TODO comment removed. tsc --noEmit passes."
+    },
+    {
+      "id": "SEC-003",
+      "title": "Command Injection Guard — docker-manager.ts",
+      "description": "Sanitize all shell-interpolated arguments in docker-manager.ts to prevent OS command injection via exec/execAsync. Add sanitizeArg() with regex allowlists for image names, tags, numeric values, and timestamp patterns.",
+      "acceptanceCriteria": [
+        "sanitizeArg(value, pattern, label) validates input against regex allowlist before shell interpolation",
+        "DOCKER_IMAGE_RE /^[a-zA-Z0-9._\\-\\/]+$/ guards image names in pullImage()",
+        "DOCKER_TAG_RE /^[a-zA-Z0-9._\\-]+$/ guards tags in pullImage() and swapContainer()",
+        "NUMERIC_RE /^[0-9]+$/ guards lines param in getLogs()",
+        "SINCE_RE /^[0-9TZ:.\\-]+$/ guards since param in getLogs()",
+        "cd sidecar && npx tsc --noEmit passes"
+      ],
+      "passes": true,
+      "notes": "Added sanitizeArg + 4 regex constants. Applied to pullImage (imageName+tag), swapContainer (newImageTag), getLogs (lines+since). All 3 Snyk HIGH command injection flows sanitized."
+    },
+    {
+      "id": "SEC-004",
+      "title": "Disable X-Powered-By Header",
+      "description": "Disable the Express X-Powered-By header in sidecar-agent.ts to prevent server fingerprinting.",
+      "acceptanceCriteria": [
+        "this.app.disable('x-powered-by') called after express() initialization",
+        "cd sidecar && npx tsc --noEmit passes"
+      ],
+      "passes": true,
+      "notes": "Single line addition after the express() constructor call."
+    },
+    {
+      "id": "SEC-005",
+      "title": "Sidecar Handshake Protocol Alignment",
+      "description": "Align sidecar performHandshake() to send the correct request body and Authorization header matching the dashboard's /api/sidecar/handshake contract.",
+      "acceptanceCriteria": [
+        "Body sends: { workspace_id, sidecar_url, version, capabilities }",
+        "Authorization: Bearer <SIDECAR_HANDSHAKE_SECRET> header included",
+        "Response handled as response.data.success (not response.data.token)",
+        "Dead webhookUrl variable removed",
+        "cd sidecar && npx tsc --noEmit passes"
+      ],
+      "passes": true,
+      "notes": "Aligned body shape, added auth header, fixed response handling, removed dead variable."
+    },
+    {
+      "id": "SEC-006",
+      "title": "Heartbeat Protocol Alignment",
+      "description": "Fix sidecar reportHealth() to call the handshake endpoint (which upserts last_seen_at) instead of the non-existent POST /api/sidecar/heartbeat.",
+      "acceptanceCriteria": [
+        "reportHealth() POSTs to /api/sidecar/handshake (not /api/sidecar/heartbeat)",
+        "Authorization header included",
+        "Body matches handshake contract",
+        "Still checks for pending_commands in response",
+        "cd sidecar && npx tsc --noEmit passes"
+      ],
+      "passes": true,
+      "notes": "Heartbeat now calls handshake endpoint which upserts sidecar_registry with last_seen_at. Same auth + body as handshake."
+    },
+    {
+      "id": "SEC-007",
+      "title": "SSRF Guard on Admin Routes",
+      "description": "Add private IP blocking to admin routes that make outbound requests to sidecar URLs from the database. Defense-in-depth against DB-record poisoning.",
+      "acceptanceCriteria": [
+        "heartbeat/route.ts rejects sidecar URLs pointing to RFC-1918/localhost/link-local IPs",
+        "sidecar-command/route.ts rejects sidecar hosts matching private IP patterns",
+        "freeze-workspace/route.ts confirmed as false positive (no outbound HTTP)",
+        "Blocked requests return clear error messages",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true,
+      "notes": "Added IP validation to heartbeat and sidecar-command routes. Blocks 127.0.0.1, ::1, 10.x, 192.168.x, 172.16-31.x, 0.0.0.0, 169.254.x. freeze-workspace is a false positive."
+    },
+    {
+      "id": "SEC-008",
+      "title": "ReDoS Prevention in Credential Map",
+      "description": "Replace new RegExp(placeholder, 'g') with replaceAll() in applyCredentialMap to prevent ReDoS from unsanitized regex input.",
+      "acceptanceCriteria": [
+        "workflowStr.replace(new RegExp(...)) changed to workflowStr.replaceAll(placeholder, replacement)",
+        "Literal string replacement — no dynamic regex construction",
+        "cd sidecar && npx tsc --noEmit passes"
+      ],
+      "passes": true,
+      "notes": "replaceAll is available in ES2022 (sidecar target). Eliminates both ReDoS and regex injection vectors."
+    },
+    {
+      "id": "SEC-009",
+      "title": "Remove Hardcoded Secrets from Scripts",
+      "description": "Remove hardcoded n8n API JWT and server IP from scripts/duplicate-workflows-to-n8n.js. Clean up placeholder token in credential-rotation-service.ts.",
+      "acceptanceCriteria": [
+        "duplicate-workflows-to-n8n.js requires N8N_API_URL and N8N_API_KEY env vars (exits with error if missing)",
+        "Hardcoded JWT and IP address removed",
+        "credential-rotation-service.ts uses result.access_token instead of placeholder string",
+        "npx tsc --noEmit passes"
+      ],
+      "passes": true,
+      "notes": "Removed real n8n JWT (expired 2026-04-30) and IP. Script now fails fast with clear error on missing env vars. Rotation service uses actual result data. NOTE: The exposed JWT should be rotated on the n8n instance."
     }
   ]
 }
