@@ -39,7 +39,7 @@ interface TopNavbarProps {
 
 export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
   const pathname = usePathname();
-  const { user } = useUser();
+  const { user, isLoaded: isUserLoaded } = useUser();
   const { signOut, openUserProfile } = useClerk();
   const { workspace } = useWorkspace();
   const { notifications, unreadCount, markAsRead, dismiss } = useNotifications();
@@ -136,7 +136,10 @@ export function TopNavbar({ onCommandOpen, onShareOpen }: TopNavbarProps) {
             >
               <Bell className="h-5 w-5 text-text-secondary hover:text-text-primary transition-colors" />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-accent-danger rounded-full animate-pulse" />
+                <span className="absolute top-1.5 right-1.5 h-2 w-2">
+                  <span className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75" />
+                  <span className="relative block h-2 w-2 rounded-full bg-red-500" />
+                </span>
               )}
             </Button>
 

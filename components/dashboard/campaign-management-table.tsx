@@ -121,8 +121,8 @@ function CampaignRow({
             )}
           </div>
 
-          {/* Schedule — explicit column, not tied to toggle */}
-          <div className="shrink-0 w-10 flex items-center justify-center">
+          {/* Schedule */}
+          <div className="shrink-0 w-12 flex items-center justify-center">
             <CampaignScheduleDialog
               campaignId={campaign.id}
               workflowId={campaign.n8n_workflow_id}
@@ -131,7 +131,7 @@ function CampaignRow({
           </div>
 
           {/* Toggle */}
-          <div className="shrink-0 w-10 flex items-center justify-center">
+          <div className="shrink-0 w-16 ml-6 flex items-center justify-center">
             <CampaignToggle
               campaignId={campaign.id}
               isActive={isActive}
@@ -441,9 +441,9 @@ export function CampaignManagementTable({
               {/* Column headers */}
               <div className="flex items-center gap-4 pl-5 pr-5 py-1.5 border-b border-border/40 bg-surface-subtle/20">
                 <div className="w-4 h-4 shrink-0" />
-                <div className="flex-1 text-[10px] font-semibold text-text-secondary/40 uppercase tracking-wider">Campaign</div>
-                <div className="w-10 shrink-0 text-[10px] font-semibold text-text-secondary/40 uppercase tracking-wider text-center">Schedule</div>
-                <div className="w-10 shrink-0 text-[10px] font-semibold text-text-secondary/40 uppercase tracking-wider text-center">Status</div>
+                <div className="flex-1" />
+                <div className="w-12 shrink-0 text-[10px] font-semibold text-text-secondary/40 uppercase tracking-wider text-center">Schedule</div>
+                <div className="w-16 ml-6 shrink-0 text-[10px] font-semibold text-text-secondary/40 uppercase tracking-wider text-center">Status</div>
               </div>
               {/* Grouped campaigns */}
               {groupRows.map((row) => {
@@ -451,30 +451,6 @@ export function CampaignManagementTable({
                 const anyLinked = row.campaigns.some(c => c.n8n_workflow_id);
                 return (
                   <div key={row.groupId}>
-                    {/* Group section header — always expanded */}
-                    <div className="w-full flex items-center gap-2.5 px-5 py-2.5 border-b border-border/50 bg-surface-subtle/30">
-                      <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
-                        {row.groupName}
-                      </span>
-                      <span className="text-[10px] text-text-secondary/40 bg-surface-elevated/60 px-1.5 py-0.5 rounded">
-                        {row.campaigns.length}
-                      </span>
-                      <div className="flex-1" />
-                      {anyLinked && (
-                        <span
-                          role="button"
-                          className="text-[11px] text-text-secondary/50 hover:text-text-primary transition-colors cursor-pointer pr-1"
-                          onClick={() => {
-                            const action = allActive ? 'deactivate' : 'activate';
-                            if (confirm(`${allActive ? 'Pause' : 'Resume'} all ${row.campaigns.length} sequences in "${row.groupName}"?`)) {
-                              Promise.all(row.campaigns.map(c => toggleCampaign(c.id, action))).then(refresh);
-                            }
-                          }}
-                        >
-                          {allActive ? 'Pause all' : 'Resume all'}
-                        </span>
-                      )}
-                    </div>
                     {/* Always show all campaigns */}
                     {row.campaigns.map((campaign, si) => (
                       <CampaignRow

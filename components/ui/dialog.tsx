@@ -6,6 +6,7 @@
  */
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,6 +18,13 @@ interface DialogProps {
 }
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
   React.useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && open) {
@@ -40,7 +48,11 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
     };
   }, [open]);
 
-  return (
+  if (!mounted) return null;
+
+  // Use createPortal to render at document.body — escapes any parent
+  // overflow:hidden or CSS transform stacking context (e.g. Framer Motion wrappers)
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -52,7 +64,7 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
             className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm"
             onClick={() => onOpenChange(false)}
           />
-          
+
           {/* Dialog Container */}
           <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
             <motion.div
@@ -68,7 +80,8 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
           </div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 

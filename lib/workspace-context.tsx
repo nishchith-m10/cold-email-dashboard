@@ -97,19 +97,19 @@ export function WorkspaceProvider({
   const [workspace, setWorkspaceState] = useState<Workspace>(initialWorkspace);
   const [workspaces, setWorkspacesState] = useState<Workspace[]>([initialWorkspace]);
   const [isLoading, setIsLoading] = useState(true);
-  // Always start false so server and client render the same HTML (no hydration mismatch).
-  // The localStorage fast-path restores the cached value in a useEffect after mount.
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  // Read isSuperAdmin directly from localStorage on first render (lazy init).
+  // Since WorkspaceProvider only runs on the client (inside ClientShell which
+  // is 'use client'), there is no SSR mismatch risk. This means the sidebar
+  // has the correct value on frame 1 — no flash at all.
+  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('is_super_admin') === 'true';
+  });
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
 
-  // Restore cached isSuperAdmin after mount (can't do in useState to avoid hydration mismatch)
-  useEffect(() => {
-    if (localStorage.getItem('is_super_admin') === 'true') {
-      setIsSuperAdmin(true);
-    }
-  }, []);
+  // isSuperAdmin is now initialized directly from localStorage in useState above.
 
   // Fetch workspaces from API
   const fetchWorkspaces = useCallback(async () => {
