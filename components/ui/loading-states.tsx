@@ -34,13 +34,13 @@ export function FramerSpinner({ size = 20 }: { size?: number }) {
           <path
             d="M 9 16.25 C 4.996 16.25 1.75 13.004 1.75 9 C 1.75 4.996 4.996 1.75 9 1.75 C 13.004 1.75 16.25 4.996 16.25 9 C 16.25 13.004 13.004 16.25 9 16.25 Z"
             fill="transparent"
-            strokeWidth="2"
+            strokeWidth="1.25"
             stroke="rgba(241, 242, 244, 0.16)"
             strokeLinecap="round"
           />
         </svg>
 
-        {/* Rotating glow arc — pure blur, no crisp arc on top */}
+        {/* Rotating glow arc — thin crisp stroke with soft drop-shadow glow */}
         <div
           className="animate-spin"
           style={{
@@ -52,11 +52,14 @@ export function FramerSpinner({ size = 20 }: { size?: number }) {
             overflow: 'visible',
           }}
         >
-          <div style={{ position: 'absolute', inset: 0, filter: 'blur(3px)', overflow: 'visible' }}>
-            <svg viewBox="0 0 18 18" width={size} height={size} style={{ display: 'block', overflow: 'visible' }}>
-              <path d={arcPath} fill="transparent" strokeWidth="2.5" stroke="rgb(241, 242, 244)" strokeLinecap="round" />
-            </svg>
-          </div>
+          <svg
+            viewBox="0 0 18 18"
+            width={size}
+            height={size}
+            style={{ display: 'block', overflow: 'visible', filter: 'drop-shadow(0 0 2px rgba(241,242,244,0.7))' }}
+          >
+            <path d={arcPath} fill="transparent" strokeWidth="1.25" stroke="rgb(241, 242, 244)" strokeLinecap="round" />
+          </svg>
         </div>
       </div>
 

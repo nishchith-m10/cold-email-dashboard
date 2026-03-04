@@ -10,7 +10,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSidebar } from '@/lib/sidebar-context';
 import { useWorkspace } from '@/lib/workspace-context';
@@ -58,6 +58,12 @@ export function Sidebar() {
   const pathname = usePathname();
   const { mode, setMode, isHovered, setIsHovered, isExpanded, effectiveWidth } = useSidebar();
   const { workspace, isSuperAdmin } = useWorkspace();
+  // Read directly from localStorage so admin/sandbox items are visible on
+  // the very first render — no flash even before the workspace API responds.
+  const [cachedSuperAdmin] = useState<boolean>(
+    () => typeof window !== 'undefined' && localStorage.getItem('is_super_admin') === 'true'
+  );
+  const showAdminItems = isSuperAdmin || cachedSuperAdmin;
   const [showModeMenu, setShowModeMenu] = useState(false);
   const modeMenuRef = useRef<HTMLDivElement>(null);
   const menuCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -71,29 +77,37 @@ export function Sidebar() {
     previousExpandedRef.current = isExpanded;
   }, [isExpanded]);
   
-  // Preserve URL search params (start, end, campaign) when navigating
-  const searchParams = useSearchParams();
-  const query = useMemo(() => {
+  // Preserve URL search params (start, end, campaign) when navigating.
+  // Uses window.location.search directly — no useSearchParams, no Suspense needed.
+  const [query, setQuery] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    const raw = new URLSearchParams(window.location.search);
     const params = new URLSearchParams();
-    
-    // Always include workspace slug if present
-    if (workspace?.slug) {
-      params.set('workspace', workspace.slug);
-    }
-    
-    // Preserve date range params
-    const start = searchParams.get('start');
-    const end = searchParams.get('end');
+    if (workspace?.slug) params.set('workspace', workspace.slug);
+    const start = raw.get('start');
+    const end = raw.get('end');
+    const campaign = raw.get('campaign');
     if (start) params.set('start', start);
     if (end) params.set('end', end);
-    
-    // Preserve campaign filter
-    const campaign = searchParams.get('campaign');
     if (campaign) params.set('campaign', campaign);
-    
-    const queryString = params.toString();
-    return queryString ? `?${queryString}` : '';
-  }, [workspace?.slug, searchParams]);
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
+  });
+
+  // Re-sync query string whenever the pathname (and thus URL) changes
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams();
+    if (workspace?.slug) params.set('workspace', workspace.slug);
+    const start = raw.get('start');
+    const end = raw.get('end');
+    const campaign = raw.get('campaign');
+    if (start) params.set('start', start);
+    if (end) params.set('end', end);
+    if (campaign) params.set('campaign', campaign);
+    const qs = params.toString();
+    setQuery(qs ? `?${qs}` : '');
+  }, [pathname, workspace?.slug]);
 
   // Don't show sidebar on auth pages or join page
   if (pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up') || pathname === '/join') {
@@ -194,7 +208,7 @@ export function Sidebar() {
         })}
 
         {/* Admin Section (Super Admin only - Clerk IDs in SUPER_ADMIN_IDS) */}
-        {isSuperAdmin && (
+        {showAdminItems && (
           <>
             <div className="my-3 border-t border-border" />
             {ADMIN_ITEMS.map((item) => {
@@ -232,7 +246,7 @@ export function Sidebar() {
         )}
 
         {/* Sandbox Section (Super Admin only - Clerk IDs in SUPER_ADMIN_IDS) */}
-        {isSuperAdmin && (
+        {showAdminItems && (
           <>
             {SUPER_ADMIN_ITEMS.map((item) => {
               const Icon = item.icon;

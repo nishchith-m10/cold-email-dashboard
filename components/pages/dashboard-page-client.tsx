@@ -137,9 +137,10 @@ export function DashboardPageClient() {
   }, [visibleWidgets, reorderWidgets]);
 
   const dateRangeDisplay = useMemo(() => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
+    // Parse as local date (YYYY-MM-DD) to avoid UTC midnight off-by-one
+    const parts = (d: string) => { const [y, m, day] = d.split('-').map(Number); return new Date(y, m - 1, day); };
+    const start = parts(startDate);
+    const end = parts(endDate);
     if (startDate === endDate) {
       return format(start, 'MMMM d, yyyy');
     }
@@ -279,7 +280,7 @@ export function DashboardPageClient() {
                 title="Click Rate Over Time"
                 subtitle={dateRangeDisplay}
                 data={clickRateSeries}
-                color="#10b981"
+                color={CHART_COLORS.clicks}
                 loading={clickRateLoading}
                 type="line"
                 valueFormatter={(v) => `${v}%`}

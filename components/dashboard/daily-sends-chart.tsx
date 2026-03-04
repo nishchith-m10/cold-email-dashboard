@@ -3,6 +3,19 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
+
+// Parse a YYYY-MM-DD date string as local midnight (avoids UTC off-by-one
+// issue where new Date("2024-11-25") = UTC midnight → Nov 24 in UTC-8).
+function parseDateOnly(dateStr: string): Date {
+  const parts = dateStr.split('-');
+  return new Date(
+    parseInt(parts[0], 10),
+    parseInt(parts[1], 10) - 1,
+    parseInt(parts[2], 10)
+  );
+}
+
+
 import {
   BarChart,
   Bar,
@@ -43,7 +56,7 @@ function CustomTooltip({
   return (
     <div className="bg-surface-elevated border border-border rounded-lg px-3 py-2 shadow-xl">
       <p className="text-xs text-text-secondary mb-1">
-        {date ? format(new Date(date), 'EEEE, MMMM d, yyyy') : ''}
+        {date ? format(parseDateOnly(date), 'EEEE, MMMM d, yyyy') : ''}
       </p>
       <p className="text-sm font-semibold text-text-primary">
         {count.toLocaleString()} {count === 1 ? 'send' : 'sends'}
@@ -66,8 +79,8 @@ export function DailySendsChart({
 
   // Format date range display
   const dateRangeDisplay = useMemo(() => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = parseDateOnly(startDate);
+    const end = parseDateOnly(endDate);
     
     if (isSingleDay) {
       return `Daily sends on ${format(start, 'MMMM d, yyyy')}`;
@@ -80,8 +93,8 @@ export function DailySendsChart({
   const chartData = useMemo(() => {
     return data.map(d => ({
       ...d,
-      displayDate: format(new Date(d.date), 'MMM d'),
-      shortDate: format(new Date(d.date), 'd'),
+      displayDate: format(parseDateOnly(d.date), 'MMM d'),
+      shortDate: format(parseDateOnly(d.date), 'd'),
       fullDate: d.date,
       isSelected: d.date === selectedDate,
     }));
@@ -206,23 +219,6 @@ export function DailySendsChart({
               </BarChart>
             </ResponsiveContainer>
           </div>
-
-          {selectedDate && (
-            <motion.div
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-3 pt-3 border-t border-border"
-            >
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-text-secondary">
-                  Selected: {format(new Date(selectedDate), 'EEEE, MMMM d, yyyy')}
-                </span>
-                <span className="font-semibold text-accent-success">
-                  {chartData.find(d => d.fullDate === selectedDate)?.count || 0} sends
-                </span>
-              </div>
-            </motion.div>
-          )}
         </CardContent>
       </Card>
     </motion.div>
