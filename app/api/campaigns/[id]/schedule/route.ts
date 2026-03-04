@@ -23,11 +23,13 @@ type N8nNode = {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
   }
+
+  const { id } = await params;
 
   const { searchParams } = new URL(req.url);
   const workspaceId = searchParams.get('workspace_id') || DEFAULT_WORKSPACE_ID;
@@ -50,7 +52,7 @@ export async function POST(
   const { data: campaign, error: campErr } = await supabaseAdmin
     .from('campaigns')
     .select('id, n8n_workflow_id')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('workspace_id', workspaceId)
     .single();
 
