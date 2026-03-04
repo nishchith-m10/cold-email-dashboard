@@ -73,7 +73,7 @@ export async function POST(
     );
   }
 
-  const workflow = workflowResult.data as Record<string, unknown>;
+  const workflow = workflowResult.data as unknown as Record<string, unknown>;
   const nodes = ((workflow.nodes ?? []) as N8nNode[]).map(node => {
     // Patch schedule trigger
     if (node.type === 'n8n-nodes-base.scheduleTrigger') {
