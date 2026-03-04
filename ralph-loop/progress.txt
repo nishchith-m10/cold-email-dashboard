@@ -473,3 +473,20 @@ Branch: ralph/infra-free-tier-hardening
   - Snyk Code false positives: type identifiers flagged as "hardcoded secrets", Supabase-only routes flagged as SSRF
   - n8n JWTs in source control = compromised; always use env vars with fail-fast
 ---
+
+## 2026-03-04 - SEC-010, SEC-012 (SAST Hardening Round 2 — commit 1e0baa0)
+- **SEC-010**: Open redirect fix in Gmail OAuth callback — returnUrl now validated against same origin
+- **SEC-012**: Prototype pollution fix in use-llm-usage.ts — Object.create(null) for accumulators
+- **Triaged as false positives (no fix needed)**:
+  - Format String (5x MEDIUM): JS template literals in console.log/NextResponse.json — not exploitable
+  - Prototype Pollution scripts/generate-types.ts: keys SQL-constrained to 'public'/'genesis'
+  - Hardcoded secrets in credentials/route.ts, ignition-config-assembler.ts, verify-crypto.ts: type identifiers/test data
+- **Remaining deferred**:
+  - nodemailer 6→7 major bump (Uncontrolled Recursion) — breaking change, needs careful evaluation
+  - 43 LOW findings in test files — acceptable (hardcoded test fixtures)
+- **Files modified**: app/api/oauth/gmail/callback/route.ts, hooks/use-llm-usage.ts
+- **Learnings**:
+  - `Object.create(null)` is the canonical JS defense against prototype pollution in accumulator objects
+  - OAuth `returnUrl` parameters are a classic open redirect vector — always validate origin
+  - JS template literals are NOT format strings (no specifiers like %s, %d) — Snyk false positive for CWE-134
+---
