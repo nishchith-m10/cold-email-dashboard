@@ -76,8 +76,9 @@ export function useLLMUsage(options?: { limit?: number }) {
     totalCost: 0,
     totalTokensIn: 0,
     totalTokensOut: 0,
-    byProvider: {},
-    byModel: {},
+    // SEC-012: Use Object.create(null) to prevent prototype pollution via dynamic keys
+    byProvider: Object.create(null) as Record<string, { cost: number; count: number; tokens: number }>,
+    byModel: Object.create(null) as Record<string, { cost: number; count: number; tokens: number }>,
   };
 
   for (const r of records) {

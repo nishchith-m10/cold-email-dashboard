@@ -122,8 +122,22 @@ export async function GET(req: NextRequest) {
     const userInfoResult = await gmail.getUserInfo(tokenResult.tokens.access_token);
     
     // Redirect back to onboarding
-    const returnUrl = tokenResult.state.returnUrl || '/onboarding?stage=gmail_oauth';
-    const successUrl = new URL(returnUrl, req.url);
+    // SEC-010: Validate returnUrl to prevent open redirect — only allow same-origin paths
+    const rawReturnUrl = tokenResult.state.returnUrl || '/onboarding?stage=gmail_oauth';
+    let successUrl: URL;
+    try {
+      const candidate = new URL(rawReturnUrl, req.url);
+      const origin = new URL(req.url).origin;
+      // Only allow same-origin redirects (reject absolute URLs to other domains)
+      if (candidate.origin !== origin) {
+        console.warn(`[SEC-010] Blocked open redirect to: ${rawReturnUrl}`);
+        successUrl = new URL('/onboarding?stage=gmail_oauth', req.url);
+      } else {
+        successUrl = candidate;
+      }
+    } catch {
+      successUrl = new URL('/onboarding?stage=gmail_oauth', req.url);
+    }
     successUrl.searchParams.set('gmail_connected', 'true');
     if (userInfoResult.success && userInfoResult.userInfo) {
       successUrl.searchParams.set('gmail_email', userInfoResult.userInfo.email);
