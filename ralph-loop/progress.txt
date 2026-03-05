@@ -582,3 +582,38 @@ Branch: ralph/infra-free-tier-hardening
   - SMTP n8n templates use `n8n-nodes-base.httpRequest` for sending, not `emailSend` — no SMTP credential block needed
   - Node.js v25 uses more heap for tsc; build's `--max-old-space-size=4096` is the correct mitigation for local builds
 ---
+
+---
+
+## 2026-03-05 — RALPH Loop Continued: D3 n8n Credential Type Mismatch Fixed
+
+### D3: n8n Credential Type String Mismatch — FIXED
+
+- **Root cause**: Internal `CredentialType` enum uses snake_case strings (`google_oauth2`, `openai_api`, `http_header_auth`) but n8n v1 API requires exact camelCase type identifiers (`gmailOAuth2`, `openAiApi`, `httpHeaderAuth`)
+- **Verification**: Audited all credential keys in `base-cold-email/` template JSON files:
+  - `gmailOAuth2` — 5 templates (Email 1/2/3, Reply Tracker, Research Report)
+  - `googleSheetsOAuth2Api` — 7 templates (all)
+  - `openAiApi` — 2 templates (Email Preparation, Research Report)
+  - `anthropicApi` — 1 template (Email Preparation)
+  - `httpHeaderAuth` — 1 template (Research Report)
+  - `httpQueryAuth` — 2 templates (Email Preparation, Research Report)
+  - `postgres` — all templates (unchanged, already correct)
+- **Fix**: Added `N8N_CREDENTIAL_TYPE_MAP` constant and `toN8nCredentialType()` helper to `sidecar/sidecar-agent.ts`. `handleInjectCredential` now maps internal type → n8n type before calling `n8nManager.createCredential()`.
+- **Mapping table**:
+  - `google_oauth2` → `gmailOAuth2`
+  - `openai_api` → `openAiApi`
+  - `anthropic_api` → `anthropicApi`
+  - `http_header_auth` → `httpHeaderAuth`
+  - `http_query_auth` → `httpQueryAuth`
+  - `http_basic_auth` → `httpBasicAuth`
+  - `google_sheets` → `googleSheetsOAuth2Api`
+  - `postgres`, `smtp` → unchanged (already correct)
+- **Falls through** to raw value for unknown types — forward-compatible
+- **Impact**: Without this fix, POST `/api/v1/credentials` returns 400 for every tenant, breaking all Gmail/OpenAI/Anthropic n8n nodes silently
+
+- **Files modified**: `sidecar/sidecar-agent.ts`, `ralph-loop/progress.txt`
+- **Learnings**:
+  - n8n credential type strings are camelCase identifiers (gmailOAuth2, openAiApi, etc.)
+  - The correct types come from the n8n source / template JSON (inspect `credentials` blocks in workflow JSON)
+  - This gap is only catchable at integration test time — not visible from code reading alone
+---
