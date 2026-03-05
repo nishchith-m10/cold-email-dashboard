@@ -535,8 +535,8 @@ Branch: ralph/infra-free-tier-hardening
 - **C2**: Fill 6 OPERATOR_SEED_* keys in .env.local + run seed-operator-credentials.mjs
 - **C3**: Run LOCAL_MODE E2E ignition test (Day 3 plan)
 - **C4**: Fill Google OAuth + Entri DNS credentials
-- **C9**: npm run build hang investigation
-- **C12**: SMTP template placeholder gaps (Email 2-SMTP missing leads table)
+- **C9**: npm run build hang investigation (DONE — see 2026-03-05 entry below)
+- **C12**: SMTP template placeholder gaps (DONE — see 2026-03-05 entry below)
 - **ENV-002 through ENV-008**: Live infra/credentials required
 
 - **Files modified**: `base-cold-email/Research Report.json`, `cold-email-system/Research Report.json`, `local-test-kit/docker-compose.yml`, `local-test-kit/.env.example`, `ralph-loop/prd-old.json`, `ralph-loop/prd-env-connection-audit.json`, `ralph-loop/progress.txt`
@@ -544,4 +544,41 @@ Branch: ralph/infra-free-tier-hardening
   - Research Report used `YOUR_COMPANY_NAME` but then hardcoded the company TYPE and SERVICES — the placeholder wasn't enough
   - The orchestrator already maps `YOUR_SERVICE_1-4_DESCRIPTION` from `manifest.service_descriptions[]` — no gap there
   - Python repr `\\\\n` = actual file bytes `\\n` (JSON-encoded newline in double-escaped strings)
+---
+---
+
+## 2026-03-05 — RALPH Loop: C12 SMTP Fix Complete + C9 Build TS Error Fixed
+
+### C12: SMTP Template Placeholders — COMPLETE
+- **Root cause 1 (table)**: All 3 SMTP templates had hardcoded Supabase table name `LeadsDBD-b2b` (7 occurrences each = 21 total). New tenants get a partitioned slug, not that table.
+- **Fix**: Replaced all 21 with `YOUR_LEADS_TABLE` across `Email 1-SMTP.json`, `Email 2-SMTP.json`, `Email 3-SMTP.json`
+- **Root cause 2 (credentials)**: All Postgres nodes in SMTP templates had no `credentials` block at all — 4 nodes in Email 1-SMTP, 3 in Email 2-SMTP, 4 in Email 3-SMTP = 11 total
+- **Fix**: Added `{"postgres": {"id": "YOUR_CREDENTIAL_POSTGRES_ID", "name": "Postgres"}}` to all 11 nodes
+- **Credential resolution**: Orchestrator variableMap loop (ignition-orchestrator.ts line 758-759) maps `cred.template_placeholder` -> real n8n ID. `YOUR_CREDENTIAL_*` placeholders are hard errors if unresolved (line 1290).
+- **SMTP email node type**: SMTP templates use `n8n-nodes-base.httpRequest` for sending (not `emailSend`), so no `YOUR_CREDENTIAL_SMTP_ID` needed.
+- **Verified**: All 3 SMTP templates parse as valid JSON. Placeholder sets now match expected shape.
+- **Commit**: `1e626cd` — pushed to origin/main
+
+### C9: npm run build — TypeScript Error Fixed
+- **Real issue**: NOT a hang. Build failed during TypeScript check phase with real TS error.
+- **Error**: `Property 'access_token' does not exist on type 'CredentialRotationResult'` at `lib/genesis/phase69/credential-rotation-service.ts:207`
+- **Root cause**: `CredentialRotationResult` type only had `success`, `credentialId`, `newExpiresAt`, `error`, `executionTimeMs`. Caller code read `result.access_token/refresh_token/expires_in/scope/token_type` but these were never returned by `rotateCredentialWithRetry`.
+- **Fix part 1** (`types.ts`): Added optional fields to `CredentialRotationResult`: `access_token?`, `refresh_token?`, `expires_in?`, `scope?`, `token_type?`
+- **Fix part 2** (`oauth-refresh-handler.ts`): Updated `rotateCredentialWithRetry` success return to include all 5 token fields from `refreshOAuthToken` result
+- **Verified**: `npx tsc --noEmit` exits 0, no type errors. Build re-run in progress.
+- **Note on local "hang"**: `npx tsc --noEmit` standalone OOMs on Node.js v25.2.1 at 2GB heap. Next.js build uses `--max-old-space-size=4096` flag in package.json build script — avoids the OOM. On Vercel (Node 18/20), not an issue.
+
+### Next Human-Action Items (C2, C3, ENV-002+)
+- **C2** (OPERATOR_SEED_* keys): Fill 6 operator credential keys in .env.local, run `node scripts/seed-operator-credentials.mjs`
+- **C3** (E2E test): Start local-test-kit docker compose, set LOCAL_MODE=true, trigger onboarding flow
+- **ENV-002**: Re-deploy n8n on DigitalOcean App Platform, update N8N_BASE_URL/N8N_API_URL in .env.local + Vercel
+- **ENV-003**: Fill DIGITALOCEAN_TOKEN alias, DATABASE_URL, REDIS_URL (Upstash), SIDECAR_AUTH_TOKEN, OHIO_WORKSPACE_ID
+- **ENV-004**: Fill OPENAI_API_KEY, ANTHROPIC_API_KEY, RELEVANCE_AI_API_KEY + project/studio IDs
+- **ENV-005**: Trigger end-to-end provisioning test once ENV-002/003/004 are filled
+
+- **Files modified (this session)**: `base-cold-email/Email 1-SMTP.json`, `base-cold-email/Email 2-SMTP.json`, `base-cold-email/Email 3-SMTP.json`, `lib/genesis/phase69/types.ts`, `lib/genesis/phase69/oauth-refresh-handler.ts`, `ralph-loop/progress.txt`
+- **Learnings**:
+  - `CredentialRotationResult` must carry OAuth token fields — callers need them to persist updated credentials
+  - SMTP n8n templates use `n8n-nodes-base.httpRequest` for sending, not `emailSend` — no SMTP credential block needed
+  - Node.js v25 uses more heap for tsc; build's `--max-old-space-size=4096` is the correct mitigation for local builds
 ---
