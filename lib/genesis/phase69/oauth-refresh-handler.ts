@@ -236,6 +236,12 @@ export async function rotateCredentialWithRetry(
         credentialId,
         newExpiresAt: expiresAt,
         executionTimeMs: Date.now() - startTime,
+        // Pass through token data so callers can update credential storage
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_in: tokens.expires_in,
+        scope: tokens.scope,
+        token_type: tokens.token_type,
       };
 
     } catch (error: any) {

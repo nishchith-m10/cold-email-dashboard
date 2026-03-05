@@ -107,6 +107,12 @@ export interface CredentialRotationResult {
   success: boolean;
   credentialId: string;
   newExpiresAt?: Date;
+  /** OAuth token fields — only present on success */
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+  scope?: string;
+  token_type?: string;
   error?: {
     type: OAuthFailureType;
     message: string;
