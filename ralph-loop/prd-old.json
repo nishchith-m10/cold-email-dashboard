@@ -15,8 +15,8 @@
         "Typecheck passes for all 4 files"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": "In Recharts 3.x, TooltipProps omits payload/label/active (PropertiesReadFromContext). TooltipContentProps extends TooltipProps and adds them back."
+      "passes": true,
+      "notes": "All 4 chart components use TooltipContentProps from recharts/types/component/Tooltip. Verified in codebase 2026-03-04."
     },
     {
       "id": "US-002",
@@ -28,8 +28,8 @@
         "Typecheck passes for both files"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": "Use chart data array + activeTooltipIndex for click. Use DotItemDotProps type with optional cx/cy handling."
+      "passes": true,
+      "notes": "daily-sends-chart uses activeTooltipIndex (not activePayload). dot render props use optional cx/cy. Verified 2026-03-04."
     },
     {
       "id": "US-003",
@@ -41,8 +41,8 @@
         "Typecheck passes for both files"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "Formatter signature changed to (value: TValue | undefined, name: TName | undefined, ...) in Recharts 3.x"
+      "passes": true,
+      "notes": "donut-chart and time-series-chart use TooltipContentProps with valueFormatter as optional (v: number) => string. No undefined crash. Verified 2026-03-04."
     },
     {
       "id": "US-004",
@@ -55,8 +55,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": "The subscribe -> state update -> subscribe recreated -> useEffect re-runs cycle must be broken with refs."
+      "passes": true,
+      "notes": "lib/realtime-health.ts uses healthRef + subscribeRef pattern. subscribe callback has stable identity (only workspaceId dep). attemptRetry calls subscribeRef.current. Loop broken. Verified 2026-03-04."
     },
     {
       "id": "US-005",
@@ -67,8 +67,8 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "The aggregate endpoint runs 15 parallel Supabase queries. 15s is not enough on cold starts."
+      "passes": true,
+      "notes": "lib/fetcher.ts: REQUEST_TIMEOUT = 30000 (line 15). Verified 2026-03-04."
     },
     {
       "id": "US-006",
@@ -79,8 +79,8 @@
         "Index covers event_ts column on email_events table"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": "This was identified as a high-priority fix in copilot-instructions.md"
+      "passes": true,
+      "notes": "supabase/migrations/add_event_ts_index.sql and 20251205_add_event_ts_index.sql both exist with CREATE INDEX CONCURRENTLY on email_events(event_ts). Verified 2026-03-04."
     }
   ]
 }
