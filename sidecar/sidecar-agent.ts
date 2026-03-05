@@ -26,6 +26,34 @@ import { WorkflowDeployer, WorkflowDeploymentRequest } from './workflow-deployer
 import { decryptCredential } from './crypto-utils';
 
 // ============================================
+// N8N CREDENTIAL TYPE MAPPING
+// Maps internal CredentialType enum strings → n8n API credential type strings.
+// n8n's POST /v1/credentials requires the exact internal n8n type key (camelCase).
+// Internal types use snake_case; n8n uses camelCase identifiers.
+// ============================================
+const N8N_CREDENTIAL_TYPE_MAP: Record<string, string> = {
+  // Tenant-injected credentials
+  google_oauth2:    'gmailOAuth2',           // Gmail nodes (gmailOAuth2)
+  openai_api:       'openAiApi',             // OpenAI nodes
+  anthropic_api:    'anthropicApi',          // Anthropic/Claude nodes
+  http_header_auth: 'httpHeaderAuth',        // Google CSE header auth
+  http_basic_auth:  'httpBasicAuth',         // Generic basic auth
+  // Already correct (n8n uses these exact strings)
+  postgres:         'postgres',
+  smtp:             'smtp',
+  // Google Sheets — handled as operator credential via googleSheetsOAuth2Api
+  google_sheets:    'googleSheetsOAuth2Api',
+};
+
+/**
+ * Translate an internal CredentialType string to the exact n8n API type string.
+ * Falls through to the raw value if no mapping found (forward-compatible).
+ */
+function toN8nCredentialType(internalType: string): string {
+  return N8N_CREDENTIAL_TYPE_MAP[internalType] ?? internalType;
+}
+
+// ============================================
 // CONFIGURATION
 // ============================================
 
@@ -539,7 +567,7 @@ export class SidecarAgent {
 
     const credentialId = await this.n8nManager.createCredential({
       name: payload.credential_name,
-      type: payload.credential_type,
+      type: toN8nCredentialType(payload.credential_type),
       data: decryptedData,
     });
 
