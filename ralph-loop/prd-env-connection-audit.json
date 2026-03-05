@@ -41,8 +41,8 @@
       "title": "Supabase RLS Infinite Recursion on user_workspace",
       "detail": "The user_workspace table has a self-referencing RLS policy causing infinite recursion on any query that touches it. This affects workspace membership checks across the entire app.",
       "fix": "Review supabase/migrations for the user_workspace policy. Rewrite the policy using a security definer function or a non-recursive policy condition. Apply via Supabase dashboard SQL editor.",
-      "passes": false
-    },
+      "passes": true,
+      "notes": "Fixed in 20260228_fix_is_workspace_admin_rls_recursion.sql — is_workspace_admin() rewritten with SECURITY DEFINER + SET search_path = public. clerk_user_id() similarly hardened. Applied 2026-02-28."
     {
       "id": "BLOCKER-002",
       "severity": "CRITICAL",
@@ -279,7 +279,8 @@
       "title": "Fix Supabase RLS Infinite Recursion on user_workspace",
       "type": "bug",
       "priority": "P0",
-      "passes": false
+      "passes": true,
+      "notes": "Fixed via supabase/migrations/20260228_fix_is_workspace_admin_rls_recursion.sql"
     },
     {
       "id": "ENV-002",

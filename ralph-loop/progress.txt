@@ -509,4 +509,39 @@ Branch: ralph/infra-free-tier-hardening
   - npm advisory "Patched versions: None" = no upstream fix yet; explicit downgrade is the correct mitigation
   - DOMPurify CVE-2026-0540: SAFE_FOR_XML mode misses 5 rawtext elements — use 3.1.2 until patched
   - Vercel CLI ships deep tree vulns (path-to-regexp, undici, minimatch) — all dev-only, not deployed
+
+---
+
+## 2026-03-04 — RALPH Loop: Stale PRD cleanup, Template hardcoding fix, local-test-kit
+
+### PRD Cleanup (stale flags corrected)
+- **prd-old.json US-001 through US-006**: All 6 marked `passes: true` — all were already implemented in codebase (Recharts TooltipContentProps, activeTooltipIndex, realtime-health refs, 30s timeout, event_ts index migration)
+- **prd-env-connection-audit.json ENV-001 / BLOCKER-001**: Marked `passes: true` — RLS infinite recursion already fixed via `20260228_fix_is_workspace_admin_rls_recursion.sql` (SECURITY DEFINER on is_workspace_admin). ENV-002 through ENV-008 remain false (require live credentials/infrastructure)
+
+### C1/C10: Fix Hardcoded Service Descriptions in Research Report Templates
+- **Root cause**: `base-cold-email/Research Report.json` and `cold-email-system/Research Report.json` contained hardcoded service list — "AI Automation agency providing AI Receptionist, CRM Automation, Website Chatbots, Social Media Handling" — every new tenant would get this wrong pitch
+- **Fix**: Replaced hardcoded block with `YOUR_SERVICE_1_DESCRIPTION` through `YOUR_SERVICE_4_DESCRIPTION` placeholders
+- **Integration**: Orchestrator already maps these from `manifest.service_descriptions[0..3]` (added in D-004). No orchestrator changes needed.
+- **Verified**: Both JSON files parse correctly, 43 nodes each, all placeholders valid `YOUR_*` format
+
+### C6: local-test-kit/docker-compose.yml
+- Created `local-test-kit/docker-compose.yml` with n8n (latest) + Postgres 16 on separate network
+- n8n on port 5678, Postgres on 5433 (avoids local Postgres conflict)
+- Sidecar service commented out (uncomment after building `genesis-sidecar:local` image)
+- Created `local-test-kit/.env.example` with instructions
+- Usage: `docker compose up -d` → create n8n owner → get API key → set LOCAL_MODE=true in .env.local
+
+### Remaining from GAP analysis (not yet done, require human action)
+- **C2**: Fill 6 OPERATOR_SEED_* keys in .env.local + run seed-operator-credentials.mjs
+- **C3**: Run LOCAL_MODE E2E ignition test (Day 3 plan)
+- **C4**: Fill Google OAuth + Entri DNS credentials
+- **C9**: npm run build hang investigation
+- **C12**: SMTP template placeholder gaps (Email 2-SMTP missing leads table)
+- **ENV-002 through ENV-008**: Live infra/credentials required
+
+- **Files modified**: `base-cold-email/Research Report.json`, `cold-email-system/Research Report.json`, `local-test-kit/docker-compose.yml`, `local-test-kit/.env.example`, `ralph-loop/prd-old.json`, `ralph-loop/prd-env-connection-audit.json`, `ralph-loop/progress.txt`
+- **Learnings**:
+  - Research Report used `YOUR_COMPANY_NAME` but then hardcoded the company TYPE and SERVICES — the placeholder wasn't enough
+  - The orchestrator already maps `YOUR_SERVICE_1-4_DESCRIPTION` from `manifest.service_descriptions[]` — no gap there
+  - Python repr `\\\\n` = actual file bytes `\\n` (JSON-encoded newline in double-escaped strings)
 ---
