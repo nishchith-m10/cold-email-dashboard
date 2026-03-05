@@ -202,7 +202,8 @@
         "Edit mode toggle switches between read-only and edit forms",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "NodeDetailDrawer has canEdit prop; sandbox page passes canWrite from usePermissions(). Edit toggle + NodeEditForm slot gated behind canEdit && isEditMode."
     },
     {
       "id": "SBX-013",
@@ -235,7 +236,8 @@
         "Handles sidecar errors gracefully",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "app/api/sandbox/workflow/update/route.ts — Clerk auth, owner/admin role check via workspace_members, buildNodePatch, sidecar UPDATE_WORKFLOW, graceful fallback."
     },
     {
       "id": "SBX-015",
@@ -250,7 +252,8 @@
         "Loading state exposed (isMutating)",
         "npx tsc --noEmit passes"
       ],
-      "passes": false
+      "passes": true,
+      "notes": "hooks/use-workflow-mutation.ts — SWR optimistic mutate with rollbackOnError, isMutating state, useToast success/error notifications."
     },
     {
       "id": "SBX-016",
