@@ -489,4 +489,24 @@ Branch: ralph/infra-free-tier-hardening
   - `Object.create(null)` is the canonical JS defense against prototype pollution in accumulator objects
   - OAuth `returnUrl` parameters are a classic open redirect vector — always validate origin
   - JS template literals are NOT format strings (no specifiers like %s, %d) — Snyk false positive for CWE-134
+
+---
+
+## 2026-03-04 - SBX-012/014/015 (Sandbox Workflow Editor) + Dependency Security
+
+### SBX Stories (already implemented, verified & PRD updated)
+- **SBX-012**: Role-Gated Edit Toggle — NodeDetailDrawer has `canEdit` prop; sandbox page passes `canWrite` from `usePermissions()`. Edit toggle + NodeEditForm slot gated behind `canEdit && isEditMode`. ✅
+- **SBX-014**: POST `/api/sandbox/workflow/update` — Clerk auth, owner/admin role check via `workspace_members`, `buildNodePatch`, sidecar `UPDATE_WORKFLOW`, graceful error handling. ✅
+- **SBX-015**: `hooks/use-workflow-mutation.ts` — SWR optimistic mutate with `rollbackOnError`, `isMutating` state, `useToast` success/error notifications. ✅
+- **PRD**: Updated `ralph-loop/prd.json` — SBX-012, SBX-014, SBX-015 marked `passes: true`
+
+### Dependency Security
+- **tar@7.5.7 → 7.5.8** (HIGH — arbitrary file read/write via symlink chain): pinned exact
+- **dompurify@3.3.1 → 3.1.2** (MODERATE — CVE-2026-0540 / GHSA-v2wj-7wpq-c8vv): XSS via missing rawtext elements (noscript, xmp, noembed, noframes, iframe) in SAFE_FOR_XML regex. Affected range >=3.1.3,<=3.3.1. Advisory states "Patched versions: None" — pinned to 3.1.2 exact until upstream releases a fix.
+- **26/28 remaining npm audit findings**: All inside `vercel@50.17.1` CLI devDependency tree — zero production exposure.
+- **Files modified**: `package.json`, `package-lock.json`, `ralph-loop/prd.json`, `ralph-loop/progress.txt`
+- **Learnings**:
+  - npm advisory "Patched versions: None" = no upstream fix yet; explicit downgrade is the correct mitigation
+  - DOMPurify CVE-2026-0540: SAFE_FOR_XML mode misses 5 rawtext elements — use 3.1.2 until patched
+  - Vercel CLI ships deep tree vulns (path-to-regexp, undici, minimatch) — all dev-only, not deployed
 ---
