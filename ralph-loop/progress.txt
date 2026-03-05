@@ -617,3 +617,27 @@ Branch: ralph/infra-free-tier-hardening
   - The correct types come from the n8n source / template JSON (inspect `credentials` blocks in workflow JSON)
   - This gap is only catchable at integration test time — not visible from code reading alone
 ---
+
+---
+
+## 2026-03-05 — RALPH Loop Continued: Credential Assembler Gap Fixed
+
+### ASSEMBLER-001: google_sheets + anthropic credentials silently skipped
+
+- **Root cause**: `ignition-config-assembler.ts` has `VAULT_TO_IGNITION_TYPE` map that only contained 3 entries (`gmail_oauth`, `openai_api_key`, `google_cse_api_key`). The assembler `getCredentials()` silently skips vault credentials not in this map (`if (!ignitionType) continue`). This meant: `google_sheets_oauth` and `anthropic_api_key` were NEVER injected into n8n, silently breaking all Google Sheets and Anthropic nodes.
+- **Fix part 1** (`ignition-types.ts`): Added `'google_sheets'`, `'anthropic_api'`, `'http_query_auth'` to `CredentialType` union
+- **Fix part 2** (`ignition-config-assembler.ts`): Added missing mappings to VAULT_TO_IGNITION_TYPE:
+  - `google_sheets_oauth` → `'google_sheets'`
+  - `anthropic_api_key` → `'anthropic_api'`
+  And to VAULT_TO_TEMPLATE_PLACEHOLDER:
+  - `google_sheets_oauth` → `'YOUR_CREDENTIAL_GOOGLE_SHEETS_ID'`
+  - `anthropic_api_key` → `'YOUR_CREDENTIAL_ANTHROPIC_ID'`
+- **Sidecar N8N_CREDENTIAL_TYPE_MAP** already had `google_sheets → googleSheetsOAuth2Api` and `anthropic_api → anthropicApi` from the D3 fix (same session)
+- **Impact**: Without this, Google Sheets nodes (used in 7/7 Gmail templates) and Anthropic nodes (Email Preparation) would fail silently for every tenant
+
+- **Files modified**: `lib/genesis/ignition-types.ts`, `lib/genesis/ignition-config-assembler.ts`, `ralph-loop/progress.txt`
+- **Learnings**:
+  - Always audit ALL vault credential types against the assembler map
+  - Silent `continue` in credential assembly creates invisible failures during E2E test
+  - Check both ends of the pipeline: vault types → ignition types → n8n types
+---
