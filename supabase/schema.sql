@@ -164,6 +164,57 @@ CREATE POLICY daily_stats_workspace_isolation ON daily_stats
   WITH CHECK (workspace_id = current_setting('app.workspace_id', true) OR current_setting('app.workspace_id', true) IS NULL);
 
 -- ============================================
+-- GENESIS SCHEMA RLS (SEC-RLS-001)
+-- genesis schema is backend-only; service_role bypasses RLS entirely.
+-- ============================================
+
+ALTER TABLE genesis.fleet_status           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE genesis.support_access_tokens  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE genesis.ignition_state         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE genesis.ignition_operations    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE genesis.partition_registry     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE genesis.droplet_lifecycle_log  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE genesis.do_accounts            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE genesis.leads_default          ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY fleet_status_workspace_isolation ON genesis.fleet_status
+  USING (workspace_id::text = current_setting('app.workspace_id', true))
+  WITH CHECK (workspace_id::text = current_setting('app.workspace_id', true));
+
+CREATE POLICY support_access_tokens_workspace_isolation ON genesis.support_access_tokens
+  USING (workspace_id::text = current_setting('app.workspace_id', true))
+  WITH CHECK (workspace_id::text = current_setting('app.workspace_id', true));
+
+CREATE POLICY ignition_state_workspace_isolation ON genesis.ignition_state
+  USING (workspace_id::text = current_setting('app.workspace_id', true))
+  WITH CHECK (workspace_id::text = current_setting('app.workspace_id', true));
+
+CREATE POLICY ignition_operations_workspace_isolation ON genesis.ignition_operations
+  USING (workspace_id::text = current_setting('app.workspace_id', true))
+  WITH CHECK (workspace_id::text = current_setting('app.workspace_id', true));
+
+CREATE POLICY partition_registry_workspace_isolation ON genesis.partition_registry
+  USING (workspace_id::text = current_setting('app.workspace_id', true))
+  WITH CHECK (workspace_id::text = current_setting('app.workspace_id', true));
+
+CREATE POLICY droplet_lifecycle_log_workspace_isolation ON genesis.droplet_lifecycle_log
+  USING (workspace_id::text = current_setting('app.workspace_id', true))
+  WITH CHECK (workspace_id::text = current_setting('app.workspace_id', true));
+
+CREATE POLICY leads_default_workspace_isolation ON genesis.leads_default
+  USING (workspace_id::text = current_setting('app.workspace_id', true))
+  WITH CHECK (workspace_id::text = current_setting('app.workspace_id', true));
+
+-- operator_credentials and workspace_manifests: explicit deny for non-service-role
+CREATE POLICY operator_credentials_service_only ON genesis.operator_credentials
+  USING (false)
+  WITH CHECK (false);
+
+CREATE POLICY workspace_manifests_service_only ON genesis.workspace_manifests
+  USING (false)
+  WITH CHECK (false);
+
+-- ============================================
 -- HELPER FUNCTIONS
 -- ============================================
 
