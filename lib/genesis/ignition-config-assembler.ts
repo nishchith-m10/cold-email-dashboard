@@ -42,15 +42,19 @@ export interface AssemblerDependencies {
 // ============================================
 
 const VAULT_TO_IGNITION_TYPE: Partial<Record<VaultCredentialType, IgnitionCredentialType>> = {
-  gmail_oauth: 'google_oauth2',
-  openai_api_key: 'openai_api',
-  google_cse_api_key: 'http_header_auth',
+  gmail_oauth:          'google_oauth2',
+  google_sheets_oauth:  'google_sheets',
+  openai_api_key:       'openai_api',
+  anthropic_api_key:    'anthropic_api',
+  google_cse_api_key:   'http_header_auth',
 };
 
 const VAULT_TO_TEMPLATE_PLACEHOLDER: Partial<Record<VaultCredentialType, string>> = {
-  gmail_oauth: 'YOUR_CREDENTIAL_GMAIL_ID',
-  openai_api_key: 'YOUR_CREDENTIAL_OPENAI_ID',
-  google_cse_api_key: 'YOUR_CREDENTIAL_GOOGLE_CSE_HEADER_ID',
+  gmail_oauth:          'YOUR_CREDENTIAL_GMAIL_ID',
+  google_sheets_oauth:  'YOUR_CREDENTIAL_GOOGLE_SHEETS_ID',
+  openai_api_key:       'YOUR_CREDENTIAL_OPENAI_ID',
+  anthropic_api_key:    'YOUR_CREDENTIAL_ANTHROPIC_ID',
+  google_cse_api_key:   'YOUR_CREDENTIAL_GOOGLE_CSE_HEADER_ID',
 };
 
 // ============================================

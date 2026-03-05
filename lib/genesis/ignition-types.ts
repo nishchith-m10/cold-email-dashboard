@@ -51,11 +51,14 @@ export const STEP_TIMEOUTS: Record<string, number> = {
  */
 export type CredentialType =
   | 'google_oauth2'
+  | 'google_sheets'
   | 'openai_api'
+  | 'anthropic_api'
   | 'smtp'
   | 'supabase'
   | 'postgres'
   | 'http_header_auth'
+  | 'http_query_auth'
   | 'http_basic_auth';
 
 /**
