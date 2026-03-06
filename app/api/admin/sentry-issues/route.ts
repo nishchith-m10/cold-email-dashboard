@@ -15,6 +15,7 @@ import { isSuperAdmin } from '@/lib/workspace-access';
 const SENTRY_ORG = process.env.SENTRY_ORG;
 const SENTRY_PROJECT = process.env.SENTRY_PROJECT;
 const SENTRY_AUTH_TOKEN = process.env.SENTRY_AUTH_TOKEN;
+const SENTRY_DSN = process.env.SENTRY_DSN;
 
 interface SentryIssue {
   id: string;
@@ -46,6 +47,14 @@ export async function GET(request: NextRequest) {
 
     // Check configuration
     if (!SENTRY_ORG || !SENTRY_PROJECT || !SENTRY_AUTH_TOKEN) {
+      // DSN is present → Sentry is actively capturing events, just no API read access yet
+      if (SENTRY_DSN) {
+        return NextResponse.json({
+          configured: true,
+          issues: [],
+          message: 'Sentry is capturing events (DSN active). Add SENTRY_AUTH_TOKEN, SENTRY_ORG, and SENTRY_PROJECT to enable live issue viewing here.',
+        });
+      }
       return NextResponse.json({
         configured: false,
         issues: [],

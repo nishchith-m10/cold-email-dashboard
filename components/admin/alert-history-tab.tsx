@@ -85,42 +85,36 @@ const ALERT_CATEGORIES = [
     title: 'Health Check Breaches',
     description: 'CPU, memory, disk, or response-time thresholds exceeded on infrastructure nodes.',
     color: 'text-red-500',
-    bg: 'bg-red-500/10',
   },
   {
     icon: Server,
     title: 'Provisioning Failures',
     description: 'Droplet creation, n8n bootstrap, or credential injection failures during workspace setup.',
     color: 'text-amber-500',
-    bg: 'bg-amber-500/10',
   },
   {
     icon: Mail,
     title: 'Campaign Alerts',
     description: 'Bounce spikes, opt-out surges, reply notifications, and campaign completions.',
     color: 'text-blue-500',
-    bg: 'bg-blue-500/10',
   },
   {
     icon: Zap,
     title: 'Budget & Usage Warnings',
     description: 'LLM spend approaching limits, API quota nearing exhaustion, or unexpected cost spikes.',
     color: 'text-purple-500',
-    bg: 'bg-purple-500/10',
   },
   {
     icon: Shield,
     title: 'Security Events',
     description: 'Failed auth attempts, credential rotation reminders, and RLS policy violations.',
     color: 'text-emerald-500',
-    bg: 'bg-emerald-500/10',
   },
   {
     icon: Bug,
     title: 'Application Errors (Sentry)',
     description: 'Unhandled exceptions, API route failures, and client-side crashes captured by Sentry.',
     color: 'text-orange-500',
-    bg: 'bg-orange-500/10',
   },
 ];
 
@@ -162,9 +156,7 @@ function AlertRow({ alert, onAck, onResolve }: { alert: ScaleAlert; onAck: () =>
 
   return (
     <div className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/30 transition-colors">
-      <div className={cn('p-1.5 rounded-md', alert.severity === 'RED' ? 'bg-red-500/10' : alert.severity === 'YELLOW' ? 'bg-amber-500/10' : 'bg-green-500/10')}>
-        <SevIcon className={cn('h-4 w-4', alert.severity === 'RED' ? 'text-red-500' : alert.severity === 'YELLOW' ? 'text-amber-500' : 'text-green-500')} />
-      </div>
+      <SevIcon className={cn('h-4 w-4 shrink-0', alert.severity === 'RED' ? 'text-red-500' : alert.severity === 'YELLOW' ? 'text-amber-500' : 'text-green-500')} />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -205,9 +197,7 @@ function SentryIssueRow({ issue }: { issue: SentryIssue }) {
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-3 p-3 text-left"
       >
-        <div className="p-1.5 rounded-md bg-orange-500/10">
-          <Bug className="h-4 w-4 text-orange-500" />
-        </div>
+        <Bug className="h-4 w-4 text-orange-500 shrink-0" />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -273,9 +263,7 @@ function EmptyStateGuide() {
     <div className="space-y-6 py-4">
       {/* Hero message */}
       <div className="text-center space-y-2">
-        <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
-          <Bell className="h-6 w-6 text-amber-500" />
-        </div>
+        <Bell className="h-6 w-6 text-amber-500 mx-auto" />
         <h3 className="text-lg font-semibold">No alerts yet — here's what to expect</h3>
         <p className="text-sm text-muted-foreground max-w-lg mx-auto">
           This tab aggregates all platform alerts, infrastructure warnings, and application
@@ -293,9 +281,7 @@ function EmptyStateGuide() {
               className="p-4 rounded-lg border border-border/60 bg-surface-elevated/30 space-y-2"
             >
               <div className="flex items-center gap-2">
-                <div className={cn('p-1.5 rounded-md', cat.bg)}>
-                  <CatIcon className={cn('h-4 w-4', cat.color)} />
-                </div>
+                <CatIcon className={cn('h-4 w-4', cat.color)} />
                 <span className="text-sm font-medium">{cat.title}</span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">{cat.description}</p>
@@ -461,10 +447,20 @@ export function AlertHistoryTab() {
           {sentryExpanded && (
             <>
               {sentryIssues.length === 0 && !sentryLoading && (
-                <div className="flex items-center gap-3 p-4 rounded-lg border border-border/60 bg-green-500/5">
-                  <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                <div className={cn(
+                  'flex items-center gap-3 p-4 rounded-lg border',
+                  sentryData?.message
+                    ? 'border-amber-500/30 bg-amber-500/5'
+                    : 'border-border/60 bg-green-500/5',
+                )}>
+                  {sentryData?.message
+                    ? <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+                    : <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                  }
                   <div>
-                    <p className="text-sm font-medium text-green-500">No unresolved errors</p>
+                    <p className={cn('text-sm font-medium', sentryData?.message ? 'text-amber-500' : 'text-green-500')}>
+                      {sentryData?.message ? 'Sentry capturing — API view pending setup' : 'No unresolved errors'}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {sentryData?.message || 'All application errors are resolved. Sentry monitors client, server, and edge runtime errors.'}
                     </p>
