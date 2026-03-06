@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { isSuperAdmin } from '@/lib/workspace-access';
+import { HttpSidecarClient } from '@/lib/genesis/http-sidecar-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { workspace_id, command } = body;
+    const { workspace_id, command, payload } = body;
 
     if (!workspace_id || !command) {
       return NextResponse.json({ error: 'workspace_id and command are required' }, { status: 400 });
@@ -49,11 +50,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 });
     }
 
-    // Look up the sidecar URL from fleet_status
+    // Look up the sidecar host + droplet ID from fleet_status
     const { data: fleet } = await supabaseAdmin
       .schema('genesis' as any)
       .from('fleet_status')
-      .select('ip_address, sslip_domain')
+      .select('ip_address, sslip_domain, droplet_id')
       .eq('workspace_id', workspace_id)
       .single();
 
@@ -80,44 +81,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Sidecar host resolves to a private IP' }, { status: 400 });
     }
 
-    // Send command to sidecar's REST API
-    const sidecarUrl = `https://${sidecarHost}:3100/command`;
+    // Send JWT-signed command via HttpSidecarClient
+    const client = new HttpSidecarClient({
+      workspaceId: workspace_id,
+      dropletId:   String(fleet.droplet_id),
+    });
 
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
+    const result = await client.sendCommand(sidecarHost, {
+      action:  command,
+      payload: payload ?? {},
+    });
 
-      const sidecarRes = await fetch(sidecarUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // JWT auth would go here in production
-        },
-        body: JSON.stringify({ command, workspace_id }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeout);
-
-      const result = await sidecarRes.json().catch(() => ({}));
-
-      return NextResponse.json({
-        success: sidecarRes.ok,
-        command,
-        workspace_id,
-        status_code: sidecarRes.status,
-        result,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (fetchError: any) {
-      return NextResponse.json({
-        success: false,
-        command,
-        workspace_id,
-        error: fetchError.name === 'AbortError' ? 'Sidecar request timed out (15s)' : fetchError.message,
-        timestamp: new Date().toISOString(),
-      });
-    }
+    return NextResponse.json({
+      success:    result.success,
+      command,
+      workspace_id,
+      result:     result.result,
+      error:      result.error,
+      timestamp:  new Date().toISOString(),
+    });
   } catch (error: any) {
     console.error('[Admin:SidecarCommand] Error:', error);
     return NextResponse.json({ error: error.message || 'Internal error' }, { status: 500 });

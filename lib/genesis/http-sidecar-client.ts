@@ -29,7 +29,7 @@ import {
 // CONFIGURATION
 // ============================================
 
-const DEFAULT_SIDECAR_PORT = 3001;
+const DEFAULT_SIDECAR_PORT = 3100;
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 1000;

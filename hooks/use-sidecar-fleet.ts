@@ -122,13 +122,14 @@ export type SidecarCommand =
 
 export async function sendSidecarCommand(
   workspaceId: string,
-  command: SidecarCommand
+  command: SidecarCommand,
+  payload?: Record<string, unknown>
 ): Promise<{ success: boolean; data?: unknown; error?: string }> {
   try {
     const res = await fetch('/api/admin/sidecar-command', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ workspace_id: workspaceId, command }),
+      body: JSON.stringify({ workspace_id: workspaceId, command, payload }),
     });
     const data = await res.json();
     if (!res.ok) return { success: false, error: data.error || `HTTP ${res.status}` };

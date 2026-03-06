@@ -18,10 +18,19 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   useSidecarFleet,
   sendSidecarCommand,
@@ -58,6 +67,278 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+
+// ============================================
+// CREDENTIAL ROTATION SCHEMA
+// ============================================
+
+interface WorkspaceCredential {
+  id: string;
+  credential_type: string;
+  credential_name: string;
+  n8n_credential_id: string | null;
+  status: string;
+  last_synced_at: string | null;
+}
+
+interface FieldDef {
+  key: string;
+  label: string;
+  type: 'text' | 'password' | 'number';
+}
+
+const CREDENTIAL_FIELDS: Record<string, FieldDef[]> = {
+  openai_api: [
+    { key: 'apiKey', label: 'API Key', type: 'password' },
+  ],
+  anthropic_api: [
+    { key: 'apiKey', label: 'API Key', type: 'password' },
+  ],
+  http_header_auth: [
+    { key: 'name',  label: 'Header Name',        type: 'text' },
+    { key: 'value', label: 'Header Value / Token', type: 'password' },
+  ],
+  http_query_auth: [
+    { key: 'name',  label: 'Query Param Name',  type: 'text' },
+    { key: 'value', label: 'Query Param Value', type: 'password' },
+  ],
+  smtp: [
+    { key: 'host',     label: 'SMTP Host',               type: 'text' },
+    { key: 'port',     label: 'Port',                    type: 'number' },
+    { key: 'user',     label: 'Username / Email',        type: 'text' },
+    { key: 'password', label: 'Password / App Password', type: 'password' },
+  ],
+  postgres: [
+    { key: 'host',     label: 'Host',     type: 'text' },
+    { key: 'database', label: 'Database', type: 'text' },
+    { key: 'user',     label: 'User',     type: 'text' },
+    { key: 'password', label: 'Password', type: 'password' },
+    { key: 'port',     label: 'Port',     type: 'number' },
+  ],
+};
+
+// Types that require OAuth re-auth — cannot be manually rotated via form
+const NON_ROTATABLE = new Set(['google_oauth2', 'google_sheets', 'supabase']);
+
+// ============================================
+// ROTATE CREDENTIAL MODAL
+// ============================================
+
+function RotateCredentialModal({
+  open,
+  onOpenChange,
+  agent,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  agent: SidecarAgent;
+}) {
+  const { toast } = useToast();
+  const [credentials, setCredentials]   = useState<WorkspaceCredential[]>([]);
+  const [loadingCreds, setLoadingCreds] = useState(false);
+  const [selectedCred, setSelectedCred] = useState<WorkspaceCredential | null>(null);
+  const [fieldValues, setFieldValues]   = useState<Record<string, string>>({});
+  const [rotating, setRotating]         = useState(false);
+
+  // Fetch credential list when modal opens
+  useEffect(() => {
+    if (!open) {
+      setSelectedCred(null);
+      setFieldValues({});
+      setCredentials([]);
+      return;
+    }
+    setLoadingCreds(true);
+    fetch(`/api/admin/workspace-credentials?workspace_id=${agent.workspace_id}`)
+      .then(r => r.json())
+      .then(d => setCredentials(d.credentials || []))
+      .catch(() => setCredentials([]))
+      .finally(() => setLoadingCreds(false));
+  }, [open, agent.workspace_id]);
+
+  const fields         = selectedCred ? (CREDENTIAL_FIELDS[selectedCred.credential_type] ?? null) : null;
+  const isNonRotatable = selectedCred ? NON_ROTATABLE.has(selectedCred.credential_type) : false;
+  const canSubmit      = !!(fields && fields.every(f => fieldValues[f.key]?.trim()));
+
+  const handleSelect = (cred: WorkspaceCredential) => {
+    setSelectedCred(cred);
+    // Pre-populate number fields with sensible defaults
+    const schema = CREDENTIAL_FIELDS[cred.credential_type];
+    if (schema) {
+      const defaults: Record<string, string> = {};
+      schema.forEach(f => { if (f.type === 'number') defaults[f.key] = f.key === 'port' ? '587' : ''; });
+      setFieldValues(defaults);
+    }
+  };
+
+  const handleRotate = async () => {
+    if (!selectedCred || !canSubmit) return;
+    setRotating(true);
+    try {
+      const res = await fetch('/api/admin/rotate-credential', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspace_id:     agent.workspace_id,
+          db_credential_id: selectedCred.id,
+          new_data:         fieldValues,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({
+          title: 'Credential rotated',
+          description: data.sidecar_updated
+            ? `"${selectedCred.credential_name}" updated in DB and live in n8n.`
+            : data.note || `"${selectedCred.credential_name}" updated in DB.`,
+        });
+        onOpenChange(false);
+      } else {
+        toast({
+          title:       'Rotation failed',
+          description: data.error || 'Unknown error',
+          variant:     'destructive',
+        });
+      }
+    } catch {
+      toast({ title: 'Rotation failed', description: 'Network error', variant: 'destructive' });
+    } finally {
+      setRotating(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-full max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Key className="h-4 w-4 text-amber-500" />
+            Rotate Credential
+          </DialogTitle>
+          <DialogDescription>
+            {selectedCred
+              ? `Update "${selectedCred.credential_name}" for ${agent.workspace_name}`
+              : `Select a credential to rotate for ${agent.workspace_name}`}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="px-6 py-4 space-y-4 min-h-[200px]">
+          {!selectedCred ? (
+            /* ── Step 1: Credential picker ── */
+            loadingCreds ? (
+              <div className="space-y-2">
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
+              </div>
+            ) : credentials.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                No credentials found for this workspace.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {credentials.map(cred => (
+                  <button
+                    key={cred.id}
+                    onClick={() => handleSelect(cred)}
+                    className={cn(
+                      'w-full flex items-center justify-between p-3 rounded-lg border border-border text-left transition-all',
+                      'hover:bg-amber-500/5 hover:border-amber-500/30 focus:ring-2 focus:ring-amber-500/50 focus:outline-none',
+                      NON_ROTATABLE.has(cred.credential_type) && 'opacity-60'
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{cred.credential_name}</p>
+                      <p className="text-[10px] text-muted-foreground font-mono">{cred.credential_type}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      {cred.n8n_credential_id ? (
+                        <span className="text-[10px] text-green-500">live in n8n</span>
+                      ) : (
+                        <span className="text-[10px] text-yellow-500">not synced</span>
+                      )}
+                      <Badge
+                        variant={cred.status === 'synced' ? 'success' : 'warning'}
+                        className="text-[10px]"
+                      >
+                        {cred.status}
+                      </Badge>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )
+          ) : isNonRotatable ? (
+            /* ── OAuth / non-rotatable type ── */
+            <div className="py-4 space-y-3">
+              <div className="flex items-center gap-2 text-yellow-500">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-sm font-medium">Manual rotation not supported</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                <strong>{selectedCred.credential_type}</strong> uses OAuth 2.0 and cannot be
+                rotated by entering field values. Re-authenticate via the user&apos;s account settings
+                or re-provision the workspace.
+              </p>
+            </div>
+          ) : (
+            /* ── Step 2: Field form ── */
+            <div className="space-y-3">
+              {(fields ?? []).map(field => (
+                <div key={field.key} className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {field.label}
+                  </label>
+                  <Input
+                    type={field.type === 'password' ? 'password' : field.type === 'number' ? 'number' : 'text'}
+                    placeholder={field.type === 'password' ? '••••••••' : field.label}
+                    value={fieldValues[field.key] ?? ''}
+                    onChange={e => setFieldValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                  />
+                </div>
+              ))}
+              {!selectedCred.n8n_credential_id && (
+                <p className="text-[11px] text-yellow-500 flex items-center gap-1.5">
+                  <AlertTriangle className="h-3 w-3" />
+                  No n8n credential ID on this row — DB will be updated but the sidecar
+                  won&apos;t be patched until re-provisioning.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          {selectedCred && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setSelectedCred(null); setFieldValues({}); }}
+              disabled={rotating}
+            >
+              ← Back
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={rotating}>
+            Cancel
+          </Button>
+          {selectedCred && !isNonRotatable && (
+            <Button
+              size="sm"
+              disabled={!canSubmit || rotating}
+              onClick={handleRotate}
+              className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+            >
+              {rotating ? (
+                <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Rotating…</>
+              ) : (
+                'Rotate Credential'
+              )}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 // ============================================
 // CONSTANTS
@@ -541,9 +822,16 @@ export function SidecarCommandCenterTab() {
   const { toast } = useToast();
   const [selectedAgent, setSelectedAgent] = useState<SidecarAgent | null>(null);
   const [sendingCommand, setSendingCommand] = useState(false);
+  const [rotateOpen, setRotateOpen] = useState(false);
 
   const handleCommand = async (command: SidecarCommand) => {
     if (!selectedAgent) return;
+
+    // Open the rotation modal instead of firing a bare command
+    if (command === 'ROTATE_CREDENTIAL') {
+      setRotateOpen(true);
+      return;
+    }
 
     const cmdLabel = COMMANDS.find(c => c.id === command)?.label || command;
 
@@ -617,6 +905,13 @@ export function SidecarCommandCenterTab() {
               <span className="text-sm font-medium">Sending command…</span>
             </div>
           </div>
+        )}
+        {selectedAgent && (
+          <RotateCredentialModal
+            open={rotateOpen}
+            onOpenChange={setRotateOpen}
+            agent={selectedAgent}
+          />
         )}
       </div>
     );
