@@ -30,11 +30,13 @@ interface CreateInviteOptions {
 }
 
 export function useInvites() {
-  const { workspace } = useWorkspace();
+  const { workspace, isLoading: workspaceLoading } = useWorkspace();
   const workspaceId = workspace?.id;
 
+  // Don't fire until workspace context is fully loaded — workspaceId starts as
+  // DEFAULT_WORKSPACE_ID (a truthy UUID) so the null-guard alone isn't enough.
   const { data, error, isLoading, mutate } = useSWR<InvitesResponse>(
-    workspaceId ? `/api/workspaces/${workspaceId}/invites` : null
+    !workspaceLoading && workspaceId ? `/api/workspaces/${workspaceId}/invites` : null
   );
 
   const createInvite = async (options: CreateInviteOptions = {}) => {

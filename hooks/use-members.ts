@@ -28,11 +28,11 @@ interface MembersResponse {
 }
 
 export function useMembers() {
-  const { workspace } = useWorkspace();
+  const { workspace, isLoading: workspaceLoading } = useWorkspace();
   const workspaceId = workspace?.id;
 
   const { data, error, isLoading, mutate } = useSWR<MembersResponse>(
-    workspaceId ? `/api/workspaces/${workspaceId}/members` : null
+    !workspaceLoading && workspaceId ? `/api/workspaces/${workspaceId}/members` : null
   );
 
   const updateRole = async (userId: string, newRole: WorkspaceRole) => {

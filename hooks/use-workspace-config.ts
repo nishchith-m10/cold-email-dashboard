@@ -38,12 +38,12 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
  * Includes optimistic updates for smooth UX.
  */
 export function useWorkspaceConfig(): UseWorkspaceConfigReturn {
-  const { workspace } = useWorkspace();
+  const { workspace, isLoading: workspaceLoading } = useWorkspace();
   const { toast } = useToast();
   const workspaceId = workspace?.id;
 
   const { data, error, isLoading, mutate } = useSWR<ConfigResponse>(
-    workspaceId ? `/api/workspaces/config?workspace_id=${workspaceId}` : null,
+    !workspaceLoading && workspaceId ? `/api/workspaces/config?workspace_id=${workspaceId}` : null,
     fetcher,
     {
       revalidateOnFocus: false,

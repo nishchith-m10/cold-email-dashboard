@@ -146,10 +146,10 @@ export function useCostBreakdown(start: string, end: string, campaign?: string, 
 
 // Hook to fetch campaigns list (from Supabase) — workspace-scoped
 export function useCampaigns() {
-  const { workspaceId } = useWorkspace();
+  const { workspaceId, isLoading: workspaceLoading } = useWorkspace();
 
   // SWR key includes workspaceId so cache is isolated per workspace
-  const swrKey = workspaceId ? `/api/campaigns?workspace_id=${workspaceId}` : null;
+  const swrKey = !workspaceLoading && workspaceId ? `/api/campaigns?workspace_id=${workspaceId}` : null;
 
   const { data, error, isLoading } = useSWR<CampaignList>(
     swrKey,

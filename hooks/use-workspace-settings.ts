@@ -23,11 +23,11 @@ interface SettingsResponse {
 }
 
 export function useWorkspaceSettings() {
-  const { workspace } = useWorkspace();
+  const { workspace, isLoading: workspaceLoading } = useWorkspace();
   const workspaceId = workspace?.id;
 
   const { data, error, isLoading, mutate } = useSWR<SettingsResponse>(
-    workspaceId ? `/api/workspaces/settings?workspace_id=${workspaceId}` : null,
+    !workspaceLoading && workspaceId ? `/api/workspaces/settings?workspace_id=${workspaceId}` : null,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,

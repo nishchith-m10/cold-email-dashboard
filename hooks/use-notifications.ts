@@ -27,11 +27,11 @@ interface NotificationsResponse {
 }
 
 export function useNotifications() {
-  const { workspace } = useWorkspace();
+  const { workspace, isLoading: workspaceLoading } = useWorkspace();
   const workspaceId = workspace?.id;
 
   const { data, error, isLoading, mutate } = useSWR<NotificationsResponse>(
-    workspaceId ? `/api/notifications?workspace_id=${workspaceId}` : null,
+    !workspaceLoading && workspaceId ? `/api/notifications?workspace_id=${workspaceId}` : null,
     {
       refreshInterval: 30000, // Poll every 30 seconds
       revalidateOnFocus: true,
