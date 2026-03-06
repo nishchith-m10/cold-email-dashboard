@@ -34,6 +34,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 500 });
+    }
+
     // Look up workspace droplet from partition_registry
     const { data: registry } = await supabaseAdmin
       .schema('genesis' as any)

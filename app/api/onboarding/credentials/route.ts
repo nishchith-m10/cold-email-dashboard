@@ -203,6 +203,7 @@ export async function POST(req: NextRequest) {
     // push this credential to the sidecar without requiring re-ignition.
     let injected = false;
     try {
+      if (!supabaseAdmin) throw new Error('supabaseAdmin not available');
       const { data: registry } = await supabaseAdmin
         .schema('genesis' as any)
         .from('partition_registry')

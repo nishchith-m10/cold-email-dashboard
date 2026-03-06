@@ -488,11 +488,13 @@ export function GenesisOnboardingWizard({
             onClick={handleSkipToApp}
             className="w-full flex items-center justify-between text-sm text-text-secondary hover:text-text-primary transition-colors group"
           >
-            <span>Skip setup for now</span>
+            <span>{isResumed ? 'Back to dashboard' : 'Skip setup for now'}</span>
             <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
           </button>
           <p className="text-xs text-text-secondary/60 mt-1.5 leading-relaxed">
-            Your workspace is ready. You can complete setup later from dashboard settings.
+            {isResumed
+              ? `${completedStages.size} of ${totalStages} steps done — pick up here anytime.`
+              : 'Your workspace is ready. You can complete setup later from dashboard settings.'}
           </p>
         </div>
       </div>
