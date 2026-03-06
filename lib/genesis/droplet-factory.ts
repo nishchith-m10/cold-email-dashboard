@@ -426,6 +426,7 @@ services:
       - N8N_PERSONALIZATION_ENABLED=false
       - N8N_DIAGNOSTICS_ENABLED=false
       - N8N_VERSION_NOTIFICATIONS_ENABLED=false
+      - N8N_USER_MANAGEMENT_DISABLED=false
     volumes:
       - n8n_data:/home/node/.n8n
     healthcheck:
