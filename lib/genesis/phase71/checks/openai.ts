@@ -9,7 +9,7 @@ export const openAIHealthCheck: HealthCheck = {
   name: 'OpenAI',
   category: 'ai',
   criticalLevel: 'critical',
-  fixPath: '/settings/api-keys#openai',
+  fixPath: '/settings',
   enabled: true,
   timeoutMs: 10000,
   
