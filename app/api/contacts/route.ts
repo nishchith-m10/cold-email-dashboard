@@ -79,6 +79,7 @@ export async function GET(req: NextRequest) {
   const to = from + limit - 1;
   const search = searchParams.get('search')?.trim();
   const campaignName = searchParams.get('campaign_name')?.trim();
+  const campaignGroupId = searchParams.get('campaign_group_id')?.trim();
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
 
@@ -114,8 +115,11 @@ export async function GET(req: NextRequest) {
       )
       .eq('workspace_id', workspaceId);
 
-    // Apply campaign filter if specified
-    if (campaignName) {
+    // Apply campaign filter — prefer campaign_group_id (FK-based isolation);
+    // fall back to campaign_name for backward compatibility
+    if (campaignGroupId) {
+      query = query.eq('campaign_group_id', campaignGroupId);
+    } else if (campaignName) {
       query = query.eq('campaign_name', campaignName);
     }
 
@@ -237,13 +241,13 @@ export async function POST(req: NextRequest) {
     const organization_website = body.organization_website?.trim() || null;
     const position = body.position?.trim() || null;
     const industry = body.industry?.trim() || null;
+    const campaignGroupId = body.campaign_group_id?.trim() || null;
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    // Insert into leads table; on conflict email + workspace, update enrichment fields
-    const insertPayload = {
+    const insertPayload: Record<string, unknown> = {
       workspace_id: workspaceId,
       email_address: email,
       full_name: name,
@@ -258,6 +262,10 @@ export async function POST(req: NextRequest) {
       replied: body.replied ?? false,
       opted_out: body.opted_out ?? false,
     };
+
+    if (campaignGroupId) {
+      insertPayload.campaign_group_id = campaignGroupId;
+    }
 
     const leadsTablePost = await getLeadsTableName(workspaceId) as 'leads_ohio';
     let lead: LeadRow | null = null;

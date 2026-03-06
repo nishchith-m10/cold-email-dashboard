@@ -418,6 +418,49 @@ export class IgnitionOrchestrator {
         }
       );
 
+      // STEP 1.5: Create "Campaign A" — the default campaign group + campaign
+      // This must happen before workflows are deployed so the variable map
+      // can inject YOUR_CAMPAIGN_GROUP_ID into the n8n templates.
+      if (this.supabaseAdmin && !config.campaign_group_id) {
+        try {
+          const defaultName = config.campaign_group_name
+            || `${config.workspace_name} Campaign A`;
+
+          const { data: cg } = await this.supabaseAdmin
+            .from('campaign_groups')
+            .insert({
+              workspace_id: config.workspace_id,
+              name: defaultName,
+              description: 'Default campaign created during ignition',
+              status: 'active',
+              is_test: false,
+            })
+            .select('id')
+            .single();
+
+          if (cg?.id) {
+            config.campaign_group_id = cg.id;
+            config.campaign_group_name = defaultName;
+
+            // Also create the first campaign row linked to this group
+            await this.supabaseAdmin
+              .from('campaigns')
+              .insert({
+                workspace_id: config.workspace_id,
+                campaign_group_id: cg.id,
+                name: defaultName,
+                description: 'Default campaign created during ignition',
+                status: 'active',
+              });
+
+            console.log(`[Ignition] Created default campaign group ${cg.id}: "${defaultName}"`);
+          }
+        } catch (cgErr) {
+          console.warn('[Ignition] Failed to create default campaign group:', cgErr);
+          // Non-fatal: variable map falls back to workspace_id
+        }
+      }
+
       // STEP 2: Provision droplet (or use local mode)
       this.checkCancellation(config.workspace_id);
       await this.executeStep(

@@ -133,10 +133,12 @@ export class CsvImporter {
     validLeads: ValidatedLead[],
     campaignId: string,
     campaignName: string,
-    workspaceId: string
+    workspaceId: string,
+    campaignGroupId?: string
   ): Array<Record<string, any>> {
     return validLeads.map(lead => ({
       workspace_id: workspaceId,
+      campaign_group_id: campaignGroupId || campaignId,
       campaign_name: campaignName,
       email_address: lead.email_address,
       first_name: lead.first_name || null,
@@ -147,7 +149,6 @@ export class CsvImporter {
       website_url: lead.website_url || null,
       industry: lead.industry || null,
       company_size: lead.company_size || null,
-      // Default status fields
       email_prep: false,
       email_1_sent: false,
       email_2_sent: false,

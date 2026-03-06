@@ -29,13 +29,15 @@ function jsonResponse(data: Record<string, unknown>, status = 200): NextResponse
 function toLeadRow(
   lead: ValidatedLead,
   workspaceId: string,
-  campaignName: string
+  campaignName: string,
+  campaignGroupId: string
 ): Record<string, unknown> {
   const fullName =
     [lead.first_name, lead.last_name].filter(Boolean).join(' ').trim() || null;
 
   return {
     workspace_id: workspaceId,
+    campaign_group_id: campaignGroupId,
     email_address: lead.email_address.trim().toLowerCase(),
     full_name: fullName,
     organization_name: lead.organization_name?.trim() || null,
@@ -44,7 +46,6 @@ function toLeadRow(
     position: lead.position?.trim() || null,
     industry: lead.industry?.trim() || null,
     campaign_name: campaignName,
-    // default flags — n8n controls the sequence progression
     email_1_sent: false,
     email_2_sent: false,
     email_3_sent: false,
@@ -158,7 +159,7 @@ export async function POST(
   const leadsTable = (await getLeadsTableName(workspaceId)) as 'leads_ohio';
 
   const insertRows = validLeads.map(lead =>
-    toLeadRow(lead, workspaceId, campaignName)
+    toLeadRow(lead, workspaceId, campaignName, groupId)
   );
 
   // ── Batch upsert — skip existing emails (workspace-scoped) ──
@@ -172,7 +173,7 @@ export async function POST(
     const { error: upsertError, data: upserted } = await supabaseAdmin
       .from(leadsTable)
       .upsert(batch, {
-        onConflict: 'workspace_id,email_address',
+        onConflict: 'workspace_id,email_address,campaign_group_id',
         ignoreDuplicates: true,
       })
       .select('id');

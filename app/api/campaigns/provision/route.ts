@@ -85,20 +85,38 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Generate provision tracking ID using native crypto
   const provisionId = crypto.randomUUID();
   const campaignId = crypto.randomUUID();
 
   try {
+    // Step 0.5: Create campaign group for this campaign (campaign-level isolation)
+    let campaignGroupId: string | null = null;
+    const { data: cgRow } = await supabaseAdmin
+      .from('campaign_groups')
+      .insert({
+        workspace_id: workspaceId,
+        name: name.trim(),
+        description: description?.trim() || `Campaign group for ${name.trim()}`,
+        status: 'active',
+        is_test: false,
+      })
+      .select('id')
+      .single();
+
+    if (cgRow?.id) {
+      campaignGroupId = cgRow.id;
+    }
+
     // Step 1: Create campaign with provisioning status
     const { error: insertError } = await supabaseAdmin
       .from('campaigns')
       .insert({
         id: campaignId,
         workspace_id: workspaceId,
+        campaign_group_id: campaignGroupId,
         name: name.trim(),
         description: description?.trim() || null,
-        status: 'paused', // Start paused until provisioning completes
+        status: 'paused',
         provision_id: provisionId,
         template_id: templateId || null,
         n8n_status: 'unknown',
