@@ -22,6 +22,8 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import pg from 'pg';
+const { Client } = pg;
 
 // ── Load .env.local manually (avoid dotenv dep for portability) ──────────────
 
@@ -84,32 +86,28 @@ function encryptValue(plaintext, masterKeyHex) {
   return Buffer.concat([iv, authTag, encrypted]).toString('base64');
 }
 
-// ── Supabase upsert ───────────────────────────────────────────────────────────
+// ── Supabase upsert via direct Postgres (genesis schema isn't exposed via REST) ─
 
-async function upsertCredential(supabaseUrl, serviceRoleKey, keyName, encryptedValue, description) {
-  const url = `${supabaseUrl}/rest/v1/operator_credentials?on_conflict=key_name`;
-  const body = JSON.stringify({
-    key_name: keyName,
-    encrypted_value: encryptedValue,
-    description,
-    updated_at: new Date().toISOString(),
-  });
+let _pgClient = null;
+async function getPgClient() {
+  if (_pgClient) return _pgClient;
+  const client = new Client({ connectionString: env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  await client.connect();
+  _pgClient = client;
+  return client;
+}
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'apikey': serviceRoleKey,
-      'Authorization': `Bearer ${serviceRoleKey}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates',
-    },
-    body,
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Supabase upsert failed for ${keyName}: HTTP ${res.status} — ${text}`);
-  }
+async function upsertCredential(_supabaseUrl, _serviceRoleKey, keyName, encryptedValue, description) {
+  const client = await getPgClient();
+  await client.query(
+    `INSERT INTO genesis.operator_credentials (key_name, encrypted_value, description, updated_at)
+     VALUES ($1, $2, $3, now())
+     ON CONFLICT (key_name) DO UPDATE
+       SET encrypted_value = EXCLUDED.encrypted_value,
+           description     = EXCLUDED.description,
+           updated_at      = now()`,
+    [keyName, encryptedValue, description],
+  );
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -126,6 +124,10 @@ async function main() {
   }
   if (!supabaseUrl || !serviceRoleKey) {
     console.error('❌  NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set');
+    process.exit(1);
+  }
+  if (!env.DATABASE_URL) {
+    console.error('❌  DATABASE_URL is not set in .env.local');
     process.exit(1);
   }
 
@@ -215,6 +217,8 @@ async function main() {
   if (skipped > 0) {
     console.log(`  📝  Fill in the ${skipped} skipped OPERATOR_SEED_* var(s) and re-run to seed them.\n`);
   }
+
+  await _pgClient?.end();
 }
 
 main().catch(err => {

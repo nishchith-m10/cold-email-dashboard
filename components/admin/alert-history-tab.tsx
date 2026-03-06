@@ -262,10 +262,9 @@ function EmptyStateGuide() {
   return (
     <div className="space-y-6 py-4">
       {/* Hero message */}
-      <div className="text-center space-y-2">
-        <Bell className="h-6 w-6 text-amber-500 mx-auto" />
+      <div className="space-y-2">
         <h3 className="text-lg font-semibold">No alerts yet — here's what to expect</h3>
-        <p className="text-sm text-muted-foreground max-w-lg mx-auto">
+        <p className="text-sm text-muted-foreground max-w-lg">
           This tab aggregates all platform alerts, infrastructure warnings, and application
           errors into a single timeline. Alerts are generated automatically as events occur.
         </p>
