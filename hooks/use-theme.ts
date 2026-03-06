@@ -43,7 +43,7 @@ function applyThemeInstant(newTheme: 'dark' | 'light') {
 }
 
 export function useTheme() {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
