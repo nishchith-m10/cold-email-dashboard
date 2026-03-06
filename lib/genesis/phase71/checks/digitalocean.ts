@@ -22,7 +22,7 @@ export const digitalOceanHealthCheck: HealthCheck = {
   name: 'DigitalOcean',
   category: 'infrastructure',
   criticalLevel: 'critical',
-  fixPath: '/admin/do-accounts',
+  fixPath: '/admin',
   enabled: true,
   timeoutMs: 20000,
 

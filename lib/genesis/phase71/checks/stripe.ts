@@ -9,7 +9,7 @@ export const stripeHealthCheck: HealthCheck = {
   name: 'Stripe',
   category: 'integration',
   criticalLevel: 'high',
-  fixPath: '/settings/billing#stripe',
+  fixPath: '/settings',
   enabled: true,
   timeoutMs: 10000,
 

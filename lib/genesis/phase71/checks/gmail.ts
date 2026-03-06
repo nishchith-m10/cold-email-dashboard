@@ -12,7 +12,7 @@ export const gmailHealthCheck: HealthCheck = {
   name: 'Gmail OAuth',
   category: 'email',
   criticalLevel: 'critical',
-  fixPath: '/settings/email#gmail',
+  fixPath: '/settings',
   enabled: true,
   timeoutMs: 10000,
 
