@@ -384,15 +384,8 @@ export function GenesisOnboardingWizard({
     <div className="min-h-screen pt-12">
 
       {/* ── Minimal onboarding header ────────────────────────────────── */}
-      <div className="fixed top-0 left-0 right-0 h-12 z-50 bg-surface border-b border-border flex items-center justify-between px-4">
+      <div className="fixed top-0 left-0 right-0 h-12 z-50 bg-surface border-b border-border flex items-center px-4">
         <span className="text-sm font-semibold text-text-primary">Workspace Setup</span>
-        <button
-          onClick={handleSkipToApp}
-          className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors"
-        >
-          Skip for now
-          <ArrowRight className="h-3.5 w-3.5" />
-        </button>
       </div>
 
       {/* Right Sidebar — Numbered Stepper */}
