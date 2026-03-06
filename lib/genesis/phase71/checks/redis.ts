@@ -12,7 +12,7 @@ export const redisHealthCheck: HealthCheck = {
   name: 'Redis (BullMQ)',
   category: 'infrastructure',
   criticalLevel: 'critical',
-  fixPath: '/admin',
+  fixPath: 'https://app.redislabs.com/',
   enabled: true,
   timeoutMs: 5000,
 
