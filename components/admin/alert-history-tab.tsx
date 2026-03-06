@@ -66,7 +66,7 @@ const SEVERITY_CONFIG: Record<string, { variant: 'success' | 'warning' | 'danger
 
 const STATUS_LABELS: Record<AlertStatus, { label: string; className: string }> = {
   active: { label: 'Active', className: 'text-red-500' },
-  acknowledged: { label: 'Ack'd', className: 'text-amber-500' },
+  acknowledged: { label: "Ack'd", className: 'text-amber-500' },
   resolved: { label: 'Resolved', className: 'text-green-500' },
   ignored: { label: 'Ignored', className: 'text-muted-foreground' },
 };
