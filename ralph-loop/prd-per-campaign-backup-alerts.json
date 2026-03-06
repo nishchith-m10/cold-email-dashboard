@@ -1,0 +1,128 @@
+{
+  "project": "cold-email-dashboard",
+  "branchName": "ralph/per-campaign-creds-backup-alerts",
+  "description": "Per-campaign email credentials, alert history Sentry integration, and backup & recovery redesign. Extends workspace email config to support campaign-level overrides (Gmail for one campaign, SMTP for another), adds live Sentry error feed to the alert history tab, and redesigns the disaster recovery tab into a three-section Backups & Recovery panel with database info, infra snapshots, and per-workspace/per-campaign data export.",
+  "userStories": [
+    {
+      "id": "PCA-001",
+      "title": "Per-campaign email config DB migration",
+      "description": "Add optional campaign_id column to genesis.email_provider_config table. Replace the UNIQUE(workspace_id) constraint with a composite unique index on (workspace_id, COALESCE(campaign_id, sentinel_uuid)) so each workspace can have one default plus per-campaign overrides. Add campaign_id index for fast lookups.",
+      "acceptanceCriteria": [
+        "supabase/migrations/20260305_002_per_campaign_email_config.sql exists and applies cleanly",
+        "campaign_id column is nullable UUID with FK to campaigns(id) ON DELETE CASCADE",
+        "Old UNIQUE(workspace_id) is dropped",
+        "New composite unique index uq_email_provider_workspace_campaign exists",
+        "RLS policy email_provider_workspace_isolation enforces workspace_id isolation",
+        "Existing rows (campaign_id IS NULL) remain as workspace defaults"
+      ],
+      "passes": true,
+      "notes": "Migration created at supabase/migrations/20260305_002_per_campaign_email_config.sql"
+    },
+    {
+      "id": "PCA-002",
+      "title": "Per-campaign email config API route",
+      "description": "Create app/api/workspace/email-config/campaign/route.ts with GET (returns campaign-specific config falling back to workspace default), POST (upserts campaign override), DELETE (removes campaign override to revert to default). Auth via Clerk, validates campaign belongs to workspace.",
+      "acceptanceCriteria": [
+        "GET /api/workspace/email-config/campaign?workspace_id=X&campaign_id=Y returns { source: 'campaign'|'workspace_default'|'none', config }",
+        "POST with { workspace_id, campaign_id, provider, ...fields } upserts a campaign-specific row",
+        "DELETE removes the campaign override row",
+        "Encrypted columns are never returned (replaced with '[ENCRYPTED]')",
+        "Campaign ownership validated: campaign.workspace_id must match workspace_id",
+        "Proper 400/401/404 error responses"
+      ],
+      "passes": true,
+      "notes": "Route created at app/api/workspace/email-config/campaign/route.ts"
+    },
+    {
+      "id": "PCA-003",
+      "title": "Campaign email config UI selector",
+      "description": "Add UI in campaign settings to override the workspace-default email provider. Show current source (workspace default vs campaign override), allow selecting provider and configuring credentials, with 'Reset to workspace default' action that calls DELETE.",
+      "acceptanceCriteria": [
+        "Campaign settings page shows current email provider source",
+        "User can select Gmail or SMTP as campaign override",
+        "SMTP form collects host/port/username/password/from fields",
+        "Gmail shows 'Connect Gmail' OAuth button",
+        "'Reset to default' button removes campaign override",
+        "Success/error toasts on save"
+      ],
+      "passes": false,
+      "notes": "API route exists but no UI component built yet. Create components/campaigns/campaign-email-config.tsx."
+    },
+    {
+      "id": "ALR-001",
+      "title": "Alert History tab redesign with Sentry integration",
+      "description": "Rewrite components/admin/alert-history-tab.tsx with three sections: Platform Alerts (from Scale Health), Application Errors (from Sentry API), and a rich empty state guide explaining all 6 alert categories. Add status filter pills, quick stats row, and expandable Sentry issue rows with stack info.",
+      "acceptanceCriteria": [
+        "Platform Alerts section shows scale health alerts with severity badges, ack/resolve buttons",
+        "Sentry section fetches from /api/admin/sentry-issues and shows issues with expandable details",
+        "Status filter pills: All, Active, Ack'd, Resolved, Ignored with counts",
+        "Quick stats row: Active, Acknowledged, Resolved, Sentry counts",
+        "Empty state shows 6 category cards explaining what alerts to expect",
+        "Sentry not-configured notice with env var setup instructions",
+        "SWR polling: Sentry at 60s interval"
+      ],
+      "passes": true,
+      "notes": "Alert history tab fully redesigned at components/admin/alert-history-tab.tsx"
+    },
+    {
+      "id": "ALR-002",
+      "title": "Sentry issues proxy API route",
+      "description": "Create app/api/admin/sentry-issues/route.ts that proxies Sentry's project issues API. Super admin only. Returns simplified issue objects with id, title, culprit, level, count, first/last seen, permalink. Gracefully handles missing Sentry config.",
+      "acceptanceCriteria": [
+        "GET /api/admin/sentry-issues returns { configured, issues[], nextCursor? }",
+        "If SENTRY_ORG/PROJECT/AUTH_TOKEN missing: returns configured=false with message",
+        "Issues mapped to simplified shape with count, level, permalink",
+        "Supports cursor pagination and query filter params",
+        "30s cache via next revalidate",
+        "Super admin auth enforced"
+      ],
+      "passes": true,
+      "notes": "Route created at app/api/admin/sentry-issues/route.ts"
+    },
+    {
+      "id": "BKR-001",
+      "title": "Backups & Recovery tab redesign",
+      "description": "Replace the old DisasterRecoveryTab with a new BackupsRecoveryTab in components/admin/backups-recovery-tab.tsx. Three sections: Database Backups (Supabase info + what's covered + how to restore), Infrastructure Snapshots (regional health, snapshot table, create/delete/restore, emergency failover), and Data Export (per workspace/campaign JSON export with download).",
+      "acceptanceCriteria": [
+        "Database section explains Supabase auto-backups, shows 8 covered data types, restore instructions",
+        "Infrastructure section shows regional health pills, snapshot table, create/delete/restore actions",
+        "Emergency failover is collapsible (hidden by default) with critical warning",
+        "Data Export section has workspace + optional campaign_id inputs",
+        "Export result shows row counts per table with download/copy buttons",
+        "Summary stats row: coverage %, total snapshots, size, monthly cost",
+        "Empty state shows 3-card guide explaining each backup layer",
+        "Tab renamed to 'Backups & Recovery' in admin sidebar"
+      ],
+      "passes": true,
+      "notes": "New component at components/admin/backups-recovery-tab.tsx. Admin page wired up."
+    },
+    {
+      "id": "BKR-002",
+      "title": "Backup data export API route",
+      "description": "Create app/api/admin/backup-export/route.ts with POST endpoint that exports workspace data as JSON. Supports optional campaign_id scoping. Exports contacts, campaigns, email_events, sequences with 10k row limit per table. Super admin only.",
+      "acceptanceCriteria": [
+        "POST with { workspace_id, campaign_id?, tables? } returns exported data",
+        "Tables allowlisted to ['contacts', 'campaigns', 'email_events', 'sequences']",
+        "Campaign scoping filters by campaign_id where applicable",
+        "10k row limit with truncated flag in metadata",
+        "Response includes per-table counts and exported_at timestamp",
+        "Super admin auth enforced"
+      ],
+      "passes": true,
+      "notes": "Route created at app/api/admin/backup-export/route.ts"
+    },
+    {
+      "id": "BKR-003",
+      "title": "Workspace deployer campaign-aware config lookup",
+      "description": "Update sidecar/workflow-deployer.ts to check for campaign-specific email_provider_config before falling back to workspace default when deploying campaign workflows. This enables per-campaign Gmail vs SMTP template selection.",
+      "acceptanceCriteria": [
+        "workflow-deployer queries email_provider_config with campaign_id first",
+        "Falls back to workspace default (campaign_id IS NULL) if no campaign override",
+        "Correct template set selected (Gmail vs SMTP) based on resolved provider",
+        "Credential injection uses the correct provider's credentials"
+      ],
+      "passes": false,
+      "notes": "Not yet implemented. The deployer still queries only by workspace_id."
+    }
+  ]
+}
