@@ -9,7 +9,7 @@ export const googleCSEHealthCheck: HealthCheck = {
   name: 'Google CSE',
   category: 'integration',
   criticalLevel: 'medium',
-  fixPath: 'https://programmablesearchengine.google.com/controlpanel/all',
+  fixPath: '/admin/api-health/fix/google_cse',
   enabled: true,
   timeoutMs: 10000,
 

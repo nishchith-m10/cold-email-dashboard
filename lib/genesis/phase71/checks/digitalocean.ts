@@ -22,7 +22,7 @@ export const digitalOceanHealthCheck: HealthCheck = {
   name: 'DigitalOcean',
   category: 'infrastructure',
   criticalLevel: 'critical',
-  fixPath: 'https://cloud.digitalocean.com/account/api/tokens',
+  fixPath: '/admin/api-health/fix/digitalocean',
   enabled: true,
   timeoutMs: 20000,
 

@@ -12,7 +12,7 @@ export const supabaseHealthCheck: HealthCheck = {
   name: 'Supabase',
   category: 'infrastructure',
   criticalLevel: 'critical',
-  fixPath: 'https://supabase.com/dashboard/project/_/settings/api',
+  fixPath: '/admin/api-health/fix/supabase',
   enabled: true,
   timeoutMs: 10000,
 
