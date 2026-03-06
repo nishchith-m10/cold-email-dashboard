@@ -9,7 +9,7 @@ export const relevanceAIHealthCheck: HealthCheck = {
   name: 'Relevance AI',
   category: 'ai',
   criticalLevel: 'high',
-  fixPath: 'https://app.relevanceai.com/settings',
+  fixPath: '/admin/api-health/fix/relevance_ai',
   enabled: true,
   timeoutMs: 10000,
   

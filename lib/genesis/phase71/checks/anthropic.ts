@@ -9,7 +9,7 @@ export const anthropicHealthCheck: HealthCheck = {
   name: 'Claude (Anthropic)',
   category: 'ai',
   criticalLevel: 'high',
-  fixPath: 'https://console.anthropic.com/settings/keys',
+  fixPath: '/admin/api-health/fix/anthropic',
   enabled: true,
   timeoutMs: 10000,
 

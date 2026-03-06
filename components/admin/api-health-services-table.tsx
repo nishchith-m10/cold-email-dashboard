@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, Fragment } from 'react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -196,14 +197,12 @@ function DiagnosticPanel({ guide }: { guide: DiagnosticGuide }) {
           <div className="flex items-center gap-2 text-xs">
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-muted-foreground">Fix:</span>
-            <a
+            <Link
               href={guide.fixPath}
-              target="_blank"
-              rel="noopener noreferrer"
               className="font-mono text-amber-500 underline underline-offset-2 hover:text-amber-400 transition-colors"
             >
-              {guide.fixPath.replace('https://', '')}
-            </a>
+              View fix instructions →
+            </Link>
           </div>
         )}
       </div>

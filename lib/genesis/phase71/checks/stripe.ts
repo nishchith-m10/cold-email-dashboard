@@ -9,7 +9,7 @@ export const stripeHealthCheck: HealthCheck = {
   name: 'Stripe',
   category: 'integration',
   criticalLevel: 'high',
-  fixPath: 'https://dashboard.stripe.com/apikeys',
+  fixPath: '/admin/api-health/fix/stripe',
   enabled: true,
   timeoutMs: 10000,
 
