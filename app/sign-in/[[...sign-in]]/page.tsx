@@ -1,8 +1,15 @@
 'use client';
 
-import { SignIn } from '@clerk/nextjs';
+import dynamic from 'next/dynamic';
 import { Mail, TrendingUp, Zap, BarChart3 } from 'lucide-react';
 import Image from 'next/image';
+
+// ssr: false → Clerk renders nothing on the server, so there is no
+// SSR/CSR mismatch. The sign-in card appears only after hydration.
+const SignIn = dynamic(
+  () => import('@clerk/nextjs').then((m) => m.SignIn),
+  { ssr: false }
+);
 
 // Tailwind !important overrides on every Clerk element so the card
 // is ALWAYS white regardless of what baseTheme the ClerkProvider is
@@ -142,17 +149,13 @@ export default function SignInPage() {
             </div>
           </div>
 
-          {/* suppressHydrationWarning prevents the SSR/CSR mismatch warning
-              that Clerk's client-only rendering inevitably causes in Next.js App Router */}
-          <div suppressHydrationWarning>
-            <SignIn
-              routing="path"
-              path="/sign-in"
-              signUpUrl="/sign-up"
-              forceRedirectUrl="/dashboard"
-              appearance={LIGHT_APPEARANCE}
-            />
-          </div>
+          <SignIn
+            routing="path"
+            path="/sign-in"
+            signUpUrl="/sign-up"
+            forceRedirectUrl="/dashboard"
+            appearance={LIGHT_APPEARANCE}
+          />
         </div>
       </div>
     </div>

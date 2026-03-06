@@ -1,8 +1,13 @@
 'use client';
 
-import { SignUp } from '@clerk/nextjs';
+import dynamic from 'next/dynamic';
 import { BarChart3, CheckCircle } from 'lucide-react';
 import Image from 'next/image';
+
+const SignUp = dynamic(
+  () => import('@clerk/nextjs').then((m) => m.SignUp),
+  { ssr: false }
+);
 
 // Same light-mode overrides as sign-in — forces white card regardless
 // of the ClerkProvider's current baseTheme state.
@@ -121,15 +126,13 @@ export default function SignUpPage() {
             <span className="text-xl font-semibold text-slate-900">Cold Email Analytics</span>
           </div>
 
-          <div suppressHydrationWarning>
-            <SignUp
-              routing="path"
-              path="/sign-up"
-              signInUrl="/sign-in"
-              forceRedirectUrl="/dashboard"
-              appearance={LIGHT_APPEARANCE}
-            />
-          </div>
+          <SignUp
+            routing="path"
+            path="/sign-up"
+            signInUrl="/sign-in"
+            forceRedirectUrl="/dashboard"
+            appearance={LIGHT_APPEARANCE}
+          />
         </div>
       </div>
     </div>
