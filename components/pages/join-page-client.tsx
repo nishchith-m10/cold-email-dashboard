@@ -25,7 +25,7 @@ import { useWorkspace } from '@/lib/workspace-context';
 export function JoinTeamPageClient() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
-  const { refreshWorkspaces, switchWorkspace } = useWorkspace();
+  const { refreshWorkspaces, switchWorkspace, setWorkspace } = useWorkspace();
   const [inviteCode, setInviteCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -64,9 +64,9 @@ export function JoinTeamPageClient() {
       }
 
       setSuccess(`Successfully joined ${data.workspace.name}! Redirecting to dashboard...`);
+      // Set the workspace directly (avoids stale-closure race in switchWorkspace)
+      setWorkspace(data.workspace);
       await refreshWorkspaces();
-      switchWorkspace(data.workspace.id);
-      // When joining existing workspace, go straight to the dashboard
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join team');
@@ -96,8 +96,9 @@ export function JoinTeamPageClient() {
       }
 
       setSuccess('Dashboard created! Taking you to setup...');
+      // Set the workspace directly (avoids stale-closure race in switchWorkspace)
+      setWorkspace(data.workspace);
       await refreshWorkspaces();
-      switchWorkspace(data.workspace.id);
       // New workspaces go directly to onboarding to complete setup
       router.push('/onboarding');
     } catch (err) {

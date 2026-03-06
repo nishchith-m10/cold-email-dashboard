@@ -81,6 +81,11 @@ export async function fetcher<T = unknown>(url: string): Promise<T> {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        // Log 403s explicitly to make the offending URL visible in the console
+        if (response.status === 403) {
+          /* eslint-disable-next-line no-console */
+          console.error(`[FetchError 403] Workspace access denied → ${url}`);
+        }
         throw new FetchError(
           `HTTP ${response.status}: ${response.statusText}`,
           response.status,

@@ -134,11 +134,17 @@ export function useDashboardData(params: DashboardParams): DashboardData {
   // Get workspace context - wait for it to be ready before fetching
   const { workspaceId, isLoading: workspaceLoading } = useWorkspace();
 
+  // Don't pass workspaceId until the context is fully loaded.
+  // useCampaignGroups null-gates on the value, but workspaceId starts as
+  // DEFAULT_WORKSPACE_ID (a truthy UUID) — passing it while loading causes
+  // an immediate 403 because the user has no access to the default workspace.
+  const readyWorkspaceId = workspaceLoading ? null : workspaceId;
+
   // Fetch campaign groups (workspace-scoped, is_test filtered)
   const {
     groups: campaignGroups,
     isLoading: campaignGroupsLoading,
-  } = useCampaignGroups(workspaceId);
+  } = useCampaignGroups(readyWorkspaceId);
 
   // ============================================
   // SINGLE AGGREGATE FETCH
