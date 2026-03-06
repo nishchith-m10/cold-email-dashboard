@@ -1,18 +1,6 @@
-/**
- * Backups & Recovery Tab — Redesigned
- *
- * Three sections:
- *   1. Database Backups   — Supabase backup status + Point-in-Time Recovery info
- *   2. Infra Snapshots    — DigitalOcean droplet snapshots (per workspace)
- *   3. Data Export         — On-demand JSON export per workspace / per campaign
- *
- * Replaces the old "Disaster Recovery" tab with a clearer, more actionable design.
- */
-
 'use client';
 
-import { useState } from 'react';
-import useSWR from 'swr';
+import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,30 +16,17 @@ import {
 } from '@/hooks/use-disaster-recovery';
 import { useToast } from '@/hooks/use-toast';
 import {
-  Database, HardDrive, Download, RefreshCw, Trash2,
-  CheckCircle2, AlertTriangle, XCircle, Clock, Globe,
-  ChevronDown, ChevronUp, RotateCcw, Shield, Server,
-  FileJson, Copy, Activity, Archive, Layers,
-  DollarSign, Info,
+  HardDrive, Download, RefreshCw, Trash2,
+  CheckCircle2, AlertTriangle, XCircle,
+  ChevronDown, ChevronUp, RotateCcw,
+  FileJson, Copy,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-interface RegionData {
-  region: string;
-  status: 'healthy' | 'degraded' | 'outage';
-  lastHeartbeatAt: string;
-  latencyMs?: number;
-  errorMessage?: string;
-}
-
-interface ExportMeta {
-  count: number;
-  truncated: boolean;
-}
-
+interface ExportMeta { count: number; truncated: boolean }
 interface ExportResponse {
   success: boolean;
   workspace_id: string;
@@ -61,149 +36,100 @@ interface ExportResponse {
   data: Record<string, unknown[]>;
 }
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+interface WorkspaceBackupRow {
+  workspaceId: string;
+  snapshotCount: number;
+  totalSizeGb: number;
+  lastBackupAt: string | null;
+  ageMs: number;
+  status: 'fresh' | 'stale' | 'critical' | 'none';
+}
 
-const BACKUP_SECTIONS = [
-  {
-    icon: Database,
-    title: 'Database (Supabase)',
-    description: 'All tables — leads, campaigns, email events, credentials, workspace config.',
-    color: 'text-emerald-500',
-    bg: 'bg-emerald-500/10',
-    details: 'Supabase handles this automatically. Daily backups on Free/Pro; Point-in-Time Recovery (PITR) on Pro with 7-day retention.',
-  },
-  {
-    icon: Server,
-    title: 'Infrastructure (n8n Droplets)',
-    description: 'DigitalOcean VM snapshots for sidecar/n8n instances across regions.',
-    color: 'text-blue-500',
-    bg: 'bg-blue-500/10',
-    details: 'Snapshots capture the full droplet state — n8n data, credentials, workflow files. Created manually or via automated schedule.',
-  },
-  {
-    icon: Download,
-    title: 'Data Export',
-    description: 'On-demand JSON export of leads, campaigns, and email history per workspace.',
-    color: 'text-purple-500',
-    bg: 'bg-purple-500/10',
-    details: 'Export workspace data for offline backup, migration, or compliance. Can scope to a specific campaign.',
-  },
-] as const;
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-const STATUS_CFG = {
-  healthy:  { icon: CheckCircle2, color: 'text-green-500',  bg: 'bg-green-500/10',  badge: 'success'  as const },
-  degraded: { icon: AlertTriangle, color: 'text-amber-500',  bg: 'bg-amber-500/10',  badge: 'warning'  as const },
-  outage:   { icon: XCircle,       color: 'text-red-500',    bg: 'bg-red-500/10',    badge: 'danger'   as const },
+const REGION_STATUS_CFG = {
+  healthy:  { icon: CheckCircle2,  color: 'text-green-500', badge: 'success'   as const },
+  degraded: { icon: AlertTriangle, color: 'text-amber-500', badge: 'warning'   as const },
+  outage:   { icon: XCircle,       color: 'text-red-500',   badge: 'danger'    as const },
+} as const;
+
+const BACKUP_STATUS_CFG = {
+  fresh:    { label: 'Fresh',     badge: 'success'   as const },
+  stale:    { label: 'Stale',     badge: 'warning'   as const },
+  critical: { label: 'Critical',  badge: 'danger'    as const },
+  none:     { label: 'No backup', badge: 'secondary' as const },
 } as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatAge(dateStr: string): string {
-  try { return formatDistanceToNow(new Date(dateStr), { addSuffix: true }); } catch { return 'Unknown'; }
+function ageOf(dateStr: string | null): string {
+  if (!dateStr) return 'Never';
+  try { return formatDistanceToNow(new Date(dateStr), { addSuffix: true }); }
+  catch { return 'Unknown'; }
 }
 
-function copyToClipboard(text: string) {
-  try { navigator.clipboard.writeText(text); } catch { /* ignore */ }
+function deriveStatus(lastAt: string | null): WorkspaceBackupRow['status'] {
+  if (!lastAt) return 'none';
+  const ms = Date.now() - new Date(lastAt).getTime();
+  if (ms < 86_400_000) return 'fresh';
+  if (ms < 259_200_000) return 'stale';
+  return 'critical';
 }
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
+// ─── Section wrapper ─────────────────────────────────────────────────────────
 
-function SectionCard({ title, icon: Icon, color, children }: {
+function Section({
+  title, badge, children, collapsible = false, defaultExpanded = true,
+}: {
   title: string;
-  icon: typeof Database;
-  color: string;
+  badge?: React.ReactNode;
   children: React.ReactNode;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultExpanded);
   return (
     <div className="rounded-xl border border-border overflow-hidden">
-      <div className="flex items-center gap-2 px-5 py-3 border-b border-border/60 bg-muted/20">
-        <Icon className={cn('h-4.5 w-4.5', color)} />
-        <h3 className="text-sm font-semibold">{title}</h3>
+      <div
+        className={cn(
+          'flex items-center justify-between px-5 py-3 border-b border-border/60 bg-muted/20',
+          collapsible && 'cursor-pointer select-none hover:bg-muted/30 transition-colors',
+        )}
+        onClick={collapsible ? () => setOpen(v => !v) : undefined}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">{title}</span>
+          {badge}
+        </div>
+        {collapsible && (open
+          ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        )}
       </div>
-      <div className="p-5">{children}</div>
+      {(!collapsible || open) && <div className="p-5">{children}</div>}
     </div>
   );
 }
 
-function StatBox({ label, value, icon: Icon, color, sub }: {
-  label: string;
-  value: string | number;
-  icon: typeof Database;
-  color?: string;
-  sub?: string;
+function StatBox({ label, value, sub, highlight }: {
+  label: string; value: string | number; sub?: string; highlight?: string;
 }) {
   return (
-    <div className="p-3 rounded-lg border border-border/60 space-y-1">
-      <div className="text-xs text-muted-foreground flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {label}
-      </div>
-      <div className={cn('text-xl font-bold', color)}>{value}</div>
+    <div className="p-3 rounded-lg border border-border/60 space-y-0.5">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={cn('text-xl font-bold', highlight)}>{value}</div>
       {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
     </div>
   );
 }
 
-function RegionPill({ region }: { region: RegionData }) {
-  const cfg = STATUS_CFG[region.status];
-  const Icon = cfg.icon;
-  return (
-    <div className={cn(
-      'flex items-center gap-2 px-3 py-2 rounded-lg border border-border/60',
-      region.status === 'outage' ? 'bg-red-500/5 border-red-500/30' : '',
-    )}>
-      <Icon className={cn('h-3.5 w-3.5 shrink-0', cfg.color)} />
-      <div className="min-w-0 flex-1">
-        <div className="text-xs font-semibold uppercase tracking-wide">{region.region}</div>
-        <div className="text-[10px] text-muted-foreground">
-          {region.latencyMs ? `${region.latencyMs}ms` : '—'} · {formatAge(region.lastHeartbeatAt)}
-        </div>
-      </div>
-      <Badge variant={cfg.badge} className="text-[10px] px-1.5 py-0">{region.status}</Badge>
-    </div>
-  );
-}
-
-function EmptyBackupGuide() {
-  return (
-    <div className="space-y-6 py-4">
-      <div className="text-center space-y-2">
-        <div className="mx-auto w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-          <Shield className="h-6 w-6 text-blue-500" />
-        </div>
-        <h3 className="text-lg font-semibold">Backups & Recovery</h3>
-        <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-          Your data is protected at multiple levels. Here's what each backup layer covers
-          and how to restore when needed.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {BACKUP_SECTIONS.map((s) => {
-          const SIcon = s.icon;
-          return (
-            <div key={s.title} className="p-4 rounded-lg border border-border/60 bg-surface-elevated/30 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className={cn('p-1.5 rounded-md', s.bg)}>
-                  <SIcon className={cn('h-4 w-4', s.color)} />
-                </div>
-                <span className="text-sm font-medium">{s.title}</span>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">{s.description}</p>
-              <p className="text-[11px] text-muted-foreground/70 italic">{s.details}</p>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ─── Main Component ──────────────────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function BackupsRecoveryTab() {
-  const { snapshots, isLoading: snapshotsLoading, refresh: refreshSnapshots } = useDisasterRecoverySnapshots();
-  const { regionalHealth, isLoading: healthLoading, refresh: refreshHealth } = useRegionalHealth({ refreshInterval: 30000 });
+  const { snapshots, isLoading: snapshotsLoading, refresh: refreshSnapshots } =
+    useDisasterRecoverySnapshots();
+  const { regionalHealth, isLoading: healthLoading, refresh: refreshHealth } =
+    useRegionalHealth({ refreshInterval: 30000 });
   const { stats } = useDisasterRecoveryStats();
   const { createSnapshot, isLoading: creating } = useCreateSnapshot();
   const { deleteSnapshot, isLoading: deleting } = useDeleteSnapshot();
@@ -211,76 +137,125 @@ export function BackupsRecoveryTab() {
   const { restoreSnapshot, isLoading: restoring } = useRestoreSnapshot();
   const { toast } = useToast();
 
-  // Form state
-  const [snapshotWorkspaceId, setSnapshotWorkspaceId] = useState('');
-  const [snapshotDropletId, setSnapshotDropletId] = useState('');
-  const [failoverWorkspaceId, setFailoverWorkspaceId] = useState('');
-  const [failoverRegion, setFailoverRegion] = useState('');
+  // ── infra snapshot form
+  const [snapWsId, setSnapWsId] = useState('');
+  const [snapDropletId, setSnapDropletId] = useState('');
 
-  // Export state
-  const [exportWorkspaceId, setExportWorkspaceId] = useState('');
-  const [exportCampaignId, setExportCampaignId] = useState('');
+  // ── failover form
+  const [foWsId, setFoWsId] = useState('');
+  const [foRegion, setFoRegion] = useState('');
+
+  // ── retention form
+  const [retWsId, setRetWsId] = useState('');
+  const [retKeep, setRetKeep] = useState('7');
+  const [enforcing, setEnforcing] = useState(false);
+
+  // ── data export form
+  const [expWsId, setExpWsId] = useState('');
+  const [expCampaignId, setExpCampaignId] = useState('');
   const [exporting, setExporting] = useState(false);
   const [exportResult, setExportResult] = useState<ExportResponse | null>(null);
 
-  // Collapsibles
-  const [dbExpanded, setDbExpanded] = useState(true);
-  const [infraExpanded, setInfraExpanded] = useState(true);
-  const [exportExpanded, setExportExpanded] = useState(true);
-  const [failoverExpanded, setFailoverExpanded] = useState(false);
-
   const isLoading = snapshotsLoading || healthLoading;
 
-  // ─── Derived stats ───────────────────────────────────────────────────
-
-  const coverage = stats?.coverage ?? 0;
-  const totalSnapshots = stats?.totalSnapshots ?? snapshots.length;
-
-  // ─── Handlers ────────────────────────────────────────────────────────
-
-  const handleCreateSnapshot = async () => {
-    if (!snapshotWorkspaceId || !snapshotDropletId) return;
-    const result = await createSnapshot({ workspaceId: snapshotWorkspaceId, dropletId: snapshotDropletId, type: 'full' });
-    if (result.success) {
-      toast({ title: 'Snapshot created', description: `Workspace ${snapshotWorkspaceId} backed up.` });
-      refreshSnapshots();
-      setSnapshotWorkspaceId('');
-      setSnapshotDropletId('');
-    } else {
-      toast({ title: 'Snapshot failed', description: result.error || 'Unknown error', variant: 'destructive' });
+  // ── derived: per-workspace backup summary
+  const workspaceRows = useMemo<WorkspaceBackupRow[]>(() => {
+    const map = new Map<string, { count: number; sizeGb: number; lastAt: string | null }>();
+    for (const s of snapshots) {
+      const existing = map.get(s.workspaceId) ?? { count: 0, sizeGb: 0, lastAt: null };
+      const isNewer = !existing.lastAt || new Date(s.createdAt) > new Date(existing.lastAt);
+      map.set(s.workspaceId, {
+        count: existing.count + 1,
+        sizeGb: existing.sizeGb + s.sizeGb,
+        lastAt: isNewer ? s.createdAt : existing.lastAt,
+      });
     }
-  };
+    return Array.from(map.entries())
+      .map(([id, d]) => ({
+        workspaceId: id,
+        snapshotCount: d.count,
+        totalSizeGb: d.sizeGb,
+        lastBackupAt: d.lastAt,
+        ageMs: d.lastAt ? Date.now() - new Date(d.lastAt).getTime() : Infinity,
+        status: deriveStatus(d.lastAt),
+      }))
+      .sort((a, b) => b.totalSizeGb - a.totalSizeGb);
+  }, [snapshots]);
 
-  const handleDelete = async (id: string) => {
+  const staleCount = workspaceRows.filter(
+    r => r.status === 'stale' || r.status === 'critical' || r.status === 'none',
+  ).length;
+
+  // ── handlers
+  async function handleCreateSnapshot() {
+    if (!snapWsId || !snapDropletId) return;
+    const r = await createSnapshot({ workspaceId: snapWsId, dropletId: snapDropletId, type: 'full' });
+    if (r.success) {
+      toast({ title: 'Snapshot created' });
+      refreshSnapshots();
+      setSnapWsId(''); setSnapDropletId('');
+    } else {
+      toast({ title: 'Failed', description: r.error || 'Unknown error', variant: 'destructive' });
+    }
+  }
+
+  async function handleDelete(id: string) {
     if (!confirm('Delete this snapshot? This cannot be undone.')) return;
-    const result = await deleteSnapshot(id);
-    if (result.success) { toast({ title: 'Deleted' }); refreshSnapshots(); }
-    else { toast({ title: 'Failed', description: result.error || 'Unknown error', variant: 'destructive' }); }
-  };
+    const r = await deleteSnapshot(id);
+    if (r.success) { toast({ title: 'Deleted' }); refreshSnapshots(); }
+    else { toast({ title: 'Failed', description: r.error, variant: 'destructive' }); }
+  }
 
-  const handleRestore = async (id: string) => {
-    const region = prompt('Target region for restore (e.g. nyc3, sfo3):');
+  async function handleRestore(id: string) {
+    const region = prompt('Target region (e.g. nyc3, sfo3):');
     if (!region?.trim()) return;
     if (!confirm(`Restore snapshot to ${region}?`)) return;
-    const result = await restoreSnapshot({ snapshotId: id, targetRegion: region.trim() });
-    if (result.success) { toast({ title: 'Restoring', description: `Restoring to ${region}…` }); refreshSnapshots(); }
-    else { toast({ title: 'Failed', description: result.error || 'Unknown error', variant: 'destructive' }); }
-  };
+    const r = await restoreSnapshot({ snapshotId: id, targetRegion: region.trim() });
+    if (r.success) {
+      toast({ title: 'Restoring', description: `Restoring to ${region}…` });
+      refreshSnapshots();
+    } else {
+      toast({ title: 'Failed', description: r.error, variant: 'destructive' });
+    }
+  }
 
-  const handleFailover = async () => {
-    if (!failoverWorkspaceId || !failoverRegion) return;
-    if (!confirm(`⚠️ CRITICAL: Failover ${failoverWorkspaceId} to ${failoverRegion}?\n\nThis will stop services, restore from latest snapshot, and redirect traffic.`)) return;
-    const result = await triggerFailover({ workspaceId: failoverWorkspaceId, targetRegion: failoverRegion, reason: 'Manual admin trigger' });
-    if (result.success) {
-      toast({ title: 'Failover initiated', description: `Moving to ${failoverRegion}…` });
+  async function handleFailover() {
+    if (!foWsId || !foRegion) return;
+    if (!confirm(`CRITICAL: Failover ${foWsId} to ${foRegion}?\n\nThis stops services, restores from latest snapshot, and redirects traffic.`)) return;
+    const r = await triggerFailover({ workspaceId: foWsId, targetRegion: foRegion, reason: 'Manual admin trigger' });
+    if (r.success) {
+      toast({ title: 'Failover initiated' });
       refreshSnapshots(); refreshHealth();
     } else {
-      toast({ title: 'Failed', description: result.error || 'Unknown error', variant: 'destructive' });
+      toast({ title: 'Failed', description: r.error, variant: 'destructive' });
     }
-  };
+  }
 
-  const handleExport = async () => {
-    if (!exportWorkspaceId) return;
+  async function handleEnforceRetention() {
+    const keep = parseInt(retKeep, 10);
+    if (!retWsId || isNaN(keep) || keep < 1) return;
+    const wsSnaps = snapshots
+      .filter(s => s.workspaceId === retWsId && s.status === 'completed')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const toDelete = wsSnaps.slice(keep);
+    if (toDelete.length === 0) {
+      toast({ title: 'Nothing to delete', description: `Workspace already within limit of ${keep}.` });
+      return;
+    }
+    if (!confirm(`Delete ${toDelete.length} oldest snapshots for workspace "${retWsId}"?`)) return;
+    setEnforcing(true);
+    let deleted = 0;
+    for (const s of toDelete) {
+      const r = await deleteSnapshot(s.id);
+      if (r.success) deleted++;
+    }
+    setEnforcing(false);
+    toast({ title: 'Retention enforced', description: `Deleted ${deleted} of ${toDelete.length} snapshots.` });
+    refreshSnapshots();
+  }
+
+  async function handleExport() {
+    if (!expWsId) return;
     setExporting(true);
     setExportResult(null);
     try {
@@ -288,15 +263,15 @@ export function BackupsRecoveryTab() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          workspace_id: exportWorkspaceId,
-          campaign_id: exportCampaignId || undefined,
+          workspace_id: expWsId,
+          campaign_id: expCampaignId || undefined,
           tables: ['contacts', 'campaigns', 'email_events', 'sequences'],
         }),
       });
       const data = await res.json();
       if (data.success) {
         setExportResult(data);
-        toast({ title: 'Export complete', description: `Exported data for workspace ${exportWorkspaceId}` });
+        toast({ title: 'Export complete' });
       } else {
         toast({ title: 'Export failed', description: data.error, variant: 'destructive' });
       }
@@ -305,9 +280,9 @@ export function BackupsRecoveryTab() {
     } finally {
       setExporting(false);
     }
-  };
+  }
 
-  const handleDownloadJson = () => {
+  function handleDownload() {
     if (!exportResult) return;
     const blob = new Blob([JSON.stringify(exportResult.data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -316,377 +291,406 @@ export function BackupsRecoveryTab() {
     a.download = `backup_${exportResult.workspace_id}${exportResult.campaign_id ? `_${exportResult.campaign_id}` : ''}_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  };
+  }
 
-  // ─── Loading ─────────────────────────────────────────────────────────
+  // ─── Loading ──────────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
-      <div className="space-y-5">
-        <Skeleton className="h-10 w-full" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[1,2,3,4].map(i => <Skeleton key={i} className="h-20 rounded-lg" />)}
         </div>
-        <Skeleton className="h-64 w-full rounded-xl" />
+        {[1,2,3].map(i => <Skeleton key={i} className="h-48 rounded-xl" />)}
       </div>
     );
   }
 
-  // ─── Render ──────────────────────────────────────────────────────────
+  const coverage = stats?.coverage ?? 0;
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Shield className="h-5 w-5 text-blue-500" />
-          <h2 className="text-lg font-semibold">Backups & Recovery</h2>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => { refreshSnapshots(); refreshHealth(); }}>
-          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-          Refresh All
-        </Button>
-      </div>
+    <div className="space-y-5">
 
-      {/* Summary stats row */}
+      {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatBox
           label="Backup Coverage"
           value={`${coverage}%`}
-          icon={Shield}
-          color={coverage >= 80 ? 'text-green-500' : coverage >= 50 ? 'text-amber-500' : 'text-red-500'}
           sub={`${stats?.workspacesWithRecentBackups ?? 0} of ${stats?.totalWorkspaces ?? 0} workspaces`}
+          highlight={coverage >= 80 ? 'text-green-500' : coverage >= 50 ? 'text-amber-500' : 'text-red-500'}
         />
-        <StatBox label="Total Snapshots" value={totalSnapshots} icon={Layers} />
-        <StatBox
-          label="Total Size"
-          value={`${(stats?.totalSizeGb ?? 0).toFixed(1)} GB`}
-          icon={HardDrive}
-        />
-        <StatBox
-          label="Est. Monthly Cost"
-          value={`$${(stats?.estimatedMonthlyCost ?? 0).toFixed(2)}`}
-          icon={DollarSign}
-        />
+        <StatBox label="Total Snapshots" value={stats?.totalSnapshots ?? snapshots.length} />
+        <StatBox label="Total Size" value={`${(stats?.totalSizeGb ?? 0).toFixed(1)} GB`} />
+        <StatBox label="Est. Monthly Cost" value={`$${(stats?.estimatedMonthlyCost ?? 0).toFixed(2)}`} />
       </div>
 
-      {/* Empty guide when nothing exists */}
-      {snapshots.length === 0 && regionalHealth.length === 0 && <EmptyBackupGuide />}
-
-      {/* ═══ SECTION 1: Database Backups ═══ */}
-      <SectionCard title="Database Backups (Supabase)" icon={Database} color="text-emerald-500">
-        <button onClick={() => setDbExpanded(!dbExpanded)} className="flex items-center gap-2 w-full text-left mb-3 group">
-          <span className="text-sm font-medium">Supabase Backup Status</span>
-          {dbExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-        </button>
-
-        {dbExpanded && (
-          <div className="space-y-4">
-            {/* Info card */}
-            <div className="flex items-start gap-3 p-4 rounded-lg border border-emerald-500/20 bg-emerald-500/5">
-              <Info className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-emerald-400">Automatic Daily Backups Active</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Supabase automatically backs up your entire database daily. This includes all
-                  tables — leads/contacts, campaigns, email events, workspace configurations, encrypted
-                  credentials, and sequences. No manual action needed.
-                </p>
-                <div className="flex flex-wrap gap-3 mt-2">
-                  <div className="text-xs">
-                    <span className="text-muted-foreground">Retention: </span>
-                    <span className="font-medium">7 days (Pro) / 1 day (Free)</span>
-                  </div>
-                  <div className="text-xs">
-                    <span className="text-muted-foreground">PITR: </span>
-                    <span className="font-medium">Available on Pro plan</span>
-                  </div>
-                  <div className="text-xs">
-                    <span className="text-muted-foreground">Scope: </span>
-                    <span className="font-medium">Full database (all workspaces)</span>
-                  </div>
-                </div>
-              </div>
+      {/* 1 ── Database Backups ─────────────────────────────────────────── */}
+      <Section title="Database Backups" collapsible defaultExpanded>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div className="space-y-1">
+              <div className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Provider</div>
+              <div>Supabase (PostgreSQL)</div>
+              <div className="text-muted-foreground">Automatic daily backups, no manual action needed.</div>
             </div>
-
-            {/* What's covered */}
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">What's included</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {[
-                  { label: 'Leads & Contacts', icon: '👤' },
-                  { label: 'Campaigns', icon: '📧' },
-                  { label: 'Email Events', icon: '📬' },
-                  { label: 'Sequences', icon: '🔄' },
-                  { label: 'Workspace Config', icon: '⚙️' },
-                  { label: 'Encrypted Credentials', icon: '🔐' },
-                  { label: 'Audit Logs', icon: '📋' },
-                  { label: 'Notifications', icon: '🔔' },
-                ].map(item => (
-                  <div key={item.label} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border/40 bg-muted/20">
-                    <span className="text-sm">{item.icon}</span>
-                    <span className="text-xs">{item.label}</span>
-                  </div>
-                ))}
-              </div>
+            <div className="space-y-1">
+              <div className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Retention</div>
+              <div>7 days on Pro plan</div>
+              <div className="text-muted-foreground">1 day on Free plan. PITR available on Pro.</div>
             </div>
-
-            {/* How to restore */}
-            <div className="p-3 rounded-lg bg-muted/30 border border-border/40">
-              <p className="text-xs font-semibold mb-1">How to restore</p>
-              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-                <li>Go to <span className="font-mono text-amber-500">supabase.com/dashboard</span> → your project → Settings → Database</li>
-                <li>Click <strong>Backups</strong> or <strong>Point in Time Recovery</strong></li>
-                <li>Select the restore point → Confirm restore</li>
-                <li>The database will be restored (takes a few minutes)</li>
-              </ol>
+            <div className="space-y-1">
+              <div className="font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Scope</div>
+              <div>Full database</div>
+              <div className="text-muted-foreground">All workspaces, tables, and schemas.</div>
             </div>
           </div>
-        )}
-      </SectionCard>
 
-      {/* ═══ SECTION 2: Infrastructure Snapshots ═══ */}
-      <SectionCard title="Infrastructure Snapshots (DigitalOcean)" icon={Server} color="text-blue-500">
-        <button onClick={() => setInfraExpanded(!infraExpanded)} className="flex items-center gap-2 w-full text-left mb-3 group">
-          <span className="text-sm font-medium">Regional Health & Snapshots</span>
-          <Badge variant="secondary" className="text-[10px]">{snapshots.length} snapshots</Badge>
-          {infraExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-        </button>
-
-        {infraExpanded && (
-          <div className="space-y-5">
-            {/* Regional health grid */}
-            {regionalHealth.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Region Status</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                  {regionalHealth.map((r) => (
-                    <RegionPill key={r.region} region={r} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Create snapshot form */}
-            <div className="p-4 rounded-lg border border-border/60 bg-muted/10 space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Create Manual Snapshot</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Input
-                  placeholder="Workspace ID"
-                  value={snapshotWorkspaceId}
-                  onChange={(e) => setSnapshotWorkspaceId(e.target.value)}
-                  className="text-sm"
-                />
-                <Input
-                  placeholder="Droplet ID"
-                  value={snapshotDropletId}
-                  onChange={(e) => setSnapshotDropletId(e.target.value)}
-                  className="text-sm"
-                />
-              </div>
-              <Button
-                size="sm"
-                onClick={handleCreateSnapshot}
-                disabled={creating || !snapshotWorkspaceId || !snapshotDropletId}
-              >
-                {creating ? <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <HardDrive className="h-3.5 w-3.5 mr-1.5" />}
-                Create Snapshot
-              </Button>
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Tables covered</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
+              {[
+                'contacts','campaigns','email_events','sequences',
+                'workspace_config','credentials','audit_logs','notifications',
+              ].map(t => (
+                <div key={t} className="px-3 py-1.5 rounded border border-border/40 text-xs font-mono bg-muted/20">{t}</div>
+              ))}
             </div>
+          </div>
 
-            {/* Snapshot table */}
-            {snapshots.length > 0 ? (
-              <div className="overflow-x-auto -mx-5">
-                <table className="w-full text-sm min-w-[700px]">
-                  <thead>
-                    <tr className="border-b border-border/60 text-muted-foreground text-xs">
-                      <th className="text-left p-2 pl-5 font-medium">Workspace</th>
-                      <th className="text-left p-2 font-medium">Region</th>
-                      <th className="text-left p-2 font-medium">Type</th>
-                      <th className="text-left p-2 font-medium">Age</th>
-                      <th className="text-left p-2 font-medium">Size</th>
-                      <th className="text-left p-2 font-medium">Status</th>
-                      <th className="text-right p-2 pr-5 font-medium">Actions</th>
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">How to restore</div>
+            <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Open <span className="font-mono">supabase.com/dashboard</span> and select your project</li>
+              <li>Go to Settings &rarr; Database &rarr; Backups</li>
+              <li>Select a restore point or use Point-in-Time Recovery</li>
+              <li>Confirm — the restore takes a few minutes with read-only mode during restoration</li>
+            </ol>
+          </div>
+        </div>
+      </Section>
+
+      {/* 2 ── Backup Age Monitor ───────────────────────────────────────── */}
+      <Section
+        title="Backup Age Monitor"
+        badge={staleCount > 0
+          ? <Badge variant="warning" className="text-[10px]">{staleCount} need attention</Badge>
+          : snapshots.length > 0
+            ? <Badge variant="success" className="text-[10px]">All current</Badge>
+            : undefined}
+        collapsible
+        defaultExpanded
+      >
+        {workspaceRows.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            No snapshot data yet. Create a snapshot below to start monitoring backup age per workspace.
+          </p>
+        ) : (
+          <div className="overflow-x-auto -mx-5">
+            <table className="w-full text-sm min-w-[560px]">
+              <thead>
+                <tr className="border-b border-border/60 text-muted-foreground text-xs">
+                  <th className="text-left p-2 pl-5 font-medium">Workspace</th>
+                  <th className="text-left p-2 font-medium">Last backup</th>
+                  <th className="text-left p-2 font-medium">Snapshots</th>
+                  <th className="text-left p-2 font-medium">Size</th>
+                  <th className="text-left p-2 pr-5 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {workspaceRows.map(row => {
+                  const cfg = BACKUP_STATUS_CFG[row.status];
+                  return (
+                    <tr key={row.workspaceId} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
+                      <td className="p-2 pl-5 font-mono text-xs">{row.workspaceId}</td>
+                      <td className="p-2 text-xs text-muted-foreground">{ageOf(row.lastBackupAt)}</td>
+                      <td className="p-2 text-xs">{row.snapshotCount}</td>
+                      <td className="p-2 text-xs">{row.totalSizeGb.toFixed(2)} GB</td>
+                      <td className="p-2 pr-5">
+                        <Badge variant={cfg.badge} className="text-[10px]">{cfg.label}</Badge>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {snapshots.map((s) => (
-                      <tr key={s.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
-                        <td className="p-2 pl-5 font-mono text-xs">{s.workspaceId}</td>
-                        <td className="p-2 text-xs uppercase">{s.region}</td>
-                        <td className="p-2"><Badge variant={s.type === 'daily' ? 'default' : 'secondary'} className="text-[10px]">{s.type}</Badge></td>
-                        <td className="p-2 text-xs text-muted-foreground">{formatAge(s.createdAt)}</td>
-                        <td className="p-2 text-xs">{s.sizeGb.toFixed(2)} GB</td>
-                        <td className="p-2">
-                          <Badge variant={s.status === 'completed' ? 'success' : s.status === 'failed' ? 'danger' : 'default'} className="text-[10px]">
-                            {s.status}
-                          </Badge>
-                        </td>
-                        <td className="p-2 pr-5 text-right">
-                          <div className="flex items-center gap-1 justify-end">
-                            {s.status === 'completed' && (
-                              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" disabled={restoring} onClick={() => handleRestore(s.id)}>
-                                <RotateCcw className="h-3 w-3" /> Restore
-                              </Button>
-                            )}
-                            <Button variant="ghost" size="sm" className="h-7" disabled={deleting} onClick={() => handleDelete(s.id)}>
-                              <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                            </Button>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
+
+      {/* 3 ── Storage Breakdown ────────────────────────────────────────── */}
+      {workspaceRows.length > 0 && (
+        <Section title="Storage Breakdown" collapsible defaultExpanded={false}>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">Snapshot storage consumed per workspace, sorted by size descending.</p>
+            <div className="overflow-x-auto -mx-5">
+              <table className="w-full text-sm min-w-[480px]">
+                <thead>
+                  <tr className="border-b border-border/60 text-muted-foreground text-xs">
+                    <th className="text-left p-2 pl-5 font-medium">Workspace</th>
+                    <th className="text-left p-2 font-medium">Snapshots</th>
+                    <th className="text-left p-2 font-medium">Total size</th>
+                    <th className="text-left p-2 pr-5 font-medium">Share</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {workspaceRows.map(row => {
+                    const total = workspaceRows.reduce((s, r) => s + r.totalSizeGb, 0);
+                    const pct = total > 0 ? ((row.totalSizeGb / total) * 100).toFixed(1) : '0';
+                    return (
+                      <tr key={row.workspaceId} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
+                        <td className="p-2 pl-5 font-mono text-xs">{row.workspaceId}</td>
+                        <td className="p-2 text-xs">{row.snapshotCount}</td>
+                        <td className="p-2 text-xs font-medium">{row.totalSizeGb.toFixed(2)} GB</td>
+                        <td className="p-2 pr-5">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden max-w-[80px]">
+                              <div className="h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-xs text-muted-foreground">{pct}%</span>
                           </div>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="py-6 text-center">
-                <Archive className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No snapshots yet.</p>
-                <p className="text-xs text-muted-foreground/70">Create your first snapshot above to back up a workspace.</p>
-              </div>
-            )}
-
-            {/* Emergency failover — collapsible */}
-            <div className="rounded-lg border border-red-500/20 overflow-hidden">
-              <button
-                onClick={() => setFailoverExpanded(!failoverExpanded)}
-                className="w-full flex items-center gap-2 px-4 py-3 text-left bg-red-500/5 hover:bg-red-500/10 transition-colors"
-              >
-                <AlertTriangle className="h-4 w-4 text-red-500" />
-                <span className="text-sm font-semibold text-red-400">Emergency Regional Failover</span>
-                {failoverExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground ml-auto" /> : <ChevronDown className="h-4 w-4 text-muted-foreground ml-auto" />}
-              </button>
-              {failoverExpanded && (
-                <div className="p-4 space-y-3 bg-red-500/5">
-                  <p className="text-xs text-muted-foreground">
-                    Use only during regional disasters. This stops services, restores from the latest snapshot, and redirects traffic.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <Input
-                      placeholder="Workspace ID"
-                      value={failoverWorkspaceId}
-                      onChange={(e) => setFailoverWorkspaceId(e.target.value)}
-                      className="text-sm"
-                    />
-                    <Input
-                      placeholder="Target Region (e.g. sfo3)"
-                      value={failoverRegion}
-                      onChange={(e) => setFailoverRegion(e.target.value)}
-                      className="text-sm"
-                    />
-                  </div>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={handleFailover}
-                    disabled={failingOver || !failoverWorkspaceId || !failoverRegion}
-                  >
-                    {failingOver && <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
-                    Trigger Failover
-                  </Button>
-                </div>
-              )}
+                    );
+                  })}
+                  <tr className="border-t border-border text-xs font-semibold">
+                    <td className="p-2 pl-5">Total</td>
+                    <td className="p-2">{workspaceRows.reduce((s, r) => s + r.snapshotCount, 0)}</td>
+                    <td className="p-2">{workspaceRows.reduce((s, r) => s + r.totalSizeGb, 0).toFixed(2)} GB</td>
+                    <td className="p-2 pr-5 text-muted-foreground">100%</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
-        )}
-      </SectionCard>
+        </Section>
+      )}
 
-      {/* ═══ SECTION 3: Data Export ═══ */}
-      <SectionCard title="Data Export" icon={Download} color="text-purple-500">
-        <button onClick={() => setExportExpanded(!exportExpanded)} className="flex items-center gap-2 w-full text-left mb-3 group">
-          <span className="text-sm font-medium">Export Workspace Data</span>
-          {exportExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-        </button>
-
-        {exportExpanded && (
-          <div className="space-y-4">
-            <p className="text-xs text-muted-foreground">
-              Export your data as JSON for offline backup, migration, or compliance.
-              Scope to a workspace or narrow down to a specific campaign.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Workspace ID <span className="text-red-500">*</span></label>
-                <Input
-                  placeholder="e.g. ohio, acme-corp"
-                  value={exportWorkspaceId}
-                  onChange={(e) => setExportWorkspaceId(e.target.value)}
-                  className="text-sm"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Campaign ID <span className="text-muted-foreground/50">(optional)</span></label>
-                <Input
-                  placeholder="Leave blank for all campaigns"
-                  value={exportCampaignId}
-                  onChange={(e) => setExportCampaignId(e.target.value)}
-                  className="text-sm"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span>Tables exported:</span>
-              {['contacts', 'campaigns', 'email_events', 'sequences'].map(t => (
-                <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>
-              ))}
-            </div>
-
-            <Button
-              size="sm"
-              onClick={handleExport}
-              disabled={exporting || !exportWorkspaceId}
-            >
-              {exporting ? <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <FileJson className="h-3.5 w-3.5 mr-1.5" />}
-              {exporting ? 'Exporting…' : 'Export as JSON'}
-            </Button>
-
-            {/* Export result */}
-            {exportResult && (
-              <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span className="text-sm font-medium">Export Ready</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{new Date(exportResult.exported_at).toLocaleString()}</span>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {Object.entries(exportResult.tables).map(([table, meta]) => (
-                    <div key={table} className="p-2 rounded border border-border/40 text-center">
-                      <div className="text-xs font-mono">{table}</div>
-                      <div className="text-lg font-bold">{meta.count}</div>
-                      {meta.truncated && <span className="text-[10px] text-amber-500">truncated</span>}
+      {/* 4 ── Infrastructure Snapshots ─────────────────────────────────── */}
+      <Section
+        title="Infrastructure Snapshots"
+        badge={<Badge variant="secondary" className="text-[10px]">{snapshots.length}</Badge>}
+        collapsible
+        defaultExpanded
+      >
+        <div className="space-y-5">
+          {/* Regional health */}
+          {regionalHealth.length > 0 && (
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Region Status</div>
+              <div className="flex flex-wrap gap-2">
+                {regionalHealth.map(r => {
+                  const cfg = REGION_STATUS_CFG[r.status];
+                  const Icon = cfg.icon;
+                  return (
+                    <div key={r.region} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/60 text-xs">
+                      <Icon className={cn('h-3.5 w-3.5', cfg.color)} />
+                      <span className="font-mono uppercase">{r.region}</span>
+                      {r.latencyMs && <span className="text-muted-foreground">{r.latencyMs}ms</span>}
+                      <Badge variant={cfg.badge} className="text-[10px] px-1.5 py-0">{r.status}</Badge>
                     </div>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={handleDownloadJson} className="gap-1.5">
-                    <Download className="h-3.5 w-3.5" />
-                    Download JSON
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      copyToClipboard(JSON.stringify(exportResult.data, null, 2));
-                      toast({ title: 'Copied to clipboard' });
-                    }}
-                    className="gap-1.5"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    Copy
-                  </Button>
-                </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
+          )}
+
+          {/* Create snapshot */}
+          <div className="p-4 rounded-lg border border-border/60 space-y-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Create Manual Snapshot</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Input placeholder="Workspace ID" value={snapWsId} onChange={e => setSnapWsId(e.target.value)} className="text-sm" />
+              <Input placeholder="Droplet ID" value={snapDropletId} onChange={e => setSnapDropletId(e.target.value)} className="text-sm" />
+            </div>
+            <Button size="sm" onClick={handleCreateSnapshot} disabled={creating || !snapWsId || !snapDropletId}>
+              {creating
+                ? <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                : <HardDrive className="h-3.5 w-3.5 mr-1.5" />
+              }
+              Create Snapshot
+            </Button>
           </div>
-        )}
-      </SectionCard>
+
+          {/* Snapshot table */}
+          {snapshots.length > 0 ? (
+            <div className="overflow-x-auto -mx-5">
+              <table className="w-full text-sm min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-border/60 text-muted-foreground text-xs">
+                    <th className="text-left p-2 pl-5 font-medium">Workspace</th>
+                    <th className="text-left p-2 font-medium">Region</th>
+                    <th className="text-left p-2 font-medium">Type</th>
+                    <th className="text-left p-2 font-medium">Age</th>
+                    <th className="text-left p-2 font-medium">Size</th>
+                    <th className="text-left p-2 font-medium">Status</th>
+                    <th className="text-right p-2 pr-5 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {snapshots.map(s => (
+                    <tr key={s.id} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
+                      <td className="p-2 pl-5 font-mono text-xs">{s.workspaceId}</td>
+                      <td className="p-2 text-xs uppercase">{s.region}</td>
+                      <td className="p-2">
+                        <Badge variant={s.type === 'daily' ? 'default' : 'secondary'} className="text-[10px]">{s.type}</Badge>
+                      </td>
+                      <td className="p-2 text-xs text-muted-foreground">{ageOf(s.createdAt)}</td>
+                      <td className="p-2 text-xs">{s.sizeGb.toFixed(2)} GB</td>
+                      <td className="p-2">
+                        <Badge
+                          variant={s.status === 'completed' ? 'success' : s.status === 'failed' ? 'danger' : 'default'}
+                          className="text-[10px]"
+                        >
+                          {s.status}
+                        </Badge>
+                      </td>
+                      <td className="p-2 pr-5 text-right">
+                        <div className="flex items-center gap-1 justify-end">
+                          {s.status === 'completed' && (
+                            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" disabled={restoring} onClick={() => handleRestore(s.id)}>
+                              <RotateCcw className="h-3 w-3" /> Restore
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" className="h-7" disabled={deleting} onClick={() => handleDelete(s.id)}>
+                            <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              No snapshots yet. Create one above to start backing up infrastructure.
+            </div>
+          )}
+        </div>
+      </Section>
+
+      {/* 5 ── Retention Policy ─────────────────────────────────────────── */}
+      <Section title="Retention Policy" collapsible defaultExpanded={false}>
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Set a maximum number of snapshots to keep per workspace. Running enforcement
+            deletes the oldest completed snapshots beyond the limit.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Workspace ID</label>
+              <Input placeholder="e.g. ohio" value={retWsId} onChange={e => setRetWsId(e.target.value)} className="text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Keep latest N snapshots</label>
+              <Input
+                type="number" min={1} max={30} placeholder="7"
+                value={retKeep} onChange={e => setRetKeep(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+            <Button size="sm" onClick={handleEnforceRetention} disabled={enforcing || !retWsId || !retKeep}>
+              {enforcing && <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+              Enforce Retention
+            </Button>
+          </div>
+          {retWsId && (
+            <div className="text-xs text-muted-foreground">
+              {(() => {
+                const count = snapshots.filter(s => s.workspaceId === retWsId && s.status === 'completed').length;
+                const keep = parseInt(retKeep, 10) || 7;
+                const toDelete = Math.max(0, count - keep);
+                return count > 0
+                  ? `Workspace "${retWsId}" has ${count} completed snapshot${count !== 1 ? 's' : ''}. Enforcement will delete ${toDelete} oldest.`
+                  : `No snapshots found for workspace "${retWsId}".`;
+              })()}
+            </div>
+          )}
+        </div>
+      </Section>
+
+      {/* 6 ── Data Export ──────────────────────────────────────────────── */}
+      <Section title="Data Export" collapsible defaultExpanded={false}>
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Export workspace data as JSON — contacts, campaigns, email events, and sequences.
+            Optionally scope to a single campaign.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Workspace ID <span className="text-red-500">*</span>
+              </label>
+              <Input placeholder="e.g. ohio" value={expWsId} onChange={e => setExpWsId(e.target.value)} className="text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Campaign ID <span className="text-muted-foreground/50">(optional)</span></label>
+              <Input placeholder="Leave blank for all campaigns" value={expCampaignId} onChange={e => setExpCampaignId(e.target.value)} className="text-sm" />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5 items-center text-xs text-muted-foreground">
+            <span>Exports:</span>
+            {['contacts', 'campaigns', 'email_events', 'sequences'].map(t => (
+              <Badge key={t} variant="secondary" className="text-[10px] font-mono">{t}</Badge>
+            ))}
+          </div>
+          <Button size="sm" onClick={handleExport} disabled={exporting || !expWsId}>
+            {exporting
+              ? <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              : <FileJson className="h-3.5 w-3.5 mr-1.5" />
+            }
+            {exporting ? 'Exporting...' : 'Export as JSON'}
+          </Button>
+
+          {exportResult && (
+            <div className="rounded-lg border border-border p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Export ready</span>
+                <span className="text-xs text-muted-foreground">{new Date(exportResult.exported_at).toLocaleString()}</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {Object.entries(exportResult.tables).map(([t, m]) => (
+                  <div key={t} className="p-2 rounded border border-border/40 text-center">
+                    <div className="text-xs font-mono text-muted-foreground">{t}</div>
+                    <div className="text-lg font-bold">{m.count}</div>
+                    {m.truncated && <div className="text-[10px] text-amber-500">truncated</div>}
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={handleDownload} className="gap-1.5">
+                  <Download className="h-3.5 w-3.5" /> Download JSON
+                </Button>
+                <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => {
+                  try { navigator.clipboard.writeText(JSON.stringify(exportResult.data, null, 2)); } catch { /* */ }
+                }}>
+                  <Copy className="h-3.5 w-3.5" /> Copy
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Section>
+
+      {/* 7 ── Emergency Failover ───────────────────────────────────────── */}
+      <Section title="Emergency Failover" collapsible defaultExpanded={false}>
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Use only during regional outages. Stops services in the current region, restores
+            from the latest snapshot, and redirects traffic to the target region.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Input placeholder="Workspace ID" value={foWsId} onChange={e => setFoWsId(e.target.value)} className="text-sm" />
+            <Input placeholder="Target Region (e.g. sfo3)" value={foRegion} onChange={e => setFoRegion(e.target.value)} className="text-sm" />
+          </div>
+          <Button variant="danger" size="sm" onClick={handleFailover} disabled={failingOver || !foWsId || !foRegion}>
+            {failingOver && <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+            Trigger Regional Failover
+          </Button>
+        </div>
+      </Section>
+
     </div>
   );
 }
