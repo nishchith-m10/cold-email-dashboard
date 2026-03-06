@@ -40,24 +40,24 @@ function useWorkspaceGate() {
   const { needsOnboarding, isLoading } = useWorkspace();
 
   useEffect(() => {
-    if (pathname === '/join' || isLoading) return;
+    // /join and /onboarding are always accessible — don't redirect from them
+    if (pathname === '/join' || pathname === '/onboarding' || isLoading) return;
     if (needsOnboarding) {
       router.replace('/join');
     }
   }, [needsOnboarding, isLoading, pathname, router]);
 
-  const isOnJoinPage = pathname === '/join';
-  const showShell = !isLoading && !needsOnboarding || isOnJoinPage;
-  const showContent = showShell;
+  const isSetupPage = pathname === '/join' || pathname === '/onboarding';
+  const showShell = (!isLoading && !needsOnboarding) || isSetupPage;
 
-  return { isLoading, needsOnboarding, showShell, showContent, isOnJoinPage };
+  return { isLoading, needsOnboarding, showShell, isSetupPage };
 }
 
 // Renders children only when workspace is ready (no flash of dashboard chrome)
 function WorkspaceGate({ children }: { children: React.ReactNode }) {
-  const { isLoading, needsOnboarding, isOnJoinPage } = useWorkspaceGate();
+  const { isLoading, needsOnboarding, isSetupPage } = useWorkspaceGate();
 
-  if (isOnJoinPage) return <>{children}</>;
+  if (isSetupPage) return <>{children}</>;
 
   if (isLoading || needsOnboarding) {
     return (
@@ -103,8 +103,8 @@ function MainContentWithSidebar({ children, pathname }: { children: React.ReactN
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // Check if we're on a clean layout page (no sidebars)
-  const isCleanLayout = pathname === '/join';
+  // Clean layout pages have no sidebar/topnav chrome
+  const isCleanLayout = pathname === '/join' || pathname === '/onboarding';
   
   return (
     <main 
@@ -147,15 +147,15 @@ export function ClientShell({ children }: ClientShellProps) {
               <SignedIn>
                 <WorkspaceGate>
 
-              {/* Navigation — hidden on /join and during workspace loading */}
-              {pathname !== '/join' && (
+              {/* Navigation — hidden on setup pages (/join, /onboarding) */}
+              {pathname !== '/join' && pathname !== '/onboarding' && (
                 <>
                   <TopNavbar onCommandOpen={() => setCommandOpen(true)} onShareOpen={() => setShareOpen(true)} />
                   <Sidebar />
                 </>
               )}
 
-              {pathname !== '/join' && (
+              {pathname !== '/join' && pathname !== '/onboarding' && (
                 <>
                   <MobileHeader 
                     onMenuOpen={() => setMobileDrawerOpen(true)} 

@@ -66,8 +66,8 @@ export function JoinTeamPageClient() {
       setSuccess(`Successfully joined ${data.workspace.name}! Redirecting to dashboard...`);
       await refreshWorkspaces();
       switchWorkspace(data.workspace.id);
-      // When joining existing workspace, skip onboarding (already set up by owner)
-      router.push(`/?workspace_id=${data.workspace.id}`);
+      // When joining existing workspace, go straight to the dashboard
+      router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join team');
     } finally {
@@ -95,11 +95,11 @@ export function JoinTeamPageClient() {
         throw new Error(data.error || 'Failed to create dashboard');
       }
 
-      setSuccess('Dashboard created! Redirecting to your workspace...');
+      setSuccess('Dashboard created! Taking you to setup...');
       await refreshWorkspaces();
       switchWorkspace(data.workspace.id);
-      // Redirect to dashboard - onboarding is now accessible via sidebar panel
-      router.push(`/?workspace_id=${data.workspace.id}`);
+      // New workspaces go directly to onboarding to complete setup
+      router.push('/onboarding');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create dashboard');
     } finally {
