@@ -38,7 +38,7 @@ const ScaleHealthTab        = dynamic(() => import('@/components/admin/scale-hea
 const AlertHistoryTab       = dynamic(() => import('@/components/admin/alert-history-tab').then(m => ({ default: m.AlertHistoryTab })),           { loading: () => <TabSkeleton /> });
 const APIHealthTab          = dynamic(() => import('@/components/admin/api-health-tab').then(m => ({ default: m.APIHealthTab })),                 { loading: () => <TabSkeleton /> });
 const MigrationControlTab   = dynamic(() => import('@/components/admin/migration-control-tab').then(m => ({ default: m.MigrationControlTab })),   { loading: () => <TabSkeleton /> });
-const DisasterRecoveryTab   = dynamic(() => import('@/components/admin/disaster-recovery-tab').then(m => ({ default: m.DisasterRecoveryTab })),   { loading: () => <TabSkeleton /> });
+const BackupsRecoveryTab    = dynamic(() => import('@/components/admin/backups-recovery-tab').then(m => ({ default: m.BackupsRecoveryTab })),   { loading: () => <TabSkeleton /> });
 const FleetUpdatesTab       = dynamic(() => import('@/components/admin/fleet-updates-tab').then(m => ({ default: m.FleetUpdatesTab })),           { loading: () => <TabSkeleton /> });
 const WebhookDLQTab         = dynamic(() => import('@/components/admin/webhook-dlq-tab').then(m => ({ default: m.WebhookDLQTab })),               { loading: () => <TabSkeleton /> });
 const ControlPlaneHealthTab = dynamic(() => import('@/components/admin/control-plane-health-tab').then(m => ({ default: m.ControlPlaneHealthTab })), { loading: () => <TabSkeleton /> });
@@ -98,7 +98,7 @@ const GROUPS: GroupDef[] = [
     tabs: [
       { id: 'scale-health',      label: 'Scale Health',      icon: Activity },
       { id: 'alert-history',     label: 'Alert History',     icon: Bell },
-      { id: 'disaster-recovery', label: 'Disaster Recovery', icon: Globe },
+      { id: 'disaster-recovery', label: 'Backups & Recovery', icon: Shield },
       { id: 'fleet-updates',     label: 'Fleet Updates',     icon: Rocket },
     ],
   },
@@ -149,7 +149,7 @@ function TabContent({ tab }: { tab: AdminTab }) {
     case 'provisioning':      return wrap(<ProvisioningEventsTab />);
     case 'scale-health':      return wrap(<ScaleHealthTab />);
     case 'alert-history':     return wrap(<AlertHistoryTab />);
-    case 'disaster-recovery': return wrap(<DisasterRecoveryTab />);
+    case 'disaster-recovery': return wrap(<BackupsRecoveryTab />);
     case 'fleet-updates':     return wrap(<FleetUpdatesTab />);
     case 'api-health':        return wrap(<APIHealthTab />);
     case 'control-plane':     return wrap(<ControlPlaneHealthTab />);
