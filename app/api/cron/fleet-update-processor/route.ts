@@ -221,7 +221,7 @@ async function processWorkflowUpdate(
 
     // In production: Push the workflow JSON to the tenant's sidecar
     // via the sidecar API (Phase 51 integration point):
-    //   POST http://{droplet_ip}:3001/workflows/{workflow_id}
+    //   POST http://{droplet_ip}:3100/workflows/{workflow_id}
     //   Body: template.workflow_json
     //
     // For now, we log and update the version registry.

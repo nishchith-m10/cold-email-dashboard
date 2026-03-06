@@ -344,6 +344,8 @@ WORKSPACE_SLUG=${variables.workspaceSlug}
 N8N_DOMAIN=\${DROPLET_IP}.sslip.io
 CUSTOM_DOMAIN=${variables.customDomain || ''}
 DROPLET_IP=\${DROPLET_IP}
+DROPLET_ID=\${DROPLET_IP}
+SIDECAR_PORT=3100
 POSTGRES_USER=n8n
 POSTGRES_PASSWORD=${variables.postgresPassword}
 POSTGRES_DB=n8n
@@ -356,9 +358,6 @@ N8N_OWNER_EMAIL=admin@${variables.workspaceSlug}.io
 SIDECAR_IMAGE=${process.env.GENESIS_SIDECAR_IMAGE || 'ghcr.io/nishchith-m10/genesis-sidecar:latest'}
 INTERNAL_ENCRYPTION_KEY=${process.env.INTERNAL_ENCRYPTION_KEY || ''}
 DASHBOARD_PUBLIC_KEY=${process.env.GENESIS_JWT_PUBLIC_KEY || ''}
-# Operator API keys are NOT baked into this file.
-# The Sidecar reads them on-demand from genesis.operator_credentials (AES-256-GCM encrypted).
-# See lib/genesis/operator-credential-store.ts
 EOF
 
 # === PHASE 3: WRITE DOCKER-COMPOSE ===
@@ -371,6 +370,8 @@ services:
     image: caddy:2-alpine
     container_name: genesis-caddy
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "80:80"
       - "443:443"
@@ -404,7 +405,7 @@ services:
         max-size: "10m"
         max-file: "3"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3847/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -85,7 +85,7 @@ async function getSidecarUrl(
   const rows = (await response.json()) as { droplet_ip: string }[];
   if (!rows || rows.length === 0) return null;
 
-  return `http://${rows[0].droplet_ip}:3001`;
+  return `http://${rows[0].droplet_ip}:3100`;
 }
 
 async function updateTenantVersion(

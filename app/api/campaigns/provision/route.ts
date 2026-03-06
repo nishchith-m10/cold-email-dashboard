@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
         // Build a lightweight SidecarClient from fetch for HttpWorkflowDeployer
         const sidecarClient = {
           async sendCommand(dropletIp: string, command: { action: string; payload: unknown }) {
-            const resp = await fetch(`http://${dropletIp}:3001/command`, {
+            const resp = await fetch(`http://${dropletIp}:3100/command`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(command),

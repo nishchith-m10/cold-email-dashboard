@@ -7,7 +7,7 @@
  * Body shape:
  * {
  *   workspace_id: string;     // UUID of the workspace this sidecar serves
- *   sidecar_url: string;      // Base URL where the sidecar is reachable (e.g. http://1.2.3.4:3001)
+ *   sidecar_url: string;      // Base URL where the sidecar is reachable (e.g. http://1.2.3.4:3100)
  *   version?: string;         // Sidecar build version string
  *   capabilities?: string[];  // e.g. ["gmail", "smtp", "deploy"]
  * }

@@ -473,7 +473,7 @@ export class IgnitionOrchestrator {
         3,
         async () => {
           const sidecarUrl = state.droplet_ip
-            ? `http://${state.droplet_ip}:3001`
+            ? `http://${state.droplet_ip}:3100`
             : undefined;
 
           if (!sidecarUrl) {

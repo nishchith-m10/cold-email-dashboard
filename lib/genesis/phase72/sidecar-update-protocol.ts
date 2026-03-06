@@ -208,7 +208,7 @@ async function signalPrepareForUpdate(
   workspaceId: string,
   timeoutSeconds: number
 ): Promise<void> {
-  // Production: POST http://{droplet_ip}:3001/prepare-for-update
+  // Production: POST http://{droplet_ip}:3100/prepare-for-update
   // The sidecar will:
   //   1. Stop accepting new work
   //   2. Complete any in-progress operations
@@ -223,7 +223,7 @@ async function signalPrepareForUpdate(
  * In production: POST to sidecar API /save-checkpoint
  */
 async function saveStateCheckpoint(workspaceId: string): Promise<void> {
-  // Production: POST http://{droplet_ip}:3001/save-checkpoint
+  // Production: POST http://{droplet_ip}:3100/save-checkpoint
   // The sidecar saves its state to a Docker volume so the new
   // container can load it.
   console.log(`[Phase72] Saving state checkpoint for workspace ${workspaceId}`);
@@ -255,7 +255,7 @@ async function waitForHealthyHeartbeat(
   workspaceId: string,
   timeoutSeconds: number
 ): Promise<boolean> {
-  // Production: Poll GET http://{droplet_ip}:3001/health
+  // Production: Poll GET http://{droplet_ip}:3100/health
   // every 2 seconds until:
   //   - Returns 200 → healthy, return true
   //   - Timeout reached → return false

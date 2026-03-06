@@ -106,7 +106,7 @@ export class HttpSidecarClient implements SidecarClient {
 
   /**
    * Build the Sidecar URL from the droplet IP.
-   * Uses port 3001 (default Sidecar port).
+   * Uses port 3100 (default Sidecar command API port).
    */
   private buildSidecarUrl(dropletIp: string): string {
     // If IP already includes protocol or port, use as-is

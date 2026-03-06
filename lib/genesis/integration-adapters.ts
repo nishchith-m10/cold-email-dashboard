@@ -130,8 +130,8 @@ export class DeferredHttpSidecarClient implements SidecarClient {
     // Lazily create an HttpSidecarClient for this droplet
     if (!this.clients.has(dropletIp)) {
       const { HttpSidecarClient } = await import('./http-sidecar-client');
-      // Use droplet IP as the droplet_id for JWT claims — the sidecar verifies
-      // the JWT signature, not the droplet_id value itself.
+      // Use droplet IP as the droplet_id for JWT claims — matches DROPLET_ID
+      // set in cloud-init .env (also the droplet IP). Sidecar verifies this claim.
       const client = new HttpSidecarClient({
         workspaceId: this.workspaceId,
         dropletId: dropletIp,
