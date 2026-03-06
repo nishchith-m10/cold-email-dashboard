@@ -31,7 +31,7 @@ export function sanitizeHtml(dirty: string | null | undefined): string {
   // Initialize DOMPurify (handles both browser and server-with-jsdom if needed later)
   // For now, assuming Client Component usage where window is available.
   const sanitizer = typeof window !== 'undefined' 
-    ? DOMPurify(window) 
+    ? DOMPurify(window as Parameters<typeof DOMPurify>[0]) 
     : DOMPurify; // Fallback, though standard DOMPurify needs window
 
   // Force all links to open in new tab

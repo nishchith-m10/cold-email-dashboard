@@ -89,7 +89,7 @@ const nextConfig = {
   
   // Optimize bundle
   experimental: {
-    optimizePackageImports: ['recharts', '@clerk/nextjs', 'framer-motion'],
+    optimizePackageImports: ['recharts', 'framer-motion'],
   },
   
   // Allow ngrok for development

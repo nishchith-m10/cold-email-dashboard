@@ -8,7 +8,7 @@
 'use client';
 
 import { useState } from 'react';
-import { WorkspaceRole } from '@/lib/workspace-access';
+import type { WorkspaceRole } from '@/lib/workspace-access';
 import {
   Select,
   SelectContent,

@@ -11,7 +11,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import { useState } from 'react';
-import { isSuperAdmin } from '@/lib/workspace-access';
+import { isSuperAdmin } from '@/lib/super-admin';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';

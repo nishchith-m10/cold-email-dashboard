@@ -9,7 +9,7 @@
 
 import useSWR from 'swr';
 import { useWorkspace } from '@/lib/workspace-context';
-import { WorkspaceRole } from '@/lib/workspace-access';
+import type { WorkspaceRole } from '@/lib/workspace-access';
 import { cn } from '@/lib/utils';
 import {
   Table,

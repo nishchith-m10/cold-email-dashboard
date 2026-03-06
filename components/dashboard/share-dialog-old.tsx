@@ -29,7 +29,7 @@ import { cn } from '@/lib/utils';
 import { useWorkspace } from '@/lib/workspace-context';
 import { useInvites } from '@/hooks/use-invites';
 import { useMembers, WorkspaceMember } from '@/hooks/use-members';
-import { WorkspaceRole } from '@/lib/workspace-access';
+import type { WorkspaceRole } from '@/lib/workspace-access';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { RoleBadge } from '@/components/ui/role-badge';
 
