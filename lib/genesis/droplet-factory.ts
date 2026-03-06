@@ -355,6 +355,7 @@ N8N_PASSWORD=${variables.postgresPassword}
 N8N_OWNER_EMAIL=admin@${variables.workspaceSlug}.io
 SIDECAR_IMAGE=${process.env.GENESIS_SIDECAR_IMAGE || 'ghcr.io/nishchith-m10/genesis-sidecar:latest'}
 INTERNAL_ENCRYPTION_KEY=${process.env.INTERNAL_ENCRYPTION_KEY || ''}
+DASHBOARD_PUBLIC_KEY=${process.env.GENESIS_JWT_PUBLIC_KEY || ''}
 # Operator API keys are NOT baked into this file.
 # The Sidecar reads them on-demand from genesis.operator_credentials (AES-256-GCM encrypted).
 # See lib/genesis/operator-credential-store.ts
