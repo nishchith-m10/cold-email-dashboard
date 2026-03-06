@@ -90,7 +90,7 @@ const GROUPS: GroupDef[] = [
       { id: 'audit',        label: 'Audit Log',   icon: ScrollText },
       { id: 'provisioning', label: 'Provisioning', icon: AlertTriangle },
     ],
-  },,
+  },
   {
     id: 'infrastructure',
     label: 'Infrastructure',
