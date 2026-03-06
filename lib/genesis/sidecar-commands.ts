@@ -168,6 +168,16 @@ export class JWTSigner {
   }
 
   /**
+   * Resolve the private key to PEM format.
+   * Accepts either a PEM string or a base64-encoded PEM.
+   */
+  private resolvePem(): string {
+    if (this.privateKey.startsWith('-----BEGIN')) return this.privateKey;
+    // base64-encoded PEM → decode to raw PEM
+    return Buffer.from(this.privateKey, 'base64').toString('utf8');
+  }
+
+  /**
    * Sign JWT with RS256
    */
   private signJWT(payload: SidecarJWTPayload): string {
@@ -183,7 +193,7 @@ export class JWTSigner {
     signer.update(`${headerB64}.${payloadB64}`);
     signer.end();
 
-    const signature = signer.sign(this.privateKey);
+    const signature = signer.sign(this.resolvePem());
     const signatureB64 = signature.toString('base64url');
 
     return `${headerB64}.${payloadB64}.${signatureB64}`;

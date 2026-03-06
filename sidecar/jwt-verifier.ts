@@ -148,6 +148,15 @@ export class JWTVerifier {
   }
 
   /**
+   * Resolve the public key to PEM format.
+   * Accepts either a PEM string or a base64-encoded PEM.
+   */
+  private resolvePem(): string {
+    if (this.publicKey.startsWith('-----BEGIN')) return this.publicKey;
+    return Buffer.from(this.publicKey, 'base64').toString('utf8');
+  }
+
+  /**
    * Verify RS256 signature using public key
    */
   private verifySignature(message: string, signatureB64: string): boolean {
@@ -157,7 +166,7 @@ export class JWTVerifier {
       verifier.end();
 
       const signature = Buffer.from(signatureB64, 'base64url');
-      return verifier.verify(this.publicKey, signature);
+      return verifier.verify(this.resolvePem(), signature);
     } catch (error) {
       console.error('Signature verification error:', error);
       return false;
