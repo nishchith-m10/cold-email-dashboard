@@ -1,0 +1,17 @@
+now that thats over, the remaining questions are what determines whether we are truly for beta testing or not:
+
+
+1. what is the exact process of E2E right now going from workspace isolation to os level isolation and campaign level isolation, csv upload, he campaign management section,  the database connection from n8n nodes
+
+2. what is the credential injection process like and exactly how does it work at a workspace level and then a campaign level
+
+3. for the current beta testing to start, u said some seed level env local keys or something and that was for relevance ai, apify, google client id and client secret, the open ai and claude ai api keys.what is the process for encryption right now for the 3 or 4 beta users that i will have right now. like i just one account per provider and bring the keys for them i put it in the env local file and then u ran some script that gets pushed to the database encrypted. then when the users come in and they fill the onboarding process, they just use the same keys that i generated for all of them (they wont be running n8n workflows so there is no need to worry about cost but all i look for is whether those credentials get injected to those n8n workflows for the droplet that gets created for them).  so the total cost is only going $6.50 per person which i already cover for them and they don't need to pay a single dime. then during the ignition the workflow deployer or the igniter, ignites the digital $6 droplet and then provisions the n8n, but how does it provision the n8n ( does it not new a email per n8n or can u create a n8n account without email but some sort of username only because if not n8n will be completely exposed) then it would give the n8n its own caddy (the https sslip url). then sidecar would be deployed to each of those droplets and then sidecar will connect to my database and the dashboard (supabase and cold email dashboard) and it will decrypted the credentials the same credential i created which i told them to use (for the beta users) and that same credentials would get saved in the database encrypted but this time it will get isolated per workspace id and then sidecar gets them and injects them to their droplet per workspace id and as well as campaign isolation as well. then once the ignition is done, the beta user would get their partitioned database created per workspace as well per campaign, they get their own n8n, their own droplet, their own caddy (sslip http url), those credentials injected and then they can choose upload a csv file which would automatically get populated with smart detection into the database with those partitioned leads created and then it would isolate them at a campaign level as well. 
+
+for the actual users it will be a similar process but with some caveats. 
+
+
+
+think extremely hard  at extremely level of thinking accounting every sinlge possibility on this and use ralph loop. i removed certian tool calling to the absolute minimum so u are not contrianted with certian mcp context. i removed the barriers so u are at the highest level of thinking capabilities. 
+
+
+another thing, when u might have to summarize the chat, during that process, do not summarize this specfic prompt. this is the only u are not allowed to summarize in any way. this needs to have the full prompt at all times that can come back to at all times. 

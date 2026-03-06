@@ -25,6 +25,8 @@ export { gmailHealthCheck } from './checks/gmail';
 export { digitalOceanHealthCheck } from './checks/digitalocean';
 export { supabaseHealthCheck } from './checks/supabase';
 export { redisHealthCheck } from './checks/redis';
+export { stripeHealthCheck } from './checks/stripe';
+export { resendHealthCheck } from './checks/resend';
 
 // Types
 export type {

@@ -45,6 +45,7 @@ const ControlPlaneHealthTab = dynamic(() => import('@/components/admin/control-p
 const SidecarCommandCenterTab = dynamic(() => import('@/components/admin/sidecar-command-center-tab').then(m => ({ default: m.SidecarCommandCenterTab })), { loading: () => <TabSkeleton /> });
 const WatchdogDriftTab      = dynamic(() => import('@/components/admin/watchdog-drift-tab').then(m => ({ default: m.WatchdogDriftTab })),         { loading: () => <TabSkeleton /> });
 const LLMUsageTab           = dynamic(() => import('@/components/admin/llm-usage-tab').then(m => ({ default: m.LLMUsageTab })),                   { loading: () => <TabSkeleton /> });
+const ProvisioningEventsTab = dynamic(() => import('@/components/admin/provisioning-events-tab').then(m => ({ default: m.ProvisioningEventsTab })), { loading: () => <TabSkeleton /> });
 import {
   Shield, AlertTriangle, Building2, ScrollText, Activity, Bell,
   ChevronDown, ChevronRight, Stethoscope, Database, Globe, Rocket,
@@ -61,6 +62,7 @@ type AdminTab =
   | 'scale-health' | 'alert-history' | 'disaster-recovery' | 'fleet-updates'
   | 'api-health' | 'control-plane' | 'sidecar'
   | 'webhook-dlq' | 'watchdog' | 'migration'
+  | 'provisioning'
   | 'llm-usage';
 
 interface TabDef {
@@ -84,10 +86,11 @@ const GROUPS: GroupDef[] = [
     label: 'Platform',
     icon: Building2,
     tabs: [
-      { id: 'workspaces', label: 'Workspaces',  icon: Building2 },
-      { id: 'audit',      label: 'Audit Log',   icon: ScrollText },
+      { id: 'workspaces',   label: 'Workspaces',  icon: Building2 },
+      { id: 'audit',        label: 'Audit Log',   icon: ScrollText },
+      { id: 'provisioning', label: 'Provisioning', icon: AlertTriangle },
     ],
-  },
+  },,
   {
     id: 'infrastructure',
     label: 'Infrastructure',
@@ -143,6 +146,7 @@ function TabContent({ tab }: { tab: AdminTab }) {
   switch (tab) {
     case 'workspaces':        return <div className="overflow-x-auto -mx-4 md:mx-0"><div className="px-4 md:px-0 min-w-[600px] md:min-w-0"><SuperAdminPanel /></div></div>;
     case 'audit':             return wrap(<AuditLogViewer />);
+    case 'provisioning':      return wrap(<ProvisioningEventsTab />);
     case 'scale-health':      return wrap(<ScaleHealthTab />);
     case 'alert-history':     return wrap(<AlertHistoryTab />);
     case 'disaster-recovery': return wrap(<DisasterRecoveryTab />);

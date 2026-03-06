@@ -15,6 +15,8 @@ import { gmailHealthCheck } from './checks/gmail';
 import { digitalOceanHealthCheck } from './checks/digitalocean';
 import { supabaseHealthCheck } from './checks/supabase';
 import { redisHealthCheck } from './checks/redis';
+import { stripeHealthCheck } from './checks/stripe';
+import { resendHealthCheck } from './checks/resend';
 
 /**
  * All registered health checks, ordered by criticality then name.
@@ -33,9 +35,13 @@ const ALL_CHECKS: HealthCheck[] = [
   anthropicHealthCheck,
   relevanceAIHealthCheck,
 
-  // Integrations (high/medium — enrichment and scraping)
+  // Integrations (high/medium — enrichment, scraping, billing)
   apifyHealthCheck,
   googleCSEHealthCheck,
+  stripeHealthCheck,
+
+  // Email (platform transactional)
+  resendHealthCheck,
 ];
 
 export class CheckRegistry {

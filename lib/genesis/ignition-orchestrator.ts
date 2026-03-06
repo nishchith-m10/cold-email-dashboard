@@ -575,6 +575,15 @@ export class IgnitionOrchestrator {
           }
 
           for (const cred of config.credentials) {
+            // Log sub-event: starting this individual credential injection
+            await this.stateDB.logOperation({
+              workspace_id: config.workspace_id,
+              operation:    `inject_credential:${cred.type}:${cred.name}`,
+              status:       'running',
+            });
+
+            let credLoggedSuccess = false;
+            try {
             // Store in vault
             const storeResult = await this.credentialVault.store(
               config.workspace_id,
@@ -631,7 +640,37 @@ export class IgnitionOrchestrator {
                 // Track n8n credential ID
                 const n8nCredId = (injectResult.result as any).credential_id;
                 resources.n8n_credential_ids.push(n8nCredId);
+
+                // Log sub-event success
+                await this.stateDB.logOperation({
+                  workspace_id: config.workspace_id,
+                  operation:    `inject_credential:${cred.type}:${cred.name}`,
+                  status:       'completed',
+                  result:       { n8n_credential_id: n8nCredId || null },
+                });
+                credLoggedSuccess = true;
               }
+            }
+
+            if (!credLoggedSuccess) {
+              // vault-only path (no droplet_ip) — still mark completed
+              await this.stateDB.logOperation({
+                workspace_id: config.workspace_id,
+                operation:    `inject_credential:${cred.type}:${cred.name}`,
+                status:       'completed',
+                result:       { vault_only: true },
+              });
+            }
+            } catch (credErr) {
+              const message = credErr instanceof Error ? credErr.message : String(credErr);
+              await this.stateDB.logOperation({
+                workspace_id: config.workspace_id,
+                operation:    `inject_credential:${cred.type}:${cred.name}`,
+                status:       'failed',
+                error:        message,
+              });
+              // Re-throw so executeStep marks the whole step as failed
+              throw credErr;
             }
           }
         }
