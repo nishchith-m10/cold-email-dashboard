@@ -70,30 +70,47 @@ function validateServiceId(serviceId: string): {
 // ============================================
 async function generateDiagnostic(
   serviceId: string,
-  status?: HealthStatus
+  statusOverride?: HealthStatus,
+  errorOverride?: string,
 ): Promise<DiagnosticGuide | null> {
   const registry = createDefaultRegistry();
-  const runner = new HealthRunner(registry);
-  const engine = new DiagnosticEngine();
+  const engine  = new DiagnosticEngine();
+  const check   = registry.getById(serviceId);
+  if (!check) return null;
 
+  // When the UI already knows the current status (non-ok), build a synthetic
+  // ServiceHealth object and skip the live re-check.  A live re-check races
+  // against the cached state and often returns 'ok', which incorrectly yields
+  // "No diagnostic available" even though the service was recently in error.
+  if (statusOverride && statusOverride !== 'ok') {
+    const syntheticHealth = {
+      id:            serviceId,
+      name:          check.name,
+      category:      check.category,
+      criticalLevel: check.criticalLevel,
+      status:        statusOverride,
+      result: {
+        status:    statusOverride,
+        error:     errorOverride || `${check.name} is ${statusOverride}`,
+        checkedAt: new Date().toISOString(),
+      },
+      fixPath: check.fixPath,
+    };
+    return engine.getDiagnostic(syntheticHealth);
+  }
+
+  // Fall back to live check only when no status hint is provided
   try {
-    // Run the health check to get ServiceHealth result
+    const runner = new HealthRunner(registry);
     const serviceHealth = await runner.runOne(serviceId);
-    
-    if (!serviceHealth) {
-      return null;
-    }
-
-    // Generate diagnostic guide from the health check result
-    const guide = engine.getDiagnostic(serviceHealth);
-    return guide;
+    if (!serviceHealth) return null;
+    return engine.getDiagnostic(serviceHealth);
   } catch (error) {
     /* eslint-disable-next-line no-console */
     console.warn(
-      `[APIHealth] Diagnostic generation failed for ${serviceId} (live check may be unavailable):`,
+      `[APIHealth] Diagnostic generation failed for ${serviceId}:`,
       error instanceof Error ? error.message : error
     );
-    // Return null instead of throwing — the UI handles null guide gracefully
     return null;
   }
 }
@@ -145,9 +162,10 @@ export async function GET(
       );
     }
 
-    // Parse optional status query param
-    const url = new URL(req.url);
+    // Parse optional status + error query params supplied by the UI
+    const url         = new URL(req.url);
     const statusParam = url.searchParams.get('status');
+    const errorParam  = url.searchParams.get('error') || undefined;
     let status: HealthStatus | undefined;
 
     if (statusParam) {
@@ -169,7 +187,7 @@ export async function GET(
       `[APIHealth] Generating diagnostic for: ${serviceId}${status ? ` (${status})` : ''}`
     );
 
-    const guide = await generateDiagnostic(serviceId, status);
+    const guide = await generateDiagnostic(serviceId, status, errorParam);
 
     // Get service metadata from registry
     const registry = createDefaultRegistry();

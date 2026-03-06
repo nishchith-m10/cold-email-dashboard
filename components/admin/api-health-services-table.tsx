@@ -232,7 +232,8 @@ export function APIHealthServicesTable({ services, onCheckComplete }: APIHealthS
   const [loadingDiag, setLoadingDiag] = useState<Set<string>>(new Set());
   const [expandedDiag, setExpandedDiag] = useState<string | null>(null);
 
-  const handleDiagnose = async (serviceId: string) => {
+  const handleDiagnose = async (service: ServiceHealth) => {
+    const serviceId = service.id;
     if (expandedDiag === serviceId) {
       setExpandedDiag(null);
       return;
@@ -246,7 +247,12 @@ export function APIHealthServicesTable({ services, onCheckComplete }: APIHealthS
 
     setLoadingDiag(prev => new Set(prev).add(serviceId));
     try {
-      const res = await fetch(`/api/admin/api-health/diagnostics/${serviceId}`);
+      // Pass the current status + error message so the route can build a
+      // synthetic ServiceHealth without a live re-check (which would race
+      // against the cached result and often return 'ok').
+      const params = new URLSearchParams({ status: service.status });
+      if (service.result?.error) params.set('error', service.result.error);
+      const res  = await fetch(`/api/admin/api-health/diagnostics/${serviceId}?${params}`);
       const data = await res.json();
       if (data.success && data.guide) {
         setDiagnostics(prev => ({ ...prev, [serviceId]: data.guide }));
@@ -364,7 +370,7 @@ export function APIHealthServicesTable({ services, onCheckComplete }: APIHealthS
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handleDiagnose(service.id)}
+                  onClick={() => handleDiagnose(service)}
                   disabled={loadingDiag.has(service.id)}
                   className="gap-1.5 w-full"
                 >
@@ -441,7 +447,7 @@ export function APIHealthServicesTable({ services, onCheckComplete }: APIHealthS
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleDiagnose(service.id)}
+                        onClick={() => handleDiagnose(service)}
                         disabled={loadingDiag.has(service.id)}
                         className="gap-1.5"
                       >

@@ -81,6 +81,22 @@ interface WorkspaceCredential {
   last_synced_at: string | null;
 }
 
+// Workspace per-credential health result
+interface CredentialHealthResult {
+  credential_id?: string;
+  credential_type: string;
+  service_name: string;
+  status: 'ok' | 'degraded' | 'error' | 'unchecked';
+  error_message?: string;
+  latency_ms?: number;
+}
+interface WorkspaceHealthReport {
+  workspace_id: string;
+  overall_status: 'ok' | 'degraded' | 'error';
+  credentials: CredentialHealthResult[];
+  checked_at: string;
+}
+
 interface FieldDef {
   key: string;
   label: string;
@@ -611,6 +627,41 @@ function AgentDrillDown({ agent, onBack, onCommand }: {
   const config = getStateConfig(agent.state);
   const StatusIcon = config.icon;
 
+  // ── Workspace credential health ──────────────────────────────────────────
+  const [healthReport, setHealthReport]       = useState<WorkspaceHealthReport | null>(null);
+  const [loadingHealth, setLoadingHealth]     = useState(false);
+  const [runningCheck, setRunningCheck]       = useState(false);
+
+  useEffect(() => {
+    setLoadingHealth(true);
+    fetch(`/api/admin/workspace-health?workspace_id=${agent.workspace_id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.report) setHealthReport(d.report); })
+      .catch(() => null)
+      .finally(() => setLoadingHealth(false));
+  }, [agent.workspace_id]);
+
+  const runHealthCheck = async () => {
+    setRunningCheck(true);
+    try {
+      const res = await fetch('/api/admin/workspace-health', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace_id: agent.workspace_id }),
+      });
+      const data = await res.json();
+      if (data?.report) setHealthReport(data.report);
+    } catch { /* silent */ } finally {
+      setRunningCheck(false);
+    }
+  };
+
+  const healthStatusColor = (s: CredentialHealthResult['status']) =>
+    s === 'ok'        ? 'text-green-500'
+    : s === 'degraded' ? 'text-yellow-500'
+    : s === 'error'    ? 'text-red-500'
+    : 'text-muted-foreground';
+
   return (
     <div className="space-y-6">
       {/* Back Button + Header */}
@@ -731,6 +782,76 @@ function AgentDrillDown({ agent, onBack, onCommand }: {
               https://{agent.sslip_domain}
             </p>
           </div>
+        )}
+      </div>
+
+      {/* Workspace Credential Health */}
+      <div className="border border-border rounded-lg p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <Key className="h-4 w-4" />
+            Credential Health
+          </h4>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={runningCheck || loadingHealth}
+            onClick={runHealthCheck}
+            className="gap-1.5 text-xs h-7"
+          >
+            {runningCheck ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+            {runningCheck ? 'Running…' : 'Run Check'}
+          </Button>
+        </div>
+
+        {loadingHealth ? (
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-8 bg-muted/40 rounded animate-pulse" />
+            ))}
+          </div>
+        ) : !healthReport ? (
+          <p className="text-xs text-muted-foreground italic">No health data yet — click Run Check.</p>
+        ) : (
+          <>
+            <div className={cn(
+              'text-xs font-medium px-2 py-1 rounded-md inline-flex items-center gap-1.5',
+              healthReport.overall_status === 'ok'      && 'bg-green-500/10 text-green-600',
+              healthReport.overall_status === 'degraded' && 'bg-yellow-500/10 text-yellow-600',
+              healthReport.overall_status === 'error'   && 'bg-red-500/10 text-red-600',
+            )}>
+              {healthReport.overall_status === 'ok' && <CheckCircle2 className="h-3 w-3" />}
+              {healthReport.overall_status === 'degraded' && <AlertTriangle className="h-3 w-3" />}
+              {healthReport.overall_status === 'error' && <XCircle className="h-3 w-3" />}
+              Overall: {healthReport.overall_status.toUpperCase()}
+            </div>
+
+            <div className="space-y-1.5 mt-2">
+              {healthReport.credentials.map((c, i) => (
+                <div key={i} className="flex items-center justify-between text-xs border border-border/50 rounded px-2.5 py-2">
+                  <div className="min-w-0">
+                    <span className="font-medium">{c.service_name}</span>
+                    <span className="text-muted-foreground ml-1.5">({c.credential_type})</span>
+                    {c.error_message && (
+                      <p className="text-red-500 truncate mt-0.5">{c.error_message}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    {c.latency_ms != null && (
+                      <span className="text-muted-foreground tabular-nums">{c.latency_ms}ms</span>
+                    )}
+                    <span className={cn('font-semibold', healthStatusColor(c.status))}>
+                      {c.status.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[10px] text-muted-foreground text-right">
+              Last checked {formatDistanceToNow(new Date(healthReport.checked_at), { addSuffix: true })}
+            </p>
+          </>
         )}
       </div>
 
