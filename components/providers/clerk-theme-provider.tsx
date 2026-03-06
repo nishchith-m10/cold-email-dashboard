@@ -14,17 +14,17 @@ export function ClerkThemeProvider({ children }: ClerkThemeProviderProps) {
   // Landing pages don't need Clerk at all
   const isLandingPage = pathname === '/' || pathname === '/pricing' || pathname === '/demo';
 
-  // Auth pages always use dark Clerk theme regardless of user's saved preference
+  // Auth pages always use light Clerk theme
   const isAuthPage = pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up');
 
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
 
     if (isAuthPage) {
-      setIsDark(true);
+      setIsDark(false);
       return;
     }
 

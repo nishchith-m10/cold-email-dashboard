@@ -132,7 +132,7 @@ export const STAGE_INFO: Record<OnboardingStage, StageInfo> = {
     title: 'DNS Configuration',
     description: 'Setup SPF, DKIM, DMARC records',
     estimatedDuration: 180,
-    required: true,
+    required: false,
   },
   ignition: {
     stage: 'ignition',

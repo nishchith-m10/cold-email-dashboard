@@ -199,9 +199,59 @@ export async function POST(req: NextRequest) {
       await vault!.updateCredentialStatus(result.credentialId, 'valid', new Date());
     }
 
+    // Post-ignition auto-inject: if workspace already has a running droplet,
+    // push this credential to the sidecar without requiring re-ignition.
+    let injected = false;
+    try {
+      const { data: registry } = await supabaseAdmin
+        .schema('genesis' as any)
+        .from('partition_registry')
+        .select('droplet_ip, status')
+        .eq('workspace_id', workspaceId)
+        .eq('status', 'active')
+        .single();
+
+      if (registry?.droplet_ip) {
+        const { encryptCredential } = await import('@/lib/genesis/credential-vault');
+        const transitKey =
+          process.env.INTERNAL_ENCRYPTION_KEY ||
+          process.env.CREDENTIAL_MASTER_KEY ||
+          '';
+
+        if (transitKey) {
+          const credData = type === 'calendly_url'
+            ? { url: value }
+            : { api_key: value, ...(metadata || {}) };
+
+          const encryptedForTransit = encryptCredential(credData, workspaceId, transitKey);
+
+          const sidecarRes = await fetch(`http://${registry.droplet_ip}:3100/command`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'INJECT_CREDENTIAL',
+              payload: {
+                credential_type: type,
+                credential_name: type,
+                encrypted_data: encryptedForTransit,
+              },
+            }),
+          });
+
+          injected = sidecarRes.ok;
+          if (!injected) {
+            console.warn(`[credentials] Post-ignition inject failed (${sidecarRes.status}) — saved to vault only`);
+          }
+        }
+      }
+    } catch (injectErr) {
+      console.warn('[credentials] Post-ignition inject skipped:', injectErr);
+    }
+
     return NextResponse.json({
       success: true,
       credentialId: result.credentialId,
+      injected,
     });
   } catch (error) {
     console.error('Credentials POST error:', error);

@@ -120,8 +120,8 @@ export function CalendlyUrlStage({ workspaceId, onComplete }: StageComponentProp
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          workspace_id: workspaceId,
-          credential_type: 'calendly_url',
+          workspaceId,
+          type: 'calendly_url',
           value: bookingUrl.trim(),
         }),
       });

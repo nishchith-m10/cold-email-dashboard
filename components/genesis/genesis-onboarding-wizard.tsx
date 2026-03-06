@@ -240,7 +240,7 @@ export function GenesisOnboardingWizard({
         const res = await fetch(`/api/onboarding/progress?workspace_id=${workspaceId}`);
         if (res.ok) {
           const data = await res.json();
-          const completed = new Set<OnboardingStage>(data.completed_stages || []);
+          const completed = new Set<OnboardingStage>(data.completedStages || data.completed_stages || []);
           setCompletedStages(completed);
           // ONB-006: If user had prior progress, mark as resumed
           if (completed.size > 0) {
@@ -295,8 +295,8 @@ export function GenesisOnboardingWizard({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          workspace_id: workspaceId,
-          completed_stage: currentStage.stage,
+          workspaceId,
+          completedStage: currentStage.stage,
         }),
       });
     } catch (err) {
@@ -476,6 +476,14 @@ export function GenesisOnboardingWizard({
         <div className="max-w-3xl mx-auto">
           {/* Persistent Page Heading */}
           <p className="text-xs text-text-secondary mb-4">Set up your workspace</p>
+
+          {/* Security Notice */}
+          <div className="mb-4 flex items-start gap-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 px-4 py-3">
+            <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+              Your API keys and credentials are encrypted with AES-256-GCM before storage. Never share your screen while entering sensitive keys. Your progress is saved automatically.
+            </p>
+          </div>
 
           {/* ONB-006: Resume Banner */}
           {isResumed && !resumeBannerDismissed && (

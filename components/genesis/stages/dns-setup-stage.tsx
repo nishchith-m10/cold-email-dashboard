@@ -189,7 +189,8 @@ export function DNSSetupStage({ workspaceId, onComplete }: StageComponentProps) 
               Choose Setup Method:
             </h4>
 
-            {/* Manual Mode */}\n            <button
+            {/* Manual Mode */}
+            <button
               onClick={() => {
                 setSetupMode('manual');
                 handleGenerateRecords();

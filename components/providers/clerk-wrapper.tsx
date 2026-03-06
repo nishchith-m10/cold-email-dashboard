@@ -2,6 +2,7 @@
 
 import { ClerkProvider } from '@clerk/nextjs';
 import { dark } from '@clerk/themes';
+import { usePathname } from 'next/navigation';
 
 const baseAppearance = {
   variables: {
@@ -10,7 +11,6 @@ const baseAppearance = {
     borderRadius: '0.75rem',
   },
   elements: {
-    card: 'shadow-2xl rounded-xl',
     rootBox: 'w-full',
     formButtonPrimary:
       'bg-[#3b82f6] hover:bg-[#2563eb] text-white font-medium rounded-lg transition-colors',
@@ -33,22 +33,17 @@ interface ClerkWrapperProps {
 }
 
 export function ClerkWrapper({ children, isDark, mounted }: ClerkWrapperProps) {
+  const pathname = usePathname();
+  // Auth pages must ALWAYS be light — ignore whatever isDark says.
+  const isAuthPage =
+    pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up');
+
+  const effectiveDark = isAuthPage ? false : isDark;
+
   const appearance = {
     ...baseAppearance,
-    baseTheme: isDark ? dark : undefined,
+    baseTheme: effectiveDark ? dark : undefined,
   };
-
-  if (!mounted) {
-    return (
-      <ClerkProvider
-        appearance={{ ...baseAppearance, baseTheme: dark }}
-        signInFallbackRedirectUrl="/dashboard"
-        signUpFallbackRedirectUrl="/dashboard"
-      >
-        {children}
-      </ClerkProvider>
-    );
-  }
 
   return (
     <ClerkProvider

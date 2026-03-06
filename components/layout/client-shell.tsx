@@ -32,43 +32,36 @@ interface ClientShellProps {
   children: React.ReactNode;
 }
 
-// Component to check workspace membership and redirect if needed
-function WorkspaceGate({ children }: { children: React.ReactNode }) {
+// Hook to check workspace readiness — used by both the gate and the shell
+// to prevent sidebar/navbar from flashing before redirect.
+function useWorkspaceGate() {
   const router = useRouter();
   const pathname = usePathname();
   const { needsOnboarding, isLoading } = useWorkspace();
-  
+
   useEffect(() => {
-    // Don't redirect if on join page or still loading
     if (pathname === '/join' || isLoading) return;
-    
-    // Redirect to /join if user needs to create/join a workspace first
-    // (Onboarding is now accessible as a panel in the sidebar after workspace creation)
     if (needsOnboarding) {
-      router.push('/join');
+      router.replace('/join');
     }
   }, [needsOnboarding, isLoading, pathname, router]);
 
-  // Show loading while checking workspace access.
-  // Use a content-area spinner (not a full-screen overlay) so the sidebar
-  // and navbar remain fully visible during the workspace API call.
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <AppLoadingSpinner />
-      </div>
-    );
-  }
+  const isOnJoinPage = pathname === '/join';
+  const showShell = !isLoading && !needsOnboarding || isOnJoinPage;
+  const showContent = showShell;
 
-  // On join page, always show content (no redirect)
-  if (pathname === '/join') {
-    return <>{children}</>;
-  }
+  return { isLoading, needsOnboarding, showShell, showContent, isOnJoinPage };
+}
 
-  // If needs onboarding, show nothing (redirect will happen to /join)
-  if (needsOnboarding) {
+// Renders children only when workspace is ready (no flash of dashboard chrome)
+function WorkspaceGate({ children }: { children: React.ReactNode }) {
+  const { isLoading, needsOnboarding, isOnJoinPage } = useWorkspaceGate();
+
+  if (isOnJoinPage) return <>{children}</>;
+
+  if (isLoading || needsOnboarding) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background">
+      <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
         <AppLoadingSpinner />
       </div>
     );
@@ -150,9 +143,11 @@ export function ClientShell({ children }: ClientShellProps) {
           <CurrencyProvider>
             <DateFormatProvider>
             <SidebarProvider>
-              {/* Solid background — no gradient or dot-pattern overlay */}
+              {/* Main content - Only show dashboard when signed in */}
+              <SignedIn>
+                <WorkspaceGate>
 
-              {/* Hybrid Navigation - Hidden on clean layout pages */}
+              {/* Navigation — hidden on /join and during workspace loading */}
               {pathname !== '/join' && (
                 <>
                   <TopNavbar onCommandOpen={() => setCommandOpen(true)} onShareOpen={() => setShareOpen(true)} />
@@ -160,24 +155,17 @@ export function ClientShell({ children }: ClientShellProps) {
                 </>
               )}
 
-              {/* Mobile Header - Only visible below md breakpoint, hidden on clean layout pages */}
               {pathname !== '/join' && (
                 <>
                   <MobileHeader 
                     onMenuOpen={() => setMobileDrawerOpen(true)} 
                   />
-
-                  {/* Mobile Drawer - Slide-out navigation */}
                   <MobileDrawer 
                     open={mobileDrawerOpen} 
                     onClose={() => setMobileDrawerOpen(false)} 
                   />
                 </>
               )}
-
-              {/* Main content - Only show dashboard when signed in */}
-              <SignedIn>
-                <WorkspaceGate>
                   <MainContentWithSidebar pathname={pathname}>
                     <ErrorBoundary>
                       {children}
