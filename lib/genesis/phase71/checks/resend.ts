@@ -10,7 +10,7 @@ export const resendHealthCheck: HealthCheck = {
   name: 'Resend (Platform Email)',
   category: 'email',
   criticalLevel: 'high',
-  fixPath: '/settings',
+  fixPath: 'https://resend.com/api-keys',
   enabled: true,
   timeoutMs: 10000,
 

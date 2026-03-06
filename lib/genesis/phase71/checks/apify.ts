@@ -14,7 +14,7 @@ export const apifyHealthCheck: HealthCheck = {
   name: 'Apify (Google Maps Reviews)',
   category: 'integration',
   criticalLevel: 'high',
-  fixPath: '/settings',
+  fixPath: 'https://console.apify.com/account/integrations',
   enabled: true,
   timeoutMs: 15000,
 
