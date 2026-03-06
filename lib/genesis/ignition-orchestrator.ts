@@ -33,11 +33,12 @@ import {
   RollbackResult,
   CreatedResources,
   IgnitionProgressCallback,
+  CredentialConfig,
   STEP_TIMEOUTS,
   DEFAULT_TEMPLATES,
 } from './ignition-types';
 
-import { CredentialVault } from './credential-vault';
+import { CredentialVault, encryptCredential } from './credential-vault';
 
 // ============================================
 // TEMPLATE FILE NAME MAP
@@ -386,6 +387,34 @@ export class IgnitionOrchestrator {
 
           resources.partition_name = result.partition_name;
           state.partition_name = result.partition_name;
+
+          // Update workspace.settings.leads_table so the dashboard's
+          // getLeadsTableName() returns the genesis partition for CSV imports.
+          const leadsTable = `genesis.leads_p_${config.workspace_slug}`;
+          if (this.supabaseAdmin) {
+            try {
+              // Read current settings to avoid clobbering
+              const { data: ws } = await this.supabaseAdmin
+                .from('workspaces')
+                .select('settings')
+                .eq('id', config.workspace_id)
+                .single();
+
+              const currentSettings = (ws?.settings as Record<string, unknown>) || {};
+              const mergedSettings = { ...currentSettings, leads_table: leadsTable };
+
+              await this.supabaseAdmin
+                .from('workspaces')
+                .update({ settings: mergedSettings })
+                .eq('id', config.workspace_id);
+
+              console.log(`[Ignition] Set workspace.settings.leads_table = ${leadsTable}`);
+            } catch (settingsErr) {
+              console.warn('[Ignition] Failed to set leads_table in workspace settings:', settingsErr);
+              // Non-fatal: n8n workflows use the partition directly;
+              // only dashboard CSV import is affected.
+            }
+          }
         }
       );
 
@@ -505,6 +534,46 @@ export class IgnitionOrchestrator {
         'credentials_injecting',
         4,
         async () => {
+          // ── Auto-inject Supabase Postgres credential ──────────────────
+          // Every workflow template requires a 'postgres' credential to
+          // read/write from genesis.leads_p_{slug}.  The connection details
+          // come from environment — not from user onboarding.
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+          const supabaseDbPassword = process.env.SUPABASE_DB_PASSWORD || '';
+          if (supabaseUrl && supabaseDbPassword) {
+            // Parse host from Supabase URL: https://xxx.supabase.co → db.xxx.supabase.co
+            let dbHost = '';
+            try {
+              const parsed = new URL(supabaseUrl);
+              const projectRef = parsed.hostname.split('.')[0]; // e.g. "abcxyz"
+              dbHost = `db.${projectRef}.supabase.co`;
+            } catch {
+              dbHost = process.env.SUPABASE_DB_HOST || '';
+            }
+
+            const postgresCred: CredentialConfig = {
+              type: 'postgres',
+              name: `supabase_${config.workspace_slug}`,
+              data: {
+                host: dbHost,
+                port: 5432,
+                database: 'postgres',
+                user: 'postgres',
+                password: supabaseDbPassword,
+                ssl: 'require',
+              },
+              template_placeholder: 'YOUR_CREDENTIAL_POSTGRES_ID',
+            };
+
+            // Prepend so it's available for all subsequent credentials
+            config.credentials = [postgresCred, ...config.credentials];
+          } else {
+            console.warn(
+              '[Ignition] SUPABASE_DB_PASSWORD not set — Postgres credential will not be auto-injected. ' +
+              'n8n workflows that read/write from Supabase will fail.'
+            );
+          }
+
           for (const cred of config.credentials) {
             // Store in vault
             const storeResult = await this.credentialVault.store(
@@ -525,7 +594,16 @@ export class IgnitionOrchestrator {
             state.credential_ids.push(storeResult.credential_id!);
 
             // Send to Sidecar with per-credential retry (D1-008)
+            // Encrypt cred.data for transit — the sidecar decrypts using
+            // INTERNAL_ENCRYPTION_KEY + workspaceId via crypto-utils.ts.
             if (state.droplet_ip) {
+              const transitKey = process.env.INTERNAL_ENCRYPTION_KEY || process.env.CREDENTIAL_MASTER_KEY || '';
+              const encryptedForTransit = encryptCredential(
+                cred.data as Record<string, unknown>,
+                config.workspace_id,
+                transitKey
+              );
+
               const injectResult = await this.retryTransient(
                 () => this.sidecarClient.sendCommand(
                   state.droplet_ip!,
@@ -534,7 +612,7 @@ export class IgnitionOrchestrator {
                     payload: {
                       credential_type: cred.type,
                       credential_name: cred.name,
-                      encrypted_data: cred.data,
+                      encrypted_data: encryptedForTransit,
                     },
                   }
                 ),

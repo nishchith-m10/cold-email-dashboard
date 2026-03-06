@@ -36,7 +36,8 @@ const N8N_CREDENTIAL_TYPE_MAP: Record<string, string> = {
   google_oauth2:    'gmailOAuth2',           // Gmail nodes (gmailOAuth2)
   openai_api:       'openAiApi',             // OpenAI nodes
   anthropic_api:    'anthropicApi',          // Anthropic/Claude nodes
-  http_header_auth: 'httpHeaderAuth',        // Google CSE header auth
+  http_header_auth: 'httpHeaderAuth',        // Google CSE header auth / generic header
+  http_query_auth:  'httpQueryAuth',         // Google CSE query auth
   http_basic_auth:  'httpBasicAuth',         // Generic basic auth
   // Already correct (n8n uses these exact strings)
   postgres:         'postgres',
