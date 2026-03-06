@@ -17,8 +17,7 @@ export function GenesisOnboardingClient() {
   const { workspace, isLoading } = useWorkspace();
 
   const handleComplete = () => {
-    // Redirect to dashboard after completion
-    router.push(`/?workspace=${workspace?.slug || ''}`);
+    router.push('/dashboard');
   };
 
   if (isLoading) {
