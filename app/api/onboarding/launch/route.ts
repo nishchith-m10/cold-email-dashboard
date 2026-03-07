@@ -339,22 +339,43 @@ async function handlePhase2(workspaceId: string, userId: string, body: any) {
   let sidecarHealthy = false;
   let n8nBootstrapped = false;
 
-  // Attempt 1: Direct sidecar port 3100 — also check n8n_bootstrapped flag
+  // ── Check 1 (authoritative): sidecar_registry DB entry ─────────────────
+  // The sidecar only calls /api/sidecar/handshake AFTER bootstrapN8n() completes.
+  // An entry in this table is the definitive signal that n8n is owner-configured.
   try {
-    const c1 = new AbortController();
-    const t1 = setTimeout(() => c1.abort(), 8000);
-    const r1 = await fetch(`http://${dropletIp}:3100/health`, { signal: c1.signal });
-    clearTimeout(t1);
-    const b1 = await r1.json();
-    if (b1.status === 'ok') {
+    const { data: sidecarReg } = await (supabaseAdmin! as any)
+      .schema('genesis')
+      .from('sidecar_registry')
+      .select('last_seen_at')
+      .eq('workspace_id', workspaceId)
+      .maybeSingle() as { data: any };
+    if (sidecarReg?.last_seen_at) {
       sidecarHealthy = true;
-      n8nBootstrapped = b1.n8n_bootstrapped === true;
+      n8nBootstrapped = true;
+      console.log(`[Phase2] Sidecar registered (last_seen: ${sidecarReg.last_seen_at}) — proceeding to injection`);
     }
-  } catch {
-    // Port 3100 may not be reachable from Vercel — try fallback
+  } catch (dbErr) {
+    console.warn('[Phase2] sidecar_registry DB check failed:', dbErr);
   }
 
-  // Attempt 2: n8n via HTTPS on sslip.io (Caddy → n8n on 443)
+  // ── Check 2: direct port-3100 health (works in local/same-network envs) ──
+  if (!sidecarHealthy) {
+    try {
+      const c1 = new AbortController();
+      const t1 = setTimeout(() => c1.abort(), 5000);
+      const r1 = await fetch(`http://${dropletIp}:3100/health`, { signal: c1.signal });
+      clearTimeout(t1);
+      const b1 = await r1.json();
+      if (b1.status === 'ok') {
+        sidecarHealthy = true;
+        n8nBootstrapped = b1.n8n_bootstrapped === true;
+      }
+    } catch {
+      // Port 3100 not reachable from Vercel — expected
+    }
+  }
+
+  // ── Check 3: n8n reachable at sslip.io HTTPS (confirms droplet is up) ───
   if (!sidecarHealthy) {
     try {
       const c2 = new AbortController();
@@ -364,13 +385,13 @@ async function handlePhase2(workspaceId: string, userId: string, body: any) {
         headers: { 'User-Agent': 'Genesis-HealthCheck/1.0' },
       });
       clearTimeout(t2);
-      if (r2.ok || r2.status === 200 || r2.status === 401 || r2.status === 302) {
+      if (r2.ok || r2.status === 401 || r2.status === 302) {
         sidecarHealthy = true;
-        // Can't check bootstrap status from n8n directly — assume not ready yet
+        // n8n is up but sidecar hasn't registered yet — still in bootstrapN8n()
         n8nBootstrapped = false;
       }
     } catch {
-      // n8n not ready either
+      // n8n not up yet
     }
   }
 
@@ -378,7 +399,7 @@ async function handlePhase2(workspaceId: string, userId: string, body: any) {
     return NextResponse.json({ success: false, status: 'waiting_for_sidecar', sidecar_ready: false });
   }
 
-  // If the sidecar is up but hasn't finished its n8n bootstrap yet, keep waiting
+  // Sidecar up but n8n not bootstrapped yet — keep polling
   if (!n8nBootstrapped) {
     return NextResponse.json({ success: false, status: 'waiting_for_sidecar', sidecar_ready: true, n8n_bootstrapped: false });
   }
