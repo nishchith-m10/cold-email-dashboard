@@ -8,7 +8,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Check, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Check, Loader2, AlertCircle, Eye, EyeOff, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOnboardingDraft } from '@/hooks/use-onboarding-draft';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -48,6 +48,7 @@ export function ApiKeyInputStage({
   const [showKey, setShowKey] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [isValid, setIsValid] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -62,7 +63,6 @@ export function ApiKeyInputStage({
     }
   }, [isDraftLoading, draft, isValid]);
 
-  // Auto-save extra fields on change (skip the API key itself for security)
   const persistDraft = useCallback(
     (overrides?: Record<string, unknown>) => {
       saveDraft({ extraValues, ...overrides });
@@ -70,7 +70,7 @@ export function ApiKeyInputStage({
     [extraValues, saveDraft],
   );
 
-  // Check if credential already exists
+  // Check if credential already exists in the vault
   useEffect(() => {
     async function checkExisting() {
       try {
@@ -81,6 +81,7 @@ export function ApiKeyInputStage({
           const data = await res.json();
           if (data.exists) {
             setIsValid(true);
+            setIsSaved(true);
           }
         }
       } catch (err) {
@@ -128,13 +129,27 @@ export function ApiKeyInputStage({
     }
   };
 
+  const handleReset = () => {
+    setIsValid(false);
+    setIsSaved(false);
+    setApiKey('');
+    setValidationError(null);
+  };
+
   const handleContinue = async () => {
+    // If already saved in vault (from a previous session), just advance
+    if (isSaved && !apiKey.trim()) {
+      onComplete();
+      return;
+    }
+
     if (!isValid) {
       setValidationError('Please validate your API key first');
       return;
     }
 
     setIsSaving(true);
+    setValidationError(null);
 
     try {
       const res = await fetch('/api/onboarding/credentials', {
@@ -152,16 +167,40 @@ export function ApiKeyInputStage({
         throw new Error('Failed to save credential');
       }
 
+      setIsSaved(true);
       onComplete();
     } catch (err) {
-      setValidationError(err instanceof Error ? err.message : 'Failed to save');
+      // Unlock the input so the user can re-enter / retry
+      setIsValid(false);
+      setValidationError(err instanceof Error ? err.message : 'Failed to save — please try again');
     } finally {
       setIsSaving(false);
     }
   };
 
+  // The input is only locked when we've confirmed the credential is saved in the vault.
+  // After validation but before save, the input stays editable via the "Change" button.
+  const inputLocked = isValid || isSaved;
+
   return (
     <div className="space-y-5">
+      {/* Saved indicator — shows when credential is already in vault (from reload) */}
+      {isSaved && !apiKey.trim() && (
+        <div className="p-3 bg-accent-success/10 border border-accent-success/20 rounded-lg flex items-center justify-between">
+          <span className="flex items-center gap-2 text-sm text-accent-success">
+            <Check className="h-4 w-4" />
+            Credential saved and encrypted
+          </span>
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
+          >
+            <Pencil className="h-3 w-3" />
+            Change
+          </button>
+        </div>
+      )}
+
       {/* Fields container */}
       <div className="bg-surface border border-border rounded-lg divide-y divide-border">
         {/* API Key Input */}
@@ -176,9 +215,10 @@ export function ApiKeyInputStage({
               onChange={(e) => {
                 setApiKey(e.target.value);
                 setIsValid(false);
+                setIsSaved(false);
                 setValidationError(null);
               }}
-              placeholder={placeholder}
+              placeholder={isSaved ? '••••••••  (saved — enter new key to replace)' : placeholder}
               className={cn(
                 'w-full px-3 pr-16 py-2 rounded-md text-sm',
                 'bg-surface-elevated border border-border transition-all',
@@ -187,7 +227,6 @@ export function ApiKeyInputStage({
                 isValid && 'border-accent-success',
                 validationError && 'border-accent-danger'
               )}
-              disabled={isValid}
             />
             <button
               onClick={() => setShowKey(!showKey)}
@@ -200,7 +239,7 @@ export function ApiKeyInputStage({
                 <Eye className="h-3.5 w-3.5 text-text-secondary" />
               )}
             </button>
-            {isValid && (
+            {isValid && apiKey.trim() && (
               <div className="absolute right-10 top-1/2 -translate-y-1/2">
                 <Check className="h-4 w-4 text-accent-success" />
               </div>
@@ -238,29 +277,41 @@ export function ApiKeyInputStage({
         </div>
       )}
 
-      {/* Validate + Docs on same row */}
+      {/* Validate + Change + Docs row */}
       <div className="flex items-center justify-between">
-        {!isValid ? (
-          <button
-            onClick={handleValidate}
-            disabled={!apiKey.trim() || isValidating}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-surface-elevated border border-border text-text-primary hover:bg-surface-hover transition-all disabled:opacity-50"
-          >
-            {isValidating ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Validating…
-              </>
-            ) : (
-              'Validate'
-            )}
-          </button>
-        ) : (
-          <span className="flex items-center gap-1.5 text-xs text-accent-success">
-            <Check className="h-3.5 w-3.5" />
-            Valid
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {!isValid ? (
+            <button
+              onClick={handleValidate}
+              disabled={!apiKey.trim() || isValidating}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-surface-elevated border border-border text-text-primary hover:bg-surface-hover transition-all disabled:opacity-50"
+            >
+              {isValidating ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Validating…
+                </>
+              ) : (
+                'Validate'
+              )}
+            </button>
+          ) : (
+            <>
+              <span className="flex items-center gap-1.5 text-xs text-accent-success">
+                <Check className="h-3.5 w-3.5" />
+                Valid
+              </span>
+              {apiKey.trim() && (
+                <button
+                  onClick={handleReset}
+                  className="text-xs text-text-secondary hover:text-text-primary transition-colors"
+                >
+                  Change
+                </button>
+              )}
+            </>
+          )}
+        </div>
 
         {docsUrl && (
           <a
@@ -282,7 +333,7 @@ export function ApiKeyInputStage({
       )}
 
       {/* Continue */}
-      {isValid && (
+      {(isValid || isSaved) && (
         <div className="flex justify-end">
           <button
             onClick={handleContinue}
