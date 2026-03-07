@@ -53,7 +53,6 @@ export class BrandVaultService {
           industry: brandData.industry,
           description: brandData.description,
           logo_url: brandData.logoUrl,
-          tone: brandData.tone || 'professional',
           target_audience: brandData.targetAudience,
           products: brandData.products || [],
           auto_scraped: brandData.autoScraped || false,

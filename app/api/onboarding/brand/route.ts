@@ -112,15 +112,14 @@ export async function POST(req: NextRequest) {
       });
 
       if (!result.success) {
-        // Log error but return success to not block onboarding
-        console.warn('Brand service error (might be missing table):', result.error);
-        return NextResponse.json({ success: true });
+        console.error('[brand POST] Store failed:', result.error);
+        return NextResponse.json({ error: result.error || 'Failed to save brand info' }, { status: 500 });
       }
 
       return NextResponse.json({ success: true });
     } catch (dbError: any) {
-      console.warn('Database error in brand POST:', dbError.message);
-      return NextResponse.json({ success: true });
+      console.error('[brand POST] Database error:', dbError.message);
+      return NextResponse.json({ error: dbError.message || 'Database error' }, { status: 500 });
     }
   } catch (error) {
     console.error('Brand info POST error:', error);

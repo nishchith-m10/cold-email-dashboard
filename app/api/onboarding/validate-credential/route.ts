@@ -21,14 +21,13 @@ export async function POST(req: NextRequest) {
     }
 
     const body: any = await req.json();
-    const { type, value, config } = body;
+    const { type, value, config, metadata } = body;
 
     if (!type) {
       return NextResponse.json({ error: 'type required' }, { status: 400 });
     }
 
-    // Validate the credential
-    const result = await validationService.validateCredential(type, value || '', config);
+    const result = await validationService.validateCredential(type, value || '', config ?? metadata);
 
     return NextResponse.json({
       valid: result.valid,

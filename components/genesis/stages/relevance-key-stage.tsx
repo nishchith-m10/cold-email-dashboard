@@ -149,11 +149,6 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
       return;
     }
 
-    if (!toolImported) {
-      setError('Please confirm that you have imported the LinkedIn Research Tool');
-      return;
-    }
-
     setIsSaving(true);
     setError(null);
 
@@ -175,7 +170,8 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
       });
 
       if (!res.ok) {
-        throw new Error('Failed to save configuration');
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to save configuration');
       }
 
       onComplete();
@@ -191,7 +187,8 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
     window.open('/api/onboarding/relevance-tool-download', '_blank');
   };
 
-  const isFormValid = baseUrl && projectId && studioId && authToken && toolImported;
+  const hasAllFields = !!(baseUrl && projectId && studioId && authToken);
+  const canContinue = hasAllFields && (validationStatus === 'valid' || toolImported);
 
   return (
     <div className="space-y-5">
@@ -389,7 +386,7 @@ export function RelevanceKeyStage({ workspaceId, onComplete }: StageComponentPro
       <div className="flex justify-end">
         <button
           onClick={handleContinue}
-          disabled={isSaving || !isFormValid}
+          disabled={isSaving || !canContinue}
           className="text-sm text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
         >
           {isSaving ? 'Saving…' : 'Continue →'}

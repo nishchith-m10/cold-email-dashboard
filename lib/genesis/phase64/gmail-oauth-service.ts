@@ -30,67 +30,55 @@ export const GMAIL_OAUTH_CONFIG: OAuthConfig = {
 };
 
 // ============================================
-// STATE MANAGEMENT
+// STATE MANAGEMENT (Stateless — works on serverless)
 // ============================================
 
 export class OAuthStateManager {
-  private stateStore: Map<string, OAuthState>;
   private stateExpiry: number = 10 * 60 * 1000; // 10 minutes
+  private signingKey: string;
 
   constructor() {
-    this.stateStore = new Map();
-    // Clean up expired states every minute
-    setInterval(() => this.cleanExpiredStates(), 60 * 1000);
+    this.signingKey = process.env.GMAIL_OAUTH_CLIENT_SECRET
+      || process.env.ENCRYPTION_MASTER_KEY
+      || process.env.CREDENTIAL_MASTER_KEY
+      || 'fallback-oauth-signing-key';
   }
 
-  /**
-   * Generate a cryptographically secure state token
-   */
+  private sign(payload: string): string {
+    return crypto.createHmac('sha256', this.signingKey).update(payload).digest('hex');
+  }
+
   generateState(workspaceId: string, userId: string, returnUrl?: string): string {
-    const csrfToken = crypto.randomBytes(32).toString('hex');
-    const state: OAuthState = {
+    const payload: OAuthState = {
       workspaceId,
       userId,
-      csrfToken,
+      csrfToken: crypto.randomBytes(16).toString('hex'),
       returnUrl,
       timestamp: Date.now(),
     };
 
-    this.stateStore.set(csrfToken, state);
-    return csrfToken;
+    const json = JSON.stringify(payload);
+    const b64 = Buffer.from(json).toString('base64url');
+    const sig = this.sign(b64);
+
+    return `${b64}.${sig}`;
   }
 
-  /**
-   * Validate and retrieve state
-   */
-  validateState(csrfToken: string): OAuthState | null {
-    const state = this.stateStore.get(csrfToken);
-    
-    if (!state) {
+  validateState(stateToken: string): OAuthState | null {
+    try {
+      const [b64, sig] = stateToken.split('.');
+      if (!b64 || !sig) return null;
+
+      if (this.sign(b64) !== sig) return null;
+
+      const json = Buffer.from(b64, 'base64url').toString('utf-8');
+      const state: OAuthState = JSON.parse(json);
+
+      if (Date.now() - state.timestamp > this.stateExpiry) return null;
+
+      return state;
+    } catch {
       return null;
-    }
-
-    // Check if expired
-    if (Date.now() - state.timestamp > this.stateExpiry) {
-      this.stateStore.delete(csrfToken);
-      return null;
-    }
-
-    // Remove from store after validation (one-time use)
-    this.stateStore.delete(csrfToken);
-    return state;
-  }
-
-  /**
-   * Clean up expired states
-   */
-  private cleanExpiredStates(): void {
-    const now = Date.now();
-    const entries = Array.from(this.stateStore.entries());
-    for (const [token, state] of entries) {
-      if (now - state.timestamp > this.stateExpiry) {
-        this.stateStore.delete(token);
-      }
     }
   }
 }

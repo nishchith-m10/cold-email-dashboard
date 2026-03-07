@@ -62,44 +62,40 @@ function getServices(): { services: Services } | { error: string } {
  * GET - OAuth callback handler
  */
 export async function GET(req: NextRequest) {
+  const origin = new URL(req.url).origin;
+
+  function redirectToOnboarding(params: string): NextResponse {
+    return NextResponse.redirect(new URL(`/onboarding?${params}`, origin).toString());
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const error = searchParams.get('error');
 
-    // Handle OAuth errors
     if (error) {
-      return NextResponse.redirect(
-        `/onboarding?error=${encodeURIComponent(error)}&stage=gmail_oauth`
-      );
+      return redirectToOnboarding(`error=${encodeURIComponent(error)}&stage=gmail_oauth`);
     }
 
     if (!code || !state) {
-      return NextResponse.redirect(
-        '/onboarding?error=invalid_callback&stage=gmail_oauth'
-      );
+      return redirectToOnboarding('error=invalid_callback&stage=gmail_oauth');
     }
 
-    // Get services
     const result = getServices();
     if ('error' in result) {
-      return NextResponse.redirect(
-        `/onboarding?error=${encodeURIComponent(result.error)}&stage=gmail_oauth`
-      );
+      return redirectToOnboarding(`error=${encodeURIComponent(result.error)}&stage=gmail_oauth`);
     }
     const { gmailService: gmail, vaultService: vault } = result.services;
 
-    // Exchange code for tokens
     const tokenResult = await gmail.exchangeCodeForTokens(code, state);
 
     if (!tokenResult.success || !tokenResult.tokens || !tokenResult.state) {
-      return NextResponse.redirect(
-        `/onboarding?error=${encodeURIComponent(tokenResult.error || 'token_exchange_failed')}&stage=gmail_oauth`
+      return redirectToOnboarding(
+        `error=${encodeURIComponent(tokenResult.error || 'token_exchange_failed')}&stage=gmail_oauth`
       );
     }
 
-    // Store tokens in vault
     const storeResult = await vault.storeOAuthCredential(
       tokenResult.state.workspaceId,
       'gmail_oauth',
@@ -114,30 +110,26 @@ export async function GET(req: NextRequest) {
     );
 
     if (!storeResult.success) {
-      return NextResponse.redirect(
-        `/onboarding?error=${encodeURIComponent(storeResult.error || 'storage_failed')}&stage=gmail_oauth`
+      return redirectToOnboarding(
+        `error=${encodeURIComponent(storeResult.error || 'storage_failed')}&stage=gmail_oauth`
       );
     }
 
-    // Get user email for display
     const userInfoResult = await gmail.getUserInfo(tokenResult.tokens.access_token);
-    
-    // Redirect back to onboarding
-    // SEC-010: Validate returnUrl to prevent open redirect — only allow same-origin paths
+
+    // SEC-010: Validate returnUrl to prevent open redirect
     const rawReturnUrl = tokenResult.state.returnUrl || '/onboarding?stage=gmail_oauth';
     let successUrl: URL;
     try {
-      const candidate = new URL(rawReturnUrl, req.url);
-      const origin = new URL(req.url).origin;
-      // Only allow same-origin redirects (reject absolute URLs to other domains)
+      const candidate = new URL(rawReturnUrl, origin);
       if (candidate.origin !== origin) {
         console.warn(`[SEC-010] Blocked open redirect to: ${rawReturnUrl}`);
-        successUrl = new URL('/onboarding?stage=gmail_oauth', req.url);
+        successUrl = new URL('/onboarding?stage=gmail_oauth', origin);
       } else {
         successUrl = candidate;
       }
     } catch {
-      successUrl = new URL('/onboarding?stage=gmail_oauth', req.url);
+      successUrl = new URL('/onboarding?stage=gmail_oauth', origin);
     }
     successUrl.searchParams.set('gmail_connected', 'true');
     if (userInfoResult.success && userInfoResult.userInfo) {
@@ -147,8 +139,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(successUrl.toString());
   } catch (error) {
     console.error('Gmail OAuth callback error:', error);
-    return NextResponse.redirect(
-      '/onboarding?error=callback_error&stage=gmail_oauth'
-    );
+    return redirectToOnboarding('error=callback_error&stage=gmail_oauth');
   }
 }

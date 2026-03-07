@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Check, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StageComponentProps } from '@/components/genesis/genesis-onboarding-wizard';
@@ -16,9 +16,22 @@ export function GmailOAuthStage({ workspaceId, onComplete }: StageComponentProps
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
-  // Check if Gmail already connected
+  // Check URL params for OAuth callback result, then fall back to API check
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const gmailConnected = params.get('gmail_connected');
+    const gmailEmail = params.get('gmail_email');
+
+    if (gmailConnected === 'true') {
+      setIsConnected(true);
+      if (gmailEmail) setConnectedEmail(gmailEmail);
+      onCompleteRef.current();
+      return;
+    }
+
     async function checkConnection() {
       try {
         const res = await fetch(`/api/onboarding/credentials?type=gmail_oauth&workspace_id=${workspaceId}`);
@@ -45,12 +58,14 @@ export function GmailOAuthStage({ workspaceId, onComplete }: StageComponentProps
       // Get OAuth URL
       const res = await fetch('/api/oauth/gmail/authorize', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workspaceId }),
       });
 
       if (!res.ok) {
-        throw new Error('Failed to generate OAuth URL');
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Gmail auth failed (${res.status})`);
       }
 
       const data = await res.json();

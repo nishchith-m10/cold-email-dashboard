@@ -146,7 +146,8 @@ export function BrandInfoStage({ workspaceId, onComplete }: StageComponentProps)
       });
 
       if (!res.ok) {
-        throw new Error('Failed to save brand info');
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to save brand info');
       }
 
       onComplete();
