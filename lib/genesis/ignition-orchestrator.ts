@@ -40,6 +40,8 @@ import {
 } from './ignition-types';
 
 import { CredentialVault, encryptCredential } from './credential-vault';
+import { N8nDirectClient } from './n8n-direct-client';
+import { EncryptionService } from './phase64/credential-vault-service';
 
 // ============================================
 // TEMPLATE FILE NAME MAP
@@ -1313,8 +1315,11 @@ export class IgnitionOrchestrator {
       partition_name: state.partition_name,
     };
 
+    // Hoist n8nClient so both credential injection AND workflow deployment can use it
+    let n8nClient: N8nDirectClient | null = null;
+
     try {
-      // STEP 4: Inject credentials (mirrors the original Step 4 in ignite())
+      // STEP 4: Inject credentials via n8n HTTPS API directly (bypasses sidecar port 3100)
       await this.executeStep(state, 'credentials_injecting', 4, async () => {
         // Auto-inject Supabase Postgres credential
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -1336,6 +1341,37 @@ export class IgnitionOrchestrator {
           template_placeholder: 'YOUR_CREDENTIAL_SUPABASE_ID',
         };
         config.credentials = [postgresCred, ...config.credentials.filter(c => c.type !== 'postgres')];
+
+        // ── Acquire n8n API key via direct HTTPS login (no sidecar needed) ──
+        if (state.droplet_ip) {
+          const n8nBaseUrl = `https://${state.droplet_ip}.sslip.io`;
+          try {
+            if (this.supabaseAdmin) {
+              const { data: ignRow } = await (this.supabaseAdmin as any)
+                .schema('genesis')
+                .from('ignition_state')
+                .select('n8n_owner_email, n8n_owner_password')
+                .eq('workspace_id', config.workspace_id)
+                .maybeSingle() as { data: { n8n_owner_email?: string; n8n_owner_password?: string } | null };
+
+              if (ignRow?.n8n_owner_email && ignRow?.n8n_owner_password) {
+                const encKey = process.env.ENCRYPTION_MASTER_KEY || process.env.CREDENTIAL_MASTER_KEY || '';
+                const encSvc = new EncryptionService(encKey);
+                const ownerPassword = encSvc.decrypt(ignRow.n8n_owner_password, config.workspace_id);
+                const apiKey = await N8nDirectClient.loginAndGetApiKey(
+                  n8nBaseUrl,
+                  ignRow.n8n_owner_email,
+                  ownerPassword
+                );
+                n8nClient = new N8nDirectClient(n8nBaseUrl, apiKey);
+                console.log('[Phase2] ✅ n8n direct client ready via HTTPS');
+              }
+            }
+          } catch (loginErr) {
+            console.warn('[Phase2] n8n direct login failed — credentials will be vault-only:',
+              loginErr instanceof Error ? loginErr.message : String(loginErr));
+          }
+        }
 
         const transitKey = process.env.INTERNAL_ENCRYPTION_KEY || process.env.CREDENTIAL_MASTER_KEY || '';
 
@@ -1367,13 +1403,31 @@ export class IgnitionOrchestrator {
             resources.credential_ids.push(storeResult.credential_id!);
             state.credential_ids.push(storeResult.credential_id!);
 
-            if (state.droplet_ip) {
+            if (n8nClient) {
+              // ── Direct n8n HTTPS call (no port 3100) ──
+              const n8nCredId = await this.retryTransient(
+                () => n8nClient!.createCredential(
+                  cred.name,
+                  cred.type,
+                  cred.data as Record<string, unknown>
+                ),
+                { maxAttempts: 3, baseDelayMs: 2000, label: `inject-cred:${cred.name}` }
+              );
+              resources.n8n_credential_ids.push(n8nCredId);
+              await this.stateDB.logOperation({
+                workspace_id: config.workspace_id,
+                operation: `inject_credential:${cred.type}:${cred.name}`,
+                status: 'completed',
+                result: { n8n_credential_id: n8nCredId },
+              });
+              credLoggedSuccess = true;
+            } else if (state.droplet_ip) {
+              // ── Fallback: sidecar port-3100 (legacy / if login failed) ──
               const encryptedForTransit = encryptCredential(
                 cred.data as Record<string, unknown>,
                 config.workspace_id,
                 transitKey
               );
-
               const injectResult = await this.retryTransient(
                 () => this.sidecarClient.sendCommand(
                   state.droplet_ip!,
@@ -1388,14 +1442,12 @@ export class IgnitionOrchestrator {
                 ),
                 { maxAttempts: 3, baseDelayMs: 2000, label: `inject-cred:${cred.name}` }
               );
-
               if (!injectResult.success) {
                 throw new IgnitionError(
                   injectResult.error || 'Sidecar credential injection failed',
                   'credentials_injecting', config.workspace_id
                 );
               }
-
               if (injectResult.result) {
                 const n8nCredId = (injectResult.result as any).credential_id;
                 resources.n8n_credential_ids.push(n8nCredId);
@@ -1550,25 +1602,42 @@ export class IgnitionOrchestrator {
             );
           }
 
-          const deployResult = await this.workflowDeployer.deploy(
-            state.droplet_ip!,
-            {
-              name: template.template_name,
-              json: templateJson,
-              credential_map: {},
-              variable_map: variableMap,
-            }
-          );
-
-          if (!deployResult.success) {
-            throw new IgnitionError(
-              deployResult.error || `Failed to deploy '${template.display_name}'`,
-              'workflows_deploying', config.workspace_id
-            );
+          // Substitute variables into the workflow JSON
+          let jsonStr = JSON.stringify(templateJson);
+          for (const [k, v] of Object.entries(variableMap)) {
+            jsonStr = jsonStr.split(k).join(v);
           }
+          const substitutedWf: Record<string, unknown> = JSON.parse(jsonStr);
+          substitutedWf.name = template.template_name;
 
-          resources.workflow_ids.push(deployResult.workflow_id!);
-          state.workflow_ids.push(deployResult.workflow_id!);
+          // ── Deploy via direct HTTPS to n8n (preferred) ──
+          if (n8nClient) {
+            const wfId = await this.retryTransient(
+              () => n8nClient!.importWorkflow(substitutedWf),
+              { maxAttempts: 3, baseDelayMs: 3000, label: `deploy-wf:${template.template_name}` }
+            );
+            resources.workflow_ids.push(wfId);
+            state.workflow_ids.push(wfId);
+          } else {
+            // ── Fallback: sidecar port-3100 ──
+            const deployResult = await this.workflowDeployer.deploy(
+              state.droplet_ip!,
+              {
+                name: template.template_name,
+                json: templateJson,
+                credential_map: {},
+                variable_map: variableMap,
+              }
+            );
+            if (!deployResult.success) {
+              throw new IgnitionError(
+                deployResult.error || `Failed to deploy '${template.display_name}'`,
+                'workflows_deploying', config.workspace_id
+              );
+            }
+            resources.workflow_ids.push(deployResult.workflow_id!);
+            state.workflow_ids.push(deployResult.workflow_id!);
+          }
         }
       });
 
@@ -1576,12 +1645,19 @@ export class IgnitionOrchestrator {
       if (!config.skip_activation) {
         await this.executeStep(state, 'activating', 6, async () => {
           for (const wfId of resources.workflow_ids) {
-            const activateResult = await this.workflowDeployer.activate(state.droplet_ip!, wfId) as any;
-            if (!activateResult.success) {
-              throw new IgnitionError(
-                activateResult.error || `Failed to activate workflow ${wfId}`,
-                'activating', config.workspace_id
+            if (n8nClient) {
+              await this.retryTransient(
+                () => n8nClient!.activateWorkflow(wfId),
+                { maxAttempts: 3, baseDelayMs: 2000, label: `activate-wf:${wfId}` }
               );
+            } else {
+              const activateResult = await this.workflowDeployer.activate(state.droplet_ip!, wfId) as any;
+              if (!activateResult.success) {
+                throw new IgnitionError(
+                  activateResult.error || `Failed to activate workflow ${wfId}`,
+                  'activating', config.workspace_id
+                );
+              }
             }
           }
         });
