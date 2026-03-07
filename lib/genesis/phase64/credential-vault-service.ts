@@ -205,7 +205,7 @@ export class CredentialVaultService {
       
       const { data, error } = await this.supabase
         .schema('genesis').from('workspace_credentials')
-        .insert({
+        .upsert({
           workspace_id: workspaceId,
           credential_type: type,
           access_token: encryptedAccessToken,
@@ -215,6 +215,8 @@ export class CredentialVaultService {
           expires_at: expiresAt.toISOString(),
           status: 'valid',
           validated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'workspace_id,credential_type',
         })
         .select('id')
         .single();
@@ -247,12 +249,14 @@ export class CredentialVaultService {
       
       const { data, error } = await this.supabase
         .schema('genesis').from('workspace_credentials')
-        .insert({
+        .upsert({
           workspace_id: workspaceId,
           credential_type: type,
           api_key: encryptedKey,
           metadata: metadata || {},
           status: 'pending_validation',
+        }, {
+          onConflict: 'workspace_id,credential_type',
         })
         .select('id')
         .single();
@@ -281,12 +285,14 @@ export class CredentialVaultService {
     try {
       const { data, error } = await this.supabase
         .schema('genesis').from('workspace_credentials')
-        .insert({
+        .upsert({
           workspace_id: workspaceId,
           credential_type: 'calendly_url',
           booking_url: bookingUrl,
           status: validated ? 'valid' : 'pending_validation',
           metadata: { validated, lastChecked: new Date().toISOString() },
+        }, {
+          onConflict: 'workspace_id,credential_type',
         })
         .select('id')
         .single();
