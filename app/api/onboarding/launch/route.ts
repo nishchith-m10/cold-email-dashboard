@@ -113,9 +113,6 @@ function buildOrchestrator(workspaceId: string, dropletId?: string) {
 
   const dropletFactory = new DropletFactoryAdapter();
   const sidecarClient = new DeferredHttpSidecarClient(workspaceId);
-  if (dropletId) {
-    sidecarClient.setDropletId(dropletId);
-  }
   const workflowDeployer = new HttpWorkflowDeployer(sidecarClient);
 
   return new IgnitionOrchestrator(
