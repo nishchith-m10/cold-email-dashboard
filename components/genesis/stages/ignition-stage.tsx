@@ -460,7 +460,7 @@ export function IgnitionStage({ workspaceId, onComplete }: StageComponentProps) 
           )}
 
           {/* Live log feed */}
-          <div className="rounded-lg border border-border bg-black/80 dark:bg-black/60 overflow-hidden">
+          <div className="rounded-lg border border-border bg-neutral-950 dark:bg-black/60 overflow-hidden">
             <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10">
               <Terminal className="h-3.5 w-3.5 text-white/40" />
               <span className="text-xs text-white/40 font-mono uppercase tracking-wider">Live log</span>
@@ -476,7 +476,7 @@ export function IgnitionStage({ workspaceId, onComplete }: StageComponentProps) 
                     entry.level === 'success' && 'text-green-400',
                     entry.level === 'warn'    && 'text-yellow-400',
                     entry.level === 'error'   && 'text-red-400',
-                    entry.level === 'info'    && 'text-white/70',
+                    entry.level === 'info'    && 'text-white/60',
                   )}>
                     {entry.level === 'success' ? '✓ ' : entry.level === 'error' ? '✗ ' : entry.level === 'warn' ? '⚠ ' : '› '}
                     {entry.msg}
