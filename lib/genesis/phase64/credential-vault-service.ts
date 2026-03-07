@@ -527,8 +527,15 @@ export class CredentialVaultService {
       }
       
       const data = result.data;
-      
-      const credentials = data.map((row: any) => this.decryptCredential(row, workspaceId));
+
+      const credentials = (data as any[]).flatMap((row: any) => {
+        try {
+          return [this.decryptCredential(row, workspaceId)];
+        } catch {
+          // Skip credentials that fail to decrypt rather than aborting the whole call
+          return [];
+        }
+      });
       
       return { success: true, credentials };
     } catch (error) {
@@ -772,7 +779,7 @@ export class CredentialVaultService {
         refreshToken: this.encryption.decrypt(row.refresh_token, workspaceId),
         tokenType: row.token_type,
         scope: row.scope,
-        expiresAt: new Date(row.expires_at),
+        expiresAt: row.expires_at ? new Date(row.expires_at) : undefined,
       } as OAuthCredential;
     } else if (row.api_key) {
       // API Key credential
@@ -782,14 +789,16 @@ export class CredentialVaultService {
         metadata: row.metadata || {},
       } as ApiKeyCredential;
     } else if (row.booking_url) {
-      // Calendly credential
+      // Calendly / URL credential
       return {
         ...base,
         bookingUrl: row.booking_url,
         metadata: row.metadata || {},
       } as CalendlyCredential;
     }
-    
-    throw new Error(`Unknown credential type: ${row.credential_type}`);
+
+    // Generic credential (e.g. postgres — uses encrypted_data column, not api_key).
+    // Return base shape so the assembler can skip it gracefully rather than crashing.
+    return { ...base, metadata: row.metadata || {} } as any;
   }
 }
