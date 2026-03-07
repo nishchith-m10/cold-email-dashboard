@@ -109,7 +109,8 @@ export async function GET(req: NextRequest) {
         tokenType: tokenResult.tokens.token_type,
         expiresIn: tokenResult.tokens.expires_in,
         scope: tokenResult.tokens.scope,
-      }
+      },
+      tokenResult.state.userId || 'oauth_callback'
     );
 
     if (!storeResult.success) {

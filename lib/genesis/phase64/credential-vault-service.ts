@@ -65,10 +65,16 @@ export class EncryptionService {
   private previousMasterKey: Buffer | null;
 
   constructor(masterKeyHex?: string, previousMasterKeyHex?: string) {
-    // In production, load from environment variable
     const key = masterKeyHex || process.env.ENCRYPTION_MASTER_KEY || process.env.CREDENTIAL_MASTER_KEY;
     if (!key) {
       throw new Error('ENCRYPTION_MASTER_KEY not configured');
+    }
+    // AES-256 needs exactly 32 bytes = 64 hex chars
+    if (!/^[0-9a-fA-F]{64}$/.test(key)) {
+      throw new Error(
+        `Invalid encryption key: expected 64 hex chars (AES-256), got ${key.length} chars. ` +
+        `Key starts with: ${key.substring(0, 4)}...`
+      );
     }
     this.masterKey = Buffer.from(key, 'hex');
 
@@ -178,6 +184,25 @@ export class CredentialVaultService {
     this.supabase = config.supabaseClient;
   }
 
+  private fingerprint(plaintext: string): string {
+    return crypto.createHash('sha256').update(plaintext).digest('hex').slice(0, 16);
+  }
+
+  private credentialLabel(type: string): string {
+    const labels: Record<string, string> = {
+      openai_api_key: 'OpenAI API Key',
+      anthropic_api_key: 'Anthropic API Key',
+      google_cse_api_key: 'Google CSE Key',
+      apify_api_token: 'Apify Token',
+      gmail_oauth: 'Gmail OAuth',
+      google_sheets_oauth: 'Google Sheets OAuth',
+      entri_oauth: 'Entri OAuth',
+      calendly_url: 'Calendly URL',
+      relevance_config: 'Relevance AI',
+    };
+    return labels[type] || type;
+  }
+
   // ============================================
   // CREATE CREDENTIALS
   // ============================================
@@ -194,42 +219,49 @@ export class CredentialVaultService {
       tokenType: string;
       expiresIn: number;
       scope: string;
-    }
+    },
+    createdBy = 'system'
   ): Promise<{ success: boolean; credentialId?: string; error?: string }> {
     try {
-      // Encrypt tokens
       const encryptedAccessToken = this.encryption.encrypt(tokens.accessToken, workspaceId);
       const encryptedRefreshToken = this.encryption.encrypt(tokens.refreshToken, workspaceId);
-      
+      const combined = JSON.stringify({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+      const encryptedData = this.encryption.encrypt(combined, workspaceId);
+
       const expiresAt = new Date(Date.now() + tokens.expiresIn * 1000);
-      
+      const credName = this.credentialLabel(type);
+
       const { data, error } = await this.supabase
         .schema('genesis').from('workspace_credentials')
         .upsert({
           workspace_id: workspaceId,
           credential_type: type,
+          credential_name: credName,
+          encrypted_data: encryptedData,
+          data_fingerprint: this.fingerprint(combined),
+          created_by: createdBy,
           access_token: encryptedAccessToken,
           refresh_token: encryptedRefreshToken,
           token_type: tokens.tokenType,
           scope: tokens.scope,
           expires_at: expiresAt.toISOString(),
-          status: 'valid',
-          validated_at: new Date().toISOString(),
+          status: 'synced',
+          last_verified_at: new Date().toISOString(),
         }, {
-          onConflict: 'workspace_id,credential_type',
+          onConflict: 'workspace_id,credential_type,credential_name',
         })
         .select('id')
         .single();
-      
+
       if (error) {
         return { success: false, error: error.message };
       }
-      
+
       return { success: true, credentialId: data.id };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to store OAuth credential' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to store OAuth credential'
       };
     }
   }
@@ -241,35 +273,40 @@ export class CredentialVaultService {
     workspaceId: string,
     type: Extract<CredentialType, 'openai_api_key' | 'anthropic_api_key' | 'google_cse_api_key' | 'apify_api_token'>,
     apiKey: string,
-    metadata?: { engineId?: string; organization?: string }
+    metadata?: { engineId?: string; organization?: string },
+    createdBy = 'system'
   ): Promise<{ success: boolean; credentialId?: string; error?: string }> {
     try {
-      // Encrypt API key
       const encryptedKey = this.encryption.encrypt(apiKey, workspaceId);
-      
+      const credName = this.credentialLabel(type);
+
       const { data, error } = await this.supabase
         .schema('genesis').from('workspace_credentials')
         .upsert({
           workspace_id: workspaceId,
           credential_type: type,
+          credential_name: credName,
+          encrypted_data: encryptedKey,
+          data_fingerprint: this.fingerprint(apiKey),
+          created_by: createdBy,
           api_key: encryptedKey,
           metadata: metadata || {},
-          status: 'pending_validation',
+          status: 'pending',
         }, {
-          onConflict: 'workspace_id,credential_type',
+          onConflict: 'workspace_id,credential_type,credential_name',
         })
         .select('id')
         .single();
-      
+
       if (error) {
         return { success: false, error: error.message };
       }
-      
+
       return { success: true, credentialId: data.id };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to store API key' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to store API key'
       };
     }
   }
@@ -280,32 +317,40 @@ export class CredentialVaultService {
   async storeCalendlyUrl(
     workspaceId: string,
     bookingUrl: string,
-    validated: boolean
+    validated: boolean,
+    createdBy = 'system'
   ): Promise<{ success: boolean; credentialId?: string; error?: string }> {
     try {
+      const encryptedData = this.encryption.encrypt(bookingUrl, workspaceId);
+      const credName = this.credentialLabel('calendly_url');
+
       const { data, error } = await this.supabase
         .schema('genesis').from('workspace_credentials')
         .upsert({
           workspace_id: workspaceId,
           credential_type: 'calendly_url',
+          credential_name: credName,
+          encrypted_data: encryptedData,
+          data_fingerprint: this.fingerprint(bookingUrl),
+          created_by: createdBy,
           booking_url: bookingUrl,
-          status: validated ? 'valid' : 'pending_validation',
+          status: validated ? 'synced' : 'pending',
           metadata: { validated, lastChecked: new Date().toISOString() },
         }, {
-          onConflict: 'workspace_id,credential_type',
+          onConflict: 'workspace_id,credential_type,credential_name',
         })
         .select('id')
         .single();
-      
+
       if (error) {
         return { success: false, error: error.message };
       }
-      
+
       return { success: true, credentialId: data.id };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to store Calendly URL' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to store Calendly URL'
       };
     }
   }
@@ -322,19 +367,23 @@ export class CredentialVaultService {
       authToken: string;
       toolImported: boolean;
       toolId?: string;
-    }
+    },
+    createdBy = 'system'
   ): Promise<{ success: boolean; credentialId?: string; error?: string }> {
     try {
-      // Encrypt the auth token
       const encryptedToken = this.encryption.encrypt(config.authToken, workspaceId);
-      
-      // Store as metadata (encrypted token in api_key field for consistency)
+      const credName = this.credentialLabel('relevance_config');
+
       const { data, error } = await this.supabase
         .schema('genesis').from('workspace_credentials')
         .upsert({
           workspace_id: workspaceId,
           credential_type: 'relevance_config',
-          api_key: encryptedToken, // Encrypted auth token
+          credential_name: credName,
+          encrypted_data: encryptedToken,
+          data_fingerprint: this.fingerprint(config.authToken),
+          created_by: createdBy,
+          api_key: encryptedToken,
           metadata: {
             baseUrl: config.baseUrl,
             projectId: config.projectId,
@@ -342,22 +391,22 @@ export class CredentialVaultService {
             toolImported: config.toolImported,
             toolId: config.toolId,
           },
-          status: 'valid',
+          status: 'synced',
         }, {
-          onConflict: 'workspace_id,credential_type',
+          onConflict: 'workspace_id,credential_type,credential_name',
         })
         .select('id')
         .single();
-      
+
       if (error) {
         return { success: false, error: error.message };
       }
-      
+
       return { success: true, credentialId: data.id };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Failed to store Relevance config' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to store Relevance config'
       };
     }
   }
@@ -498,7 +547,7 @@ export class CredentialVaultService {
     type: CredentialType
   ): Promise<boolean> {
     const result = await this.getCredential(workspaceId, type);
-    return result.success && result.credential?.status === 'valid';
+    return result.success && (result.credential?.status === 'synced' || result.credential?.status === 'pending');
   }
 
   // ============================================
@@ -514,9 +563,9 @@ export class CredentialVaultService {
     validatedAt?: Date
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const updateData: any = { status };
+      const updateData: any = { status, updated_at: new Date().toISOString() };
       if (validatedAt) {
-        updateData.validated_at = validatedAt.toISOString();
+        updateData.last_verified_at = validatedAt.toISOString();
       }
       
       const result = await this.supabase

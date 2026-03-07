@@ -492,7 +492,7 @@
       "credentials": {
         "postgres": {
           "id": "YOUR_CREDENTIAL_POSTGRES_ID",
-          "name": "Leads Ohio"
+          "name": "Leads Database"
         }
       },
       "onError": "continueRegularOutput"
@@ -589,15 +589,15 @@
           "__rl": true,
           "value": "1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8",
           "mode": "list",
-          "cachedResultName": "3508 Leads - Ohio ",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit?usp=drivesdk"
+          "cachedResultName": "Leads",
+          "cachedResultUrl": ""
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "Ohio",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit#gid=0"
+          "cachedResultName": "Leads",
+          "cachedResultUrl": ""
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -1470,7 +1470,7 @@
       "credentials": {
         "postgres": {
           "id": "YOUR_CREDENTIAL_POSTGRES_ID",
-          "name": "Leads Ohio"
+          "name": "Leads Database"
         }
       }
     },
@@ -1547,7 +1547,7 @@
       "credentials": {
         "postgres": {
           "id": "YOUR_CREDENTIAL_POSTGRES_ID",
-          "name": "Leads Ohio"
+          "name": "Leads Database"
         }
       }
     },
@@ -1591,15 +1591,15 @@
           "__rl": true,
           "value": "1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8",
           "mode": "list",
-          "cachedResultName": "3508 Leads - Ohio ",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit?usp=drivesdk"
+          "cachedResultName": "Leads",
+          "cachedResultUrl": ""
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "Ohio",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit#gid=0"
+          "cachedResultName": "Leads",
+          "cachedResultUrl": ""
         },
         "columns": {
           "mappingMode": "defineBelow",

@@ -51,14 +51,14 @@ function clearExpiredCache() {
  * D5-005: Async, non-blocking audit log for super admin workspace access.
  * Uses fire-and-forget pattern so the request is never delayed.
  */
-function logSuperAdminAccess(userId: string, workspaceId: string, requestUrl?: string) {
-  // Intentionally not awaited — fire-and-forget
+function logSuperAdminAccess(userId: string, workspaceId: string, requestUrl?: string, clientIp?: string) {
   supabase
     .from('governance_audit_log')
     .insert({
       actor_id: userId,
       action: 'super_admin_access',
       workspace_id: workspaceId,
+      ip_address: clientIp || 'unknown',
       metadata: { endpoint: requestUrl || 'unknown' },
     })
     .then(({ error }) => {

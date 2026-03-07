@@ -20,15 +20,15 @@
           "__rl": true,
           "value": "1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8",
           "mode": "list",
-          "cachedResultName": "3547 Leads - Ohio",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit"
+          "cachedResultName": "Leads",
+          "cachedResultUrl": ""
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "Ohio",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit#gid=0"
+          "cachedResultName": "Leads",
+          "cachedResultUrl": ""
         },
         "filtersUI": {
           "values": [
@@ -107,15 +107,15 @@
           "__rl": true,
           "value": "1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8",
           "mode": "list",
-          "cachedResultName": "3547 Leads - Ohio",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit"
+          "cachedResultName": "Leads",
+          "cachedResultUrl": ""
         },
         "sheetName": {
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "Ohio",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1AGG05kKt9b-OAN3YGsZ-ZVDFv9fWxEjgWHDDBE2g_C8/edit#gid=0"
+          "cachedResultName": "Leads",
+          "cachedResultUrl": ""
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -559,7 +559,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"contact_email\": \"{{ $json.email_address }}\",\n  \"campaign\": \"{{ $json.state || 'Ohio' }}\",\n  \"step\": {{ $json.email_3_sent === 'Yes' ? 3 : ($json.email_2_sent === 'Yes' ? 2 : 1) }},\n  \"event_type\": \"replied\",\n  \"provider\": \"gmail\",\n  \"event_ts\": \"{{ new Date().toISOString() }}\",\n  \"idempotency_key\": \"{{ `reply_${$execution.id}_${$json.email_address}` }}\",\n  \"n8n_execution_id\": \"{{ $execution.id }}\"\n}",
+        "jsonBody": "={\n  \"contact_email\": \"{{ $json.email_address }}\",\n  \"campaign\": \"{{ $json.state || 'Campaign' }}\",\n  \"step\": {{ $json.email_3_sent === 'Yes' ? 3 : ($json.email_2_sent === 'Yes' ? 2 : 1) }},\n  \"event_type\": \"replied\",\n  \"provider\": \"gmail\",\n  \"event_ts\": \"{{ new Date().toISOString() }}\",\n  \"idempotency_key\": \"{{ `reply_${$execution.id}_${$json.email_address}` }}\",\n  \"n8n_execution_id\": \"{{ $execution.id }}\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -654,7 +654,7 @@
       "credentials": {
         "postgres": {
           "id": "YOUR_CREDENTIAL_POSTGRES_ID",
-          "name": "Leads Ohio"
+          "name": "Leads Database"
         }
       }
     },

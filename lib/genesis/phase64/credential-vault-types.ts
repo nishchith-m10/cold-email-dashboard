@@ -20,7 +20,7 @@ export type CredentialType =
   | 'calendly_url'
   | 'entri_oauth';
 
-export type CredentialStatus = 'valid' | 'invalid' | 'expired' | 'pending_validation';
+export type CredentialStatus = 'pending' | 'synced' | 'sync_failed' | 'revoked';
 
 // ============================================
 // CREDENTIAL INTERFACES

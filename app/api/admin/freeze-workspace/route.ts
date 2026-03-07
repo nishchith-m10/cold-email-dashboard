@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
       console.warn(`[Kill Switch] Could not look up sidecar URL for workspace ${workspace_id}`);
     }
 
-    // Log to governance audit
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
     await supabase.from('governance_audit_log').insert({
       workspace_id,
       workspace_name: workspace.name,
@@ -161,6 +161,7 @@ export async function POST(req: NextRequest) {
       actor_email: actorEmail,
       action: 'freeze',
       reason: reason || 'No reason provided',
+      ip_address: clientIp,
       metadata: { previous_status: workspace.status, webhook_token_invalidated: true },
     });
 
@@ -278,7 +279,7 @@ export async function DELETE(req: NextRequest) {
       .update({ webhook_token: newWebhookToken })
       .eq('id', workspace_id);
 
-    // Log to governance audit
+    const unfreezeIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
     await supabase.from('governance_audit_log').insert({
       workspace_id,
       workspace_name: workspace.name,
@@ -286,6 +287,7 @@ export async function DELETE(req: NextRequest) {
       actor_email: actorEmail,
       action: 'unfreeze',
       reason: 'Workspace restored to active status',
+      ip_address: unfreezeIp,
       metadata: {
         previous_status: 'frozen',
         new_webhook_token_generated: true,

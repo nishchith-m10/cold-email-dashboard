@@ -17,6 +17,7 @@ import { supabaseHealthCheck } from './checks/supabase';
 import { redisHealthCheck } from './checks/redis';
 import { stripeHealthCheck } from './checks/stripe';
 import { resendHealthCheck } from './checks/resend';
+import { clerkHealthCheck } from './checks/clerk';
 
 /**
  * All registered health checks, ordered by criticality then name.
@@ -26,6 +27,7 @@ const ALL_CHECKS: HealthCheck[] = [
   supabaseHealthCheck,
   redisHealthCheck,
   digitalOceanHealthCheck,
+  clerkHealthCheck,
 
   // Email (critical — core product feature)
   gmailHealthCheck,

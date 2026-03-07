@@ -107,12 +107,14 @@ export async function POST(req: NextRequest) {
 
     const services = getServices();
     if ('error' in services) {
+      console.error('[credentials POST] Service init failed:', services.error);
       return NextResponse.json({ error: services.error }, { status: 500 });
     }
     const { vaultService: vault, validationService: validator } = services;
 
     const body: any = await req.json();
     const { workspaceId, type, value, metadata, config } = body;
+    console.log(`[credentials POST] type=${type} workspace=${workspaceId} hasValue=${!!value} hasConfig=${!!config}`);
 
     // Handle relevance_config specially - it has config object instead of value
     if (type === 'relevance_config') {
@@ -138,8 +140,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Store the relevance config
-      const result = await vault!.storeRelevanceConfig(workspaceId, config);
+      const result = await vault!.storeRelevanceConfig(workspaceId, config, userId);
       if (!result.success) {
         return NextResponse.json({ error: result.error }, { status: 500 });
       }
@@ -177,26 +178,29 @@ export async function POST(req: NextRequest) {
     let result;
 
     if (type === 'calendly_url') {
-      result = await vault!.storeCalendlyUrl(workspaceId, value, true);
+      result = await vault!.storeCalendlyUrl(workspaceId, value, true, userId);
     } else if (type.endsWith('_oauth')) {
-      // OAuth credentials come from callback, not direct POST
       return NextResponse.json({ error: 'OAuth credentials must come from callback' }, { status: 400 });
     } else {
       result = await vault!.storeApiKeyCredential(
         workspaceId,
         type,
         value,
-        metadata
+        metadata,
+        userId
       );
     }
 
     if (!result.success) {
+      console.error(`[credentials POST] Store failed for type=${type}:`, result.error);
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
+    console.log(`[credentials POST] Stored credential type=${type} id=${result.credentialId}`);
+
     // Mark as validated
     if (result.credentialId) {
-      await vault!.updateCredentialStatus(result.credentialId, 'valid', new Date());
+      await vault!.updateCredentialStatus(result.credentialId, 'synced', new Date());
     }
 
     // Post-ignition auto-inject: if workspace already has a running droplet,
@@ -255,7 +259,8 @@ export async function POST(req: NextRequest) {
       injected,
     });
   } catch (error) {
-    console.error('Credentials POST error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('[credentials POST] Unhandled error:', msg, error);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

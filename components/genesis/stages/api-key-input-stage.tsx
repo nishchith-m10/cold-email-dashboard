@@ -164,13 +164,13 @@ export function ApiKeyInputStage({
       });
 
       if (!res.ok) {
-        throw new Error('Failed to save credential');
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Save failed (HTTP ${res.status})`);
       }
 
       setIsSaved(true);
       onComplete();
     } catch (err) {
-      // Unlock the input so the user can re-enter / retry
       setIsValid(false);
       setValidationError(err instanceof Error ? err.message : 'Failed to save — please try again');
     } finally {
