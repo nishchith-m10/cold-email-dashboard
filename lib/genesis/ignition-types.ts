@@ -226,6 +226,7 @@ export interface IgnitionState {
 export interface IgnitionResult {
   success: boolean;
   workspace_id: string;
+  status?: string;
   
   // Resources created
   partition_name?: string;
