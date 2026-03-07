@@ -2,29 +2,22 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronRight, ChevronDown, Menu, X } from 'lucide-react'
+import { ChevronRight, Menu, X } from 'lucide-react'
 
-const BRAND = 'Singularity'
+const BRAND = 'Up Shot'
 
 const navLinks = [
   { label: 'About', href: '#' },
+  { label: 'Our Product', href: '/product' },
   { label: 'Pricing', href: '/pricing' },
-  { label: 'Integrations', href: '#' },
-  { label: 'Blog', href: '#' },
-]
-
-const pagesDropdown = [
-  { label: 'Home', href: '/' },
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'Book a Demo', href: '/demo' },
 ]
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [pagesOpen, setPagesOpen] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
@@ -48,46 +41,26 @@ export function Navbar() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="2" width="12" height="12" rx="2" fill="#0C0C0C" />
-            <rect x="8" y="8" width="12" height="12" rx="2" fill="#0C0C0C" fillOpacity="0.5" />
-          </svg>
+          <Image
+            src="/logo.png"
+            alt="Up Shot logo"
+            width={28}
+            height={28}
+            className="rounded-md object-contain"
+          />
           <span className="font-sans text-[17px] font-semibold text-[#0C0C0C]">{BRAND}</span>
         </Link>
 
         {/* Desktop nav */}
         <div className="hidden items-center gap-6 md:flex">
-          {/* Pages dropdown */}
-          <div
-            className="relative"
-            onMouseEnter={() => setPagesOpen(true)}
-            onMouseLeave={() => setPagesOpen(false)}
+          <Link
+            href="/"
+            className={`text-sm transition-colors hover:text-[#0C0C0C] ${
+              pathname === '/' ? 'text-[#0C0C0C]' : 'text-[#666660]'
+            }`}
           >
-            <button className="flex items-center gap-1 text-sm text-[#666660] transition-colors hover:text-[#0C0C0C]">
-              Pages <ChevronDown size={14} />
-            </button>
-            <AnimatePresence>
-              {pagesOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute left-0 top-full mt-2 w-44 rounded-xl border border-[#E4E4DF] bg-white p-2 shadow-lg"
-                >
-                  {pagesDropdown.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="block rounded-lg px-3 py-2 text-sm text-[#666660] transition-colors hover:bg-[#F5F5F3] hover:text-[#0C0C0C]"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+            Home
+          </Link>
           {navLinks.map((link) => (
             <Link
               key={link.label}
@@ -130,15 +103,12 @@ export function Navbar() {
             className="overflow-hidden border-t border-[#E4E4DF] bg-white md:hidden"
           >
             <div className="flex flex-col gap-1 px-6 py-4">
-              {pagesDropdown.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="rounded-lg px-3 py-2.5 text-sm text-[#666660] transition-colors hover:bg-[#F5F5F3] hover:text-[#0C0C0C]"
-                >
-                  {item.label}
-                </Link>
-              ))}
+              <Link
+                href="/"
+                className="rounded-lg px-3 py-2.5 text-sm text-[#666660] transition-colors hover:bg-[#F5F5F3] hover:text-[#0C0C0C]"
+              >
+                Home
+              </Link>
               {navLinks.map((link) => (
                 <Link
                   key={link.label}

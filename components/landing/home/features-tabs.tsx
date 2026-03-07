@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Calendar, BarChart2, Link2, LayoutGrid, Settings, ChevronRight } from 'lucide-react'
@@ -15,7 +14,6 @@ interface Tab {
   sublabel: string
   heading: string
   body: string
-  image: string
 }
 
 const tabs: Tab[] = [
@@ -25,7 +23,6 @@ const tabs: Tab[] = [
     sublabel: 'Meaningful calendar',
     heading: 'Stay organized and on track',
     body: 'Effortlessly manage your time and tasks with our intuitive scheduling calendar. Create, modify, and share events with ease.',
-    image: 'https://framerusercontent.com/images/cpeOKiCJkfxm8KSiwrm1wijnpw.png',
   },
   {
     icon: BarChart2,
@@ -33,7 +30,6 @@ const tabs: Tab[] = [
     sublabel: 'Insightful analytics',
     heading: 'Understand your performance',
     body: 'Track key performance indicators, generate reports, and uncover actionable insights to accelerate your outreach.',
-    image: 'https://framerusercontent.com/images/jGCAgVOTqmEJcV2hXPwt96TUd6w.png',
   },
   {
     icon: Link2,
@@ -41,7 +37,6 @@ const tabs: Tab[] = [
     sublabel: 'Seamless integration',
     heading: 'Connect everything you need',
     body: 'Keep everything connected without any limits. Integrate with your favorite tools and maintain a single source of truth.',
-    image: 'https://framerusercontent.com/images/20JAL7lVbCM9Tf4H99RslCs17eM.png',
   },
   {
     icon: LayoutGrid,
@@ -49,7 +44,6 @@ const tabs: Tab[] = [
     sublabel: 'Effortless boards',
     heading: 'Organize and track visually',
     body: 'A visual way to organize and track your tasks and projects. Drag, drop, and stay on top of every detail.',
-    image: 'https://framerusercontent.com/images/yPZWlmF3vAEd1788LZXY3UHFiDU.png',
   },
 ]
 
@@ -129,15 +123,15 @@ export function FeaturesTabs() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.3 }}
-              className="overflow-hidden rounded-2xl border border-[#E4E4DF] shadow-sm"
             >
-              <Image
-                src={current.image}
-                alt={current.heading}
-                width={600}
-                height={400}
-                className="w-full"
-              />
+              <div
+                className="flex items-center justify-center rounded-2xl border border-dashed border-[#C8C8C0] bg-[#F5F5F3]"
+                style={{ minHeight: '320px', width: '100%' }}
+              >
+                <p className="text-center text-sm text-[#666660]/60 px-4">
+                  [Image placeholder — {current.label} feature interface]
+                </p>
+              </div>
             </motion.div>
           </AnimatePresence>
         </div>

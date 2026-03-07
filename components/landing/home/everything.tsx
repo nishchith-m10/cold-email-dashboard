@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { Settings, Calendar, BarChart2, Link2, LayoutGrid, ChevronRight } from 'lucide-react'
 import { Reveal } from '@/components/landing/reveal'
@@ -43,14 +42,13 @@ export function Everything() {
 
         {/* Dashboard image */}
         <Reveal>
-          <div className="mt-10 overflow-hidden rounded-2xl border border-[#E4E4DF] shadow-sm">
-            <Image
-              src="https://framerusercontent.com/images/fDpZwbdQ0YlmYkH0aV1NJCtMJ7c.png"
-              alt="Full dashboard overview"
-              width={1200}
-              height={700}
-              className="w-full"
-            />
+          <div
+            className="mt-10 flex items-center justify-center rounded-2xl border border-dashed border-[#C8C8C0] bg-[#F5F5F3]"
+            style={{ minHeight: '400px', width: '100%' }}
+          >
+            <p className="text-center text-sm text-[#666660]/60 px-4">
+              [Image placeholder — Full dashboard overview screenshot showing all key modules]
+            </p>
           </div>
         </Reveal>
 

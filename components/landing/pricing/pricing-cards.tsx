@@ -233,23 +233,7 @@ export function PricingCards() {
           ))}
         </div>
 
-        {/* Trust strip */}
-        <Reveal>
-          <p className="mt-16 text-center text-xs font-medium uppercase tracking-widest text-[#666660]/60">
-            Trusted by the world leaders
-          </p>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-8">
-            {['Springfield', 'Orbitc', 'Cloud', 'Proline', 'Luminous'].map((name) => (
-              <span
-                key={name}
-                className="text-lg font-semibold text-[#0C0C0C]/25"
-                style={{ fontFamily: 'var(--font-body), sans-serif' }}
-              >
-                {name}
-              </span>
-            ))}
-          </div>
-        </Reveal>
+
       </div>
     </section>
   )

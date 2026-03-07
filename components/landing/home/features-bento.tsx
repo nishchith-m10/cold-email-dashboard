@@ -1,23 +1,8 @@
 'use client'
 
-import Image from 'next/image'
 import { Settings } from 'lucide-react'
 import { Reveal } from '@/components/landing/reveal'
 import { SectionLabel } from '@/components/landing/section-label'
-
-const thumbnails = [
-  'https://framerusercontent.com/images/nxTZEDT1LJB9gaBWaCwMQao5GU.png',
-  'https://framerusercontent.com/images/mRRmHyGLMnT7ujxy7S132EHSiM.png',
-  'https://framerusercontent.com/images/19s71fI9671RomIEVBloQcsprw.png',
-  'https://framerusercontent.com/images/D311so81eAYd5mBZVKaHbOiEz0.png',
-  'https://framerusercontent.com/images/pCHXMWCJWPBI98peTkPSWUfvyS8.png',
-]
-
-const integrationLogos = [
-  'https://framerusercontent.com/images/gAhsGmL9ihCFvD2rXRdje9nUAfg.png',
-  'https://framerusercontent.com/images/3PwGTnAVDSTaDTqKqs9iEs577Ck.png',
-  'https://framerusercontent.com/images/Ns76trsFg5DIlEwAENtDoi62Xy8.png',
-]
 
 export function FeaturesBento() {
   return (
@@ -40,14 +25,13 @@ export function FeaturesBento() {
 
         {/* Full-width feature strip */}
         <Reveal>
-          <div className="mt-12 overflow-hidden rounded-2xl border border-[#E4E4DF] shadow-sm">
-            <Image
-              src="https://framerusercontent.com/images/clHUntYDxl1DHojTDvKUTUCBQ.png"
-              alt="Feature overview strip"
-              width={1200}
-              height={400}
-              className="w-full"
-            />
+          <div
+            className="mt-12 flex items-center justify-center rounded-2xl border border-dashed border-[#C8C8C0] bg-[#F5F5F3]"
+            style={{ minHeight: '200px', width: '100%' }}
+          >
+            <p className="text-center text-sm text-[#666660]/60 px-4">
+              [Image placeholder — Feature overview strip]
+            </p>
           </div>
         </Reveal>
 
@@ -60,17 +44,13 @@ export function FeaturesBento() {
               <p className="mt-1 text-sm text-[#666660]">
                 Visualize your outreach performance and track every campaign metric in real time.
               </p>
-              <div className="mt-6 flex gap-4 overflow-x-auto no-scrollbar pb-2">
-                {thumbnails.map((src, i) => (
-                  <Image
-                    key={i}
-                    src={src}
-                    alt={`Data insight thumbnail ${i + 1}`}
-                    width={200}
-                    height={120}
-                    className="flex-shrink-0 rounded-xl border border-[#E4E4DF]"
-                  />
-                ))}
+              <div
+                className="mt-6 flex items-center justify-center rounded-xl border border-dashed border-[#C8C8C0] bg-[#F5F5F3]"
+                style={{ height: '140px', width: '100%' }}
+              >
+                <p className="text-center text-sm text-[#666660]/60">
+                  [Image placeholder — Scrolling feature preview thumbnails]
+                </p>
               </div>
             </div>
           </Reveal>
@@ -82,14 +62,13 @@ export function FeaturesBento() {
               <p className="mt-1 text-sm text-[#666660]">
                 Collaborate with your team, share updates instantly.
               </p>
-              <div className="mt-6 overflow-hidden rounded-xl border border-[#E4E4DF]">
-                <Image
-                  src="https://framerusercontent.com/images/w3hm0D2z0n8aJmqj5gMIcD1rA.png"
-                  alt="Collaboration preview"
-                  width={400}
-                  height={250}
-                  className="w-full"
-                />
+              <div
+                className="mt-6 flex items-center justify-center rounded-xl border border-dashed border-[#C8C8C0] bg-[#F5F5F3]"
+                style={{ height: '160px', width: '100%' }}
+              >
+                <p className="text-center text-sm text-[#666660]/60 px-4">
+                  [Image placeholder — Collaboration preview]
+                </p>
               </div>
             </div>
           </Reveal>
@@ -101,16 +80,15 @@ export function FeaturesBento() {
               <p className="mt-1 text-sm text-[#666660]">
                 Connect with the tools you already use. No friction.
               </p>
-              <div className="mt-6 flex items-center gap-4">
-                {integrationLogos.map((src, i) => (
-                  <Image
+              <div className="mt-6 flex gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div
                     key={i}
-                    src={src}
-                    alt={`Integration logo ${i + 1}`}
-                    width={80}
-                    height={80}
-                    className="rounded-xl border border-[#E4E4DF]"
-                  />
+                    className="flex items-center justify-center rounded-lg border border-dashed border-[#C8C8C0] bg-[#F5F5F3]"
+                    style={{ height: '56px', width: '80px' }}
+                  >
+                    <span className="text-[10px] text-[#666660]/50">Logo {i}</span>
+                  </div>
                 ))}
               </div>
             </div>

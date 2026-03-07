@@ -53,8 +53,9 @@ export class N8nManager {
 
   constructor(baseUrl: string, apiKey: string) {
     this.baseUrl = baseUrl;
+    const apiBase = baseUrl.replace(/\/+$/, '') + '/api/v1';
     this.client = axios.create({
-      baseURL: baseUrl,
+      baseURL: apiBase,
       headers: {
         'X-N8N-API-KEY': apiKey,
         'Content-Type': 'application/json',

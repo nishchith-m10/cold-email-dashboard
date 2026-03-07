@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { Link2, ChevronRight } from 'lucide-react'
 import { Reveal } from '@/components/landing/reveal'
@@ -32,14 +31,13 @@ export function Integrations() {
         </Reveal>
 
         <Reveal>
-          <div className="mx-auto mt-10 max-w-3xl overflow-hidden rounded-2xl border border-[#E4E4DF]">
-            <Image
-              src="https://framerusercontent.com/images/cKrr3hRrnfHlg7tvxiBEfgykaek.png"
-              alt="Integrations grid showing supported tools"
-              width={800}
-              height={500}
-              className="w-full"
-            />
+          <div
+            className="mx-auto mt-10 max-w-3xl flex items-center justify-center rounded-2xl border border-dashed border-[#C8C8C0] bg-[#F5F5F3]"
+            style={{ minHeight: '360px', width: '100%' }}
+          >
+            <p className="text-center text-sm text-[#666660]/60 px-4">
+              [Image placeholder — Integration grid showing all supported third-party tools]
+            </p>
           </div>
         </Reveal>
       </div>

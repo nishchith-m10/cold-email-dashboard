@@ -4,7 +4,7 @@ import { FAQ } from '@/components/landing/faq'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Pricing — Singularity',
+  title: 'Pricing — Up Shot',
   description:
     'Transparent pricing for cold email outreach at scale. Growth, Scale, and Premium plans with dedicated infrastructure.',
 }
