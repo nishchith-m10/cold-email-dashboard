@@ -17,7 +17,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Singularity — The Most Powerful Cold Email Platform',
+  title: 'Up Shot — The Most Powerful Cold Email Platform',
   description:
     'AI-personalized cold email sequences at scale. LinkedIn scraping, company research, AI email drafting, and autonomous sending for agencies and sales teams.',
 }

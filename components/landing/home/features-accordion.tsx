@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Settings, ChevronDown } from 'lucide-react'
 import { Reveal } from '@/components/landing/reveal'
@@ -11,22 +10,18 @@ const items = [
   {
     title: 'Meaningful calendar',
     body: 'Effortlessly manage your time and tasks with our intuitive scheduling calendar. Create, modify, and share events with ease.',
-    image: 'https://framerusercontent.com/images/cpeOKiCJkfxm8KSiwrm1wijnpw.png',
   },
   {
     title: 'Insightful analytics',
     body: 'Track key performance indicators, generate reports, and uncover actionable insights to accelerate your outreach.',
-    image: 'https://framerusercontent.com/images/jGCAgVOTqmEJcV2hXPwt96TUd6w.png',
   },
   {
     title: 'Seamless integration',
     body: 'Keep everything connected without any limits. Integrate with your favorite tools and maintain a single source of truth.',
-    image: 'https://framerusercontent.com/images/20JAL7lVbCM9Tf4H99RslCs17eM.png',
   },
   {
     title: 'Effortless boards',
     body: 'A visual way to organize and track your tasks and projects. Drag, drop, and stay on top of every detail.',
-    image: 'https://framerusercontent.com/images/yPZWlmF3vAEd1788LZXY3UHFiDU.png',
   },
 ]
 
@@ -96,15 +91,15 @@ export function FeaturesAccordion() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.3 }}
-              className="overflow-hidden rounded-2xl border border-[#E4E4DF] shadow-sm"
             >
-              <Image
-                src={items[active].image}
-                alt={items[active].title}
-                width={600}
-                height={400}
-                className="w-full"
-              />
+              <div
+                className="flex items-center justify-center rounded-2xl border border-dashed border-[#C8C8C0] bg-[#F5F5F3]"
+                style={{ minHeight: '360px', width: '100%' }}
+              >
+                <p className="text-center text-sm text-[#666660]/60 px-4">
+                  [Image placeholder — {items[active].title} feature screenshot]
+                </p>
+              </div>
             </motion.div>
           </AnimatePresence>
         </div>

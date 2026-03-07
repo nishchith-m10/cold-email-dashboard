@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { Users, PenLine, MessageSquare, Calendar, BarChart2, ChevronRight, Zap } from 'lucide-react'
 import { Reveal } from '@/components/landing/reveal'
@@ -8,19 +7,16 @@ import { SectionLabel } from '@/components/landing/section-label'
 
 const cards = [
   {
-    image: 'https://framerusercontent.com/images/R9MaiyXC5GfHNgvCodBmHhAOJI.png',
     icon: Users,
     title: 'Invite members',
     body: 'Share, edit, and manage projects in real-time, ensuring everyone stays aligned and productive.',
   },
   {
-    image: 'https://framerusercontent.com/images/1Uumbz60XarPLaepVBJKRwZPw.png',
     icon: PenLine,
     title: 'Edit together',
     body: 'Work smarter with collaborative editing tools that keep everyone on the same page.',
   },
   {
-    image: 'https://framerusercontent.com/images/96N9BJB6B6KPgd2T8rz9P3tdpwE.png',
     icon: MessageSquare,
     title: 'Instant feedback',
     body: 'Easily share thoughts, ask questions, and provide feedback directly within your files.',
@@ -52,14 +48,13 @@ export function Collaboration() {
           {cards.map((card, i) => (
             <Reveal key={card.title} delay={i * 0.1}>
               <div className="flex flex-col gap-4 rounded-2xl border border-[#E4E4DF] bg-white p-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
-                <div className="overflow-hidden rounded-xl">
-                  <Image
-                    src={card.image}
-                    alt={card.title}
-                    width={400}
-                    height={240}
-                    className="aspect-video w-full object-cover"
-                  />
+                <div
+                  className="flex items-center justify-center rounded-xl border border-dashed border-[#C8C8C0] bg-[#F5F5F3]"
+                  style={{ height: '180px', width: '100%' }}
+                >
+                  <p className="text-center text-xs text-[#666660]/60 px-4">
+                    [Image placeholder — {card.title} feature screenshot]
+                  </p>
                 </div>
                 <card.icon size={18} className="text-[#3A6B35]" />
                 <h3 className="font-semibold text-[#0C0C0C]">{card.title}</h3>
@@ -98,14 +93,13 @@ export function Collaboration() {
             </div>
           </Reveal>
           <Reveal delay={0.1}>
-            <div className="overflow-hidden rounded-2xl border border-[#E4E4DF] shadow-sm">
-              <Image
-                src="https://framerusercontent.com/images/cpeOKiCJkfxm8KSiwrm1wijnpw.png"
-                alt="Calendar feature preview"
-                width={600}
-                height={400}
-                className="w-full"
-              />
+            <div
+              className="flex items-center justify-center rounded-2xl border border-dashed border-[#C8C8C0] bg-[#F5F5F3]"
+              style={{ minHeight: '320px', width: '100%' }}
+            >
+              <p className="text-center text-sm text-[#666660]/60 px-4">
+                [Image placeholder — Calendar scheduling interface mockup]
+              </p>
             </div>
           </Reveal>
         </div>
@@ -113,14 +107,13 @@ export function Collaboration() {
         {/* Analytics */}
         <div className="mt-24 grid items-center gap-16 md:grid-cols-2">
           <Reveal className="order-2 md:order-1">
-            <div className="overflow-hidden rounded-2xl border border-[#E4E4DF] shadow-sm">
-              <Image
-                src="https://framerusercontent.com/images/PUht1sYAHXeN5y3QqkzQVJyHQY.png"
-                alt="Analytics dashboard preview"
-                width={600}
-                height={400}
-                className="w-full"
-              />
+            <div
+              className="flex items-center justify-center rounded-2xl border border-dashed border-[#C8C8C0] bg-[#F5F5F3]"
+              style={{ minHeight: '320px', width: '100%' }}
+            >
+              <p className="text-center text-sm text-[#666660]/60 px-4">
+                [Image placeholder — Analytics donut chart showing traffic sources and metrics]
+              </p>
             </div>
           </Reveal>
           <Reveal delay={0.1} className="order-1 md:order-2">

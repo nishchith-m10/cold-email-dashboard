@@ -1,11 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
 
-const BRAND = 'Singularity'
+const BRAND = 'Up Shot'
 
 const words = ['The', 'most', 'powerful', 'cold', 'email', 'platform.']
 
@@ -93,14 +92,14 @@ export function Hero() {
               transformOrigin: 'top center',
             }}
           >
-            <Image
-              src="https://framerusercontent.com/images/ixkKzTb9JFjaMw018haF9zgwgQ.png"
-              alt={`${BRAND} dashboard showing revenue, expenses, customers and analytics`}
-              width={1200}
-              height={750}
-              className="w-full"
-              priority
-            />
+            <div
+              className="flex items-center justify-center bg-[#F0F0EE]"
+              style={{ minHeight: '480px', width: '100%' }}
+            >
+              <p className="text-center text-sm text-[#666660]/60 px-6">
+                [Image placeholder — Dashboard product screenshot showing revenue, analytics, and lead metrics]
+              </p>
+            </div>
           </div>
           {/* Gradient fade at bottom */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#F5F5F3] to-transparent" />

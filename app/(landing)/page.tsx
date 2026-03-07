@@ -1,13 +1,10 @@
 import { Hero } from '@/components/landing/home/hero'
-import { LogoStrip } from '@/components/landing/home/logo-strip'
 import { Collaboration } from '@/components/landing/home/collaboration'
 import { FeaturesBento } from '@/components/landing/home/features-bento'
 import { FeaturesTabs } from '@/components/landing/home/features-tabs'
 import { Everything } from '@/components/landing/home/everything'
 import { FeaturesAccordion } from '@/components/landing/home/features-accordion'
 import { Integrations } from '@/components/landing/home/integrations'
-import { Testimonials } from '@/components/landing/home/testimonials'
-import { Blog } from '@/components/landing/home/blog'
 import { FAQ } from '@/components/landing/faq'
 
 const homeFAQ = [
@@ -42,15 +39,12 @@ export default function HomePage() {
   return (
     <>
       <Hero />
-      <LogoStrip />
       <Collaboration />
       <FeaturesBento />
       <FeaturesTabs />
       <Everything />
       <FeaturesAccordion />
       <Integrations />
-      <Testimonials />
-      <Blog />
       <FAQ items={homeFAQ} />
     </>
   )

@@ -1,13 +1,12 @@
 import { DemoHero } from '@/components/landing/demo/demo-hero'
 import { HowItWorks } from '@/components/landing/demo/how-it-works'
-import { CaseStudies } from '@/components/landing/demo/case-studies'
 import { FAQ } from '@/components/landing/faq'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Book a Demo — Singularity',
+  title: 'Book a Demo — Up Shot',
   description:
-    'Schedule a personalized demo to see how Singularity can transform your cold email outreach.',
+    'Schedule a personalized demo to see how Up Shot can transform your cold email outreach.',
 }
 
 const demoFAQ = [
@@ -43,7 +42,6 @@ export default function DemoPage() {
     <>
       <DemoHero />
       <HowItWorks />
-      <CaseStudies />
       <FAQ items={demoFAQ} bg="bg-white" />
     </>
   )
