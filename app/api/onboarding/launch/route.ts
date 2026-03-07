@@ -29,7 +29,7 @@ import { CredentialVault } from '@/lib/genesis/credential-vault';
 let assembler: IgnitionConfigAssembler | null = null;
 
 function getAssembler(): IgnitionConfigAssembler | { error: string } {
-  const masterKey = process.env.ENCRYPTION_MASTER_KEY;
+  const masterKey = process.env.ENCRYPTION_MASTER_KEY || process.env.CREDENTIAL_MASTER_KEY;
   if (!masterKey) {
     return { error: 'ENCRYPTION_MASTER_KEY not configured' };
   }

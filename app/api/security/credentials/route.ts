@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Lazy-load encryption service
-    const masterKey = process.env.ENCRYPTION_MASTER_KEY;
+    const masterKey = process.env.ENCRYPTION_MASTER_KEY || process.env.CREDENTIAL_MASTER_KEY;
     if (!masterKey) {
       return NextResponse.json(
         { error: 'Encryption not configured' },

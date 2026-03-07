@@ -66,7 +66,7 @@ export class EncryptionService {
 
   constructor(masterKeyHex?: string, previousMasterKeyHex?: string) {
     // In production, load from environment variable
-    const key = masterKeyHex || process.env.ENCRYPTION_MASTER_KEY;
+    const key = masterKeyHex || process.env.ENCRYPTION_MASTER_KEY || process.env.CREDENTIAL_MASTER_KEY;
     if (!key) {
       throw new Error('ENCRYPTION_MASTER_KEY not configured');
     }

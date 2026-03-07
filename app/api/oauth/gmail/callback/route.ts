@@ -27,7 +27,7 @@ interface Services {
 function getServices(): { services: Services } | { error: string } {
   const clientId = GMAIL_OAUTH_CONFIG.clientId;
   const clientSecret = GMAIL_OAUTH_CONFIG.clientSecret;
-  const masterKey = process.env.ENCRYPTION_MASTER_KEY;
+  const masterKey = process.env.ENCRYPTION_MASTER_KEY || process.env.CREDENTIAL_MASTER_KEY;
   
   if (!clientId || !clientSecret) {
     return { error: 'Gmail OAuth not configured' };

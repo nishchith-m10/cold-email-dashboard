@@ -18,7 +18,7 @@ let encryptionService: EncryptionService | null = null;
 
 function getEncryptionService(): EncryptionService {
   if (!encryptionService) {
-    const masterKey = process.env.ENCRYPTION_MASTER_KEY;
+    const masterKey = process.env.ENCRYPTION_MASTER_KEY || process.env.CREDENTIAL_MASTER_KEY;
     if (!masterKey) {
       throw new Error('ENCRYPTION_MASTER_KEY not configured');
     }

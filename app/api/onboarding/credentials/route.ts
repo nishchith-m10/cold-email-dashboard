@@ -18,7 +18,7 @@ let vaultService: CredentialVaultService | null = null;
 let validationService: CredentialValidationService | null = null;
 
 function getServices() {
-  const masterKey = process.env.ENCRYPTION_MASTER_KEY;
+  const masterKey = process.env.ENCRYPTION_MASTER_KEY || process.env.CREDENTIAL_MASTER_KEY;
   if (!masterKey) {
     return { error: 'ENCRYPTION_MASTER_KEY not configured. Add it to your .env.local file.' };
   }
