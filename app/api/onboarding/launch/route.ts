@@ -287,7 +287,7 @@ async function handlePhase1(workspaceId: string, userId: string) {
 
   return NextResponse.json({
     success: true,
-    status: result.status,
+    status: 'handshake_pending',
     phase: 1,
     workspace_id: workspaceId,
     droplet_id: result.droplet_id,
