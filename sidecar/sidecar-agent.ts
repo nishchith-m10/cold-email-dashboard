@@ -148,6 +148,7 @@ export class SidecarAgent {
   private app: express.Application;
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private startTime: number;
+  private n8nBootstrapped = false; // Set true after owner setup + API key acquired
 
   constructor(config: SidecarConfig) {
     this.config = config;
@@ -257,7 +258,8 @@ export class SidecarAgent {
         uptime: Math.floor((Date.now() - this.startTime) / 1000),
         workspace_id: this.config.workspaceId,
         droplet_id: this.config.dropletId,
-        smtp_enabled: this.smtpService !== null,  // Phase 64.B
+        smtp_enabled: this.smtpService !== null,
+        n8n_bootstrapped: this.n8nBootstrapped, // true once owner setup + API key are ready
       });
     });
 
@@ -827,9 +829,23 @@ export class SidecarAgent {
       const setupNeeded = await this.isOwnerSetupNeeded();
 
       if (!setupNeeded) {
-        console.log('✅ n8n owner already configured');
-        if (!this.config.n8nApiKey) {
-          console.warn('⚠️  No N8N_API_KEY in env and owner already set — some commands may fail.');
+        console.log('✅ n8n owner already configured — acquiring API key via login...');
+        // Owner already set up (e.g. sidecar restarted) — log in and get a fresh API key
+        const ownerEmail = process.env.N8N_OWNER_EMAIL || `admin@${this.config.workspaceId}.internal`;
+        const ownerPassword = process.env.N8N_PASSWORD || process.env.N8N_OWNER_PASSWORD;
+        if (ownerPassword) {
+          try {
+            const sessionCookie = await this.loginN8nOwner(ownerEmail, ownerPassword);
+            const apiKey = await this.createN8nApiKey(sessionCookie);
+            this.config.n8nApiKey = apiKey;
+            this.n8nManager = new N8nManager(this.config.n8nUrl, apiKey);
+            this.n8nBootstrapped = true;
+            console.log('✅ n8n re-bootstrapped — API key acquired via login');
+          } catch (loginErr) {
+            console.warn('⚠️  Re-login failed, may need manual intervention:', loginErr instanceof Error ? loginErr.message : String(loginErr));
+          }
+        } else {
+          console.warn('⚠️  No N8N_PASSWORD in env — cannot acquire API key on restart');
         }
         return;
       }
@@ -848,6 +864,7 @@ export class SidecarAgent {
       // Persist for this process lifetime; reinit manager with real key
       this.config.n8nApiKey = apiKey;
       this.n8nManager = new N8nManager(this.config.n8nUrl, apiKey);
+      this.n8nBootstrapped = true;
 
       console.log('✅ n8n bootstrapped — API key acquired');
     } catch (err) {
@@ -915,6 +932,29 @@ export class SidecarAgent {
     }
 
     // Join all cookie parts as a single Cookie header value
+    return setCookie.map((c: string) => c.split(';')[0]).join('; ');
+  }
+
+  /** Log in to an already-configured n8n instance and return the session cookie */
+  private async loginN8nOwner(email: string, password: string): Promise<string> {
+    const res = await axios.post(
+      `${this.config.n8nUrl}/rest/login`,
+      { email, password },
+      {
+        timeout: 30_000,
+        validateStatus: (s) => s < 500,
+      }
+    );
+
+    if (res.status !== 200) {
+      throw new Error(`n8n login returned HTTP ${res.status}: ${JSON.stringify(res.data)}`);
+    }
+
+    const setCookie = res.headers['set-cookie'];
+    if (!setCookie || setCookie.length === 0) {
+      throw new Error('n8n login succeeded but no Set-Cookie header returned');
+    }
+
     return setCookie.map((c: string) => c.split(';')[0]).join('; ');
   }
 

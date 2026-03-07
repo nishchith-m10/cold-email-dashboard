@@ -3,8 +3,19 @@
  *
  * POST /api/onboarding/launch
  *
- * Validates auth → verifies all onboarding stages complete →
- * assembles IgnitionConfig → calls IgnitionOrchestrator.ignite()
+ * TWO-PHASE IGNITION (designed for Vercel serverless ≤60 s):
+ *
+ *   Phase 1  (this endpoint, phase=1 or default):
+ *     validate → manifest → partition → droplet + IP → save state → return
+ *     Completes in ~30-40 s.
+ *
+ *   Phase 2  (this endpoint, phase=2):
+ *     load state → quick sidecar health check → inject credentials →
+ *     deploy workflows → activate → return
+ *     Completes in ~30-40 s.
+ *
+ *   The frontend polls /api/onboarding/ignition-status between phases
+ *   and triggers Phase 2 when the sidecar is ready.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -14,13 +25,13 @@ import { canAccessWorkspace } from '@/lib/api-workspace-guard';
 import { EncryptionService } from '@/lib/genesis/phase64/credential-vault-service';
 import { IgnitionConfigAssembler } from '@/lib/genesis/ignition-config-assembler';
 import { buildManifestFromOnboarding, persistManifest, ManifestValidationError } from '@/lib/genesis/workspace-manifest';
-
-// Orchestrator + integration imports (lazy)
 import { IgnitionOrchestrator, HttpWorkflowDeployer } from '@/lib/genesis/ignition-orchestrator';
 import { DropletFactoryAdapter, DeferredHttpSidecarClient } from '@/lib/genesis/integration-adapters';
 import { SupabaseIgnitionStateDB } from '@/lib/genesis/supabase-ignition-state-db';
 import { SupabasePartitionManager } from '@/lib/genesis/supabase-partition-manager';
 import { CredentialVault } from '@/lib/genesis/credential-vault';
+
+export const maxDuration = 60;
 
 // ============================================
 // LAZY SERVICE INITIALISATION
@@ -42,18 +53,15 @@ function getAssembler(): IgnitionConfigAssembler | { error: string } {
   return assembler;
 }
 
-/**
- * Validate that all required infrastructure env vars are present.
- * Returns an array of missing var names — empty means all good.
- */
 function checkRequiredEnvVars(): string[] {
   const required: Array<{ key: string; label: string }> = [
-    { key: 'INTERNAL_ENCRYPTION_KEY', label: 'Internal encryption key — required for DO token decryption and credential operations' },
-    { key: 'GENESIS_JWT_PRIVATE_KEY', label: 'JWT private key — required for sidecar communication' },
-    { key: 'CREDENTIAL_MASTER_KEY', label: 'Credential master key — required for credential encryption' },
-    { key: 'NEXT_PUBLIC_SUPABASE_URL', label: 'Supabase URL — required for database operations' },
-    { key: 'SUPABASE_SERVICE_ROLE_KEY', label: 'Supabase service role key — required for admin operations' },
-    { key: 'GHCR_READ_TOKEN', label: 'GitHub Container Registry read token — required for private sidecar image pull on droplets' },
+    { key: 'INTERNAL_ENCRYPTION_KEY', label: 'Internal encryption key' },
+    { key: 'GENESIS_JWT_PRIVATE_KEY', label: 'JWT private key' },
+    { key: 'CREDENTIAL_MASTER_KEY', label: 'Credential master key' },
+    { key: 'NEXT_PUBLIC_SUPABASE_URL', label: 'Supabase URL' },
+    { key: 'SUPABASE_SERVICE_ROLE_KEY', label: 'Supabase service role key' },
+    { key: 'GHCR_READ_TOKEN', label: 'GHCR read token' },
+    { key: 'GENESIS_JWT_PUBLIC_KEY', label: 'JWT public key' },
   ];
 
   return required
@@ -61,24 +69,13 @@ function checkRequiredEnvVars(): string[] {
     .map(({ key, label }) => `${key}: ${label}`);
 }
 
-/**
- * Build the IgnitionOrchestrator wiring.
- *
- * All integrations use REAL implementations — no mock fallbacks.
- * If a required env var is missing, the caller should reject the request
- * via checkRequiredEnvVars() before reaching this function.
- */
-function buildOrchestrator(workspaceId: string) {
+function buildOrchestrator(workspaceId: string, dropletId?: string) {
   const masterKey = process.env.CREDENTIAL_MASTER_KEY!;
   const admin = supabaseAdmin!;
 
-  // State DB — always use Supabase
   const stateDB = new SupabaseIgnitionStateDB();
-
-  // Partition manager
   const partitionManager = new SupabasePartitionManager();
 
-  // Credential vault
   const credentialVault = new CredentialVault(masterKey, {
     insert: async (record) => {
       const { data } = await admin
@@ -114,9 +111,11 @@ function buildOrchestrator(workspaceId: string) {
     },
   });
 
-  // Real integrations — no fallbacks
   const dropletFactory = new DropletFactoryAdapter();
   const sidecarClient = new DeferredHttpSidecarClient(workspaceId);
+  if (dropletId) {
+    sidecarClient.setDropletId(dropletId);
+  }
   const workflowDeployer = new HttpWorkflowDeployer(sidecarClient);
 
   return new IgnitionOrchestrator(
@@ -131,118 +130,49 @@ function buildOrchestrator(workspaceId: string) {
 }
 
 // ============================================
-// POST — Launch ignition
+// POST — Launch ignition (Phase 1 or Phase 2)
 // ============================================
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Auth
+    // ── Pre-flight: env vars FIRST (before anything touches supabaseAdmin) ──
+    const missingVars = checkRequiredEnvVars();
+    if (missingVars.length > 0) {
+      console.error('[Launch] Missing required env vars:', missingVars);
+      return NextResponse.json(
+        { error: 'Infrastructure not fully configured', missing: missingVars },
+        { status: 503 },
+      );
+    }
+
+    // ── Auth ──
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body: any = await req.json();
-    const { workspaceId } = body;
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
 
+    const { workspaceId, phase = 1 } = body;
     if (!workspaceId) {
       return NextResponse.json({ error: 'workspaceId is required' }, { status: 400 });
     }
 
-    // 2. Workspace access
     const access = await canAccessWorkspace(userId, workspaceId, req.url);
     if (!access.hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // 3. Init assembler
-    const asm = getAssembler();
-    if ('error' in asm) {
-      return NextResponse.json({ error: asm.error }, { status: 500 });
+    if (phase === 2) {
+      return handlePhase2(workspaceId, userId, body);
     }
 
-    // 4. Verify all stages complete
-    const stageCheck = await asm.areAllStagesComplete(workspaceId);
-    if (!stageCheck.complete) {
-      return NextResponse.json(
-        {
-          error: 'Not all onboarding stages are complete',
-          missingStages: stageCheck.missingStages,
-        },
-        { status: 400 },
-      );
-    }
-
-    // 5. Assemble config
-    let config;
-    try {
-      config = await asm.assemble(workspaceId, userId);
-    } catch (assembleErr: any) {
-      return NextResponse.json(
-        { error: assembleErr.message || 'Failed to assemble ignition config' },
-        { status: 400 },
-      );
-    }
-
-    // 5.5 Build + validate + persist WorkspaceManifest (Flaw-3 fix)
-    //     This guarantees sender_email, calendly_url, webhook_token, etc. are
-    //     all present before the orchestrator touches the variable map.
-    let lockedManifest;
-    try {
-      const draft = await buildManifestFromOnboarding(
-        supabaseAdmin!,
-        workspaceId,
-        'global',  // operator provides AI/scraping keys
-      );
-      lockedManifest = await persistManifest(supabaseAdmin!, draft);
-      // Attach to config so the orchestrator derives variables from it
-      config = { ...config, manifest: lockedManifest };
-    } catch (manifestErr: any) {
-      if (manifestErr instanceof ManifestValidationError) {
-        return NextResponse.json(
-          {
-            error: 'Workspace manifest validation failed',
-            field_errors: manifestErr.fieldErrors,
-          },
-          { status: 422 },
-        );
-      }
-      // Non-validation errors (DB read failures etc.): fail hard
-      console.error('[Launch] Manifest build failed:', manifestErr);
-      return NextResponse.json(
-        { error: manifestErr.message || 'Failed to build workspace manifest' },
-        { status: 500 },
-      );
-    }
-
-    // 6. Pre-flight: verify all infrastructure env vars are set
-    const missingVars = checkRequiredEnvVars();
-    if (missingVars.length > 0) {
-      console.error('[Launch] Missing required env vars:', missingVars);
-      return NextResponse.json(
-        {
-          error: 'Infrastructure not fully configured — cannot launch ignition',
-          missing: missingVars,
-        },
-        { status: 503 },
-      );
-    }
-
-    // 7. Build orchestrator & ignite
-    const orchestrator = buildOrchestrator(workspaceId);
-    const result = await orchestrator.ignite(config);
-
-    return NextResponse.json({
-      success: result.success,
-      workspace_id: result.workspace_id,
-      status: result.success ? 'active' : 'failed',
-      partition_name: result.partition_name,
-      droplet_id: result.droplet_id,
-      droplet_ip: result.droplet_ip,
-      workflow_ids: result.workflow_ids,
-      duration_ms: result.duration_ms,
-      error: result.error,
-    });
+    return handlePhase1(workspaceId, userId);
   } catch (error) {
     console.error('Onboarding launch error:', error);
     return NextResponse.json(
@@ -250,4 +180,296 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+// ============================================
+// PHASE 1: Validate → Partition → Droplet
+// ============================================
+
+async function handlePhase1(workspaceId: string, userId: string) {
+  // Fast-path: if Phase 1 already completed, skip re-validation and go to polling
+  const existingStateDB = new SupabaseIgnitionStateDB();
+  const existingState = await existingStateDB.load(workspaceId);
+  if (existingState) {
+    if (existingState.status === 'active') {
+      return NextResponse.json({
+        success: true,
+        status: 'active',
+        phase: 1,
+        workspace_id: workspaceId,
+        droplet_ip: existingState.droplet_ip,
+      });
+    }
+    const resumableStatuses = ['handshake_pending', 'credentials_injecting', 'workflows_deploying'];
+    const canResume = resumableStatuses.includes(existingState.status)
+      || (existingState.status === 'failed' && existingState.droplet_ip && existingState.droplet_id);
+
+    if (canResume) {
+      // Reset failed state so Phase 2 can proceed
+      if (existingState.status === 'failed') {
+        await existingStateDB.save({
+          ...existingState,
+          status: 'handshake_pending',
+          error_message: undefined as any,
+          error_step: undefined as any,
+          error_stack: undefined as any,
+          current_step: 3,
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        status: 'handshake_pending',
+        phase: 1,
+        workspace_id: workspaceId,
+        droplet_id: existingState.droplet_id,
+        droplet_ip: existingState.droplet_ip,
+        partition_name: existingState.partition_name,
+        polling: true,
+      });
+    }
+  }
+
+  // 1. Init assembler
+  const asm = getAssembler();
+  if ('error' in asm) {
+    return NextResponse.json({ error: asm.error }, { status: 500 });
+  }
+
+  // 2. Verify all stages complete
+  const stageCheck = await asm.areAllStagesComplete(workspaceId);
+  if (!stageCheck.complete) {
+    return NextResponse.json(
+      { error: 'Not all onboarding stages are complete', missingStages: stageCheck.missingStages },
+      { status: 400 },
+    );
+  }
+
+  // 3. Assemble config
+  let config;
+  try {
+    config = await asm.assemble(workspaceId, userId);
+  } catch (assembleErr: any) {
+    return NextResponse.json(
+      { error: assembleErr.message || 'Failed to assemble ignition config' },
+      { status: 400 },
+    );
+  }
+
+  // 4. Build + validate + persist WorkspaceManifest
+  try {
+    const draft = await buildManifestFromOnboarding(supabaseAdmin!, workspaceId, 'global');
+    const lockedManifest = await persistManifest(supabaseAdmin!, draft);
+    config = { ...config, manifest: lockedManifest };
+  } catch (manifestErr: any) {
+    if (manifestErr instanceof ManifestValidationError) {
+      return NextResponse.json(
+        { error: 'Workspace manifest validation failed', field_errors: manifestErr.fieldErrors },
+        { status: 422 },
+      );
+    }
+    console.error('[Launch] Manifest build failed:', manifestErr);
+    return NextResponse.json(
+      { error: manifestErr.message || 'Failed to build workspace manifest' },
+      { status: 500 },
+    );
+  }
+
+  // 5. Run Phase 1 of ignition (partition + droplet only)
+  const orchestrator = buildOrchestrator(workspaceId);
+  const result = await orchestrator.ignitePhase1(config);
+
+  if (!result.success) {
+    return NextResponse.json({
+      success: false,
+      status: 'failed',
+      error: result.error,
+      phase: 1,
+    });
+  }
+
+  return NextResponse.json({
+    success: true,
+    status: result.status,
+    phase: 1,
+    workspace_id: workspaceId,
+    droplet_id: result.droplet_id,
+    droplet_ip: result.droplet_ip,
+    partition_name: result.partition_name,
+    polling: true,
+  });
+}
+
+// ============================================
+// PHASE 2: Sidecar check → Credentials → Workflows
+// ============================================
+
+async function handlePhase2(workspaceId: string, userId: string, body: any) {
+  const stateDB = new SupabaseIgnitionStateDB();
+  const state = await stateDB.load(workspaceId);
+
+  if (!state) {
+    return NextResponse.json({ error: 'No ignition state found — run Phase 1 first' }, { status: 400 });
+  }
+
+  if (state.status === 'active') {
+    return NextResponse.json({
+      success: true,
+      status: 'active',
+      phase: 2,
+      workspace_id: workspaceId,
+      droplet_ip: state.droplet_ip,
+      workflow_ids: state.workflow_ids,
+    });
+  }
+
+  // Only proceed if Phase 1 completed (handshake_pending = droplet is ready, waiting for sidecar)
+  if (state.status !== 'handshake_pending' && state.status !== 'credentials_injecting') {
+    return NextResponse.json({
+      success: false,
+      status: state.status,
+      phase: 2,
+      error: `Cannot continue — current status is '${state.status}'`,
+    });
+  }
+
+  // Quick sidecar/n8n health check
+  const dropletIp = state.droplet_ip;
+  if (!dropletIp) {
+    return NextResponse.json({ success: false, status: 'waiting_for_sidecar', sidecar_ready: false });
+  }
+
+  let sidecarHealthy = false;
+  let n8nBootstrapped = false;
+
+  // Attempt 1: Direct sidecar port 3100 — also check n8n_bootstrapped flag
+  try {
+    const c1 = new AbortController();
+    const t1 = setTimeout(() => c1.abort(), 8000);
+    const r1 = await fetch(`http://${dropletIp}:3100/health`, { signal: c1.signal });
+    clearTimeout(t1);
+    const b1 = await r1.json();
+    if (b1.status === 'ok') {
+      sidecarHealthy = true;
+      n8nBootstrapped = b1.n8n_bootstrapped === true;
+    }
+  } catch {
+    // Port 3100 may not be reachable from Vercel — try fallback
+  }
+
+  // Attempt 2: n8n via HTTPS on sslip.io (Caddy → n8n on 443)
+  if (!sidecarHealthy) {
+    try {
+      const c2 = new AbortController();
+      const t2 = setTimeout(() => c2.abort(), 8000);
+      const r2 = await fetch(`https://${dropletIp}.sslip.io/healthz`, {
+        signal: c2.signal,
+        headers: { 'User-Agent': 'Genesis-HealthCheck/1.0' },
+      });
+      clearTimeout(t2);
+      if (r2.ok || r2.status === 200 || r2.status === 401 || r2.status === 302) {
+        sidecarHealthy = true;
+        // Can't check bootstrap status from n8n directly — assume not ready yet
+        n8nBootstrapped = false;
+      }
+    } catch {
+      // n8n not ready either
+    }
+  }
+
+  if (!sidecarHealthy) {
+    return NextResponse.json({ success: false, status: 'waiting_for_sidecar', sidecar_ready: false });
+  }
+
+  // If the sidecar is up but hasn't finished its n8n bootstrap yet, keep waiting
+  if (!n8nBootstrapped) {
+    return NextResponse.json({ success: false, status: 'waiting_for_sidecar', sidecar_ready: true, n8n_bootstrapped: false });
+  }
+
+  // ── Record n8n owner credentials from cloud-init (sidecar handles actual setup) ──
+  const existingOwner = (state as any).n8n_owner_email;
+  if (!existingOwner) {
+    try {
+      const { data: fleetRow } = await supabaseAdmin!
+        .schema('genesis')
+        .from('fleet_status' as any)
+        .select('postgres_password')
+        .eq('droplet_id', Number(state.droplet_id))
+        .maybeSingle() as { data: any };
+
+      const { data: wsRow } = await supabaseAdmin!
+        .from('workspaces')
+        .select('slug')
+        .eq('id', workspaceId)
+        .single() as { data: any };
+
+      const workspaceSlug = wsRow?.slug || workspaceId.slice(0, 8);
+      const n8nOwnerEmail = `admin@${workspaceSlug}.io`;
+      const n8nOwnerPassword = fleetRow?.postgres_password;
+
+      if (n8nOwnerPassword) {
+        const encService = new EncryptionService(
+          process.env.ENCRYPTION_MASTER_KEY || process.env.CREDENTIAL_MASTER_KEY || ''
+        );
+        const encryptedPassword = encService.encrypt(n8nOwnerPassword, workspaceId);
+
+        await supabaseAdmin!
+          .schema('genesis')
+          .from('ignition_state' as any)
+          .update({
+            n8n_owner_email: n8nOwnerEmail,
+            n8n_owner_password: encryptedPassword,
+          } as any)
+          .eq('workspace_id', workspaceId);
+
+        console.log(`[Launch] n8n owner creds recorded for workspace ${workspaceId}`);
+      }
+    } catch (ownerErr) {
+      console.warn('[Launch] Failed to record n8n owner creds (non-fatal):', ownerErr);
+    }
+  }
+
+  // Sidecar is ready — reassemble config and run Phase 2
+  const asm = getAssembler();
+  if ('error' in asm) {
+    return NextResponse.json({ error: asm.error }, { status: 500 });
+  }
+
+  let config;
+  try {
+    config = await (asm as IgnitionConfigAssembler).assemble(workspaceId, userId);
+    // Re-attach manifest
+    if (supabaseAdmin) {
+      const { data: manifestRow } = await supabaseAdmin
+        .schema('genesis')
+        .from('workspace_manifests' as any)
+        .select('manifest')
+        .eq('workspace_id', workspaceId)
+        .maybeSingle() as { data: any };
+      if (manifestRow?.manifest) {
+        config = { ...config, manifest: manifestRow.manifest };
+      }
+    }
+  } catch (assembleErr: any) {
+    return NextResponse.json(
+      { error: assembleErr.message || 'Failed to reassemble config for Phase 2' },
+      { status: 400 },
+    );
+  }
+
+  const realDropletId = state.droplet_id || undefined;
+  const orchestrator = buildOrchestrator(workspaceId, realDropletId);
+  const result = await orchestrator.ignitePhase2(config, state);
+
+  return NextResponse.json({
+    success: result.success,
+    status: result.success ? 'active' : 'failed',
+    phase: 2,
+    workspace_id: workspaceId,
+    droplet_ip: result.droplet_ip,
+    workflow_ids: result.workflow_ids,
+    duration_ms: result.duration_ms,
+    n8n_owner_email: existingOwner || (state as any).n8n_owner_email,
+    error: result.error,
+  });
 }

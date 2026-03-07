@@ -23,6 +23,7 @@ import path from 'path';
 
 import { loadOperatorCredentials, type OperatorCredentials } from './operator-credential-store';
 import { getSenderEmail, type WorkspaceManifest } from './workspace-manifest';
+import { DROPLET_REGIONS, DROPLET_SIZES } from './phase64/droplet-configuration-service';
 
 import {
   IgnitionConfig,
@@ -487,11 +488,13 @@ export class IgnitionOrchestrator {
             return;
           }
 
+          const doRegion = (DROPLET_REGIONS as Record<string, { doSlug: string }>)[config.region]?.doSlug || config.region;
+          const doSize = (DROPLET_SIZES as Record<string, { doSlug: string }>)[config.droplet_size]?.doSlug || config.droplet_size;
           const result = await this.dropletFactory.provision({
             workspace_id: config.workspace_id,
             workspace_slug: config.workspace_slug,
-            region: config.region,
-            size_slug: config.droplet_size,
+            region: doRegion,
+            size_slug: doSize,
           });
 
           if (!result.success) {
@@ -1064,6 +1067,560 @@ export class IgnitionOrchestrator {
     }
   }
 
+  // ============================================
+  // PHASE 1: Partition + Droplet (fits in ≤ 60 s)
+  // ============================================
+
+  async ignitePhase1(config: IgnitionConfig): Promise<IgnitionResult> {
+    const startTime = Date.now();
+
+    // ── Idempotency guard ──
+    const existing = await this.stateDB.load(config.workspace_id);
+
+    if (existing) {
+      if (existing.status === 'active') {
+        return {
+          success: true,
+          workspace_id: config.workspace_id,
+          partition_name: existing.partition_name,
+          droplet_id: existing.droplet_id,
+          droplet_ip: existing.droplet_ip,
+          workflow_ids: existing.workflow_ids,
+          credential_count: existing.credential_ids.length,
+          duration_ms: Date.now() - startTime,
+          steps_completed: existing.total_steps,
+          status: 'active',
+        };
+      }
+
+      // Allow Phase 2 to continue from handshake_pending
+      if (existing.status === 'handshake_pending') {
+        return {
+          success: true,
+          workspace_id: config.workspace_id,
+          partition_name: existing.partition_name,
+          droplet_id: existing.droplet_id,
+          droplet_ip: existing.droplet_ip,
+          duration_ms: Date.now() - startTime,
+          steps_completed: 2,
+          status: 'handshake_pending',
+        };
+      }
+
+      // Previous attempt failed — clean up and allow retry
+      if (existing.status === 'failed') {
+        await this.stateDB.logOperation({
+          workspace_id: config.workspace_id,
+          operation: 'ignite_phase1',
+          status: 'retrying',
+          result: { reason: 'previous_failed', previous_error: existing.error_message },
+        });
+        await this.stateDB.delete(config.workspace_id);
+      } else {
+        // Some in-progress state — reject
+        return {
+          success: false,
+          workspace_id: config.workspace_id,
+          duration_ms: Date.now() - startTime,
+          steps_completed: existing.current_step,
+          error: `Ignition already in progress (status: ${existing.status})`,
+          error_step: existing.status,
+        };
+      }
+    }
+
+    // ── Initialize state ──
+    const state: IgnitionState = {
+      workspace_id: config.workspace_id,
+      status: 'pending',
+      current_step: 0,
+      total_steps: 6,
+      workflow_ids: [],
+      credential_ids: [],
+      started_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      requested_by: config.requested_by,
+      region: config.region,
+      droplet_size: config.droplet_size,
+    };
+
+    await this.saveState(state);
+    this.cancellationFlags.delete(config.workspace_id);
+
+    const resources: CreatedResources = {
+      credential_ids: [],
+      workflow_ids: [],
+      n8n_credential_ids: [],
+    };
+
+    try {
+      // STEP 1: Create partition
+      await this.executeStep(state, 'partition_creating', 1, async () => {
+        const result = await this.partitionManager.create(
+          config.workspace_id, config.workspace_slug
+        );
+        if (!result.success) {
+          throw new IgnitionError(
+            result.error || 'Partition creation failed',
+            'partition_creating', config.workspace_id
+          );
+        }
+        resources.partition_name = result.partition_name;
+        state.partition_name = result.partition_name;
+
+        const leadsTable = `genesis.leads_p_${config.workspace_slug}`;
+        if (this.supabaseAdmin) {
+          try {
+            const { data: ws } = await this.supabaseAdmin
+              .from('workspaces').select('settings').eq('id', config.workspace_id).single();
+            const current = (ws?.settings as Record<string, unknown>) || {};
+            await this.supabaseAdmin
+              .from('workspaces')
+              .update({ settings: { ...current, leads_table: leadsTable } })
+              .eq('id', config.workspace_id);
+          } catch (e) {
+            console.warn('[Ignition] Failed to set leads_table:', e);
+          }
+        }
+      });
+
+      // STEP 1.5: Create default campaign group
+      if (this.supabaseAdmin && !config.campaign_group_id) {
+        try {
+          const name = config.campaign_group_name || `${config.workspace_name} Campaign A`;
+          const { data: cg } = await this.supabaseAdmin
+            .from('campaign_groups')
+            .insert({
+              workspace_id: config.workspace_id,
+              name, description: 'Default campaign created during ignition',
+              status: 'active', is_test: false,
+            })
+            .select('id').single();
+
+          if (cg?.id) {
+            config.campaign_group_id = cg.id;
+            config.campaign_group_name = name;
+            await this.supabaseAdmin
+              .from('campaigns')
+              .insert({
+                workspace_id: config.workspace_id,
+                campaign_group_id: cg.id, name,
+                description: 'Default campaign created during ignition',
+                status: 'active',
+              });
+          }
+        } catch (e) {
+          console.warn('[Ignition] Failed to create default campaign group:', e);
+        }
+      }
+
+      // STEP 2: Provision droplet
+      await this.executeStep(state, 'droplet_provisioning', 2, async () => {
+        const isLocalMode = config.local_mode === true || process.env.LOCAL_MODE === 'true';
+        if (isLocalMode) {
+          const localIp = config.local_n8n_ip || process.env.LOCAL_N8N_IP || '127.0.0.1';
+          state.droplet_id = 'local';
+          state.droplet_ip = localIp;
+          return;
+        }
+
+        const doRegion = (DROPLET_REGIONS as Record<string, { doSlug: string }>)[config.region]?.doSlug || config.region;
+        const doSize = (DROPLET_SIZES as Record<string, { doSlug: string }>)[config.droplet_size]?.doSlug || config.droplet_size;
+        const result = await this.dropletFactory.provision({
+          workspace_id: config.workspace_id,
+          workspace_slug: config.workspace_slug,
+          region: doRegion, size_slug: doSize,
+        });
+
+        if (!result.success) {
+          throw new IgnitionError(
+            result.error || 'Droplet provisioning failed',
+            'droplet_provisioning', config.workspace_id
+          );
+        }
+
+        resources.droplet_id = result.droplet_id;
+        state.droplet_id = result.droplet_id;
+        state.droplet_ip = result.ip_address;
+      });
+
+      // Phase 1 done — set state to handshake_pending and return.
+      // The frontend will poll and call Phase 2 when the sidecar is healthy.
+      state.status = 'handshake_pending';
+      state.current_step = 3;
+      state.updated_at = new Date().toISOString();
+      await this.saveState(state);
+
+      return {
+        success: true,
+        workspace_id: config.workspace_id,
+        partition_name: resources.partition_name,
+        droplet_id: resources.droplet_id || state.droplet_id,
+        droplet_ip: state.droplet_ip,
+        duration_ms: Date.now() - startTime,
+        steps_completed: 2,
+        status: 'handshake_pending',
+      };
+    } catch (error) {
+      state.status = 'rollback_in_progress';
+      state.error_message = error instanceof Error ? error.message : 'Unknown error';
+      state.error_step = error instanceof IgnitionError ? error.step : 'unknown';
+      state.rollback_started_at = new Date().toISOString();
+      await this.saveState(state);
+
+      const rollbackResult = await this.rollback(config.workspace_id, resources, state.droplet_ip);
+
+      state.rollback_completed_at = new Date().toISOString();
+      state.rollback_success = rollbackResult.success;
+      state.status = 'failed';
+      state.completed_at = new Date().toISOString();
+      await this.saveState(state);
+
+      return {
+        success: false,
+        workspace_id: config.workspace_id,
+        duration_ms: Date.now() - startTime,
+        steps_completed: Math.max(0, state.current_step - 1),
+        error: state.error_message,
+        error_step: state.error_step,
+        rollback_performed: true,
+      };
+    }
+  }
+
+  // ============================================
+  // PHASE 2: Credentials + Workflows (fits in ≤ 60 s)
+  // ============================================
+
+  async ignitePhase2(
+    config: IgnitionConfig,
+    existingState: IgnitionState
+  ): Promise<IgnitionResult> {
+    const startTime = Date.now();
+
+    // Rehydrate state from DB
+    const state = { ...existingState };
+    state.updated_at = new Date().toISOString();
+
+    // Sidecar is confirmed healthy (the route checked before calling this)
+    state.webhook_url = `https://${state.droplet_ip}.sslip.io/webhook`;
+
+    const resources: CreatedResources = {
+      credential_ids: [],
+      workflow_ids: [],
+      n8n_credential_ids: [],
+      droplet_id: state.droplet_id,
+      partition_name: state.partition_name,
+    };
+
+    try {
+      // STEP 4: Inject credentials (mirrors the original Step 4 in ignite())
+      await this.executeStep(state, 'credentials_injecting', 4, async () => {
+        // Auto-inject Supabase Postgres credential
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+        const pgHost = supabaseUrl
+          ? `db.${new URL(supabaseUrl).hostname.split('.')[0]}.supabase.co`
+          : '';
+        const postgresCred: CredentialConfig = {
+          type: 'postgres',
+          name: `supabase_postgres_${config.workspace_id.slice(0, 8)}`,
+          data: {
+            host: pgHost,
+            port: 5432,
+            database: 'postgres',
+            user: 'postgres',
+            password: supabaseKey,
+            ssl: true,
+          },
+          template_placeholder: 'YOUR_CREDENTIAL_SUPABASE_ID',
+        };
+        config.credentials = [postgresCred, ...config.credentials.filter(c => c.type !== 'postgres')];
+
+        const transitKey = process.env.INTERNAL_ENCRYPTION_KEY || process.env.CREDENTIAL_MASTER_KEY || '';
+
+        for (let i = 0; i < config.credentials.length; i++) {
+          const cred = config.credentials[i];
+
+          await this.stateDB.logOperation({
+            workspace_id: config.workspace_id,
+            operation: `inject_credential:${cred.type}:${cred.name}`,
+            status: 'started',
+          });
+
+          let credLoggedSuccess = false;
+
+          try {
+            const storeResult = await this.credentialVault.store(
+              config.workspace_id,
+              cred,
+              config.requested_by
+            );
+
+            if (!storeResult.success) {
+              throw new IgnitionError(
+                storeResult.error || 'Credential storage failed',
+                'credentials_injecting', config.workspace_id
+              );
+            }
+
+            resources.credential_ids.push(storeResult.credential_id!);
+            state.credential_ids.push(storeResult.credential_id!);
+
+            if (state.droplet_ip) {
+              const encryptedForTransit = encryptCredential(
+                cred.data as Record<string, unknown>,
+                config.workspace_id,
+                transitKey
+              );
+
+              const injectResult = await this.retryTransient(
+                () => this.sidecarClient.sendCommand(
+                  state.droplet_ip!,
+                  {
+                    action: 'INJECT_CREDENTIAL',
+                    payload: {
+                      credential_type: cred.type,
+                      credential_name: cred.name,
+                      encrypted_data: encryptedForTransit,
+                    },
+                  }
+                ),
+                { maxAttempts: 3, baseDelayMs: 2000, label: `inject-cred:${cred.name}` }
+              );
+
+              if (!injectResult.success) {
+                throw new IgnitionError(
+                  injectResult.error || 'Sidecar credential injection failed',
+                  'credentials_injecting', config.workspace_id
+                );
+              }
+
+              if (injectResult.result) {
+                const n8nCredId = (injectResult.result as any).credential_id;
+                resources.n8n_credential_ids.push(n8nCredId);
+                await this.stateDB.logOperation({
+                  workspace_id: config.workspace_id,
+                  operation: `inject_credential:${cred.type}:${cred.name}`,
+                  status: 'completed',
+                  result: { n8n_credential_id: n8nCredId || null },
+                });
+                credLoggedSuccess = true;
+              }
+            }
+
+            if (!credLoggedSuccess) {
+              await this.stateDB.logOperation({
+                workspace_id: config.workspace_id,
+                operation: `inject_credential:${cred.type}:${cred.name}`,
+                status: 'completed',
+                result: { vault_only: true },
+              });
+            }
+          } catch (credErr) {
+            const message = credErr instanceof Error ? credErr.message : String(credErr);
+            await this.stateDB.logOperation({
+              workspace_id: config.workspace_id,
+              operation: `inject_credential:${cred.type}:${cred.name}`,
+              status: 'failed',
+              error: message,
+            });
+            throw credErr;
+          }
+        }
+      });
+
+      // STEP 5: Deploy workflows
+      await this.executeStep(state, 'workflows_deploying', 5, async () => {
+        const templates = config.workflow_templates
+          ? DEFAULT_TEMPLATES.filter(t => config.workflow_templates!.includes(t.template_name))
+          : DEFAULT_TEMPLATES;
+
+        const emailProvider: 'gmail' | 'smtp' = config.credentials.some(
+          c => c.type === 'smtp'
+        ) ? 'smtp' : 'gmail';
+
+        const credTypeToN8nId: Record<string, string> = {};
+        for (let i = 0; i < config.credentials.length; i++) {
+          const cred = config.credentials[i];
+          const n8nId = resources.n8n_credential_ids[i];
+          if (n8nId) credTypeToN8nId[cred.type] = n8nId;
+        }
+
+        for (const template of templates) {
+          for (const requiredType of template.required_credentials) {
+            const matchingCred = config.credentials.find(c => c.type === requiredType);
+            if (!matchingCred) {
+              throw new IgnitionError(
+                `Template '${template.display_name}' requires '${requiredType}' but none provided`,
+                'workflows_deploying', config.workspace_id
+              );
+            }
+            if (!matchingCred.template_placeholder) {
+              throw new IgnitionError(
+                `Credential '${matchingCred.name}' has no template_placeholder`,
+                'workflows_deploying', config.workspace_id
+              );
+            }
+            if (!credTypeToN8nId[requiredType]) {
+              throw new IgnitionError(
+                `No n8n credential ID for type '${requiredType}'`,
+                'workflows_deploying', config.workspace_id
+              );
+            }
+          }
+
+          if (!state.droplet_ip) {
+            throw new IgnitionError('Droplet IP not available', 'workflows_deploying', config.workspace_id);
+          }
+
+          const templateJson = this.loadTemplateJson(template.template_name, emailProvider);
+
+          const isLocalMode = config.local_mode === true || process.env.LOCAL_MODE === 'true';
+          const instanceBase = isLocalMode
+            ? `http://${state.droplet_ip}:5678`
+            : `https://${state.droplet_ip}.sslip.io`;
+
+          let operatorCreds: OperatorCredentials = {};
+          if (this.supabaseAdmin) {
+            try {
+              operatorCreds = await loadOperatorCredentials(this.supabaseAdmin);
+            } catch (e) {
+              console.warn('[Ignition] Could not load operator credentials:', e);
+            }
+          }
+
+          const manifest: WorkspaceManifest | undefined = config.manifest;
+          const senderEmail = manifest
+            ? getSenderEmail(manifest)
+            : (config.variables?.YOUR_SENDER_EMAIL ?? '');
+          const companyName = manifest?.company_name ?? config.workspace_name;
+          const calendlyUrl1 = manifest?.calendly_url ?? (config.variables?.YOUR_CALENDLY_LINK_1 ?? '');
+          const webhookToken = manifest?.webhook_token
+            || config.webhook_token
+            || process.env.DASH_WEBHOOK_TOKEN
+            || '';
+
+          const variableMap: Record<string, string> = {
+            YOUR_WORKSPACE_ID:   config.workspace_id,
+            YOUR_WORKSPACE_SLUG: manifest?.workspace_slug ?? config.workspace_slug,
+            YOUR_WORKSPACE_NAME: manifest?.workspace_name ?? config.workspace_name,
+            YOUR_COMPANY_NAME:   companyName,
+            YOUR_NAME:           companyName,
+            YOUR_CAMPAIGN_GROUP_ID:   config.campaign_group_id ?? config.workspace_id,
+            YOUR_CAMPAIGN_NAME:       config.campaign_group_name ?? companyName,
+            YOUR_LEADS_TABLE: `genesis.leads_p_${manifest?.workspace_slug ?? config.workspace_slug}`,
+            YOUR_N8N_INSTANCE_URL:         instanceBase,
+            YOUR_UNSUBSCRIBE_REDIRECT_URL: `${instanceBase}/webhook/opt-out`,
+            YOUR_DASHBOARD_URL: process.env.NEXT_PUBLIC_APP_URL || process.env.BASE_URL || '',
+            YOUR_WEBHOOK_TOKEN: webhookToken,
+            YOUR_RELEVANCE_AI_AUTH_TOKEN: operatorCreds.relevance_ai_auth_token || '',
+            YOUR_RELEVANCE_AI_BASE_URL:   operatorCreds.relevance_ai_base_url || 'https://api-d7b62b.stack.tryrelevance.com',
+            YOUR_RELEVANCE_AI_PROJECT_ID: operatorCreds.relevance_ai_project_id || '',
+            YOUR_RELEVANCE_AI_STUDIO_ID:  operatorCreds.relevance_ai_studio_id || '',
+            YOUR_GOOGLE_CSE_API_KEY: operatorCreds.google_cse_api_key || '',
+            YOUR_GOOGLE_CSE_CX:      operatorCreds.google_cse_cx || '',
+            YOUR_APIFY_API_TOKEN: operatorCreds.apify_api_key || '',
+            YOUR_SENDER_EMAIL: senderEmail,
+            YOUR_TEST_EMAIL:   config.variables?.YOUR_TEST_EMAIL ?? '',
+            YOUR_COMPANY_DESCRIPTION:    manifest?.company_description ?? '',
+            YOUR_SERVICE_1_DESCRIPTION:  manifest?.service_descriptions?.[0] ?? '',
+            YOUR_SERVICE_2_DESCRIPTION:  manifest?.service_descriptions?.[1] ?? '',
+            YOUR_SERVICE_3_DESCRIPTION:  manifest?.service_descriptions?.[2] ?? '',
+            YOUR_SERVICE_4_DESCRIPTION:  manifest?.service_descriptions?.[3] ?? '',
+            YOUR_TARGET_INDUSTRY:        manifest?.target_industry ?? '',
+            YOUR_LEADS_SHEET_NAME:       config.variables?.YOUR_LEADS_SHEET_NAME ?? 'Leads',
+            YOUR_CALENDLY_LINK_1: calendlyUrl1,
+            YOUR_CALENDLY_LINK_2: config.variables?.YOUR_CALENDLY_LINK_2 ?? '',
+            ...config.variables,
+          };
+
+          for (let i = 0; i < config.credentials.length; i++) {
+            const cred = config.credentials[i];
+            const n8nId = resources.n8n_credential_ids[i];
+            if (cred.template_placeholder && n8nId) {
+              variableMap[cred.template_placeholder] = n8nId;
+            }
+          }
+
+          if (!variableMap.YOUR_SENDER_EMAIL) {
+            throw new IgnitionError(
+              'YOUR_SENDER_EMAIL is missing',
+              'workflows_deploying', config.workspace_id
+            );
+          }
+
+          const deployResult = await this.workflowDeployer.deploy(
+            state.droplet_ip!,
+            {
+              name: template.template_name,
+              json: templateJson,
+              credential_map: {},
+              variable_map: variableMap,
+            }
+          );
+
+          if (!deployResult.success) {
+            throw new IgnitionError(
+              deployResult.error || `Failed to deploy '${template.display_name}'`,
+              'workflows_deploying', config.workspace_id
+            );
+          }
+
+          resources.workflow_ids.push(deployResult.workflow_id!);
+          state.workflow_ids.push(deployResult.workflow_id!);
+        }
+      });
+
+      // STEP 6: Activate workflows
+      if (!config.skip_activation) {
+        await this.executeStep(state, 'activating', 6, async () => {
+          for (const wfId of resources.workflow_ids) {
+            const activateResult = await this.workflowDeployer.activate(state.droplet_ip!, wfId) as any;
+            if (!activateResult.success) {
+              throw new IgnitionError(
+                activateResult.error || `Failed to activate workflow ${wfId}`,
+                'activating', config.workspace_id
+              );
+            }
+          }
+        });
+      }
+
+      // SUCCESS
+      state.status = 'active';
+      state.completed_at = new Date().toISOString();
+      await this.saveState(state);
+
+      return {
+        success: true,
+        workspace_id: config.workspace_id,
+        partition_name: resources.partition_name,
+        droplet_id: state.droplet_id,
+        droplet_ip: state.droplet_ip,
+        workflow_ids: resources.workflow_ids,
+        credential_count: resources.credential_ids.length,
+        duration_ms: Date.now() - startTime,
+        steps_completed: state.current_step,
+      };
+    } catch (error) {
+      state.error_message = error instanceof Error ? error.message : 'Unknown error';
+      state.error_step = error instanceof IgnitionError ? error.step : 'unknown';
+      state.status = 'failed';
+      state.completed_at = new Date().toISOString();
+      await this.saveState(state);
+
+      return {
+        success: false,
+        workspace_id: config.workspace_id,
+        duration_ms: Date.now() - startTime,
+        steps_completed: Math.max(0, state.current_step - 1),
+        error: state.error_message,
+        error_step: state.error_step,
+      };
+    }
+  }
+
   /**
    * Execute a single step with timeout and error handling.
    */
@@ -1314,12 +1871,10 @@ export class IgnitionOrchestrator {
         lastError = error;
         const msg = error instanceof Error ? error.message : String(error);
 
-        // Permanent errors — do not retry
+        // Permanent errors — do not retry (but 401/404 are often transient during bootstrap)
         const isPermanent =
-          /4\d{2}/.test(msg) ||           // 400, 401, 403, 404, 422 …
+          (/4\d{2}/.test(msg) && !/40[14]/.test(msg)) || // 400, 403, 422 … but NOT 401/404
           /bad request/i.test(msg) ||
-          /unauthorized/i.test(msg) ||
-          /forbidden/i.test(msg) ||
           /validation/i.test(msg);
 
         if (isPermanent || attempt === opts.maxAttempts) {
